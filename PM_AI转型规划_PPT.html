@@ -1,0 +1,645 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>中台可观测性 PM 的 AI 时代转型规划</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: #0d1117;
+    color: #e6edf3;
+    font-family: -apple-system, 'PingFang SC', 'Microsoft YaHei', sans-serif;
+    height: 100vh;
+    overflow: hidden;
+    user-select: none;
+  }
+  .slideshow {
+    width: 100vw;
+    height: 100vh;
+    position: relative;
+  }
+  .slide {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    padding: 60px 80px;
+    opacity: 0;
+    transform: translateX(60px);
+    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    pointer-events: none;
+  }
+  .slide.active {
+    opacity: 1;
+    transform: translateX(0);
+    pointer-events: all;
+  }
+  .slide.exit {
+    opacity: 0;
+    transform: translateX(-60px);
+  }
+
+  /* 通用元素 */
+  .tag {
+    font-size: 13px;
+    color: #58a6ff;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    margin-bottom: 16px;
+    font-weight: 500;
+  }
+  h1 { font-size: 52px; font-weight: 700; line-height: 1.2; color: #fff; }
+  h2 { font-size: 36px; font-weight: 700; color: #fff; margin-bottom: 32px; }
+  h3 { font-size: 24px; font-weight: 600; color: #58a6ff; margin-bottom: 16px; }
+  p { font-size: 18px; line-height: 1.8; color: #8b949e; }
+  .accent { color: #58a6ff; }
+  .highlight { color: #79c0ff; font-weight: 600; }
+
+  /* 封面 */
+  .slide-cover { text-align: center; }
+  .slide-cover h1 { font-size: 48px; margin-bottom: 20px; }
+  .slide-cover .subtitle { font-size: 20px; color: #8b949e; margin-bottom: 12px; }
+  .slide-cover .meta { font-size: 15px; color: #484f58; margin-top: 32px; }
+  .divider { width: 60px; height: 3px; background: linear-gradient(90deg, #58a6ff, #39d353); margin: 24px auto; border-radius: 2px; }
+
+  /* 目录 */
+  .toc-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+    width: 100%;
+    max-width: 800px;
+    margin-top: 16px;
+  }
+  .toc-item {
+    background: #161b22;
+    border: 1px solid #21262d;
+    border-radius: 12px;
+    padding: 24px;
+    transition: border-color 0.2s;
+  }
+  .toc-item:hover { border-color: #58a6ff; }
+  .toc-num { font-size: 32px; font-weight: 700; color: #21262d; margin-bottom: 8px; }
+  .toc-title { font-size: 16px; font-weight: 600; color: #e6edf3; }
+  .toc-sub { font-size: 13px; color: #484f58; margin-top: 4px; }
+
+  /* 内容卡片 */
+  .card {
+    background: #161b22;
+    border: 1px solid #21262d;
+    border-radius: 12px;
+    padding: 24px 28px;
+    margin-bottom: 16px;
+    width: 100%;
+  }
+  .card-title { font-size: 15px; font-weight: 600; color: #58a6ff; margin-bottom: 10px; }
+  .card-body { font-size: 15px; color: #8b949e; line-height: 1.7; }
+
+  /* 列表 */
+  .bullet-list { list-style: none; width: 100%; }
+  .bullet-list li {
+    font-size: 16px;
+    color: #8b949e;
+    line-height: 1.7;
+    padding: 10px 0;
+    border-bottom: 1px solid #21262d;
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+  }
+  .bullet-list li:last-child { border-bottom: none; }
+  .bullet-list li::before {
+    content: '▸';
+    color: #58a6ff;
+    flex-shrink: 0;
+    margin-top: 2px;
+  }
+
+  /* 引用块 */
+  .quote {
+    border-left: 3px solid #58a6ff;
+    padding: 16px 24px;
+    background: #161b22;
+    border-radius: 0 8px 8px 0;
+    font-size: 20px;
+    color: #e6edf3;
+    font-weight: 500;
+    line-height: 1.6;
+    width: 100%;
+    margin: 16px 0;
+  }
+
+  /* 两列布局 */
+  .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; width: 100%; }
+  .three-col { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; width: 100%; }
+
+  /* 表格 */
+  table { width: 100%; border-collapse: collapse; font-size: 14px; }
+  th {
+    background: #161b22;
+    color: #58a6ff;
+    padding: 12px 16px;
+    text-align: left;
+    font-weight: 600;
+    border-bottom: 1px solid #21262d;
+  }
+  td {
+    padding: 12px 16px;
+    color: #8b949e;
+    border-bottom: 1px solid #21262d;
+    vertical-align: top;
+    line-height: 1.6;
+  }
+  tr:last-child td { border-bottom: none; }
+  tr:hover td { background: #161b22; color: #e6edf3; }
+
+  /* 流程箭头 */
+  .flow {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    width: 100%;
+    margin: 20px 0;
+    flex-wrap: wrap;
+  }
+  .flow-item {
+    background: #161b22;
+    border: 1px solid #21262d;
+    border-radius: 8px;
+    padding: 12px 18px;
+    font-size: 14px;
+    color: #e6edf3;
+    text-align: center;
+    flex: 1;
+    min-width: 100px;
+  }
+  .flow-arrow { color: #58a6ff; font-size: 20px; flex-shrink: 0; }
+
+  /* 对比 */
+  .compare {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    width: 100%;
+    margin-top: 16px;
+  }
+  .compare-item {
+    background: #161b22;
+    border-radius: 10px;
+    padding: 20px;
+  }
+  .compare-item.old { border-top: 3px solid #f85149; }
+  .compare-item.new { border-top: 3px solid #39d353; }
+  .compare-label { font-size: 12px; font-weight: 600; letter-spacing: 1px; margin-bottom: 12px; }
+  .compare-item.old .compare-label { color: #f85149; }
+  .compare-item.new .compare-label { color: #39d353; }
+
+  /* 时间线 */
+  .timeline { width: 100%; }
+  .timeline-item {
+    display: grid;
+    grid-template-columns: 140px 1fr;
+    gap: 24px;
+    margin-bottom: 20px;
+    align-items: start;
+  }
+  .timeline-q {
+    background: linear-gradient(135deg, #1f6feb, #388bfd);
+    border-radius: 8px;
+    padding: 10px 16px;
+    font-size: 14px;
+    font-weight: 700;
+    color: #fff;
+    text-align: center;
+  }
+  .timeline-content { font-size: 14px; color: #8b949e; line-height: 1.8; }
+  .timeline-content strong { color: #e6edf3; }
+
+  /* 优先级标签 */
+  .p-tag {
+    display: inline-block;
+    padding: 3px 10px;
+    border-radius: 4px;
+    font-size: 12px;
+    font-weight: 600;
+    margin-right: 6px;
+  }
+  .p0 { background: #388bfd22; color: #58a6ff; border: 1px solid #388bfd44; }
+  .p1 { background: #39d35322; color: #39d353; border: 1px solid #39d35344; }
+  .p2 { background: #f0883e22; color: #f0883e; border: 1px solid #f0883e44; }
+
+  /* 总结卡片 */
+  .summary-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; width: 100%; }
+  .summary-card {
+    background: #161b22;
+    border: 1px solid #21262d;
+    border-radius: 12px;
+    padding: 24px;
+  }
+  .summary-icon { font-size: 28px; margin-bottom: 12px; }
+  .summary-title { font-size: 16px; font-weight: 700; color: #e6edf3; margin-bottom: 8px; }
+  .summary-desc { font-size: 13px; color: #8b949e; line-height: 1.6; }
+
+  /* 导航 */
+  .nav {
+    position: fixed;
+    bottom: 32px;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    z-index: 100;
+  }
+  .nav-btn {
+    background: #161b22;
+    border: 1px solid #21262d;
+    color: #8b949e;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    cursor: pointer;
+    font-size: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+  }
+  .nav-btn:hover { border-color: #58a6ff; color: #58a6ff; }
+  .nav-progress {
+    font-size: 13px;
+    color: #484f58;
+    min-width: 60px;
+    text-align: center;
+  }
+  .progress-dots {
+    display: flex;
+    gap: 6px;
+  }
+  .dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: #21262d;
+    transition: all 0.2s;
+    cursor: pointer;
+  }
+  .dot.active { background: #58a6ff; transform: scale(1.3); }
+
+  .slide-full { justify-content: flex-start; padding-top: 60px; }
+  .slide-full h2 { margin-bottom: 24px; }
+  .width-full { width: 100%; }
+</style>
+</head>
+<body>
+
+<div class="slideshow" id="slideshow">
+
+  <!-- 封面 -->
+  <div class="slide active slide-cover">
+    <div class="tag">2026 Q1 · 产品经理转型规划</div>
+    <h1>中台可观测性 PM<br>的 AI 时代转型</h1>
+    <div class="divider"></div>
+    <p class="subtitle">从「协同桥梁」到「控制桥梁」</p>
+    <p class="meta">可观测性平台 & 稳定性专项 · 产品经理</p>
+  </div>
+
+  <!-- 目录 -->
+  <div class="slide">
+    <div class="tag">Agenda</div>
+    <h2>今天讲什么</h2>
+    <div class="toc-grid">
+      <div class="toc-item">
+        <div class="toc-num">01</div>
+        <div class="toc-title">背景与判断</div>
+        <div class="toc-sub">行业力量 · 组织变化 · 核心判断</div>
+      </div>
+      <div class="toc-item">
+        <div class="toc-num">02</div>
+        <div class="toc-title">方向一：PM → Agent 工程师</div>
+        <div class="toc-sub">需求自闭环能力建设</div>
+      </div>
+      <div class="toc-item">
+        <div class="toc-num">03</div>
+        <div class="toc-title">方向二：AI Native 新范式</div>
+        <div class="toc-sub">定义团队 AI 工作方式</div>
+      </div>
+      <div class="toc-item">
+        <div class="toc-num">04</div>
+        <div class="toc-title">方向三：全局稳定性建设</div>
+        <div class="toc-sub">系统性风险的主动治理</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 背景 1：行业力量 -->
+  <div class="slide slide-full">
+    <div class="tag">01 · 背景与判断</div>
+    <h2>行业正在发生什么</h2>
+    <ul class="bullet-list width-full">
+      <li><span><span class="highlight">研发链路在缩短：</span>AI 编码让"需求—设计—开发"链路越来越短，PM 的解释、拆解、跟进正被更直接的协作方式替代</span></li>
+      <li><span><span class="highlight">稳定性工作正在产品化：</span>SRE 借助 AI 把经验沉淀成 skill/runbook/agent，AIOps 从概念走向落地</span></li>
+      <li><span><span class="highlight">代码质量隐忧浮现：</span>CMU 2025 研究显示 AI 编码后告警上升 30%，复杂度上升 40%+；AI 生成代码 bug 率是人工的 1.7 倍</span></li>
+      <li><span><span class="highlight">组织默认逻辑正在改写：</span>Shopify 要求申请资源前先证明 AI 做不了——不能说清楚自己 AI 时代价值边界的岗位，会自然滑向被压缩</span></li>
+    </ul>
+  </div>
+
+  <!-- 背景 2：组织变化 + 核心判断 -->
+  <div class="slide slide-full">
+    <div class="tag">01 · 背景与判断</div>
+    <h2>核心判断：旧桥梁消失，新控制面出现</h2>
+    <div class="compare">
+      <div class="compare-item old">
+        <div class="compare-label">▼ 正在消失</div>
+        <ul class="bullet-list">
+          <li>需求解释与拆解</li>
+          <li>跨团队协同与跟进</li>
+          <li>信息传递与转述</li>
+        </ul>
+      </div>
+      <div class="compare-item new">
+        <div class="compare-label">▲ 价值上升</div>
+        <ul class="bullet-list">
+          <li>定义正确的问题与约束</li>
+          <li>制定规范与度量体系</li>
+          <li>占据新的控制面</li>
+        </ul>
+      </div>
+    </div>
+    <div class="quote">
+      旧桥梁会消失，但新桥梁不是「沟通桥梁」，而是「<span class="accent">控制桥梁</span>」。<br>
+      <span style="font-size:16px;color:#8b949e;">当执行层变得更快、更廉价，占据控制面的人反而更值钱。</span>
+    </div>
+  </div>
+
+  <!-- 方向一 -->
+  <div class="slide slide-full">
+    <div class="tag">02 · 方向一</div>
+    <h2>PM → Agent 工程师</h2>
+    <div class="card">
+      <div class="card-title">核心逻辑</div>
+      <div class="card-body">用 vibe coding 替代画图和写文档验证想法——快速跑出多个原型、筛选最优解再推进。不是「会写代码的 PM」，而是亲身走完全流程，为定义 AI Native 研发规范建立认知和说服力。</div>
+    </div>
+    <div class="two-col width-full" style="margin-top:8px;">
+      <div>
+        <h3>执行节奏</h3>
+        <ul class="bullet-list">
+          <li>M1（70% 精力）聚焦 1-2 类需求跑通链路</li>
+          <li>M2-M3（40%）建立 prompt 库和模板库</li>
+          <li>M4+（20-30%）常态化，重心转向方向二三</li>
+        </ul>
+      </div>
+      <div>
+        <h3>关键边界</h3>
+        <ul class="bullet-list">
+          <li>用户层可闭环，数据层/引擎层不碰</li>
+          <li>补位不抢活，提前跟研发对齐</li>
+          <li>不要留下「会写代码 PM」的印象</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <!-- 方向二-1：氛围官 + 角色分工 -->
+  <div class="slide slide-full">
+    <div class="tag">03 · 方向二</div>
+    <h2>AI Native 迭代新范式</h2>
+    <div class="card">
+      <div class="card-title">2.1 做团队的「AI 氛围官」</div>
+      <div class="card-body">持续跟踪 AI 前沿动态，过滤提炼为有决策价值的结论；定期输出 AI 工具月报建立团队认知基线；主动推广团队内 AI 实践亮点，带动整体氛围。</div>
+    </div>
+    <div class="card" style="margin-bottom:0;">
+      <div class="card-title">2.2 AI 时代各角色分工重定义</div>
+      <table>
+        <tr><th>角色</th><th>AI 赋能后能做什么</th><th>应该主导什么</th></tr>
+        <tr><td>PM</td><td>原型验证、需求自闭环</td><td>方向定义、规范制定、价值判断</td></tr>
+        <tr><td>前端</td><td>产品模块自闭环、AI 交互探索</td><td>体验创新、AI 交互新范式</td></tr>
+        <tr><td>后端</td><td>技术模块闭环、Agent/SKILL 创新</td><td>数据层与技术能力建设</td></tr>
+        <tr><td>SRE</td><td>业务稳定性自闭环、策略编排</td><td>稳定性产品化设计与 SKILL 治理</td></tr>
+      </table>
+    </div>
+  </div>
+
+  <!-- 方向二-2：AI Native 规范 -->
+  <div class="slide slide-full">
+    <div class="tag">03 · 方向二</div>
+    <h2>2.3 AI Native 全流程规范</h2>
+    <div class="two-col width-full">
+      <div class="card">
+        <div class="card-title">为什么要做？</div>
+        <ul class="bullet-list">
+          <li><span class="highlight">系统风险：</span>AI 代码大量涌入，复杂度和质量难以把控</li>
+          <li><span class="highlight">生态风险：</span>SKILL 野蛮生长，没有准入标准，形成「SKILL 灾难」</li>
+        </ul>
+      </div>
+      <div class="card">
+        <div class="card-title">PM 的角色</div>
+        <ul class="bullet-list">
+          <li>牵头联合研发、SRE 共同建立</li>
+          <li>定义「什么是好的输出」</li>
+          <li>设计度量体系，推动跨角色对齐</li>
+        </ul>
+      </div>
+    </div>
+    <div class="flow">
+      <div class="flow-item">调研<br><span style="font-size:12px;color:#58a6ff">SKILL</span></div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-item">需求<br><span style="font-size:12px;color:#58a6ff">SKILL</span></div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-item">设计<br><span style="font-size:12px;color:#58a6ff">SKILL</span></div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-item">开发<br><span style="font-size:12px;color:#58a6ff">规范</span></div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-item">上线<br><span style="font-size:12px;color:#58a6ff">门禁</span></div>
+    </div>
+    <div class="card" style="margin-bottom:0;">
+      <div class="card-title">SKILL 生态标准</div>
+      <div class="card-body">准入（场景频次/价值可量化/可复用性）· 准出（上线前质量验收）· 度量（调用量/问题拦截数/人工替代率）</div>
+    </div>
+  </div>
+
+  <!-- 方向三-1：Shift Left -->
+  <div class="slide slide-full">
+    <div class="tag">04 · 方向三</div>
+    <h2>全局稳定性建设</h2>
+    <p style="margin-bottom:20px;font-size:16px;">SRE 聚焦业务线，研发聚焦 SKILL，<span class="highlight">全局稳定性视角天然缺失</span>——这个交叉点是 PM 可以主导的空间。</p>
+    <h3>3.1 稳定性规范 SKILL 化 + 左移（Reliability Shift Left）</h3>
+    <div class="compare">
+      <div class="compare-item old">
+        <div class="compare-label">▼ 传统模式（滞后）</div>
+        <div class="card-body" style="font-size:14px;">变更上线 → 出现问题 → 故障复盘 → 完善规范</div>
+      </div>
+      <div class="compare-item new">
+        <div class="compare-label">▲ 新模式（前置）</div>
+        <div class="card-body" style="font-size:14px;">代码提交 → SKILL 自动扫描 → 拦截风险 → 阻断/告警</div>
+      </div>
+    </div>
+    <div class="flow" style="margin-top:16px;">
+      <div class="flow-item" style="font-size:13px;">规范梳理</div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-item" style="font-size:13px;">样板先行</div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-item" style="font-size:13px;">流程嵌入</div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-item" style="font-size:13px;">度量闭环</div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-item" style="font-size:13px;">逐步扩展</div>
+    </div>
+  </div>
+
+  <!-- 方向三-2：投入空洞 + Skills RE -->
+  <div class="slide slide-full">
+    <div class="tag">04 · 方向三</div>
+    <h2>3.2 & 3.3 稳定性新命题</h2>
+    <div class="two-col width-full">
+      <div>
+        <h3>3.2 全局稳定性投入空洞</h3>
+        <div class="card">
+          <div class="card-title">结构性矛盾</div>
+          <div class="card-body" style="font-size:14px;">业务线资源向 AI 创新倾斜，稳定性投入被压缩；同时 AI 编码带来系统复杂度上升。<strong style="color:#f85149">投入减少 × 风险上升</strong>，缺乏客观数据显性化。</div>
+        </div>
+        <div class="card" style="margin-bottom:0;">
+          <div class="card-title">应对：人驱动 → 数据驱动</div>
+          <ul class="bullet-list">
+            <li style="font-size:13px;padding:6px 0;">全局容灾覆盖自动扫描</li>
+            <li style="font-size:13px;padding:6px 0;">架构依赖风险自动评级</li>
+            <li style="font-size:13px;padding:6px 0;">可观测性盲区度量</li>
+            <li style="font-size:13px;padding:6px 0;">投入 vs 风险关联分析</li>
+          </ul>
+        </div>
+      </div>
+      <div>
+        <h3>3.3 Skills Reliability Engineering</h3>
+        <div class="card">
+          <div class="card-title">SRE 的新命题</div>
+          <div class="card-body" style="font-size:14px;">平台变薄后，治理对象从「服务和系统」扩展到「<span class="accent">SKILL 和 Agent</span>」，传统稳定性体系不覆盖这个层面。</div>
+        </div>
+        <div class="card" style="margin-bottom:0;">
+          <div class="card-title">需要建立的新能力</div>
+          <ul class="bullet-list">
+            <li style="font-size:13px;padding:6px 0;">SKILL 可靠性（准入/监控/熔断）</li>
+            <li style="font-size:13px;padding:6px 0;">Agent 链路可观测（决策路径追踪）</li>
+            <li style="font-size:13px;padding:6px 0;">安全与权限管控</li>
+            <li style="font-size:13px;padding:6px 0;">生命周期治理机制</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 规划节奏 -->
+  <div class="slide slide-full">
+    <div class="tag">规划节奏</div>
+    <h2>整体时间线</h2>
+    <div class="timeline width-full">
+      <div class="timeline-item">
+        <div class="timeline-q">Q2<br><span style="font-size:12px;font-weight:400">4-6月</span><br><span style="font-size:11px;font-weight:400;opacity:0.7">打地基</span></div>
+        <div class="timeline-content">
+          <span class="p-tag p0">P0</span> vibe coding 上手，聚焦 1-2 类需求跑通自闭环链路<br>
+          <span class="p-tag p0">P0</span> 输出第一份 AI 工具月报，建立 AI 氛围官角色<br>
+          <span class="p-tag p1">P1</span> 选定第一个高频规范，开发 SKILL 样板<br>
+          <span class="p-tag p1">P1</span> 建立全局稳定性基线，启动容灾覆盖率扫描
+        </div>
+      </div>
+      <div class="timeline-item">
+        <div class="timeline-q">Q3<br><span style="font-size:12px;font-weight:400">7-9月</span><br><span style="font-size:11px;font-weight:400;opacity:0.7">跑通样板</span></div>
+        <div class="timeline-content">
+          自闭环常态化，精力降至 20-30%<br>
+          SKILL 样板跑通，拦截到第一个真实问题<br>
+          AI Native 迭代规范 1.0 在团队内推行<br>
+          全局风险面板上线，Skills RE 开始探索
+        </div>
+      </div>
+      <div class="timeline-item">
+        <div class="timeline-q">Q4<br><span style="font-size:12px;font-weight:400">10-12月</span><br><span style="font-size:11px;font-weight:400;opacity:0.7">沉淀扩展</span></div>
+        <div class="timeline-content">
+          方法论整理，形成可复用的转型手册<br>
+          向老板展示成果，探讨向其他团队推广<br>
+          Skills RE 体系立项，推动公司层面关注
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 总结 -->
+  <div class="slide">
+    <div class="tag">总结</div>
+    <div class="quote" style="text-align:center;border-left:none;border-top:3px solid #58a6ff;border-radius:8px;margin-bottom:32px;">
+      当所有人都在用 AI 加速执行的时候，<br>
+      你是那个在问「<span class="accent">我们应该跑向哪里，以及跑起来之后不会翻车</span>」的人。
+    </div>
+    <div class="summary-grid">
+      <div class="summary-card">
+        <div class="summary-icon">⚡</div>
+        <div class="summary-title">Agent 工程师</div>
+        <div class="summary-desc">PM 自己能交付，建立对全流程的认知，为定义规范打基础</div>
+      </div>
+      <div class="summary-card">
+        <div class="summary-icon">🧭</div>
+        <div class="summary-title">AI 氛围官</div>
+        <div class="summary-desc">判断和引导团队 AI 演进方向，把信息转化为决策</div>
+      </div>
+      <div class="summary-card">
+        <div class="summary-icon">🔒</div>
+        <div class="summary-title">规范守门人</div>
+        <div class="summary-desc">SKILL 准入准出、AI 全流程质量标准，没有把关就会失控</div>
+      </div>
+      <div class="summary-card">
+        <div class="summary-icon">🌐</div>
+        <div class="summary-title">全局稳定性视角</div>
+        <div class="summary-desc">在所有人聚焦业务线时，你在看全局、建立系统性风险的主动治理体系</div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- 导航 -->
+<div class="nav">
+  <button class="nav-btn" id="prevBtn" onclick="changeSlide(-1)">←</button>
+  <div class="progress-dots" id="dots"></div>
+  <span class="nav-progress" id="progress">1 / 11</span>
+  <button class="nav-btn" id="nextBtn" onclick="changeSlide(1)">→</button>
+</div>
+
+<script>
+  const slides = document.querySelectorAll('.slide');
+  const total = slides.length;
+  let current = 0;
+
+  // 生成点
+  const dotsEl = document.getElementById('dots');
+  slides.forEach((_, i) => {
+    const dot = document.createElement('div');
+    dot.className = 'dot' + (i === 0 ? ' active' : '');
+    dot.onclick = () => goTo(i);
+    dotsEl.appendChild(dot);
+  });
+
+  function goTo(n) {
+    slides[current].classList.remove('active');
+    slides[current].classList.add('exit');
+    setTimeout(() => slides[current].classList.remove('exit'), 400);
+    current = (n + total) % total;
+    slides[current].classList.add('active');
+    document.querySelectorAll('.dot').forEach((d, i) => d.classList.toggle('active', i === current));
+    document.getElementById('progress').textContent = `${current + 1} / ${total}`;
+  }
+
+  function changeSlide(dir) { goTo(current + dir); }
+
+  document.addEventListener('keydown', e => {
+    if (e.key === 'ArrowRight' || e.key === 'ArrowDown') changeSlide(1);
+    if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') changeSlide(-1);
+  });
+
+  document.getElementById('slideshow').addEventListener('click', e => {
+    if (!e.target.closest('.nav') && !e.target.closest('.dot')) changeSlide(1);
+  });
+</script>
+</body>
+</html>

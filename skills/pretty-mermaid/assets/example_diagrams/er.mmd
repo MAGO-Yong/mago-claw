@@ -1,0 +1,44 @@
+%%{init: {
+  'theme': 'base',
+  'themeVariables': {
+    'primaryColor': '#2A1F2D',
+    'primaryTextColor': '#F0E6F0',
+    'primaryBorderColor': '#4A3F50',
+    'lineColor': '#6B5B73',
+    'textColor': '#F0E6F0',
+    'fontSize': '13px',
+    'fontFamily': '"PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif'
+  }
+}}%%
+erDiagram
+    USER ||--o{ ORDER : "下单"
+    USER {
+        string id PK
+        string name
+        string email UK
+        date created_at
+    }
+
+    ORDER ||--|{ ORDER_ITEM : "包含"
+    ORDER {
+        string id PK
+        string user_id FK
+        decimal total
+        date created_at
+    }
+
+    ORDER_ITEM }o--|| PRODUCT : "关联"
+    ORDER_ITEM {
+        string id PK
+        string order_id FK
+        string product_id FK
+        int quantity
+        decimal price
+    }
+
+    PRODUCT {
+        string id PK
+        string name
+        decimal price
+        int stock
+    }

@@ -1,0 +1,1256 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>排障 Skill 创建 · 设计稿</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+:root {
+  --bg: #0f1117;
+  --surface: #1a1d27;
+  --surface2: #22263a;
+  --border: #2a2d3e;
+  --border2: #353851;
+  --text: #e2e8f0;
+  --text-muted: #64748b;
+  --text-dim: #94a3b8;
+  --accent: #6366f1;
+  --accent-glow: rgba(99,102,241,0.12);
+  --green: #10b981;
+  --green-dim: rgba(16,185,129,0.10);
+  --red: #ef4444;
+  --red-dim: rgba(239,68,68,0.10);
+  --yellow: #f59e0b;
+  --yellow-dim: rgba(245,158,11,0.10);
+  --blue: #3b82f6;
+  --blue-dim: rgba(59,130,246,0.10);
+  --purple: #a855f7;
+  --purple-dim: rgba(168,85,247,0.10);
+}
+
+body {
+  font-family: -apple-system, 'SF Pro Text', 'Inter', sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+/* ── Top Bar ── */
+.topbar {
+  height: 44px;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  padding: 0 16px;
+  gap: 10px;
+  flex-shrink: 0;
+}
+.topbar-logo {
+  font-size: 13.5px;
+  font-weight: 700;
+  color: var(--accent);
+  display: flex; align-items: center; gap: 6px;
+}
+.topbar-logo-icon {
+  width: 22px; height: 22px; border-radius: 6px;
+  background: linear-gradient(135deg, #6366f1, #a855f7);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 12px;
+}
+.topbar-sep { width: 1px; height: 18px; background: var(--border2); }
+.topbar-name { font-size: 13px; color: var(--text-dim); font-weight: 500; }
+.topbar-chip {
+  font-size: 11px; padding: 2px 8px; border-radius: 999px;
+  background: var(--purple-dim); color: var(--purple);
+  border: 1px solid rgba(168,85,247,0.25); font-weight: 500;
+}
+.topbar-right { margin-left: auto; display: flex; align-items: center; gap: 10px; }
+.topbar-model {
+  font-size: 11px; color: var(--text-muted);
+  background: var(--surface2); border: 1px solid var(--border2);
+  padding: 3px 9px; border-radius: 5px;
+}
+.topbar-time { font-size: 12px; color: var(--text-muted); font-variant-numeric: tabular-nums; }
+
+/* ── Layout ── */
+.layout {
+  flex: 1;
+  display: flex;
+  overflow: hidden;
+  position: relative;
+}
+
+/* ── Chat (main) ── */
+.chat-main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  transition: margin-right 0.3s cubic-bezier(0.4,0,0.2,1);
+}
+.chat-main.panel-open { margin-right: 360px; }
+
+.chat-scroll {
+  flex: 1;
+  overflow-y: auto;
+  padding: 28px 0;
+  scrollbar-width: thin;
+  scrollbar-color: var(--border) transparent;
+}
+.chat-scroll::-webkit-scrollbar { width: 4px; }
+.chat-scroll::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 2px; }
+
+.chat-inner {
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 0 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+/* ── Messages ── */
+.msg { display: flex; gap: 12px; }
+
+.msg-avatar {
+  width: 28px; height: 28px; border-radius: 8px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 14px; flex-shrink: 0; margin-top: 1px;
+}
+.msg-avatar.ai { background: linear-gradient(135deg, #6366f1, #a855f7); }
+.msg-avatar.user { background: var(--surface2); border: 1px solid var(--border2); }
+
+.msg-body { flex: 1; min-width: 0; }
+.msg-meta {
+  display: flex; align-items: center; gap: 8px;
+  margin-bottom: 6px;
+}
+.msg-name { font-size: 12.5px; font-weight: 600; color: var(--text-dim); }
+.msg-time { font-size: 11px; color: var(--text-muted); }
+
+/* User bubble */
+.msg.user { flex-direction: row-reverse; }
+.msg.user .msg-body { display: flex; flex-direction: column; align-items: flex-end; }
+.msg.user .msg-meta { flex-direction: row-reverse; }
+.user-bubble {
+  background: var(--accent);
+  color: #fff;
+  padding: 10px 14px;
+  border-radius: 16px 16px 4px 16px;
+  font-size: 14px;
+  line-height: 1.6;
+  max-width: 85%;
+}
+
+/* AI prose */
+.ai-prose {
+  font-size: 14px;
+  line-height: 1.75;
+  color: var(--text);
+}
+.ai-prose p { margin-bottom: 10px; }
+.ai-prose p:last-child { margin-bottom: 0; }
+.ai-prose strong { color: #fff; font-weight: 600; }
+.ai-prose em { color: var(--text-dim); }
+.ai-prose code {
+  background: var(--surface2);
+  border: 1px solid var(--border2);
+  padding: 1px 6px; border-radius: 4px;
+  font-size: 12.5px; font-family: 'SF Mono', monospace;
+  color: var(--purple);
+}
+
+/* Inline highlight */
+.hl { color: var(--accent); font-weight: 500; }
+.hl-green { color: var(--green); font-weight: 500; }
+.hl-yellow { color: var(--yellow); font-weight: 500; }
+.hl-red { color: var(--red); font-weight: 500; }
+
+/* Typing cursor */
+.cursor {
+  display: inline-block; width: 2px; height: 15px;
+  background: var(--accent); margin-left: 2px;
+  vertical-align: middle;
+  animation: blink 1s step-end infinite;
+}
+@keyframes blink { 0%,100%{opacity:1} 50%{opacity:0} }
+
+/* ── Stream thinking block ── */
+.thinking-block {
+  margin-bottom: 10px;
+  border-left: 2px solid var(--border2);
+  padding-left: 12px;
+}
+.thinking-label {
+  font-size: 11px; color: var(--text-muted); font-weight: 500;
+  display: flex; align-items: center; gap: 5px; margin-bottom: 6px;
+}
+.thinking-label .dot {
+  width: 6px; height: 6px; border-radius: 50%;
+  background: var(--accent); opacity: 0.6;
+  animation: pulse-dot 1.5s infinite;
+}
+@keyframes pulse-dot { 0%,100%{opacity:0.6} 50%{opacity:1} }
+.thinking-text { font-size: 12px; color: var(--text-muted); line-height: 1.6; font-style: italic; }
+
+/* ── Skill confirm card ── */
+.confirm-card {
+  background: var(--surface);
+  border: 1px solid var(--border2);
+  border-radius: 12px;
+  overflow: hidden;
+  margin-top: 12px;
+}
+.confirm-card-header {
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; gap: 8px;
+}
+.confirm-card-icon {
+  width: 28px; height: 28px; border-radius: 7px;
+  background: var(--purple-dim); border: 1px solid rgba(168,85,247,0.25);
+  display: flex; align-items: center; justify-content: center; font-size: 14px;
+}
+.confirm-card-title { font-size: 13.5px; font-weight: 600; }
+.confirm-card-sub { font-size: 11px; color: var(--text-muted); margin-top: 1px; }
+.confirm-card-body { padding: 14px 16px; display: flex; flex-direction: column; gap: 10px; }
+.confirm-row { display: flex; gap: 8px; align-items: flex-start; }
+.confirm-key { font-size: 12px; color: var(--text-muted); width: 80px; flex-shrink: 0; padding-top: 1px; }
+.confirm-val { font-size: 12.5px; color: var(--text-dim); line-height: 1.55; flex: 1; }
+.confirm-val strong { color: var(--text); }
+.confirm-actions {
+  padding: 12px 16px; border-top: 1px solid var(--border);
+  display: flex; gap: 8px;
+}
+.btn {
+  font-size: 13px; padding: 7px 16px; border-radius: 7px;
+  border: none; cursor: pointer; font-family: inherit;
+  font-weight: 500; transition: all 0.15s;
+}
+.btn-primary { background: var(--accent); color: #fff; }
+.btn-primary:hover { opacity: 0.88; }
+.btn-ghost {
+  background: transparent; color: var(--text-dim);
+  border: 1px solid var(--border2);
+}
+.btn-ghost:hover { background: var(--surface2); color: var(--text); }
+
+/* ── Flow Diagram ── */
+.flow-wrap {
+  margin-top: 14px;
+  background: var(--surface);
+  border: 1px solid var(--border2);
+  border-radius: 12px;
+  overflow: hidden;
+}
+.flow-header {
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; gap: 8px;
+}
+.flow-header-title { font-size: 12.5px; font-weight: 600; color: var(--text-dim); }
+.flow-header-hint {
+  margin-left: auto; font-size: 11px; color: var(--text-muted);
+  display: flex; align-items: center; gap: 4px;
+}
+.flow-hint-icon { opacity: 0.6; }
+
+.flow-body {
+  padding: 20px 24px 20px;
+  overflow-x: auto;
+}
+
+/* Flow nodes */
+.flow-row {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  flex-wrap: nowrap;
+  min-width: max-content;
+}
+.flow-node {
+  display: flex; flex-direction: column; align-items: center; gap: 6px;
+  cursor: pointer;
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: 1.5px solid transparent;
+  transition: all 0.18s;
+  position: relative;
+  min-width: 80px;
+}
+.flow-node:hover {
+  background: var(--surface2);
+  border-color: var(--border2);
+}
+.flow-node.active {
+  background: var(--accent-glow);
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(99,102,241,0.1);
+}
+.flow-node.done { }
+.flow-node.warn { }
+.flow-node.editing {
+  background: rgba(245,158,11,0.06);
+  border-color: var(--yellow);
+  box-shadow: 0 0 0 3px rgba(245,158,11,0.08);
+}
+
+.node-box {
+  width: 52px; height: 52px; border-radius: 12px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 22px;
+  border: 1.5px solid var(--border2);
+  background: var(--surface2);
+  transition: all 0.18s;
+  position: relative;
+}
+.flow-node.active .node-box {
+  border-color: var(--accent);
+  background: var(--accent-glow);
+}
+.flow-node.editing .node-box {
+  border-color: var(--yellow);
+  background: var(--yellow-dim);
+}
+.node-label {
+  font-size: 11.5px; font-weight: 500; color: var(--text-dim);
+  text-align: center; white-space: nowrap;
+  line-height: 1.3;
+}
+.node-sub {
+  font-size: 10px; color: var(--text-muted); text-align: center;
+  margin-top: -3px;
+}
+.node-badge {
+  position: absolute; top: -5px; right: -5px;
+  width: 16px; height: 16px; border-radius: 50%;
+  font-size: 9px; display: flex; align-items: center; justify-content: center;
+  font-weight: 700; border: 1.5px solid var(--bg);
+}
+.node-badge.ok { background: var(--green); color: #fff; }
+.node-badge.warn { background: var(--yellow); color: #000; }
+.node-badge.edit { background: var(--accent); color: #fff; }
+
+/* Arrow connector */
+.flow-arrow {
+  display: flex; flex-direction: column; align-items: center;
+  gap: 2px; padding: 0 4px; padding-bottom: 28px; flex-shrink: 0;
+}
+.arrow-line {
+  width: 32px; height: 2px;
+  background: var(--border2);
+  position: relative;
+}
+.arrow-line::after {
+  content: '';
+  position: absolute; right: -1px; top: -3px;
+  border: 4px solid transparent;
+  border-left: 6px solid var(--border2);
+}
+.arrow-label { font-size: 9.5px; color: var(--text-muted); white-space: nowrap; }
+
+/* Branch node (diamond) */
+.flow-node.branch .node-box {
+  width: 56px; height: 56px;
+  transform: rotate(45deg);
+  border-radius: 8px;
+  font-size: 0;
+}
+.flow-node.branch .node-box::after {
+  content: attr(data-emoji);
+  font-size: 20px;
+  transform: rotate(-45deg);
+  display: block;
+}
+
+/* ── Side Panel ── */
+.side-panel {
+  position: absolute;
+  top: 0; right: 0; bottom: 0;
+  width: 360px;
+  background: var(--surface);
+  border-left: 1px solid var(--border2);
+  display: flex; flex-direction: column;
+  transform: translateX(100%);
+  transition: transform 0.3s cubic-bezier(0.4,0,0.2,1);
+  z-index: 20;
+}
+.side-panel.open { transform: translateX(0); }
+
+.panel-header {
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; gap: 10px;
+  flex-shrink: 0;
+}
+.panel-node-icon {
+  width: 32px; height: 32px; border-radius: 8px;
+  background: var(--surface2); border: 1px solid var(--border2);
+  display: flex; align-items: center; justify-content: center; font-size: 16px;
+}
+.panel-title { font-size: 14px; font-weight: 600; flex: 1; }
+.panel-close {
+  width: 26px; height: 26px; border-radius: 6px;
+  background: var(--surface2); border: 1px solid var(--border);
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer; color: var(--text-muted); font-size: 14px;
+  transition: all 0.15s; flex-shrink: 0;
+}
+.panel-close:hover { background: var(--border2); color: var(--text); }
+
+.panel-tabs {
+  display: flex; border-bottom: 1px solid var(--border); flex-shrink: 0;
+}
+.panel-tab {
+  flex: 1; padding: 9px 0; font-size: 12.5px; font-weight: 500;
+  color: var(--text-muted); text-align: center; cursor: pointer;
+  border-bottom: 2px solid transparent; transition: all 0.15s;
+}
+.panel-tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+.panel-tab:hover:not(.active) { color: var(--text-dim); }
+
+.panel-body {
+  flex: 1; overflow-y: auto; padding: 16px;
+  display: flex; flex-direction: column; gap: 14px;
+  scrollbar-width: thin;
+  scrollbar-color: var(--border) transparent;
+}
+
+/* Panel sections */
+.panel-section { }
+.panel-section-label {
+  font-size: 11px; font-weight: 600; color: var(--text-muted);
+  text-transform: uppercase; letter-spacing: 0.7px;
+  margin-bottom: 8px;
+}
+
+/* Editable field */
+.field-row { display: flex; flex-direction: column; gap: 5px; margin-bottom: 10px; }
+.field-label { font-size: 11.5px; color: var(--text-muted); }
+.field-input {
+  background: var(--surface2); border: 1px solid var(--border2);
+  border-radius: 7px; padding: 8px 10px;
+  font-size: 13px; color: var(--text); font-family: inherit;
+  outline: none; transition: border-color 0.15s; resize: vertical;
+  line-height: 1.5;
+}
+.field-input:focus { border-color: var(--accent); }
+textarea.field-input { min-height: 72px; }
+select.field-input { appearance: none; cursor: pointer; }
+
+/* Data source tags */
+.tag-row { display: flex; flex-wrap: wrap; gap: 6px; }
+.tag {
+  font-size: 11.5px; padding: 3px 10px; border-radius: 5px;
+  cursor: pointer; transition: all 0.15s; font-weight: 500;
+  border: 1px solid transparent;
+}
+.tag.source {
+  background: var(--blue-dim); color: var(--blue);
+  border-color: rgba(59,130,246,0.25);
+}
+.tag.add {
+  background: var(--surface2); color: var(--text-muted);
+  border-color: var(--border2);
+}
+.tag.add:hover { border-color: var(--accent); color: var(--accent); }
+
+/* Metric preview mini chart */
+.mini-chart {
+  background: var(--surface2); border: 1px solid var(--border);
+  border-radius: 8px; padding: 10px 12px;
+}
+.mini-chart-label { font-size: 11px; color: var(--text-muted); margin-bottom: 6px; }
+.mini-chart svg { width: 100%; }
+
+/* Status indicator */
+.status-row { display: flex; align-items: center; gap: 8px; }
+.status-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+.status-text { font-size: 12.5px; color: var(--text-dim); }
+.status-val { margin-left: auto; font-size: 12.5px; font-weight: 600; }
+
+/* Panel footer */
+.panel-footer {
+  padding: 12px 16px; border-top: 1px solid var(--border);
+  display: flex; gap: 8px; flex-shrink: 0;
+}
+
+/* ── Chat Input ── */
+.chat-input-wrap {
+  padding: 16px 24px;
+  border-top: 1px solid var(--border);
+  max-width: 720px;
+  margin: 0 auto;
+  width: 100%;
+}
+.chat-input-box {
+  display: flex; gap: 10px; align-items: flex-end;
+  background: var(--surface);
+  border: 1px solid var(--border2);
+  border-radius: 12px;
+  padding: 10px 12px;
+  transition: border-color 0.15s;
+}
+.chat-input-box:focus-within { border-color: var(--accent); }
+.chat-textarea {
+  flex: 1; background: transparent; border: none; outline: none;
+  font-size: 14px; color: var(--text); font-family: inherit;
+  resize: none; line-height: 1.55; max-height: 140px; min-height: 22px;
+}
+.chat-textarea::placeholder { color: var(--text-muted); }
+.chat-actions { display: flex; align-items: flex-end; gap: 6px; }
+.send-btn {
+  width: 32px; height: 32px; border-radius: 8px; border: none;
+  background: var(--accent); cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  transition: opacity 0.15s; flex-shrink: 0;
+}
+.send-btn:hover { opacity: 0.85; }
+.input-hint { font-size: 11px; color: var(--text-muted); margin-top: 6px; text-align: center; }
+
+/* ── Skill created badge ── */
+.skill-created {
+  display: flex; align-items: center; gap: 10px;
+  background: var(--green-dim); border: 1px solid rgba(16,185,129,0.25);
+  border-radius: 10px; padding: 12px 14px; margin-top: 12px;
+}
+.skill-created-icon { font-size: 20px; }
+.skill-created-text { flex: 1; }
+.skill-created-title { font-size: 13px; font-weight: 600; color: var(--green); }
+.skill-created-sub { font-size: 11.5px; color: var(--text-muted); margin-top: 2px; }
+.skill-created-btn {
+  font-size: 12px; padding: 5px 12px; border-radius: 6px; border: none;
+  background: var(--green); color: #fff; cursor: pointer; font-family: inherit;
+  font-weight: 500; transition: opacity 0.15s;
+}
+.skill-created-btn:hover { opacity: 0.85; }
+
+/* scrollbar */
+::-webkit-scrollbar { width: 4px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 2px; }
+
+/* watermark */
+.watermark {
+  position: fixed; bottom: 10px; left: 50%; transform: translateX(-50%);
+  font-size: 11px; color: var(--text-muted);
+  background: var(--surface); padding: 3px 12px;
+  border-radius: 999px; border: 1px solid var(--border2);
+  pointer-events: none; z-index: 100;
+}
+
+/* Tooltip for node click hint */
+.node-click-hint {
+  position: absolute; bottom: -22px; left: 50%;
+  transform: translateX(-50%);
+  font-size: 9.5px; color: var(--accent); white-space: nowrap;
+  opacity: 0; transition: opacity 0.2s; pointer-events: none;
+}
+.flow-node:hover .node-click-hint { opacity: 1; }
+</style>
+</head>
+<body>
+
+<!-- Top Bar -->
+<div class="topbar">
+  <div class="topbar-logo">
+    <div class="topbar-logo-icon">🧠</div>
+    排障助手
+  </div>
+  <div class="topbar-sep"></div>
+  <div class="topbar-name">biz-diagnosis-creator</div>
+  <div class="topbar-chip">元 Skill</div>
+  <div class="topbar-right">
+    <div class="topbar-model">claude-4.6-sonnet</div>
+    <div class="topbar-time" id="clock">--:--:--</div>
+  </div>
+</div>
+
+<!-- Layout -->
+<div class="layout">
+
+  <!-- Chat Main -->
+  <div class="chat-main" id="chatMain">
+    <div class="chat-scroll">
+      <div class="chat-inner">
+
+        <!-- ① User: 触发 -->
+        <div class="msg user">
+          <div class="msg-avatar user">👤</div>
+          <div class="msg-body">
+            <div class="msg-meta">
+              <span class="msg-name">马恒阳</span>
+              <span class="msg-time">13:41</span>
+            </div>
+            <div class="user-bubble">帮我创建一个排障 Skill，场景是 24h 新笔记占比周同比下跌超过 20% 的告警</div>
+          </div>
+        </div>
+
+        <!-- ② AI: 引导第一轮 -->
+        <div class="msg">
+          <div class="msg-avatar ai">🧠</div>
+          <div class="msg-body">
+            <div class="msg-meta">
+              <span class="msg-name">排障助手</span>
+              <span class="msg-time">13:41</span>
+            </div>
+            <div class="ai-prose">
+              <p>好的，我来帮你创建这个排障 Skill。先确认几个基础信息：</p>
+              <p>
+                这个告警对应的服务是 <span class="hl">ark0（内流推荐）</span>，排查目标是弄清楚
+                <strong>新笔记占比下跌</strong> 的根因——可能是候选池缩水、索引延迟、过滤策略变化，
+                或者发布侧笔记量本身下降。
+              </p>
+              <p>你们目前遇到这个告警，排查 SOP 大概是什么路径？是从数据大盘开始，还是直接看链路指标？</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- ③ User: 回答 SOP -->
+        <div class="msg user">
+          <div class="msg-avatar user">👤</div>
+          <div class="msg-body">
+            <div class="msg-meta">
+              <span class="msg-name">马恒阳</span>
+              <span class="msg-time">13:43</span>
+            </div>
+            <div class="user-bubble">先看大盘确认是不是真实下跌，然后拆候选池（新笔记 vs 存量），再查 recall 层，最后看有没有配置变更</div>
+          </div>
+        </div>
+
+        <!-- ④ AI: 确认 + 追问数据源 -->
+        <div class="msg">
+          <div class="msg-avatar ai">🧠</div>
+          <div class="msg-body">
+            <div class="msg-meta">
+              <span class="msg-name">排障助手</span>
+              <span class="msg-time">13:43</span>
+            </div>
+            <div class="ai-prose">
+              <p>清楚了，SOP 链路是：</p>
+              <p>
+                <span class="hl">大盘核实</span> → <span class="hl">候选池拆分</span>（新 vs 存量）
+                → <span class="hl">Recall 层分析</span> → <span class="hl">配置变更核查</span>
+              </p>
+              <p>数据源这边，每个节点你们用的是什么？比如大盘是 Grafana、Kibana，还是内部的 metrics 平台？Recall 层是看 trace 还是有专门的监控面板？</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- ⑤ User: 数据源 -->
+        <div class="msg user">
+          <div class="msg-avatar user">👤</div>
+          <div class="msg-body">
+            <div class="msg-meta">
+              <span class="msg-name">马恒阳</span>
+              <span class="msg-time">13:45</span>
+            </div>
+            <div class="user-bubble">大盘用 Argus，候选池和 recall 都是我们自己的 metrics 接口，配置变更看 apollo 的变更记录</div>
+          </div>
+        </div>
+
+        <!-- ⑥ AI: 生成流程图 + 确认卡片 -->
+        <div class="msg">
+          <div class="msg-avatar ai">🧠</div>
+          <div class="msg-body">
+            <div class="msg-meta">
+              <span class="msg-name">排障助手</span>
+              <span class="msg-time">13:46</span>
+            </div>
+            <div class="ai-prose">
+              <p>信息足够了。根据你描述的场景，我梳理了这个排障 Skill 的流程图——<span class="hl">点击任意节点</span>可以查看详情或编辑：</p>
+            </div>
+
+            <!-- Flow Diagram -->
+            <div class="flow-wrap">
+              <div class="flow-header">
+                <span style="font-size:14px">🗺</span>
+                <span class="flow-header-title">biz-ark-newnote-drop · 排障链路</span>
+                <div class="flow-header-hint">
+                  <span class="flow-hint-icon">👆</span>
+                  点击节点可查看 / 编辑
+                </div>
+              </div>
+              <div class="flow-body">
+                <div class="flow-row">
+
+                  <!-- Node 1 -->
+                  <div class="flow-node done" onclick="openPanel('n1')" id="fn1">
+                    <div class="node-box">📊<div class="node-badge ok">✓</div></div>
+                    <div class="node-label">大盘核实</div>
+                    <div class="node-sub">Argus</div>
+                    <div class="node-click-hint">点击查看</div>
+                  </div>
+
+                  <div class="flow-arrow">
+                    <div class="arrow-line"></div>
+                    <div class="arrow-label">确认真实下跌</div>
+                  </div>
+
+                  <!-- Node 2 -->
+                  <div class="flow-node done" onclick="openPanel('n2')" id="fn2">
+                    <div class="node-box">🗂<div class="node-badge ok">✓</div></div>
+                    <div class="node-label">候选池拆分</div>
+                    <div class="node-sub">新笔记 vs 存量</div>
+                    <div class="node-click-hint">点击查看</div>
+                  </div>
+
+                  <div class="flow-arrow">
+                    <div class="arrow-line"></div>
+                    <div class="arrow-label">定位缩水侧</div>
+                  </div>
+
+                  <!-- Node 3 - editing -->
+                  <div class="flow-node editing" onclick="openPanel('n3')" id="fn3">
+                    <div class="node-box">🔄<div class="node-badge edit">✎</div></div>
+                    <div class="node-label">Recall 分析</div>
+                    <div class="node-sub">召回率 · 过滤</div>
+                    <div class="node-click-hint">点击编辑</div>
+                  </div>
+
+                  <div class="flow-arrow">
+                    <div class="arrow-line"></div>
+                    <div class="arrow-label">排查参数</div>
+                  </div>
+
+                  <!-- Node 4 -->
+                  <div class="flow-node" onclick="openPanel('n4')" id="fn4">
+                    <div class="node-box">⚙️</div>
+                    <div class="node-label">配置变更</div>
+                    <div class="node-sub">Apollo</div>
+                    <div class="node-click-hint">点击查看</div>
+                  </div>
+
+                  <div class="flow-arrow">
+                    <div class="arrow-line"></div>
+                    <div class="arrow-label">兜底核查</div>
+                  </div>
+
+                  <!-- Node 5 -->
+                  <div class="flow-node" onclick="openPanel('n5')" id="fn5">
+                    <div class="node-box">📋</div>
+                    <div class="node-label">结论输出</div>
+                    <div class="node-sub">根因 · 建议</div>
+                    <div class="node-click-hint">点击查看</div>
+                  </div>
+
+                </div>
+              </div>
+            </div>
+
+            <!-- Confirm Card -->
+            <div class="confirm-card">
+              <div class="confirm-card-header">
+                <div class="confirm-card-icon">📦</div>
+                <div>
+                  <div class="confirm-card-title">biz-ark-newnote-drop</div>
+                  <div class="confirm-card-sub">排障 Skill · 待确认</div>
+                </div>
+              </div>
+              <div class="confirm-card-body">
+                <div class="confirm-row">
+                  <div class="confirm-key">告警场景</div>
+                  <div class="confirm-val">24h新笔记占比 <strong>周同比下跌 &gt;20%</strong></div>
+                </div>
+                <div class="confirm-row">
+                  <div class="confirm-key">适用服务</div>
+                  <div class="confirm-val"><strong>ark0</strong>（内流推荐）</div>
+                </div>
+                <div class="confirm-row">
+                  <div class="confirm-key">排查链路</div>
+                  <div class="confirm-val">大盘核实 → 候选池拆分 → Recall分析 → 配置变更 → 结论输出</div>
+                </div>
+                <div class="confirm-row">
+                  <div class="confirm-key">数据来源</div>
+                  <div class="confirm-val">Argus · 内部 metrics 接口 · Apollo 变更记录</div>
+                </div>
+                <div class="confirm-row">
+                  <div class="confirm-key">触发关键词</div>
+                  <div class="confirm-val"><code>24h新笔记占比</code> <code>周同比下跌</code> <code>ark0</code></div>
+                </div>
+              </div>
+              <div class="confirm-actions">
+                <button class="btn btn-primary" onclick="handleConfirm()">✓ 确认，生成 Skill</button>
+                <button class="btn btn-ghost" onclick="openPanel('n3')">✎ 调整 Recall 节点</button>
+                <button class="btn btn-ghost">重新描述</button>
+              </div>
+            </div>
+
+          </div>
+        </div>
+
+        <!-- ⑦ AI: Skill 生成完成 (hidden until confirm) -->
+        <div class="msg" id="skillDoneMsg" style="display:none">
+          <div class="msg-avatar ai">🧠</div>
+          <div class="msg-body">
+            <div class="msg-meta">
+              <span class="msg-name">排障助手</span>
+              <span class="msg-time" id="doneTime">--:--</span>
+            </div>
+            <div class="ai-prose">
+              <p>Skill 已生成，下次收到这个告警时我会自动按照这个 SOP 排查。</p>
+            </div>
+            <div class="skill-created">
+              <div class="skill-created-icon">✅</div>
+              <div class="skill-created-text">
+                <div class="skill-created-title">biz-ark-newnote-drop · 已激活</div>
+                <div class="skill-created-sub">~/.openclaw/workspace/skills/biz-ark-newnote-drop/SKILL.md</div>
+              </div>
+              <button class="skill-created-btn">查看文件</button>
+            </div>
+            <div class="ai-prose" style="margin-top:12px">
+              <p>还有什么要调整的吗？比如增加阈值判断、加更多数据源节点，或者设置自动触发条件。</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- ⑧ streaming placeholder -->
+        <div class="msg" id="streamingMsg" style="display:none">
+          <div class="msg-avatar ai">🧠</div>
+          <div class="msg-body">
+            <div class="msg-meta">
+              <span class="msg-name">排障助手</span>
+              <span class="msg-time">--:--</span>
+            </div>
+            <div class="thinking-block">
+              <div class="thinking-label"><div class="dot"></div> 正在生成 Skill 文件…</div>
+              <div class="thinking-text">写入 SKILL.md · 生成排障脚本 · 注册触发关键词…</div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- Input -->
+    <div class="chat-input-wrap">
+      <div class="chat-input-box">
+        <textarea class="chat-textarea" placeholder="继续描述排障场景，或追问细节…" rows="1"
+          oninput="autoResize(this)" onkeydown="handleKey(event)"></textarea>
+        <div class="chat-actions">
+          <button class="send-btn" onclick="sendMsg()">
+            <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+              <path d="M1 7h12M7.5 1.5L13 7l-5.5 5.5" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </button>
+        </div>
+      </div>
+      <div class="input-hint">Enter 发送 · Shift+Enter 换行</div>
+    </div>
+  </div>
+
+  <!-- Side Panel -->
+  <div class="side-panel" id="sidePanel">
+    <div class="panel-header">
+      <div class="panel-node-icon" id="panelIcon">📊</div>
+      <div>
+        <div class="panel-title" id="panelTitle">大盘核实</div>
+      </div>
+      <div class="panel-close" onclick="closePanel()">✕</div>
+    </div>
+
+    <div class="panel-tabs">
+      <div class="panel-tab active" onclick="switchTab(this,'detail')">详情</div>
+      <div class="panel-tab" onclick="switchTab(this,'edit')">编辑</div>
+      <div class="panel-tab" onclick="switchTab(this,'data')">关联数据</div>
+    </div>
+
+    <div class="panel-body" id="panelBody">
+      <!-- filled by JS -->
+    </div>
+
+    <div class="panel-footer">
+      <button class="btn btn-primary" style="flex:1" onclick="closePanel()">保存</button>
+      <button class="btn btn-ghost" onclick="closePanel()">取消</button>
+    </div>
+  </div>
+
+</div>
+
+<div class="watermark">设计稿 · 非生产环境 · Skill Creator UI v0.2</div>
+
+<script>
+// Clock
+function tick() {
+  const now = new Date();
+  document.getElementById('clock').textContent =
+    [now.getHours(), now.getMinutes(), now.getSeconds()]
+      .map(n => String(n).padStart(2,'0')).join(':');
+}
+tick(); setInterval(tick, 1000);
+
+// Auto resize textarea
+function autoResize(el) {
+  el.style.height = 'auto';
+  el.style.height = Math.min(el.scrollHeight, 140) + 'px';
+}
+
+// Send (demo)
+function handleKey(e) {
+  if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMsg(); }
+}
+function sendMsg() {
+  const ta = document.querySelector('.chat-textarea');
+  const val = ta.value.trim();
+  if (!val) return;
+  ta.value = ''; autoResize(ta);
+}
+
+// Confirm → generate skill
+function handleConfirm() {
+  const streaming = document.getElementById('streamingMsg');
+  streaming.style.display = 'flex';
+  const scroll = document.querySelector('.chat-scroll');
+  scroll.scrollTop = scroll.scrollHeight;
+  setTimeout(() => {
+    streaming.style.display = 'none';
+    const done = document.getElementById('skillDoneMsg');
+    done.style.display = 'flex';
+    const now = new Date();
+    document.getElementById('doneTime').textContent =
+      [now.getHours(), now.getMinutes()].map(n=>String(n).padStart(2,'0')).join(':');
+    scroll.scrollTop = scroll.scrollHeight;
+  }, 2200);
+}
+
+// Node panel data
+const nodeData = {
+  n1: {
+    icon: '📊', title: '大盘核实',
+    detail: `<div class="panel-section">
+      <div class="panel-section-label">节点描述</div>
+      <div class="ai-prose" style="font-size:13px">
+        <p>从 <strong>Argus</strong> 拉取 24h 新笔记占比的时序数据，与上周同期对比。若当前值低于上周 20%+，则确认为真实下跌，进入下一节点。</p>
+      </div>
+    </div>
+    <div class="panel-section" style="margin-top:14px">
+      <div class="panel-section-label">判断条件</div>
+      <div class="status-row" style="margin-bottom:8px">
+        <span class="status-dot" style="background:var(--red)"></span>
+        <span class="status-text">当前值 < 上周同期 × 0.80</span>
+        <span class="status-val" style="color:var(--red)">→ 告警</span>
+      </div>
+      <div class="status-row">
+        <span class="status-dot" style="background:var(--green)"></span>
+        <span class="status-text">数据采集误差 / 短暂抖动</span>
+        <span class="status-val" style="color:var(--green)">→ 忽略</span>
+      </div>
+    </div>
+    <div class="panel-section" style="margin-top:14px">
+      <div class="panel-section-label">关联数据源</div>
+      <div class="tag-row">
+        <span class="tag source">Argus · newnote_ratio</span>
+        <span class="tag source">Argus · weekly_baseline</span>
+      </div>
+    </div>
+    <div class="panel-section" style="margin-top:14px">
+      <div class="panel-section-label">指标预览</div>
+      <div class="mini-chart">
+        <div class="mini-chart-label">24h新笔记占比 · 近 2h</div>
+        <svg height="50" viewBox="0 0 300 50">
+          <defs>
+            <linearGradient id="mg1" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stop-color="#ef4444" stop-opacity="0.3"/>
+              <stop offset="100%" stop-color="#ef4444" stop-opacity="0"/>
+            </linearGradient>
+          </defs>
+          <polyline points="0,18 50,19 100,18 150,26 200,36 250,40 300,42"
+            fill="none" stroke="#ef4444" stroke-width="2"/>
+          <polygon points="0,18 50,19 100,18 150,26 200,36 250,40 300,42 300,50 0,50"
+            fill="url(#mg1)"/>
+          <polyline points="0,18 50,17 100,18 150,18 200,17 250,18 300,18"
+            fill="none" stroke="#10b981" stroke-width="1.5" stroke-dasharray="4,3" opacity="0.6"/>
+        </svg>
+        <div style="display:flex;justify-content:space-between;font-size:10px;color:var(--text-muted);margin-top:4px">
+          <span>12:00</span><span>当前: <span style="color:var(--red);font-weight:600">12.4%</span></span><span>基线: <span style="color:var(--green)">17.1%</span></span>
+        </div>
+      </div>
+    </div>`,
+    edit: `<div class="field-row">
+      <div class="field-label">节点名称</div>
+      <input class="field-input" value="大盘核实" />
+    </div>
+    <div class="field-row">
+      <div class="field-label">数据源</div>
+      <select class="field-input">
+        <option selected>Argus</option>
+        <option>Grafana</option>
+        <option>自定义 API</option>
+      </select>
+    </div>
+    <div class="field-row">
+      <div class="field-label">告警阈值（周同比跌幅）</div>
+      <input class="field-input" value="20%" />
+    </div>
+    <div class="field-row">
+      <div class="field-label">节点描述</div>
+      <textarea class="field-input">从 Argus 拉取 24h 新笔记占比时序数据，与上周同期对比，确认是否真实下跌。</textarea>
+    </div>`,
+    data: `<div class="panel-section">
+      <div class="panel-section-label">接口配置</div>
+      <div class="field-row">
+        <div class="field-label">Argus Metric</div>
+        <input class="field-input" value="ark0.newnote_ratio_24h" />
+      </div>
+      <div class="field-row">
+        <div class="field-label">查询时间窗口</div>
+        <input class="field-input" value="告警时间前 2h" />
+      </div>
+      <div class="field-row">
+        <div class="field-label">对比基线</div>
+        <input class="field-input" value="上周同期 ±30min" />
+      </div>
+    </div>`
+  },
+  n3: {
+    icon: '🔄', title: 'Recall 分析',
+    detail: `<div class="panel-section">
+      <div class="panel-section-label">节点描述</div>
+      <div class="ai-prose" style="font-size:13px">
+        <p>查询 <strong>内部 metrics 接口</strong>，分析 Recall 服务对新笔记的召回率与过滤情况。重点关注：新笔记召回率是否下跌、过滤策略是否有近期变更。</p>
+        <p style="color:var(--yellow);font-size:12px;margin-top:6px">⚠ 此节点需要补充 metrics 接口地址</p>
+      </div>
+    </div>
+    <div class="panel-section" style="margin-top:14px">
+      <div class="panel-section-label">当前状态</div>
+      <div class="status-row" style="margin-bottom:8px">
+        <span class="status-dot" style="background:var(--yellow)"></span>
+        <span class="status-text">metrics 接口地址未配置</span>
+        <span class="status-val" style="color:var(--yellow)">待填写</span>
+      </div>
+    </div>
+    <div class="panel-section" style="margin-top:14px">
+      <div class="panel-section-label">关联数据源</div>
+      <div class="tag-row">
+        <span class="tag source">内部 metrics · recall_rate</span>
+        <span class="tag add">+ 添加数据源</span>
+      </div>
+    </div>`,
+    edit: `<div class="field-row">
+      <div class="field-label">节点名称</div>
+      <input class="field-input" value="Recall 分析" />
+    </div>
+    <div class="field-row">
+      <div class="field-label">metrics 接口地址 <span style="color:var(--yellow)">*</span></div>
+      <input class="field-input" placeholder="http://metrics.internal/api/recall?service=ark0" />
+    </div>
+    <div class="field-row">
+      <div class="field-label">关注指标</div>
+      <input class="field-input" value="recall_rate, filter_ratio, candidate_size" />
+    </div>
+    <div class="field-row">
+      <div class="field-label">异常判断条件</div>
+      <textarea class="field-input">召回率低于上周同期 15% 以上，或过滤率异常升高 &gt; 10%</textarea>
+    </div>
+    <div class="field-row">
+      <div class="field-label">节点描述</div>
+      <textarea class="field-input">查询 Recall 服务对新笔记的召回率，定位候选池缩水是否来自召回层过滤异常。</textarea>
+    </div>`,
+    data: `<div class="panel-section">
+      <div class="panel-section-label">接口配置</div>
+      <div class="field-row">
+        <div class="field-label">接口地址</div>
+        <input class="field-input" placeholder="待填写" />
+      </div>
+      <div class="field-row">
+        <div class="field-label">鉴权方式</div>
+        <select class="field-input">
+          <option>内网免鉴权</option>
+          <option>Token</option>
+          <option>Cookie</option>
+        </select>
+      </div>
+    </div>`
+  },
+  n2: {
+    icon: '🗂', title: '候选池拆分',
+    detail: `<div class="panel-section">
+      <div class="panel-section-label">节点描述</div>
+      <div class="ai-prose" style="font-size:13px">
+        <p>拆分候选池中<strong>新笔记</strong>与<strong>存量笔记</strong>的占比与绝对值，判断缩水来自哪一侧。</p>
+      </div>
+    </div>
+    <div class="panel-section" style="margin-top:14px">
+      <div class="panel-section-label">判断逻辑</div>
+      <div class="status-row" style="margin-bottom:8px">
+        <span class="status-dot" style="background:var(--red)"></span>
+        <span class="status-text">新笔记候选池缩水 &gt; 15%</span>
+        <span class="status-val" style="color:var(--red)">→ 进入 Recall 分析</span>
+      </div>
+      <div class="status-row">
+        <span class="status-dot" style="background:var(--yellow)"></span>
+        <span class="status-text">存量池同步缩水</span>
+        <span class="status-val" style="color:var(--yellow)">→ 数据源问题</span>
+      </div>
+    </div>
+    <div class="panel-section" style="margin-top:14px">
+      <div class="panel-section-label">关联数据源</div>
+      <div class="tag-row">
+        <span class="tag source">metrics · candidate_new</span>
+        <span class="tag source">metrics · candidate_old</span>
+      </div>
+    </div>`,
+    edit: `<div class="field-row">
+      <div class="field-label">节点名称</div>
+      <input class="field-input" value="候选池拆分" />
+    </div>
+    <div class="field-row">
+      <div class="field-label">新笔记 metrics 字段</div>
+      <input class="field-input" value="candidate_new_24h" />
+    </div>
+    <div class="field-row">
+      <div class="field-label">存量 metrics 字段</div>
+      <input class="field-input" value="candidate_old" />
+    </div>
+    <div class="field-row">
+      <div class="field-label">缩水阈值</div>
+      <input class="field-input" value="15%" />
+    </div>`,
+    data: `<div class="panel-section">
+      <div class="panel-section-label">接口配置</div>
+      <div class="field-row">
+        <div class="field-label">数据接口</div>
+        <input class="field-input" value="http://metrics.internal/api/candidate" />
+      </div>
+    </div>`
+  },
+  n4: {
+    icon: '⚙️', title: '配置变更核查',
+    detail: `<div class="panel-section">
+      <div class="panel-section-label">节点描述</div>
+      <div class="ai-prose" style="font-size:13px">
+        <p>查询 <strong>Apollo</strong> 近 24h 的配置变更记录，过滤与 ark0 新笔记策略相关的变更，判断是否有可疑改动。</p>
+      </div>
+    </div>
+    <div class="panel-section" style="margin-top:14px">
+      <div class="panel-section-label">关联数据源</div>
+      <div class="tag-row">
+        <span class="tag source">Apollo · ark0 namespace</span>
+      </div>
+    </div>`,
+    edit: `<div class="field-row">
+      <div class="field-label">Apollo Namespace</div>
+      <input class="field-input" value="ark0.recall.config" />
+    </div>
+    <div class="field-row">
+      <div class="field-label">查询时间窗口</div>
+      <input class="field-input" value="告警时间前 24h" />
+    </div>
+    <div class="field-row">
+      <div class="field-label">关注配置项关键词</div>
+      <input class="field-input" value="new_note, recall_ratio, filter" />
+    </div>`,
+    data: `<div class="panel-section">
+      <div class="panel-section-label">Apollo 接口</div>
+      <div class="field-row">
+        <div class="field-label">变更记录接口</div>
+        <input class="field-input" value="http://apollo.internal/api/changes" />
+      </div>
+    </div>`
+  },
+  n5: {
+    icon: '📋', title: '结论输出',
+    detail: `<div class="panel-section">
+      <div class="panel-section-label">节点描述</div>
+      <div class="ai-prose" style="font-size:13px">
+        <p>综合前序节点结论，输出<strong>根因判断</strong>与<strong>处置建议</strong>，格式化发送到告警 Oncall 群。</p>
+      </div>
+    </div>
+    <div class="panel-section" style="margin-top:14px">
+      <div class="panel-section-label">输出格式</div>
+      <div class="ai-prose" style="font-size:12px;background:var(--surface2);padding:10px 12px;border-radius:7px;border:1px solid var(--border2)">
+        【排障结论】ark0 24h新笔记占比下跌<br>
+        根因：Recall 层召回率下跌 / 发布侧笔记量下降 / ...<br>
+        建议：回滚配置 / 联系发布侧 / ...<br>
+        数据：当前 12.4% vs 基线 17.1%（-27.3%）
+      </div>
+    </div>`,
+    edit: `<div class="field-row">
+      <div class="field-label">输出渠道</div>
+      <select class="field-input">
+        <option selected>告警 Oncall 群</option>
+        <option>Slack</option>
+        <option>飞书</option>
+        <option>仅返回对话</option>
+      </select>
+    </div>
+    <div class="field-row">
+      <div class="field-label">结论模板</div>
+      <textarea class="field-input" style="min-height:100px">【排障结论】ark0 24h新笔记占比下跌
+根因：{root_cause}
+建议：{suggestion}
+数据：当前 {current} vs 基线 {baseline}（{delta}）</textarea>
+    </div>`,
+    data: `<div class="panel-section">
+      <div class="panel-section-label">通知配置</div>
+      <div class="field-row">
+        <div class="field-label">群 ID</div>
+        <input class="field-input" placeholder="填写 Oncall 群 ID" />
+      </div>
+    </div>`
+  }
+};
+
+let currentNode = null;
+let currentTab = 'detail';
+
+function openPanel(nodeId) {
+  const data = nodeData[nodeId];
+  if (!data) return;
+  currentNode = nodeId;
+
+  // Update active node
+  document.querySelectorAll('.flow-node').forEach(n => n.classList.remove('active'));
+  const fn = document.getElementById('f' + nodeId);
+  if (fn) fn.classList.add('active');
+
+  document.getElementById('panelIcon').textContent = data.icon;
+  document.getElementById('panelTitle').textContent = data.title;
+
+  // Show panel
+  document.getElementById('sidePanel').classList.add('open');
+  document.getElementById('chatMain').classList.add('panel-open');
+
+  switchTab(null, currentTab, data);
+}
+
+function closePanel() {
+  document.getElementById('sidePanel').classList.remove('open');
+  document.getElementById('chatMain').classList.remove('panel-open');
+  document.querySelectorAll('.flow-node').forEach(n => {
+    if (!n.classList.contains('editing')) n.classList.remove('active');
+  });
+  currentNode = null;
+}
+
+function switchTab(el, tab, data) {
+  currentTab = tab;
+  if (el) {
+    document.querySelectorAll('.panel-tab').forEach(t => t.classList.remove('active'));
+    el.classList.add('active');
+  }
+  const d = data || (currentNode ? nodeData[currentNode] : null);
+  if (!d) return;
+  const body = document.getElementById('panelBody');
+  body.innerHTML = d[tab] || '<div style="color:var(--text-muted);font-size:13px;padding:8px">暂无内容</div>';
+}
+
+// Open n3 (editing) by default for demo
+setTimeout(() => {
+  openPanel('n3');
+  // Switch to edit tab
+  const tabs = document.querySelectorAll('.panel-tab');
+  tabs.forEach(t => t.classList.remove('active'));
+  tabs[1].classList.add('active');
+  switchTab(null, 'edit');
+}, 600);
+</script>
+
+</body>
+</html>

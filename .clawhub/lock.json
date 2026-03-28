@@ -1,0 +1,49 @@
+{
+  "version": 1,
+  "skills": {
+    "jina-reader": {
+      "version": "1.0.0",
+      "installedAt": 1774234156303
+    },
+    "scrapling": {
+      "version": "1.0.0",
+      "installedAt": 1774234156855
+    },
+    "firecrawl-search": {
+      "version": "1.0.0",
+      "installedAt": 1774234157447
+    },
+    "evolver": {
+      "version": "1.0.0",
+      "installedAt": 1774624789231
+    },
+    "self-improving": {
+      "version": "1.0.0",
+      "installedAt": 1774624789741
+    },
+    "tavily-search": {
+      "version": "1.0.0",
+      "installedAt": 1774624790322
+    },
+    "github": {
+      "version": "1.0.0",
+      "installedAt": 1774624790876
+    },
+    "pretty-mermaid": {
+      "version": "1.0.0",
+      "installedAt": 1774624791387
+    },
+    "agent-browser": {
+      "version": "1.0.0",
+      "installedAt": 1774624843013
+    },
+    "diagram-generator": {
+      "version": "1.0.0",
+      "installedAt": 1774624847381
+    },
+    "architecture-diagrams": {
+      "version": "1.0.0",
+      "installedAt": 1774624848039
+    }
+  }
+}

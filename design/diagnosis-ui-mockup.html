@@ -1,0 +1,1143 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>排障 UI 设计稿</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  
+  :root {
+    --bg: #0f1117;
+    --surface: #1a1d27;
+    --surface2: #22263a;
+    --border: #2e3347;
+    --text: #e2e8f0;
+    --text-muted: #64748b;
+    --text-dim: #94a3b8;
+    --accent: #6366f1;
+    --accent-glow: rgba(99,102,241,0.15);
+    --green: #10b981;
+    --green-dim: rgba(16,185,129,0.12);
+    --red: #ef4444;
+    --red-dim: rgba(239,68,68,0.12);
+    --yellow: #f59e0b;
+    --yellow-dim: rgba(245,158,11,0.12);
+    --blue: #3b82f6;
+    --blue-dim: rgba(59,130,246,0.12);
+    --purple: #a855f7;
+  }
+
+  body {
+    font-family: -apple-system, 'SF Pro Text', 'Inter', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  /* ── Top Bar ── */
+  .topbar {
+    height: 48px;
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    padding: 0 16px;
+    gap: 12px;
+    flex-shrink: 0;
+    z-index: 10;
+  }
+  .topbar-logo {
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--accent);
+    letter-spacing: -0.3px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .topbar-logo svg { opacity: 0.9; }
+  .topbar-divider { width: 1px; height: 20px; background: var(--border); }
+  .topbar-title {
+    font-size: 13px;
+    color: var(--text-dim);
+    font-weight: 500;
+  }
+  .topbar-badge {
+    font-size: 11px;
+    padding: 2px 8px;
+    border-radius: 999px;
+    background: var(--red-dim);
+    color: var(--red);
+    border: 1px solid rgba(239,68,68,0.25);
+    font-weight: 600;
+    animation: pulse-badge 2s infinite;
+  }
+  @keyframes pulse-badge {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.6; }
+  }
+  .topbar-spacer { flex: 1; }
+  .topbar-time {
+    font-size: 12px;
+    color: var(--text-muted);
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* ── Main Layout ── */
+  .main {
+    flex: 1;
+    display: flex;
+    overflow: hidden;
+  }
+
+  /* ── LEFT: Chat Pane ── */
+  .chat-pane {
+    width: 460px;
+    flex-shrink: 0;
+    display: flex;
+    flex-direction: column;
+    border-right: 1px solid var(--border);
+    background: var(--bg);
+  }
+
+  .chat-header {
+    padding: 12px 16px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .chat-header-label {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+  }
+  .chat-header-skill {
+    margin-left: auto;
+    font-size: 11px;
+    color: var(--accent);
+    background: var(--accent-glow);
+    border: 1px solid rgba(99,102,241,0.25);
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-weight: 500;
+  }
+
+  .chat-messages {
+    flex: 1;
+    overflow-y: auto;
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    scrollbar-width: thin;
+    scrollbar-color: var(--border) transparent;
+  }
+
+  /* User bubble */
+  .msg-user {
+    align-self: flex-end;
+    max-width: 85%;
+  }
+  .msg-user .bubble {
+    background: var(--accent);
+    color: #fff;
+    padding: 9px 14px;
+    border-radius: 16px 16px 4px 16px;
+    font-size: 13.5px;
+    line-height: 1.55;
+  }
+  .msg-user .meta {
+    font-size: 11px;
+    color: var(--text-muted);
+    text-align: right;
+    margin-top: 4px;
+  }
+
+  /* Assistant bubble */
+  .msg-ai {
+    align-self: flex-start;
+    max-width: 100%;
+    width: 100%;
+  }
+  .msg-ai .avatar {
+    width: 24px;
+    height: 24px;
+    border-radius: 6px;
+    background: linear-gradient(135deg, #6366f1, #a855f7);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+    flex-shrink: 0;
+  }
+  .msg-ai-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 8px;
+  }
+  .msg-ai-name {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text-dim);
+  }
+
+  /* Stream output — Claude Code style */
+  .stream-block {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    overflow: hidden;
+    font-size: 13px;
+    line-height: 1.6;
+  }
+  .stream-prose {
+    padding: 12px 14px;
+    color: var(--text);
+  }
+
+  /* Step items */
+  .step-list {
+    border-top: 1px solid var(--border);
+    padding: 10px 0;
+  }
+  .step-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 7px 14px;
+    transition: background 0.15s;
+    cursor: pointer;
+    position: relative;
+  }
+  .step-item:hover { background: var(--surface2); }
+  .step-item.active {
+    background: rgba(99,102,241,0.08);
+    border-left: 2px solid var(--accent);
+  }
+  .step-icon {
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    margin-top: 1px;
+    font-size: 10px;
+  }
+  .step-icon.done { background: var(--green-dim); color: var(--green); }
+  .step-icon.warn { background: var(--yellow-dim); color: var(--yellow); }
+  .step-icon.err  { background: var(--red-dim);    color: var(--red); }
+  .step-icon.run  { background: var(--blue-dim);   color: var(--blue); }
+  .step-icon.skip { background: transparent; color: var(--text-muted); border: 1px solid var(--border); }
+
+  .step-body { flex: 1; min-width: 0; }
+  .step-title {
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .step-title.muted { color: var(--text-muted); }
+  .step-desc {
+    font-size: 11.5px;
+    color: var(--text-muted);
+    margin-top: 2px;
+    line-height: 1.45;
+  }
+  .step-tag {
+    margin-left: auto;
+    font-size: 10.5px;
+    padding: 1px 6px;
+    border-radius: 4px;
+    flex-shrink: 0;
+  }
+  .step-tag.ok    { background: var(--green-dim); color: var(--green); }
+  .step-tag.warn  { background: var(--yellow-dim); color: var(--yellow); }
+  .step-tag.fail  { background: var(--red-dim);    color: var(--red); }
+  .step-tag.info  { background: var(--blue-dim);   color: var(--blue); }
+
+  /* Typing cursor */
+  .cursor {
+    display: inline-block;
+    width: 2px;
+    height: 14px;
+    background: var(--accent);
+    margin-left: 1px;
+    vertical-align: middle;
+    animation: blink 1s step-end infinite;
+  }
+  @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0} }
+
+  /* Inline metric */
+  .inline-metric {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 1px 7px;
+    border-radius: 5px;
+    font-size: 12px;
+    font-weight: 600;
+    margin: 0 2px;
+  }
+  .inline-metric.red { background: var(--red-dim); color: var(--red); }
+  .inline-metric.yellow { background: var(--yellow-dim); color: var(--yellow); }
+  .inline-metric.green { background: var(--green-dim); color: var(--green); }
+
+  /* Choice buttons */
+  .choice-row {
+    padding: 10px 14px 12px;
+    border-top: 1px solid var(--border);
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+  .choice-label {
+    width: 100%;
+    font-size: 11px;
+    color: var(--text-muted);
+    margin-bottom: 4px;
+  }
+  .choice-btn {
+    font-size: 12px;
+    padding: 5px 12px;
+    border-radius: 6px;
+    border: 1px solid var(--border);
+    background: var(--surface2);
+    color: var(--text-dim);
+    cursor: pointer;
+    transition: all 0.15s;
+    font-family: inherit;
+  }
+  .choice-btn:hover {
+    border-color: var(--accent);
+    color: var(--accent);
+    background: var(--accent-glow);
+  }
+  .choice-btn.selected {
+    border-color: var(--accent);
+    background: var(--accent-glow);
+    color: var(--accent);
+    font-weight: 500;
+  }
+
+  /* Chat input */
+  .chat-input-area {
+    padding: 12px 16px;
+    border-top: 1px solid var(--border);
+    display: flex;
+    gap: 8px;
+    align-items: flex-end;
+  }
+  .chat-input {
+    flex: 1;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 9px 14px;
+    font-size: 13.5px;
+    color: var(--text);
+    resize: none;
+    outline: none;
+    font-family: inherit;
+    line-height: 1.5;
+    min-height: 40px;
+    max-height: 120px;
+    transition: border-color 0.15s;
+  }
+  .chat-input::placeholder { color: var(--text-muted); }
+  .chat-input:focus { border-color: var(--accent); }
+  .send-btn {
+    width: 36px;
+    height: 36px;
+    background: var(--accent);
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    transition: opacity 0.15s;
+  }
+  .send-btn:hover { opacity: 0.85; }
+
+  /* ── RIGHT: Dashboard Pane ── */
+  .dashboard-pane {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    background: var(--bg);
+  }
+
+  .dash-header {
+    padding: 12px 20px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .dash-header-label {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+  }
+  .dash-header-range {
+    margin-left: auto;
+    display: flex;
+    gap: 4px;
+  }
+  .range-btn {
+    font-size: 11.5px;
+    padding: 3px 10px;
+    border-radius: 5px;
+    border: 1px solid var(--border);
+    background: transparent;
+    color: var(--text-muted);
+    cursor: pointer;
+    font-family: inherit;
+    transition: all 0.15s;
+  }
+  .range-btn.active {
+    background: var(--surface);
+    color: var(--text);
+    border-color: var(--border);
+  }
+
+  .dash-body {
+    flex: 1;
+    overflow-y: auto;
+    padding: 16px 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    scrollbar-width: thin;
+    scrollbar-color: var(--border) transparent;
+  }
+
+  /* Metric cards row */
+  .metrics-row {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 10px;
+  }
+  .metric-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 12px 14px;
+    transition: border-color 0.2s;
+  }
+  .metric-card.highlighted {
+    border-color: var(--red);
+    box-shadow: 0 0 0 1px rgba(239,68,68,0.2);
+  }
+  .metric-card.warn-hl {
+    border-color: var(--yellow);
+    box-shadow: 0 0 0 1px rgba(245,158,11,0.2);
+  }
+  .metric-label {
+    font-size: 11px;
+    color: var(--text-muted);
+    font-weight: 500;
+    margin-bottom: 6px;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+  .metric-label .dot {
+    width: 6px; height: 6px; border-radius: 50%;
+  }
+  .metric-value {
+    font-size: 22px;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    line-height: 1;
+  }
+  .metric-value.red { color: var(--red); }
+  .metric-value.yellow { color: var(--yellow); }
+  .metric-value.green { color: var(--green); }
+  .metric-value.normal { color: var(--text); }
+  .metric-delta {
+    font-size: 11px;
+    margin-top: 5px;
+    display: flex;
+    align-items: center;
+    gap: 3px;
+  }
+  .metric-delta.down { color: var(--red); }
+  .metric-delta.up   { color: var(--green); }
+  .metric-delta.flat { color: var(--text-muted); }
+
+  /* Chart panel */
+  .chart-panel {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    overflow: hidden;
+  }
+  .chart-panel.highlighted {
+    border-color: var(--red);
+    box-shadow: 0 0 0 1px rgba(239,68,68,0.15);
+  }
+  .chart-panel.warn-hl {
+    border-color: var(--yellow);
+    box-shadow: 0 0 0 1px rgba(245,158,11,0.15);
+  }
+  .chart-header {
+    padding: 10px 14px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .chart-title {
+    font-size: 12.5px;
+    font-weight: 600;
+    color: var(--text-dim);
+  }
+  .chart-pin {
+    margin-left: auto;
+    font-size: 11px;
+    padding: 2px 7px;
+    border-radius: 4px;
+    font-weight: 500;
+  }
+  .chart-pin.active {
+    background: rgba(239,68,68,0.15);
+    color: var(--red);
+    border: 1px solid rgba(239,68,68,0.3);
+  }
+  .chart-pin.warn {
+    background: var(--yellow-dim);
+    color: var(--yellow);
+    border: 1px solid rgba(245,158,11,0.3);
+  }
+
+  /* SVG Charts */
+  .chart-svg-wrap {
+    padding: 8px 14px 12px;
+    position: relative;
+  }
+  svg.chart { width: 100%; overflow: visible; }
+
+  /* Annotation line */
+  .annot-line { stroke: var(--red); stroke-width: 1.5; stroke-dasharray: 4,3; opacity: 0.7; }
+  .annot-label {
+    fill: var(--red);
+    font-size: 10px;
+    font-family: inherit;
+  }
+
+  /* Callout badge on chart */
+  .chart-callout {
+    position: absolute;
+    top: 12px; right: 18px;
+    background: var(--red-dim);
+    border: 1px solid rgba(239,68,68,0.3);
+    color: var(--red);
+    font-size: 11px;
+    padding: 3px 8px;
+    border-radius: 5px;
+    font-weight: 600;
+  }
+
+  /* ── Node Map ── */
+  .node-map {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    overflow: hidden;
+  }
+  .node-map-header {
+    padding: 10px 14px;
+    border-bottom: 1px solid var(--border);
+    font-size: 12.5px;
+    font-weight: 600;
+    color: var(--text-dim);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .node-map-body {
+    padding: 16px 14px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0;
+    position: relative;
+    min-height: 130px;
+  }
+
+  /* Node */
+  .node {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    cursor: pointer;
+    padding: 8px 10px;
+    border-radius: 8px;
+    transition: background 0.15s;
+    position: relative;
+    z-index: 2;
+  }
+  .node:hover { background: var(--surface2); }
+  .node.highlighted {
+    background: rgba(239,68,68,0.08);
+  }
+  .node.warn-hl {
+    background: rgba(245,158,11,0.08);
+  }
+  .node.active-node {
+    background: rgba(99,102,241,0.12);
+    box-shadow: 0 0 0 1.5px var(--accent);
+    border-radius: 8px;
+  }
+
+  .node-icon {
+    width: 44px;
+    height: 44px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 20px;
+    border: 2px solid transparent;
+    position: relative;
+    transition: border-color 0.2s;
+  }
+  .node-icon.ok    { background: var(--green-dim); border-color: rgba(16,185,129,0.3); }
+  .node-icon.err   { background: var(--red-dim);   border-color: rgba(239,68,68,0.45); }
+  .node-icon.warn  { background: var(--yellow-dim);border-color: rgba(245,158,11,0.35); }
+  .node-icon.skip  { background: var(--surface2);  border-color: var(--border); opacity: 0.5; }
+  .node-icon.inspect {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 2px var(--accent-glow);
+  }
+
+  /* Pulse ring on error node */
+  .node-icon.err::after {
+    content: '';
+    position: absolute;
+    inset: -4px;
+    border-radius: 14px;
+    border: 2px solid rgba(239,68,68,0.35);
+    animation: pulse-ring 2s infinite;
+  }
+  @keyframes pulse-ring {
+    0%   { transform: scale(1); opacity: 0.8; }
+    70%  { transform: scale(1.18); opacity: 0; }
+    100% { opacity: 0; }
+  }
+
+  .node-label {
+    font-size: 11px;
+    font-weight: 500;
+    color: var(--text-dim);
+    text-align: center;
+    white-space: nowrap;
+  }
+  .node-sub {
+    font-size: 10px;
+    color: var(--text-muted);
+    margin-top: -3px;
+  }
+
+  /* Connector lines between nodes */
+  .connector {
+    height: 2px;
+    flex: 1;
+    position: relative;
+    z-index: 1;
+    margin: 0 -4px;
+    margin-bottom: 24px;
+  }
+  .connector.ok   { background: linear-gradient(90deg, rgba(16,185,129,0.5), rgba(16,185,129,0.5)); }
+  .connector.err  { background: linear-gradient(90deg, rgba(239,68,68,0.6), rgba(239,68,68,0.6)); }
+  .connector.warn { background: linear-gradient(90deg, rgba(245,158,11,0.5), rgba(245,158,11,0.5)); }
+  .connector.dim  { background: linear-gradient(90deg, rgba(100,116,139,0.25), rgba(100,116,139,0.25)); }
+
+  /* Connection hint */
+  .conn-hint {
+    font-size: 10px;
+    color: var(--text-muted);
+    position: absolute;
+    top: -14px;
+    left: 50%;
+    transform: translateX(-50%);
+    white-space: nowrap;
+  }
+
+  /* Legend */
+  .node-legend {
+    padding: 10px 14px;
+    border-top: 1px solid var(--border);
+    display: flex;
+    gap: 16px;
+  }
+  .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 11px;
+    color: var(--text-muted);
+  }
+  .legend-dot {
+    width: 8px; height: 8px; border-radius: 50%;
+  }
+
+  /* Correlation callout */
+  .corr-badge {
+    position: absolute;
+    top: 8px;
+    right: 12px;
+    font-size: 11px;
+    background: var(--accent-glow);
+    border: 1px solid rgba(99,102,241,0.3);
+    color: var(--accent);
+    padding: 3px 8px;
+    border-radius: 5px;
+    font-weight: 500;
+  }
+
+  /* Scroll */
+  ::-webkit-scrollbar { width: 4px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+  /* ── Annotation tooltip on chart hover ── */
+  .chart-tooltip-area {
+    font-size: 10.5px;
+    color: var(--text-muted);
+    padding: 4px 14px 8px;
+    border-top: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .chart-tooltip-area .tip-key { color: var(--text-dim); font-weight: 500; }
+  .chart-tooltip-area .tip-val { color: var(--yellow); font-weight: 600; }
+  .chart-tooltip-area .tip-val.red { color: var(--red); }
+
+  /* Resize handle (decorative) */
+  .resize-handle {
+    width: 4px;
+    cursor: col-resize;
+    background: var(--border);
+    flex-shrink: 0;
+    transition: background 0.15s;
+  }
+  .resize-handle:hover { background: var(--accent); }
+
+  /* Watermark label */
+  .design-label {
+    position: fixed;
+    bottom: 10px;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 11px;
+    color: var(--text-muted);
+    background: var(--surface);
+    padding: 4px 12px;
+    border-radius: 999px;
+    border: 1px solid var(--border);
+    pointer-events: none;
+    z-index: 100;
+    letter-spacing: 0.3px;
+  }
+</style>
+</head>
+<body>
+
+<!-- Top Bar -->
+<div class="topbar">
+  <div class="topbar-logo">
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+      <rect width="16" height="16" rx="4" fill="#6366f1" opacity="0.9"/>
+      <path d="M4 8h8M8 4v8" stroke="#fff" stroke-width="1.8" stroke-linecap="round"/>
+    </svg>
+    排障助手
+  </div>
+  <div class="topbar-divider"></div>
+  <div class="topbar-title">biz-ark-newnote-drop · 内流推荐 · ark0</div>
+  <div class="topbar-badge">⚠ 告警触发</div>
+  <div class="topbar-spacer"></div>
+  <div class="topbar-time" id="clock">14:03:22</div>
+</div>
+
+<!-- Main -->
+<div class="main">
+
+  <!-- LEFT: Chat -->
+  <div class="chat-pane">
+    <div class="chat-header">
+      <div class="chat-header-label">对话 · 排障流</div>
+      <div class="chat-header-skill">biz-ark-newnote-drop</div>
+    </div>
+
+    <div class="chat-messages">
+
+      <!-- User message -->
+      <div class="msg-user">
+        <div class="bubble">24h新笔记占比 周同比下跌超20%，告警时间 14:00，帮我排查一下</div>
+        <div class="meta">14:00</div>
+      </div>
+
+      <!-- AI step 1 - already done -->
+      <div class="msg-ai">
+        <div class="msg-ai-header">
+          <div class="avatar">🔍</div>
+          <div class="msg-ai-name">排障助手</div>
+        </div>
+        <div class="stream-block">
+          <div class="stream-prose">
+            收到告警。正在拉取 <strong>14:00 前 2h</strong> 的指标快照，对比上周同期数据…
+          </div>
+          <div class="step-list">
+            <div class="step-item">
+              <div class="step-icon done">✓</div>
+              <div class="step-body">
+                <div class="step-title">拉取大盘基线 <span class="step-tag ok">正常</span></div>
+                <div class="step-desc">整体流量 · 曝光量 · 点击率均在正常范围</div>
+              </div>
+            </div>
+            <div class="step-item highlighted active">
+              <div class="step-icon err">✕</div>
+              <div class="step-body">
+                <div class="step-title">24h新笔记占比 <span class="step-tag fail">-27.3%↓</span></div>
+                <div class="step-desc">
+                  当前 <span class="inline-metric red">12.4%</span>，上周同期 <span class="inline-metric green">17.1%</span>，差值显著，触发告警阈值
+                </div>
+              </div>
+            </div>
+            <div class="step-item">
+              <div class="step-icon warn">!</div>
+              <div class="step-body">
+                <div class="step-title">新笔记候选池规模 <span class="step-tag warn">-18.6%↓</span></div>
+                <div class="step-desc">候选池从 ~420k → ~342k，缩水明显</div>
+              </div>
+            </div>
+            <div class="step-item">
+              <div class="step-icon done">✓</div>
+              <div class="step-body">
+                <div class="step-title">存量笔记候选 <span class="step-tag ok">正常</span></div>
+                <div class="step-desc">存量池大小及分布无异常，可排除存量侧因素</div>
+              </div>
+            </div>
+          </div>
+          <div class="stream-prose" style="border-top:1px solid var(--border)">
+            初步判断：问题出在 <strong>新笔记候选池缩水</strong>。需要进一步确认是 <em>索引延迟</em> 还是 <em>新笔记发布量下降</em>。
+          </div>
+          <!-- Choice buttons -->
+          <div class="choice-row">
+            <div class="choice-label">👉 请选择下一步排查方向：</div>
+            <button class="choice-btn selected" onclick="selectChoice(this)">① 检查索引链路延迟</button>
+            <button class="choice-btn" onclick="selectChoice(this)">② 检查发布侧笔记量</button>
+            <button class="choice-btn" onclick="selectChoice(this)">③ 检查过滤策略变更</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- AI step 2 - streaming -->
+      <div class="msg-ai">
+        <div class="msg-ai-header">
+          <div class="avatar">⚙️</div>
+          <div class="msg-ai-name">排障助手</div>
+        </div>
+        <div class="stream-block">
+          <div class="stream-prose">
+            正在检查 <strong>索引链路</strong>（NoteIndex → Recall → Merge）的延迟指标<span class="cursor"></span>
+          </div>
+          <div class="step-list">
+            <div class="step-item">
+              <div class="step-icon done">✓</div>
+              <div class="step-body">
+                <div class="step-title">NoteIndex 写入延迟 <span class="step-tag ok">正常</span></div>
+                <div class="step-desc">P99 延迟 320ms，无积压</div>
+              </div>
+            </div>
+            <div class="step-item highlighted">
+              <div class="step-icon err">✕</div>
+              <div class="step-body">
+                <div class="step-title">Recall 服务新笔记召回率 <span class="step-tag fail">↓ 异常</span></div>
+                <div class="step-desc">
+                  新笔记召回率从 <span class="inline-metric yellow">82%</span> 跌至 <span class="inline-metric red">61%</span>，与候选池缩水吻合
+                </div>
+              </div>
+            </div>
+            <div class="step-item">
+              <div class="step-icon run">→</div>
+              <div class="step-body">
+                <div class="step-title muted">检查 Recall 过滤参数…</div>
+                <div class="step-desc">正在拉取配置变更记录</div>
+              </div>
+            </div>
+            <div class="step-item">
+              <div class="step-icon skip">○</div>
+              <div class="step-body">
+                <div class="step-title muted">Merge 层聚合策略</div>
+                <div class="step-desc">待上一步完成后分析</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Input -->
+    <div class="chat-input-area">
+      <textarea class="chat-input" placeholder="继续提问，或直接点击上方选项…" rows="1"></textarea>
+      <button class="send-btn">
+        <svg width="15" height="15" viewBox="0 0 15 15" fill="none">
+          <path d="M1.5 7.5h12M8 2l5.5 5.5L8 13" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </button>
+    </div>
+  </div>
+
+  <!-- Resize handle -->
+  <div class="resize-handle"></div>
+
+  <!-- RIGHT: Dashboard -->
+  <div class="dashboard-pane">
+    <div class="dash-header">
+      <div class="dash-header-label">大盘 · 关联图表</div>
+      <div style="margin-left:8px;font-size:11px;color:var(--accent)">● 与排障节点联动</div>
+      <div class="dash-header-range">
+        <button class="range-btn">1h</button>
+        <button class="range-btn active">2h</button>
+        <button class="range-btn">6h</button>
+        <button class="range-btn">1d</button>
+      </div>
+    </div>
+
+    <div class="dash-body">
+
+      <!-- Metric Cards -->
+      <div class="metrics-row">
+        <div class="metric-card highlighted">
+          <div class="metric-label"><span class="dot" style="background:var(--red)"></span>24h新笔记占比</div>
+          <div class="metric-value red">12.4%</div>
+          <div class="metric-delta down">↓ 27.3% vs 上周</div>
+        </div>
+        <div class="metric-card warn-hl">
+          <div class="metric-label"><span class="dot" style="background:var(--yellow)"></span>新笔记候选池</div>
+          <div class="metric-value yellow">342k</div>
+          <div class="metric-delta down">↓ 18.6% vs 上周</div>
+        </div>
+        <div class="metric-card">
+          <div class="metric-label"><span class="dot" style="background:var(--green)"></span>整体曝光量</div>
+          <div class="metric-value normal">2.41亿</div>
+          <div class="metric-delta flat">→ 持平</div>
+        </div>
+        <div class="metric-card">
+          <div class="metric-label"><span class="dot" style="background:var(--blue)"></span>整体点击率</div>
+          <div class="metric-value normal">7.82%</div>
+          <div class="metric-delta up">↑ 0.3%</div>
+        </div>
+      </div>
+
+      <!-- Chart 1: 24h新笔记占比 — highlighted -->
+      <div class="chart-panel highlighted">
+        <div class="chart-header">
+          <div style="width:8px;height:8px;border-radius:50%;background:var(--red);flex-shrink:0"></div>
+          <div class="chart-title">24h新笔记占比（%）</div>
+          <div class="chart-pin active">📍 当前排障节点</div>
+        </div>
+        <div class="chart-svg-wrap">
+          <div class="chart-callout">-27.3%↓</div>
+          <svg class="chart" height="90" viewBox="0 0 560 90">
+            <defs>
+              <linearGradient id="g1" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stop-color="#ef4444" stop-opacity="0.25"/>
+                <stop offset="100%" stop-color="#ef4444" stop-opacity="0"/>
+              </linearGradient>
+              <linearGradient id="g1b" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stop-color="#10b981" stop-opacity="0.12"/>
+                <stop offset="100%" stop-color="#10b981" stop-opacity="0"/>
+              </linearGradient>
+            </defs>
+            <!-- Last week ref line -->
+            <polyline points="0,30 70,29 140,31 210,29 280,30 350,28 420,30 490,29 560,30"
+              fill="none" stroke="#10b981" stroke-width="1.5" stroke-dasharray="5,3" opacity="0.5"/>
+            <!-- This week line -->
+            <polyline points="0,32 70,33 140,31 210,48 280,62 350,70 420,72 490,74 560,76"
+              fill="none" stroke="#ef4444" stroke-width="2"/>
+            <polygon points="0,32 70,33 140,31 210,48 280,62 350,70 420,72 490,74 560,76 560,90 0,90"
+              fill="url(#g1)"/>
+            <!-- annotation: drop point -->
+            <line x1="210" y1="10" x2="210" y2="85" class="annot-line"/>
+            <text x="214" y="18" class="annot-label">发布量下滑</text>
+            <!-- Y axis labels -->
+            <text x="4" y="34" fill="#64748b" font-size="9" font-family="inherit">17%</text>
+            <text x="4" y="78" fill="#64748b" font-size="9" font-family="inherit">12%</text>
+            <!-- X labels -->
+            <text x="0"   y="88" fill="#64748b" font-size="9" font-family="inherit">12:00</text>
+            <text x="130" y="88" fill="#64748b" font-size="9" font-family="inherit">13:00</text>
+            <text x="264" y="88" fill="#64748b" font-size="9" font-family="inherit">13:30</text>
+            <text x="500" y="88" fill="#64748b" font-size="9" font-family="inherit">14:00</text>
+          </svg>
+        </div>
+        <div class="chart-tooltip-area">
+          <span class="tip-key">13:45</span>
+          <span>新笔记占比</span>
+          <span class="tip-val red">12.4%</span>
+          <span style="margin-left:12px" class="tip-key">上周同期</span>
+          <span class="tip-val" style="color:var(--green)">17.1%</span>
+          <span style="margin-left:12px" class="tip-key">差值</span>
+          <span class="tip-val red">-4.7pp</span>
+        </div>
+      </div>
+
+      <!-- Chart 2: Recall 召回率 — warn highlighted -->
+      <div class="chart-panel warn-hl">
+        <div class="chart-header">
+          <div style="width:8px;height:8px;border-radius:50%;background:var(--yellow);flex-shrink:0"></div>
+          <div class="chart-title">Recall 服务 · 新笔记召回率（%）</div>
+          <div class="chart-pin warn">⚙ 正在检查</div>
+        </div>
+        <div class="chart-svg-wrap">
+          <svg class="chart" height="80" viewBox="0 0 560 80">
+            <defs>
+              <linearGradient id="g2" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stop-color="#f59e0b" stop-opacity="0.2"/>
+                <stop offset="100%" stop-color="#f59e0b" stop-opacity="0"/>
+              </linearGradient>
+            </defs>
+            <polyline points="0,20 70,21 140,22 210,22 280,35 350,52 420,55 490,58 560,60"
+              fill="none" stroke="#f59e0b" stroke-width="2"/>
+            <polygon points="0,20 70,21 140,22 210,22 280,35 350,52 420,55 490,58 560,60 560,78 0,78"
+              fill="url(#g2)"/>
+            <line x1="210" y1="5" x2="210" y2="75" class="annot-line" style="stroke:var(--yellow)"/>
+            <text x="214" y="14" fill="#f59e0b" font-size="9" font-family="inherit">参数变更?</text>
+            <text x="4"   y="24" fill="#64748b" font-size="9" font-family="inherit">82%</text>
+            <text x="4"   y="64" fill="#64748b" font-size="9" font-family="inherit">61%</text>
+            <text x="0"   y="78" fill="#64748b" font-size="9" font-family="inherit">12:00</text>
+            <text x="500" y="78" fill="#64748b" font-size="9" font-family="inherit">14:00</text>
+          </svg>
+        </div>
+      </div>
+
+      <!-- Node Map -->
+      <div class="node-map">
+        <div class="node-map-header">
+          🗺 排障链路图
+          <div class="corr-badge">与对话节点同步</div>
+        </div>
+        <div class="node-map-body">
+
+          <div class="node" title="笔记发布服务">
+            <div class="node-icon warn">📝</div>
+            <div class="node-label">发布侧</div>
+            <div class="node-sub" style="color:var(--yellow)">待确认</div>
+          </div>
+
+          <div class="connector warn">
+            <span class="conn-hint">写入延迟正常</span>
+          </div>
+
+          <div class="node">
+            <div class="node-icon ok">🗂</div>
+            <div class="node-label">NoteIndex</div>
+            <div class="node-sub" style="color:var(--green)">✓ 正常</div>
+          </div>
+
+          <div class="connector err">
+            <span class="conn-hint" style="color:var(--red)">召回率↓</span>
+          </div>
+
+          <div class="node highlighted active-node" title="当前排障节点">
+            <div class="node-icon err inspect">🔄</div>
+            <div class="node-label">Recall</div>
+            <div class="node-sub" style="color:var(--red)">✕ 异常</div>
+          </div>
+
+          <div class="connector dim">
+            <span class="conn-hint">待分析</span>
+          </div>
+
+          <div class="node">
+            <div class="node-icon skip">🔀</div>
+            <div class="node-label">Merge</div>
+            <div class="node-sub">待排查</div>
+          </div>
+
+          <div class="connector dim"></div>
+
+          <div class="node">
+            <div class="node-icon skip">📊</div>
+            <div class="node-label">Rank</div>
+            <div class="node-sub">待排查</div>
+          </div>
+
+          <div class="connector dim"></div>
+
+          <div class="node">
+            <div class="node-icon skip">🚀</div>
+            <div class="node-label">下发</div>
+            <div class="node-sub">待排查</div>
+          </div>
+
+        </div>
+        <div class="node-legend">
+          <div class="legend-item"><span class="legend-dot" style="background:var(--green)"></span>正常</div>
+          <div class="legend-item"><span class="legend-dot" style="background:var(--red)"></span>异常</div>
+          <div class="legend-item"><span class="legend-dot" style="background:var(--yellow)"></span>待确认</div>
+          <div class="legend-item"><span class="legend-dot" style="background:var(--border)"></span>未排查</div>
+          <div class="legend-item" style="margin-left:auto;color:var(--accent)">🔵 正在排查</div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<div class="design-label">设计稿 · 非生产环境 · 排障 UI v0.1</div>
+
+<script>
+  // Live clock
+  function tick() {
+    const now = new Date();
+    document.getElementById('clock').textContent =
+      [now.getHours(), now.getMinutes(), now.getSeconds()]
+        .map(n => String(n).padStart(2,'0')).join(':');
+  }
+  tick(); setInterval(tick, 1000);
+
+  // Choice button selection
+  function selectChoice(btn) {
+    btn.closest('.choice-row').querySelectorAll('.choice-btn')
+      .forEach(b => b.classList.remove('selected'));
+    btn.classList.add('selected');
+  }
+
+  // Simulate streaming cursor cycling
+  const cursor = document.querySelector('.cursor');
+  // Already handled by CSS animation
+
+  // Node click — highlight corresponding chart
+  document.querySelectorAll('.node').forEach(node => {
+    node.addEventListener('click', () => {
+      document.querySelectorAll('.node').forEach(n => n.classList.remove('active-node'));
+      node.classList.add('active-node');
+    });
+  });
+</script>
+
+</body>
+</html>

@@ -1,0 +1,36 @@
+%%{init: {
+  'theme': 'base',
+  'themeVariables': {
+    'primaryColor': '#E8364F',
+    'primaryTextColor': '#FFFFFF',
+    'primaryBorderColor': '#B8293E',
+    'secondaryColor': '#F5E6D3',
+    'secondaryTextColor': '#1A1A2E',
+    'lineColor': '#9E8E82',
+    'textColor': '#1A1A2E',
+    'actorBkg': '#E8364F',
+    'actorTextColor': '#FFFFFF',
+    'actorBorder': '#B8293E',
+    'activationBkgColor': '#F5E6D3',
+    'activationBorderColor': '#C67A5C',
+    'signalColor': '#1A1A2E',
+    'noteBkgColor': '#FBF7F4',
+    'noteBorderColor': '#C67A5C',
+    'noteTextColor': '#1A1A2E',
+    'fontSize': '13px',
+    'fontFamily': '"PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif'
+  }
+}}%%
+sequenceDiagram
+    participant U as 用户
+    participant C as 客户端
+    participant S as 服务端
+    participant D as 数据库
+
+    U->>+C: 发起请求
+    C->>+S: API 调用
+    Note right of S: 鉴权与校验
+    S->>+D: 查询数据
+    D-->>-S: 返回结果
+    S-->>-C: 响应数据
+    C-->>-U: 展示内容

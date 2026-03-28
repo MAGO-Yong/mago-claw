@@ -1,0 +1,648 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>中台可观测性 PM · AI 时代转型规划</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif;
+    background: #0f1117;
+    color: #e2e8f0;
+    line-height: 1.7;
+    padding: 40px 20px 80px;
+  }
+  .container { max-width: 1100px; margin: 0 auto; }
+
+  /* Header */
+  .header {
+    border-left: 4px solid #f97316;
+    padding: 8px 0 8px 20px;
+    margin-bottom: 8px;
+  }
+  .header .label {
+    font-size: 11px;
+    letter-spacing: 3px;
+    color: #f97316;
+    text-transform: uppercase;
+    font-weight: 600;
+    margin-bottom: 10px;
+  }
+  .header h1 {
+    font-size: 36px;
+    font-weight: 700;
+    color: #fff;
+    line-height: 1.2;
+    margin-bottom: 8px;
+  }
+  .header .subtitle {
+    font-size: 14px;
+    color: #94a3b8;
+  }
+
+  /* Core conclusion */
+  .core-box {
+    background: #1a1f2e;
+    border: 1px solid #2d3748;
+    border-left: 3px solid #f97316;
+    border-radius: 8px;
+    padding: 24px 28px;
+    margin: 32px 0;
+    display: flex;
+    gap: 20px;
+    align-items: flex-start;
+  }
+  .core-box .diamond {
+    color: #f97316;
+    font-size: 16px;
+    margin-top: 3px;
+    flex-shrink: 0;
+  }
+  .core-box .core-label {
+    font-size: 12px;
+    color: #f97316;
+    font-weight: 600;
+    letter-spacing: 1px;
+    margin-bottom: 8px;
+  }
+  .core-box p {
+    font-size: 15px;
+    color: #cbd5e1;
+    line-height: 1.8;
+  }
+  .core-box strong { color: #fff; }
+
+  /* Section title */
+  .section-title {
+    font-size: 13px;
+    font-weight: 700;
+    color: #94a3b8;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    margin: 44px 0 16px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .section-title::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: #2d3748;
+  }
+
+  /* Two-col grid */
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px; }
+  .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; margin-bottom: 16px; }
+
+  /* Card */
+  .card {
+    background: #1a1f2e;
+    border: 1px solid #2d3748;
+    border-radius: 10px;
+    padding: 22px 24px;
+  }
+  .card-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 14px;
+  }
+  .card-num {
+    background: #f97316;
+    color: #fff;
+    font-size: 11px;
+    font-weight: 700;
+    padding: 3px 8px;
+    border-radius: 4px;
+    flex-shrink: 0;
+  }
+  .card-num.blue { background: #3b82f6; }
+  .card-num.green { background: #10b981; }
+  .card-num.purple { background: #8b5cf6; }
+  .card-num.teal { background: #14b8a6; }
+  .card-icon { font-size: 16px; }
+  .card-title {
+    font-size: 15px;
+    font-weight: 700;
+    color: #fff;
+  }
+  .card ul { list-style: none; }
+  .card ul li {
+    font-size: 13px;
+    color: #94a3b8;
+    padding: 5px 0;
+    padding-left: 14px;
+    position: relative;
+    line-height: 1.6;
+  }
+  .card ul li::before {
+    content: '·';
+    position: absolute;
+    left: 0;
+    color: #f97316;
+    font-weight: 700;
+  }
+  .card ul li strong { color: #e2e8f0; }
+
+  /* Tags */
+  .tags { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 14px; }
+  .tag {
+    font-size: 11px;
+    padding: 3px 10px;
+    border-radius: 20px;
+    font-weight: 500;
+  }
+  .tag-orange { background: rgba(249,115,22,0.15); color: #f97316; border: 1px solid rgba(249,115,22,0.3); }
+  .tag-blue { background: rgba(59,130,246,0.15); color: #60a5fa; border: 1px solid rgba(59,130,246,0.3); }
+  .tag-green { background: rgba(16,185,129,0.15); color: #34d399; border: 1px solid rgba(16,185,129,0.3); }
+  .tag-purple { background: rgba(139,92,246,0.15); color: #a78bfa; border: 1px solid rgba(139,92,246,0.3); }
+
+  /* Direction header */
+  .direction-header {
+    background: linear-gradient(135deg, #1e2535 0%, #1a1f2e 100%);
+    border: 1px solid #2d3748;
+    border-top: 3px solid #f97316;
+    border-radius: 10px;
+    padding: 20px 24px;
+    margin-bottom: 16px;
+  }
+  .direction-header.blue { border-top-color: #3b82f6; }
+  .direction-label {
+    font-size: 11px;
+    color: #f97316;
+    font-weight: 700;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    margin-bottom: 6px;
+  }
+  .direction-label.blue { color: #60a5fa; }
+  .direction-header h2 {
+    font-size: 18px;
+    font-weight: 700;
+    color: #fff;
+    margin-bottom: 6px;
+  }
+  .direction-header p {
+    font-size: 13px;
+    color: #64748b;
+    line-height: 1.6;
+  }
+
+  /* Timeline */
+  .timeline { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; }
+  .timeline-item {
+    background: #1a1f2e;
+    border: 1px solid #2d3748;
+    border-radius: 8px;
+    padding: 18px 20px;
+  }
+  .timeline-q {
+    font-size: 20px;
+    font-weight: 800;
+    color: #f97316;
+    margin-bottom: 4px;
+  }
+  .timeline-q.blue { color: #3b82f6; }
+  .timeline-q.green { color: #10b981; }
+  .timeline-label {
+    font-size: 11px;
+    color: #64748b;
+    margin-bottom: 12px;
+    font-weight: 600;
+  }
+  .timeline-item ul { list-style: none; }
+  .timeline-item ul li {
+    font-size: 12px;
+    color: #94a3b8;
+    padding: 3px 0 3px 12px;
+    position: relative;
+  }
+  .timeline-item ul li::before {
+    content: '→';
+    position: absolute;
+    left: 0;
+    color: #475569;
+    font-size: 10px;
+  }
+
+  /* Harness box */
+  .harness-box {
+    background: #12161f;
+    border: 1px solid #1e293b;
+    border-radius: 8px;
+    padding: 16px 20px;
+    margin: 12px 0;
+    font-size: 12px;
+    color: #64748b;
+    font-family: 'SF Mono', Consolas, monospace;
+    line-height: 2;
+  }
+  .harness-box .hl { color: #f97316; font-weight: 600; }
+  .harness-box .hl2 { color: #60a5fa; }
+  .harness-box .hl3 { color: #34d399; }
+
+  /* Layer stack */
+  .layer-stack { display: flex; flex-direction: column; gap: 6px; margin: 12px 0; }
+  .layer {
+    border-radius: 6px;
+    padding: 10px 14px;
+    font-size: 12px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .layer-4 { background: rgba(249,115,22,0.12); border: 1px solid rgba(249,115,22,0.25); }
+  .layer-3 { background: rgba(139,92,246,0.12); border: 1px solid rgba(139,92,246,0.25); }
+  .layer-2 { background: rgba(59,130,246,0.12); border: 1px solid rgba(59,130,246,0.25); }
+  .layer-1 { background: rgba(100,116,139,0.12); border: 1px solid rgba(100,116,139,0.25); }
+  .layer-label { font-weight: 600; color: #e2e8f0; }
+  .layer-detail { color: #64748b; font-size: 11px; }
+  .layer-badge {
+    font-size: 10px;
+    padding: 2px 8px;
+    border-radius: 10px;
+    font-weight: 600;
+  }
+  .badge-new { background: rgba(249,115,22,0.2); color: #f97316; }
+  .badge-done { background: rgba(100,116,139,0.2); color: #94a3b8; }
+
+  /* Divider */
+  .divider { height: 1px; background: #1e293b; margin: 32px 0; }
+
+  /* Full-width card */
+  .full-card {
+    background: #1a1f2e;
+    border: 1px solid #2d3748;
+    border-radius: 10px;
+    padding: 22px 28px;
+    margin-bottom: 16px;
+  }
+  .full-card h3 {
+    font-size: 14px;
+    font-weight: 700;
+    color: #fff;
+    margin-bottom: 12px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  /* Key number */
+  .key-numbers { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 16px; }
+  .kn-card {
+    background: #1a1f2e;
+    border: 1px solid #2d3748;
+    border-radius: 8px;
+    padding: 16px 18px;
+    text-align: center;
+  }
+  .kn-num { font-size: 28px; font-weight: 800; color: #f97316; line-height: 1; margin-bottom: 4px; }
+  .kn-num.blue { color: #60a5fa; }
+  .kn-num.green { color: #34d399; }
+  .kn-num.purple { color: #a78bfa; }
+  .kn-label { font-size: 11px; color: #64748b; line-height: 1.4; }
+
+  @media (max-width: 768px) {
+    .grid-2, .grid-3, .timeline, .key-numbers { grid-template-columns: 1fr; }
+    .header h1 { font-size: 26px; }
+  }
+</style>
+</head>
+<body>
+<div class="container">
+
+  <!-- Header -->
+  <div class="header">
+    <div class="label">AI TRANSFORMATION ROADMAP · 2026 Q1</div>
+    <h1>技术风险 PM 的<br>AI 时代转型规划</h1>
+    <div class="subtitle">从协同桥梁到 AI 转型探路者 · 技术风险平台群</div>
+  </div>
+
+  <!-- Core conclusion -->
+  <div class="core-box">
+    <div>
+      <div class="core-label">◆ 核心判断</div>
+      <p>旧桥梁会消失，但新桥梁不是"沟通桥梁"，而是<strong>「控制桥梁」</strong>。PM 被 AI 真正替代的，只是"信息传递"功能，不是"问题定义"和"价值判断"能力。<strong>当执行层变得更快、更廉价，占据控制面的人反而更值钱。</strong></p>
+    </div>
+  </div>
+
+  <!-- 背景 -->
+  <div class="section-title">01 &nbsp; 背景与判断</div>
+  <div class="grid-2">
+    <div class="card">
+      <div class="card-header">
+        <span class="card-num">行业</span>
+        <span class="card-icon">🌐</span>
+        <span class="card-title">四股底层力量</span>
+      </div>
+      <ul>
+        <li><strong>研发链路缩短：</strong>Meta/Shopify 推行 PM vibe coding，协调转述价值下降</li>
+        <li><strong>稳定性产品化：</strong>SRE 借助 AI 将经验沉淀为 SKILL/Agent，AIOps 落地加速</li>
+        <li><strong>质量隐忧浮现：</strong>AI 生成代码复杂度 +40%，bug 数量是人工的 1.7 倍</li>
+        <li><strong>组织逻辑改写：</strong>Shopify 要求申请资源前先证明 AI 做不了</li>
+      </ul>
+      <div class="tags">
+        <span class="tag tag-orange">行业冲击</span>
+        <span class="tag tag-blue">组织重构</span>
+        <span class="tag tag-green">控制面</span>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-header">
+        <span class="card-num blue">组织</span>
+        <span class="card-icon">🏢</span>
+        <span class="card-title">老板的两个期望</span>
+      </div>
+      <ul>
+        <li><strong>释放人力：</strong>改变产研迭代模式，研发/SRE 实现模块级自闭环</li>
+        <li><strong>创造增量：</strong>探索未知领域，为组织带来新的价值增量</li>
+        <li>PM 原有"需求桥梁"职责被分解，若价值来自"定义问题"则反而上升</li>
+        <li>不能说清 AI 时代新增控制权与责任边界的岗位，会自然滑向被压缩</li>
+      </ul>
+      <div class="tags">
+        <span class="tag tag-orange">问题定义</span>
+        <span class="tag tag-blue">价值判断</span>
+        <span class="tag tag-green">控制面</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- 方向一 -->
+  <div class="section-title">02 &nbsp; 方向一：PM 在 AI 时代的角色转型</div>
+  <div class="direction-header">
+    <div class="direction-label">DIRECTION 01</div>
+    <h2>PM 在 AI 时代的角色转型</h2>
+    <p>执行侧：能自己动手验证想法，不再完全依赖研发 &nbsp;|&nbsp; 认知侧：持续识别 AI 前沿方向，成为团队演进的判断者和推动者</p>
+  </div>
+
+  <div class="grid-3">
+    <div class="card">
+      <div class="card-header">
+        <span class="card-num">1.1</span>
+        <span class="card-title">Vibe Coding</span>
+      </div>
+      <ul>
+        <li>用 AI 工具快速原型化，替代文档和原型图作为验证手段</li>
+        <li>优先消化"研发不愿接、用户一直提"的存量需求</li>
+        <li>释放研发资源聚焦数据层、Agent/SKILL 高价值攻坚</li>
+        <li><strong>原则：Do the Simple Thing First</strong> — 先跑通 80%，别追求 100%</li>
+      </ul>
+      <div class="tags">
+        <span class="tag tag-orange">执行侧升级</span>
+        <span class="tag tag-blue">Q2 启动</span>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-header">
+        <span class="card-num green">1.2</span>
+        <span class="card-title">Side Quest 探索</span>
+      </div>
+      <ul>
+        <li>刻意保留精力做"不在 roadmap 上"的小实验</li>
+        <li>每周 2-4 小时非计划性探索，不设成果预期</li>
+        <li>有价值的探索沉淀为团队分享或月报内容</li>
+        <li>有时候最重要的洞察，来自本来没打算深入的角落</li>
+      </ul>
+      <div class="tags">
+        <span class="tag tag-green">认知侧升级</span>
+        <span class="tag tag-blue">持续进行</span>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-header">
+        <span class="card-num purple">1.3</span>
+        <span class="card-title">AI 先行者</span>
+      </div>
+      <ul>
+        <li>信息过滤判断，输出有决策价值的结论而非信息堆砌</li>
+        <li>定期 AI 工具月报，帮团队建立统一认知基线</li>
+        <li><strong>Building Chasm 识别：</strong>判断某个 AI 方向是 Demo 阶段还是 Production Ready</li>
+        <li>推动团队角色分工重定义，防止全栈蔓延内卷</li>
+      </ul>
+      <div class="tags">
+        <span class="tag tag-purple">判断力</span>
+        <span class="tag tag-orange">团队演进</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- 方向二 -->
+  <div class="section-title">03 &nbsp; 方向二：系统性风险的主动治理</div>
+  <div class="direction-header blue">
+    <div class="direction-label blue">DIRECTION 02</div>
+    <h2>系统性风险的主动治理 · 全局稳定性建设</h2>
+    <p>A 层：面向全局所有系统的稳定性治理 &nbsp;|&nbsp; B 层：以 Harness Engineering 为方法论，治理 AI 系统新型稳定性风险</p>
+  </div>
+
+  <!-- A层 -->
+  <div class="grid-2">
+    <div class="card">
+      <div class="card-header">
+        <span class="card-num blue">A · 2.1</span>
+        <span class="card-title">Reliability Shift Left</span>
+      </div>
+      <ul>
+        <li>稳定性规范 SKILL 化，嵌入 CI/CD 流水线自动触发</li>
+        <li>从「变更上线后出问题」→「代码提交时自动拦截风险」</li>
+        <li>参考 DevSecOps Security Shift Left 成熟路径</li>
+        <li>Q2 选 1-2 个高频规范跑通样板，Q3 拦截到真实问题</li>
+      </ul>
+      <div class="tags">
+        <span class="tag tag-blue">全局适用</span>
+        <span class="tag tag-green">Q2 启动</span>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-header">
+        <span class="card-num blue">A · 2.2</span>
+        <span class="card-title">全局稳定性 AI 洞察</span>
+      </div>
+      <ul>
+        <li>结构性矛盾：AI 创新投入↑，稳定性投入↓，复杂度↑</li>
+        <li>旧方式失效：人推人在 AI 热潮下更难为继</li>
+        <li>从「人驱动」升级为「数据驱动」，让风险客观可见</li>
+        <li>容灾覆盖扫描 / 架构依赖风险评级 / 可观测性盲区 / 投入-风险关联分析</li>
+      </ul>
+      <div class="tags">
+        <span class="tag tag-blue">全局适用</span>
+        <span class="tag tag-orange">Q2 启动</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- B层 Harness -->
+  <div class="full-card">
+    <h3>🔧 B 层方法论：Harness Engineering</h3>
+    <div class="harness-box">
+      <span class="hl">Harness Engineering</span> = 给 AI Agent 构建「运行约束系统」，不改模型，设计让模型可靠运行的外部基础设施<br>
+      ├── <span class="hl2">信息供给层</span>　Agent 每步执行都能拿到它需要的信息（规范文档、Trace、CI 状态）<br>
+      ├── <span class="hl2">架构约束层</span>　机械强制执行质量标准，不是"告诉 Agent 做好"，CI 自动验证越界阻断<br>
+      └── <span class="hl3">熵管理层　　</span>　AI 持续生成内容，系统积累「认知熵」，需要周期性清理和监控
+    </div>
+    <div style="font-size:12px;color:#64748b;margin-top:8px;">
+      📊 LangChain 实验：固定模型不变，仅优化 Harness → Terminal Bench 2.0 得分 52.8% → 66.5%，排名 Top 30 → Top 5 &nbsp;·&nbsp;「调试模型」正在被「调整系统」替代
+    </div>
+  </div>
+
+  <div class="grid-3">
+    <div class="card">
+      <div class="card-header">
+        <span class="card-num teal">B · 2.3</span>
+        <span class="card-title">AI Native 规范<br>& SKILL 生态标准</span>
+      </div>
+      <ul>
+        <li><strong>上线前治理</strong></li>
+        <li>研发全流程规范：调研→需求→设计→开发→上线各环节 SKILL 化</li>
+        <li>SKILL 准入：场景频次、价值可量化、可复用性</li>
+        <li>SKILL 准出：功能完整性、边界清晰度、文档规范性</li>
+        <li>SKILL 度量：调用量、问题拦截数、人工替代率</li>
+      </ul>
+      <div class="tags">
+        <span class="tag tag-green">上线前</span>
+        <span class="tag tag-blue">Q2-Q3</span>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-header">
+        <span class="card-num teal">B · 2.4</span>
+        <span class="card-title">Skills Reliability<br>Engineering</span>
+      </div>
+      <ul>
+        <li><strong>上线后治理</strong></li>
+        <li>SKILL 执行成功率监控、异常熔断、版本回滚</li>
+        <li>Agent 全链路可观测：决策路径、工具调用链、执行结果</li>
+        <li>安全权限管控：越权行为自动识别、敏感数据访问控制</li>
+        <li>认知熵监控：行为漂移检测、文档-行为一致性扫描</li>
+      </ul>
+      <div class="tags">
+        <span class="tag tag-orange">上线后</span>
+        <span class="tag tag-blue">Q3-Q4</span>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-header">
+        <span class="card-num teal">B · 2.5</span>
+        <span class="card-title">Agent SLO<br>与评估闭环</span>
+      </div>
+      <ul>
+        <li><strong>度量闭环三件事</strong></li>
+        <li><strong>认知 SLO：</strong>传统 uptime 盲区，系统在线但答案错误；Layer 2-4 指令遵循率、幻觉率、任务完成率</li>
+        <li><strong>评估链路：</strong>Trace 采集 → 数据集构建 → LLM-as-judge + 代码评分器 → 质量评分</li>
+        <li><strong>变更准入：</strong>Agent 分级（L1-L4）对应不同 SLO 阈值，低于阈值不上线</li>
+      </ul>
+      <div class="tags">
+        <span class="tag tag-purple">度量层</span>
+        <span class="tag tag-blue">Q3-Q4</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Agent SLO 层级 -->
+  <div class="full-card">
+    <h3>📊 Agent 四层度量框架</h3>
+    <div class="layer-stack">
+      <div class="layer layer-4">
+        <div>
+          <div class="layer-label">Layer 4 · 业务结果层</div>
+          <div class="layer-detail">任务完成率、结果准确率、用户满意度</div>
+        </div>
+        <span class="layer-badge badge-new">待建设</span>
+      </div>
+      <div class="layer layer-3">
+        <div>
+          <div class="layer-label">Layer 3 · 认知行为层</div>
+          <div class="layer-detail">指令遵循率、逻辑一致性、幻觉率、工具调用成功率</div>
+        </div>
+        <span class="layer-badge badge-new">待建设</span>
+      </div>
+      <div class="layer layer-2">
+        <div>
+          <div class="layer-label">Layer 2 · 链路追踪层</div>
+          <div class="layer-detail">Trace 完整性、决策路径可追溯性、工具调用链覆盖率</div>
+        </div>
+        <span class="layer-badge badge-new">建设中</span>
+      </div>
+      <div class="layer layer-1">
+        <div>
+          <div class="layer-label">Layer 1 · 基础设施层</div>
+          <div class="layer-detail">Uptime、Latency、Error Rate</div>
+        </div>
+        <span class="layer-badge badge-done">已覆盖</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- 规划节奏 -->
+  <div class="section-title">04 &nbsp; 整体规划节奏</div>
+  <div class="timeline">
+    <div class="timeline-item">
+      <div class="timeline-q">Q2</div>
+      <div class="timeline-label">4-6月 · 打地基</div>
+      <ul>
+        <li>Vibe coding 学习，跑通自闭环链路</li>
+        <li>启动 Side Quest 探索机制</li>
+        <li>输出首份 AI 工具月报</li>
+        <li>选定高频规范，开发 SKILL 样板</li>
+        <li>建立全局稳定性基线</li>
+      </ul>
+    </div>
+    <div class="timeline-item">
+      <div class="timeline-q blue">Q3</div>
+      <div class="timeline-label">7-9月 · 跑通样板</div>
+      <ul>
+        <li>自闭环常态化（20-30% 精力）</li>
+        <li>SKILL 样板拦截到真实问题</li>
+        <li>AI Native 规范 1.0 全团队推行</li>
+        <li>全局风险面板上线</li>
+        <li>Trace 规范落地，Layer 2 指标建立</li>
+      </ul>
+    </div>
+    <div class="timeline-item">
+      <div class="timeline-q green">Q4</div>
+      <div class="timeline-label">10-12月 · 沉淀扩展</div>
+      <ul>
+        <li>方法论整理，形成转型手册</li>
+        <li>向老板展示成果，探讨推广</li>
+        <li>Skills RE + Agent SLO 体系立项</li>
+        <li>推动公司层面 Agent 稳定性标准</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- 不可替代性 -->
+  <div class="section-title">05 &nbsp; 你的不可替代性</div>
+  <div class="core-box" style="margin-top:0;">
+    <div>
+      <div class="core-label">◆ 核心定位</div>
+      <p><strong>当所有人都在用 AI 加速执行的时候，你是那个在问「我们应该跑向哪里，以及跑起来之后不会翻车」的人。</strong></p>
+    </div>
+  </div>
+
+  <div class="key-numbers">
+    <div class="kn-card">
+      <div class="kn-num">执行</div>
+      <div class="kn-label">Vibe Coding 自闭环<br>不再只是提需求</div>
+    </div>
+    <div class="kn-card">
+      <div class="kn-num blue">认知</div>
+      <div class="kn-label">Building Chasm 判断<br>让团队押注正确方向</div>
+    </div>
+    <div class="kn-card">
+      <div class="kn-num green">规范</div>
+      <div class="kn-label">SKILL 生态守门人<br>上线前 + 上线后全覆盖</div>
+    </div>
+    <div class="kn-card">
+      <div class="kn-num purple">全局</div>
+      <div class="kn-label">跨传统系统 + AI 系统<br>稳定性治理双线并行</div>
+    </div>
+  </div>
+
+  <div style="text-align:center;margin-top:48px;font-size:12px;color:#334155;">
+    中台可观测性 PM · AI 时代转型规划 · 2026 Q1 &nbsp;|&nbsp; 建议每季度回顾并更新
+  </div>
+
+</div>
+</body>
+</html>

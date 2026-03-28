@@ -1,0 +1,590 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>业务排障 Skill 创建 · v9 · 外流新笔记下跌（真实执行）</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+:root {
+  --bg: #0f1117; --s1: #181b25; --s2: #1e2130; --s3: #252840;
+  --b1: #262a3a; --b2: #303450; --b3: #3d4260;
+  --t1: #dde3ee; --t2: #8b97b0; --t3: #55607a;
+  --ac: #6366f1; --ac2: rgba(99,102,241,0.12);
+  --gn: #10b981; --gn2: rgba(16,185,129,0.10);
+  --rd: #ef4444; --rd2: rgba(239,68,68,0.10);
+  --yl: #f59e0b; --yl2: rgba(245,158,11,0.10);
+  --pu: #a855f7; --bl: #3b82f6; --bl2: rgba(59,130,246,0.10);
+}
+body { font-family: -apple-system,'SF Pro Text','Inter',sans-serif; background:var(--bg); color:var(--t1); height:100vh; display:flex; flex-direction:column; overflow:hidden; }
+
+.tb { height:42px; display:flex; align-items:center; padding:0 18px; gap:8px; background:var(--s1); border-bottom:1px solid var(--b1); flex-shrink:0; }
+.tb-dot { width:7px; height:7px; border-radius:50%; background:var(--ac); box-shadow:0 0 5px var(--ac); }
+.tb-name { font-size:13px; font-weight:600; color:var(--t2); }
+.tb-chip { font-size:11px; color:var(--pu); background:rgba(168,85,247,0.10); border:1px solid rgba(168,85,247,0.22); padding:2px 7px; border-radius:4px; }
+.tb-phase { margin-left:4px; font-size:10px; color:var(--t3); display:flex; align-items:center; gap:5px; }
+.pd { width:5px; height:5px; border-radius:50%; background:var(--b3); transition:background 0.3s; }
+.pd.done { background:var(--gn); } .pd.active { background:var(--ac); box-shadow:0 0 4px var(--ac); }
+.tb-r { margin-left:auto; font-size:11px; color:var(--t3); }
+
+.scr { flex:1; overflow-y:auto; padding:24px 0 12px; scrollbar-width:thin; scrollbar-color:var(--b1) transparent; }
+.scr::-webkit-scrollbar { width:3px; }
+.scr::-webkit-scrollbar-thumb { background:var(--b2); border-radius:2px; }
+.th { max-width:700px; margin:0 auto; padding:0 20px; display:flex; flex-direction:column; }
+
+.mr { display:flex; gap:10px; padding:4px 0; opacity:0; transform:translateY(6px); animation:fu .3s ease forwards; }
+@keyframes fu { to{opacity:1;transform:translateY(0)} }
+.mr.u { flex-direction:row-reverse; }
+.av { width:24px; height:24px; border-radius:7px; display:flex; align-items:center; justify-content:center; font-size:11px; flex-shrink:0; margin-top:2px; }
+.av.ai { background:linear-gradient(135deg,#6366f1,#a855f7); }
+.av.u { background:var(--s2); border:1px solid var(--b2); }
+.mc { flex:1; min-width:0; }
+.mr.u .mc { display:flex; flex-direction:column; align-items:flex-end; }
+.mn { font-size:10px; color:var(--t3); margin-bottom:3px; display:flex; align-items:center; gap:5px; }
+.mr.u .mn { flex-direction:row-reverse; }
+.ub { background:var(--ac); color:#fff; padding:7px 12px; border-radius:12px 12px 3px 12px; font-size:13px; line-height:1.65; display:inline-block; max-width:88%; }
+.at { font-size:13px; line-height:1.8; color:var(--t1); }
+.at p { margin-bottom:6px; } .at p:last-child { margin-bottom:0; }
+.at strong { color:#fff; font-weight:600; }
+
+.td { display:flex; gap:4px; padding:8px 0 2px; }
+.td span { width:5px; height:5px; border-radius:50%; background:var(--t3); animation:bo 1.1s ease infinite; }
+.td span:nth-child(2){animation-delay:.18s} .td span:nth-child(3){animation-delay:.36s}
+@keyframes bo{0%,80%,100%{transform:translateY(0);opacity:.35}40%{transform:translateY(-5px);opacity:1}}
+
+.cur { display:inline-block; width:2px; height:12px; background:var(--ac); margin-left:1px; vertical-align:middle; animation:bl .9s step-end infinite; }
+@keyframes bl{0%,100%{opacity:1}50%{opacity:0}}
+
+.pdiv { display:flex; align-items:center; gap:10px; padding:12px 0 5px; opacity:0; animation:fu .4s ease .05s forwards; }
+.pdiv-line { flex:1; height:1px; background:var(--b1); }
+.pdiv-lbl { font-size:10px; color:var(--t3); white-space:nowrap; display:flex; align-items:center; gap:5px; }
+.pdiv-badge { font-size:9.5px; padding:1px 6px; border-radius:3px; background:var(--ac2); color:var(--ac); border:1px solid rgba(99,102,241,0.2); }
+
+/* confirm card */
+.cc { background:var(--s2); border:1px solid var(--b2); border-radius:9px; overflow:hidden; margin-top:5px; }
+.cc-row { display:flex; gap:8px; padding:6px 12px; border-bottom:1px solid var(--b1); align-items:flex-start; }
+.cc-row:last-child{border-bottom:none}
+.cc-k { font-size:11px; color:var(--t3); width:66px; flex-shrink:0; padding-top:1px; }
+.cc-v { font-size:11.5px; color:var(--t2); flex:1; line-height:1.55; }
+.cc-v strong { color:var(--t1); }
+.badge { display:inline-block; font-size:10px; padding:1px 6px; border-radius:3px; font-weight:600; }
+.badge-p1 { background:var(--yl2); color:var(--yl); border:1px solid rgba(245,158,11,0.25); }
+
+/* sop tree */
+.sop { background:var(--s2); border:1px solid var(--b2); border-radius:9px; overflow:hidden; margin-top:5px; font-size:11.5px; }
+.sop-h { padding:7px 12px; border-bottom:1px solid var(--b1); font-size:10.5px; color:var(--t3); font-weight:600; letter-spacing:.5px; }
+.sop-body { padding:10px 12px; display:flex; flex-direction:column; gap:4px; line-height:1.6; color:var(--t2); font-family:'SF Mono',monospace; font-size:11px; white-space:pre; overflow-x:auto; }
+.sop-body .ok  { color:var(--gn); }
+.sop-body .yl  { color:var(--yl); }
+.sop-body .rd  { color:var(--rd); }
+.sop-body .ac  { color:var(--ac); }
+.sop-body .t3  { color:var(--t3); }
+
+/* chip */
+.chip { display:inline-flex; align-items:center; padding:1px 7px; border-radius:4px; font-size:10px; font-weight:500; }
+.chip-m { background:var(--bl2); color:var(--bl); border:1px solid rgba(59,130,246,0.2); }
+.chip-g { background:var(--gn2); color:var(--gn); border:1px solid rgba(16,185,129,0.25); }
+.chip-s { background:var(--ac2); color:var(--ac); border:1px solid rgba(99,102,241,0.2); }
+
+/* ack */
+.ack { display:flex; align-items:center; gap:5px; font-size:12px; color:var(--gn); }
+
+/* bind row */
+.bind-row { background:var(--s2); border:1px solid var(--b2); border-radius:8px; padding:8px 12px; margin-top:5px; font-size:11.5px; display:flex; flex-direction:column; gap:4px; }
+.bind-title { font-size:12px; font-weight:600; color:var(--t1); margin-bottom:2px; }
+.bind-meta { color:var(--t3); }
+.bind-meta strong { color:var(--t2); }
+
+/* flow diagram */
+.fe { max-width:700px; margin:4px auto 0; padding:0 20px 10px; opacity:0; transform:translateY(20px); transition:opacity .6s ease,transform .6s cubic-bezier(.22,1,.36,1); }
+.fe.vis { opacity:1; transform:translateY(0); }
+.fc { background:var(--s1); border:1px solid var(--b2); border-radius:12px; overflow:hidden; position:relative; }
+.fc::before { content:''; position:absolute; inset:-1px; border-radius:12px; background:linear-gradient(135deg,rgba(99,102,241,.3),rgba(168,85,247,.15),transparent 55%); opacity:0; transition:opacity 1s ease .3s; pointer-events:none; z-index:0; }
+.fe.vis .fc::before { opacity:1; }
+.fc-inner { position:relative; z-index:1; }
+.fc-h { padding:8px 14px; border-bottom:1px solid var(--b1); display:flex; align-items:center; gap:7px; font-size:11px; color:var(--t3); font-weight:600; }
+.fc-hint { margin-left:auto; font-size:10px; color:var(--t3); opacity:0; transition:opacity .4s ease .8s; }
+.fe.vis .fc-hint { opacity:1; }
+
+/* trigger node */
+.fn-trigger { margin:12px 14px 0; background:var(--rd2); border:1px solid rgba(239,68,68,.25); border-radius:7px; padding:7px 12px; text-align:center; }
+.fn-trigger-label { font-size:10.5px; font-weight:700; color:var(--rd); }
+.fn-trigger-sub { font-size:10px; color:var(--t3); margin-top:1px; }
+
+/* flow body */
+.flow-body { padding:10px 14px 12px; display:flex; flex-direction:column; gap:8px; }
+
+/* normal node row */
+.fn-row { display:flex; align-items:flex-start; gap:0; }
+.fn-arrow-v { display:flex; flex-direction:column; align-items:center; width:24px; flex-shrink:0; }
+.fn-arrow-v .line { width:1px; background:var(--b2); flex:1; min-height:8px; }
+.fn-arrow-v .head { font-size:9px; color:var(--b3); }
+
+/* node box */
+.fn { display:flex; align-items:flex-start; gap:8px; flex:1; background:var(--s2); border:1.5px solid var(--b2); border-radius:8px; padding:7px 10px; cursor:pointer; transition:border-color .15s,background .15s; opacity:0; transform:translateX(-8px); }
+.fe.vis .fn { opacity:1; transform:translateX(0); transition:opacity .35s ease,transform .35s ease,border-color .15s,background .15s; }
+.fe.vis .fn:nth-child(1){transition-delay:.1s}
+.fn:hover { border-color:var(--b3); background:var(--s3); }
+.fn.active { border-color:var(--ac); background:var(--ac2); }
+.fn-ico { font-size:16px; flex-shrink:0; margin-top:1px; }
+.fn-info { flex:1; min-width:0; }
+.fn-title { font-size:12px; font-weight:600; color:var(--t1); }
+.fn-desc { font-size:10.5px; color:var(--t3); margin-top:1px; line-height:1.4; }
+.fn-skill { font-size:9.5px; margin-top:3px; }
+.fn-dot-ok { display:inline-block; width:6px; height:6px; border-radius:50%; background:var(--gn); margin-right:4px; vertical-align:middle; }
+
+/* branch block */
+.branch-block { margin-left:24px; border-left:2px solid var(--b2); padding-left:10px; display:flex; flex-direction:column; gap:6px; }
+.branch-label { font-size:10px; color:var(--t3); padding:2px 0; }
+.branch-item { display:flex; align-items:flex-start; gap:6px; }
+.branch-cond { font-size:10px; padding:2px 7px; border-radius:4px; flex-shrink:0; white-space:nowrap; margin-top:3px; }
+.branch-cond.ok { background:var(--gn2); color:var(--gn); border:1px solid rgba(16,185,129,.2); }
+.branch-cond.yl { background:var(--yl2); color:var(--yl); border:1px solid rgba(245,158,11,.2); }
+.branch-cond.rd { background:var(--rd2); color:var(--rd); border:1px solid rgba(239,68,68,.2); }
+.branch-cond.gr { background:var(--s3); color:var(--t3); border:1px solid var(--b2); }
+.branch-arrow { font-size:10px; color:var(--t3); margin-top:4px; flex-shrink:0; }
+.branch-target { font-size:10.5px; color:var(--t2); flex:1; padding-top:2px; }
+.branch-target strong { color:var(--t1); }
+.branch-end { font-size:10px; color:var(--t3); font-style:italic; padding:2px 7px; background:var(--s3); border-radius:4px; border:1px solid var(--b1); display:inline-block; }
+
+/* sub-step block */
+.sub-block { margin-left:24px; border-left:2px dashed var(--b2); padding-left:10px; display:flex; flex-direction:column; gap:4px; }
+.sub-label { font-size:10px; color:var(--yl); font-weight:600; }
+.sub-item { font-size:10.5px; color:var(--t3); display:flex; align-items:flex-start; gap:5px; line-height:1.5; }
+.sub-item .si-num { color:var(--ac); font-weight:600; flex-shrink:0; width:16px; }
+
+/* flow warn */
+.flow-warn { margin:0 0 4px; background:var(--yl2); border:1px solid rgba(245,158,11,.2); border-radius:6px; padding:6px 10px; font-size:11px; color:var(--yl); display:flex; flex-direction:column; gap:3px; }
+
+/* skill done */
+.sd { display:flex; align-items:center; gap:8px; margin-top:6px; background:var(--gn2); border:1px solid rgba(16,185,129,.22); border-radius:8px; padding:8px 12px; }
+.sd-t { font-size:12px; font-weight:600; color:var(--gn); }
+.sd-p { font-size:10px; color:var(--t3); margin-top:2px; font-family:'SF Mono',monospace; }
+
+/* exec card */
+.exec-card { background:var(--s2); border:1px solid var(--b2); border-radius:9px; overflow:hidden; margin-top:5px; }
+.exec-h { padding:7px 12px; border-bottom:1px solid var(--b1); font-size:10.5px; color:var(--t3); font-weight:600; }
+.exec-item { padding:6px 12px; border-bottom:1px solid var(--b1); display:flex; gap:8px; align-items:flex-start; }
+.exec-item:last-child{border-bottom:none}
+.exec-num { width:17px; height:17px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:9px; flex-shrink:0; margin-top:1px; font-weight:700; }
+.exec-num.ok{background:var(--gn2);color:var(--gn);border:1px solid rgba(16,185,129,.3)}
+.exec-num.yl{background:var(--yl2);color:var(--yl);border:1px solid rgba(245,158,11,.3)}
+.exec-num.sk{background:var(--s3);color:var(--t3);border:1px solid var(--b2)}
+.exec-body{flex:1}
+.exec-title{font-size:11.5px;font-weight:600;color:var(--t1);margin-bottom:1px}
+.exec-meta{font-size:10.5px;color:var(--t3);line-height:1.5}
+.exec-meta.ok{color:var(--gn)} .exec-meta.yl{color:var(--yl)}
+
+/* input */
+.ia { padding:12px 18px; border-top:1px solid var(--b1); max-width:700px; margin:0 auto; width:100%; }
+.ir { display:flex; gap:8px; align-items:flex-end; background:var(--s1); border:1px solid var(--b2); border-radius:10px; padding:8px 10px 8px 12px; transition:border-color .2s; }
+.ir:focus-within{border-color:var(--ac)}
+.ita { flex:1; background:transparent; border:none; outline:none; font-size:13px; color:var(--t1); font-family:inherit; resize:none; line-height:1.6; max-height:100px; min-height:20px; }
+.ita::placeholder{color:var(--t3)}
+.sb { width:27px; height:27px; border-radius:6px; border:none; background:var(--ac); cursor:pointer; display:flex; align-items:center; justify-content:center; flex-shrink:0; }
+.sb:hover{opacity:.85}
+.isub{font-size:10px;color:var(--t3);text-align:center;margin-top:5px}
+.wm{position:fixed;bottom:6px;right:12px;font-size:10px;color:var(--t3);pointer-events:none}
+
+/* tooltip */
+.tt{position:fixed;width:210px;background:var(--s2);border:1px solid var(--b2);border-radius:8px;padding:10px 12px;box-shadow:0 8px 20px rgba(0,0,0,.45);z-index:200;opacity:0;pointer-events:none;transform:translateY(4px) scale(.97);transition:all .18s cubic-bezier(.34,1,.64,1)}
+.tt.show{opacity:1;pointer-events:auto;transform:translateY(0) scale(1)}
+.tt-t{font-size:12px;font-weight:600;margin-bottom:6px}
+.tt-b{font-size:11px;line-height:1.6;color:var(--t2)}
+.tt-f{margin-top:7px;padding-top:6px;border-top:1px solid var(--b1);font-size:10px;color:var(--t3);font-style:italic}
+</style>
+</head>
+<body>
+
+<div class="tb">
+  <div class="tb-dot"></div>
+  <div class="tb-name">排障助手</div>
+  <div class="tb-chip">biz-diagnosis-creator</div>
+  <div class="tb-phase">
+    <span>阶段：</span>
+    <div class="pd" id="pd0"></div><div class="pd" id="pd1"></div>
+    <div class="pd" id="pd2"></div><div class="pd" id="pd3"></div>
+    <div class="pd" id="pd4"></div><div class="pd" id="pd5"></div>
+  </div>
+  <div class="tb-r" id="clock">--:--:--</div>
+</div>
+
+<div class="scr" id="scr">
+  <div class="th" id="th"></div>
+
+  <!-- 流程图：排查链路确认后浮现 -->
+  <div class="fe" id="fe">
+    <div class="fc">
+      <div class="fc-inner">
+        <div class="fc-h">🗺 biz-arkfeedx-newnote-drop · 排障链路（条件决策树）<span class="fc-hint">👆 点节点查看数据绑定</span></div>
+
+        <div class="flow-body">
+          <!-- Trigger -->
+          <div class="fn-trigger">
+            <div class="fn-trigger-label">🚨 告警触发</div>
+            <div class="fn-trigger-sub">arkfeedx · 外流1h新笔记曝光占比下跌_P1 · 阈值：周同比 &gt; 10%↓</div>
+          </div>
+
+          <!-- S1 -->
+          <div class="fn-arrow-v"><div class="line" style="min-height:6px"></div><div class="head">▼</div></div>
+          <div class="fn-row">
+            <div class="fn" id="fn0" onclick="showTt(event,'n0')" style="transition-delay:.08s">
+              <div class="fn-ico">📉</div>
+              <div class="fn-info">
+                <div class="fn-title"><span class="fn-dot-ok"></span>Step1 · 确认下跌</div>
+                <div class="fn-desc">1h/24h新笔记曝光占比，对比 -1d / -7d</div>
+                <div class="fn-skill"><span class="chip chip-g">metrics-compare</span></div>
+              </div>
+            </div>
+          </div>
+          <div class="branch-block" style="margin-top:2px">
+            <div class="branch-item"><div class="branch-cond ok">双向下跌+非特殊日期</div><div class="branch-arrow">→</div><div class="branch-target"><strong>Step2</strong></div></div>
+            <div class="branch-item"><div class="branch-cond gr">单向或特殊日期</div><div class="branch-arrow">→</div><div class="branch-target"><span class="branch-end">继续观察，终止</span></div></div>
+          </div>
+
+          <!-- S2 -->
+          <div class="fn-arrow-v"><div class="line"></div><div class="head">▼</div></div>
+          <div class="fn-row">
+            <div class="fn" id="fn1" onclick="showTt(event,'n1')" style="transition-delay:.16s">
+              <div class="fn-ico">🔍</div>
+              <div class="fn-info">
+                <div class="fn-title"><span class="fn-dot-ok"></span>Step2 · 定位阶段</div>
+                <div class="fn-desc">各阶段1h新笔记占比（by phase），对比 -1d / -7d</div>
+                <div class="fn-skill"><span class="chip chip-g">metrics-breakdown</span></div>
+              </div>
+            </div>
+          </div>
+          <div class="branch-block" style="margin-top:2px">
+            <div class="branch-item"><div class="branch-cond ok">postrank 双向下跌</div><div class="branch-arrow">→</div><div class="branch-target"><strong>Step3</strong>（召回问题）</div></div>
+            <div class="branch-item"><div class="branch-cond gr">postrank 正常</div><div class="branch-arrow">→</div><div class="branch-target"><span class="branch-end">精排/重排问题（范围外），终止</span></div></div>
+          </div>
+
+          <!-- S3 -->
+          <div class="fn-arrow-v"><div class="line"></div><div class="head">▼</div></div>
+          <div class="fn-row">
+            <div class="fn" id="fn2" onclick="showTt(event,'n2')" style="transition-delay:.24s">
+              <div class="fn-ico">📡</div>
+              <div class="fn-info">
+                <div class="fn-title"><span class="fn-dot-ok"></span>Step3 · 召回渠道排查</div>
+                <div class="fn-desc">各渠道召回量占比（by name），对比 -1d / -7d</div>
+                <div class="fn-skill"><span class="chip chip-g">metrics-breakdown</span></div>
+              </div>
+            </div>
+          </div>
+          <div class="branch-block" style="margin-top:2px">
+            <div class="branch-item"><div class="branch-cond ok">某渠道双向下跌</div><div class="branch-arrow">→</div><div class="branch-target"><strong>Step4</strong>（带入异常渠道名）</div></div>
+            <div class="branch-item"><div class="branch-cond yl">渠道量均正常</div><div class="branch-arrow">→</div><div class="branch-target"><strong>Step5</strong>（索引问题）</div></div>
+          </div>
+
+          <!-- S4 -->
+          <div class="fn-arrow-v"><div class="line"></div><div class="head">▼</div></div>
+          <div class="fn-row">
+            <div class="fn" id="fn3" onclick="showTt(event,'n3')" style="transition-delay:.32s">
+              <div class="fn-ico">🌱</div>
+              <div class="fn-info">
+                <div class="fn-title"><span class="fn-dot-ok"></span>Step4 · 召回根因分析 <span style="font-size:9.5px;color:var(--yl);font-weight:400">⑂ 3分支</span></div>
+                <div class="fn-desc">种子个数 / 笔记平均年龄 / 索引池quota，各含 -1d/-7d 对比</div>
+                <div class="fn-skill"><span class="chip chip-g">metrics-multi-compare</span></div>
+              </div>
+            </div>
+          </div>
+          <div class="branch-block" style="margin-top:2px">
+            <div class="branch-item"><div class="branch-cond rd">种子数双向下跌</div><div class="branch-arrow">→</div><div class="branch-target"><strong>Step6</strong>（内容供给）</div></div>
+            <div class="branch-item"><div class="branch-cond yl">笔记年龄双向变老</div><div class="branch-arrow">→</div><div class="branch-target"><strong>Step5</strong>（索引排查）</div></div>
+            <div class="branch-item"><div class="branch-cond gr">quota 配置变化</div><div class="branch-arrow">→</div><div class="branch-target"><span class="branch-end">联系推荐策略，终止</span></div></div>
+          </div>
+
+          <!-- S5 -->
+          <div class="fn-arrow-v"><div class="line"></div><div class="head">▼</div></div>
+          <div class="fn-row">
+            <div class="fn" id="fn4" onclick="showTt(event,'n4')" style="transition-delay:.40s">
+              <div class="fn-ico">🗂</div>
+              <div class="fn-info">
+                <div class="fn-title"><span class="fn-dot-ok"></span>Step5 · 索引排查 <span style="font-size:9.5px;color:var(--ac);font-weight:400">↙ Step3/Step4 均可进入</span></div>
+                <div class="fn-desc">子步骤：5.0 前置检测 → 5.1 索引池quota → 5.2 omega笔记年龄</div>
+                <div class="fn-skill"><span class="chip chip-g">metrics-compare</span> <span class="chip chip-s" style="margin-left:3px">index-switch-check</span></div>
+              </div>
+            </div>
+          </div>
+          <!-- Step5 子步骤 -->
+          <div class="sub-block">
+            <div class="sub-label">Step5 子步骤：</div>
+            <div class="sub-item"><div class="si-num">5.0</div><div>前置检测：笔记年龄变老 PromQL检测 → 有数据 → 记录异常渠道type → 进入5.1</div></div>
+            <div class="sub-item"><div class="si-num">5.1</div><div>向量索引池quota（by reason_type=5.0返回值, name）→ 异常时调用 <span class="chip chip-s" style="font-size:9px">index-switch-check(name)</span></div></div>
+            <div class="sub-item"><div class="si-num">5.2</div><div>omega侧笔记年龄（vms-search），过滤前/后对比</div></div>
+            <div style="display:flex;gap:6px;margin-top:4px;flex-wrap:wrap">
+              <span class="branch-cond rd" style="font-size:9.5px">过滤后异常→索引未切换→联系索引，终止</span>
+              <span class="branch-cond yl" style="font-size:9.5px">过滤前异常→消息断流→Step6</span>
+            </div>
+          </div>
+
+          <!-- S6 -->
+          <div class="fn-arrow-v"><div class="line"></div><div class="head">▼</div></div>
+          <div class="fn-row">
+            <div class="fn" id="fn5" onclick="showTt(event,'n5')" style="transition-delay:.48s">
+              <div class="fn-ico">📦</div>
+              <div class="fn-info">
+                <div class="fn-title"><span class="fn-dot-ok"></span>Step6 · 内容供给排查 <span style="font-size:9.5px;color:var(--ac);font-weight:400">↙ Step4/Step5 均可进入</span></div>
+                <div class="fn-desc">并行检查4项：内容池（vms-recommend）+ 审核/转码/发布QPS（vms-shequ）</div>
+                <div class="fn-skill"><span class="chip chip-g">metrics-multi-compare</span></div>
+              </div>
+            </div>
+          </div>
+          <div class="branch-block" style="margin-top:2px">
+            <div class="branch-item"><div class="branch-cond yl">审核重试↑或转码延迟↑</div><div class="branch-arrow">→</div><div class="branch-target"><span class="branch-end">联系社区安审，终止</span></div></div>
+            <div class="branch-item"><div class="branch-cond rd">发布QPS↓</div><div class="branch-arrow">→</div><div class="branch-target"><span class="branch-end">联系发布链路，终止</span></div></div>
+            <div class="branch-item"><div class="branch-cond gr">内容池笔记减少</div><div class="branch-arrow">→</div><div class="branch-target"><span class="branch-end">上游供给问题，上报，终止</span></div></div>
+          </div>
+
+          <!-- confirm -->
+          <div class="flow-warn" id="flowWarn" style="margin-top:4px">
+            <div>⚠️ Step5 有两个入口（来自Step3渠道正常 和 Step4年龄变老），我建模为同一个节点——对吗？</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="th" id="th2" style="margin-top:4px"></div>
+</div>
+
+<div class="tt" id="tt"></div>
+
+<div style="flex-shrink:0">
+  <div class="ia">
+    <div class="ir">
+      <textarea class="ita" id="ita" placeholder="继续说…" rows="1" oninput="ar(this)" onkeydown="hk(event)"></textarea>
+      <button class="sb" onclick="us()">
+        <svg width="12" height="12" viewBox="0 0 13 13" fill="none"><path d="M1 6.5h11M7 1.5l5 5-5 5" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </button>
+    </div>
+    <div class="isub">Enter 发送 · Shift+Enter 换行</div>
+  </div>
+</div>
+<div class="wm">设计稿 · v0.9 · arkfeedx 真实执行</div>
+
+<script>
+setInterval(()=>{const n=new Date();document.getElementById('clock').textContent=[n.getHours(),n.getMinutes(),n.getSeconds()].map(x=>String(x).padStart(2,'0')).join(':');},1000);
+const $=id=>document.getElementById(id);
+const scrollB=()=>{const s=$('scr');s.scrollTo({top:s.scrollHeight,behavior:'smooth'});};
+function ar(el){el.style.height='auto';el.style.height=Math.min(el.scrollHeight,100)+'px';}
+function hk(e){if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();us();}}
+function nt(){const n=new Date();return[n.getHours(),n.getMinutes()].map(x=>String(x).padStart(2,'0')).join(':');}
+function setPhase(i){for(let j=0;j<6;j++){const d=$('pd'+j);if(j<i)d.className='pd done';else if(j===i)d.className='pd active';else d.className='pd';}}
+function wait(ms){return new Promise(r=>setTimeout(r,ms));}
+
+function addMsg(cont,role,html){
+  return new Promise(r=>{
+    const row=document.createElement('div');row.className='mr'+(role==='user'?' u':'');
+    if(role==='user'){row.innerHTML=`<div class="av u">你</div><div class="mc"><div class="mn" style="justify-content:flex-end">马恒阳 <span style="color:var(--t3)">${nt()}</span></div><div class="ub">${html}</div></div>`;}
+    else{row.innerHTML=`<div class="av ai">🧠</div><div class="mc"><div class="mn">排障助手 <span style="color:var(--t3)">${nt()}</span></div><div class="at">${html}</div></div>`;}
+    $(cont).appendChild(row);scrollB();r(row);
+  });
+}
+function addDiv(cont,label,badge=''){
+  const d=document.createElement('div');d.className='pdiv';
+  d.innerHTML=`<div class="pdiv-line"></div><div class="pdiv-lbl"><span>${label}</span>${badge?`<span class="pdiv-badge">${badge}</span>`:''}</div><div class="pdiv-line"></div>`;
+  $(cont).appendChild(d);scrollB();
+}
+function showTyping(cont){
+  const r=document.createElement('div');r.className='mr';
+  r.innerHTML=`<div class="av ai">🧠</div><div class="mc"><div class="mn">排障助手 <span style="color:var(--t3)">${nt()}</span></div><div class="td"><span></span><span></span><span></span></div></div>`;
+  $(cont).appendChild(r);scrollB();return r;
+}
+function stream(el,text,speed=18){
+  return new Promise(r=>{
+    const cur=document.createElement('span');cur.className='cur';
+    const tgt=el.querySelector('.at')||el;tgt.appendChild(cur);
+    const parts=[];let buf='',inTag=false;
+    for(const ch of text){
+      if(ch==='<'){if(buf)parts.push({t:'tx',v:buf});buf='<';inTag=true;}
+      else if(ch==='>'&&inTag){buf+='>';parts.push({t:'tg',v:buf});buf='';inTag=false;}
+      else buf+=ch;
+    }
+    if(buf)parts.push({t:'tx',v:buf});
+    let pi=0,ci=0;
+    function tick(){
+      if(pi>=parts.length){cur.remove();r();return;}
+      const p=parts[pi];
+      if(p.t==='tg'){cur.insertAdjacentHTML('beforebegin',p.v);pi++;ci=0;setTimeout(tick,0);}
+      else{if(ci<p.v.length){cur.insertAdjacentText('beforebegin',p.v[ci]);ci++;scrollB();setTimeout(tick,speed);}else{pi++;ci=0;setTimeout(tick,0);}}
+    }
+    tick();
+  });
+}
+
+const ttd={
+  n0:{t:'Step1 · 确认下跌',b:'<strong>1h占比</strong>：rt_new_one_hour_new_note_imp_ratio<br><strong>24h占比</strong>：rt_new_note_imp_ratio<br>datasource: vms-recommend<br>含 -1d / -7d 对比，分4时段异常判断'},
+  n1:{t:'Step2 · 定位阶段',b:'<strong>各阶段占比</strong>：new_note_cnt_sum / note_size_cnt_sum<br>group_by=phase，重点看 postrank<br>datasource: vms-recommend'},
+  n2:{t:'Step3 · 召回渠道',b:'<strong>各渠道召回量</strong>：recall_num_exp_sum<br>group_by=name（dssm/mllm/es等主要渠道）<br>datasource: vms-recommend'},
+  n3:{t:'Step4 · 召回根因',b:'3个图：<strong>种子个数</strong>（by reason_type）/ <strong>笔记平均年龄</strong>（by type）/ <strong>索引池quota</strong>（by name）<br>datasource: vms-recommend'},
+  n4:{t:'Step5 · 索引排查',b:'5.0 PromQL前置检测<br>5.1 向量索引池quota + index-switch-check<br>5.2 omega笔记年龄（vms-search）<br>跨 datasource：vms-recommend + vms-search'},
+  n5:{t:'Step6 · 内容供给',b:'4项并行：<strong>内容池新笔记数</strong>（vms-recommend）<br>+ <strong>审核重试/转码延迟/发布QPS</strong>（vms-shequ）<br>跨 datasource'},
+};
+function showTt(e,id){
+  e.stopPropagation();const d=ttd[id];if(!d)return;
+  const tt=$('tt');
+  tt.innerHTML=`<div class="tt-t">${d.t}</div><div class="tt-b">${d.b}</div><div class="tt-f">💬 想改这个节点直接说</div>`;
+  const rect=e.currentTarget.getBoundingClientRect();
+  let top=rect.bottom+7,left=rect.left+rect.width/2-105;
+  left=Math.max(6,Math.min(left,window.innerWidth-218));
+  if(top+170>window.innerHeight)top=rect.top-175;
+  tt.style.top=top+'px';tt.style.left=left+'px';
+  document.querySelectorAll('.fn').forEach(n=>n.classList.remove('active'));
+  e.currentTarget.classList.add('active');tt.classList.add('show');
+}
+document.addEventListener('click',e=>{if(!$('tt').contains(e.target)&&!e.target.closest('.fn')){$('tt').classList.remove('show');document.querySelectorAll('.fn').forEach(n=>n.classList.remove('active'));}});
+
+async function play(){
+  const T='th',T2='th2';
+
+  // P0: 欢迎
+  setPhase(0);await wait(300);
+  const r0=await addMsg(T,'ai','<p></p>');
+  await stream(r0,'👋 我是<strong>业务排障 Skill 创建助手</strong>，可以帮你把团队的排障经验沉淀成一个可复用的 Skill，下次告警触发时自动按 SOP 执行。<br><br>接下来我会通过几轮对话引导你完成创建。<br><br><strong>先说说你想为哪个业务排障场景创建 Skill？</strong>');
+
+  await wait(500);await addMsg(T,'user','外流新笔记下跌故障排障，arkfeedx 这边的，这是我们的排查 SOP 文档：docs.xiaohongshu.com/doc/8e46dbde…');
+
+  // P1: 场景确认（一段话解析）
+  setPhase(1);await wait(700);const t1=showTyping(T);await wait(1000);t1.remove();
+  const r1=await addMsg(T,'ai','<p></p>');
+  await stream(r1,'读了你发的 SOP 文档，信息很完整，直接提取场景：');
+  // confirm card
+  await wait(200);
+  const cc=document.createElement('div');cc.className='cc';
+  cc.innerHTML=`
+    <div class="cc-row"><div class="cc-k">服务</div><div class="cc-v"><strong>arkfeedx</strong>（外流推荐）</div></div>
+    <div class="cc-row"><div class="cc-k">触发方式</div><div class="cc-v">🔔 告警触发</div></div>
+    <div class="cc-row"><div class="cc-k">核心异常</div><div class="cc-v"><strong>外流1h/24h新笔记曝光占比 周同比下跌 &gt; 10%</strong></div></div>
+    <div class="cc-row"><div class="cc-k">告警规则</div><div class="cc-v">arkfeedx · 外流1h新笔记曝光占比下跌_P1 <span class="badge badge-p1">P1</span></div></div>
+    <div class="cc-row"><div class="cc-k">排查结构</div><div class="cc-v">6步串行决策树，含3个分支出口 + Step5子步骤</div></div>`;
+  r1.querySelector('.mc').appendChild(cc);scrollB();
+  const r1b=await addMsg(T,'ai','<p></p>');
+  await stream(r1b,'对吗？确认后直接进入排查链路建模。');
+
+  await wait(400);await addMsg(T,'user','嗯');
+
+  // P2: 排查链路 + 渲染流程图
+  setPhase(2);await wait(600);addDiv(T,'Phase 2 · 排查链路建模','决策树');
+  await wait(300);const t2=showTyping(T);await wait(1000);t2.remove();
+  const r2=await addMsg(T,'ai','<p></p>');
+  await stream(r2,'基于 SOP 文档，直接建模——这是一个<strong>6步串行决策树</strong>，Step3有2个出口，Step4有3个出口，Step5有嵌套子步骤。渲染出来，有不确定的地方标在图下：');
+
+  await wait(400);$('fe').classList.add('vis');scrollB();
+
+  await wait(1200);const r3=await addMsg(T2,'ai','<p></p>');
+  await stream(r3,'⚠️ 一点不确定：Step5 有两个入口（Step3渠道正常 和 Step4年龄变老都会跳进来），我把它建模为同一个节点——对吗？');
+
+  await wait(400);await addMsg(T2,'user','嗯');
+
+  await wait(600);const t3=showTyping(T2);await wait(600);t3.remove();
+  $('flowWarn').innerHTML='<div style="color:var(--gn)">✅ 确认：Step5 两个入口汇入同一节点，6步决策树结构正确</div>';
+  const r4=await addMsg(T2,'ai','<p></p>');
+  await stream(r4,'✅ 排查链路确认，共 <strong>6 个节点</strong>，2个多出口分支节点（Step3/Step4），1个子步骤节点（Step5）。<br><br>接下来绑定每个节点的数据——说节点编号或点击节点都可以开始。');
+
+  // P3: 数据绑定
+  setPhase(3);await wait(400);addDiv(T2,'Phase 3 · 数据绑定','逐节点');
+
+  // Step1
+  await wait(300);await addMsg(T2,'user','节点1');
+  await wait(600);const tb1=showTyping(T2);await wait(800);tb1.remove();
+  const r5=await addMsg(T2,'ai','<p></p>');
+  await stream(r5,'<strong>Step1「确认下跌」</strong> — 可以关联：<span class="chip chip-m">📊 指标</span> <span class="chip" style="background:var(--yl2);color:var(--yl);border:1px solid rgba(245,158,11,.2)">🔗 链路</span> <span class="chip" style="background:rgba(168,85,247,.1);color:var(--pu);border:1px solid rgba(168,85,247,.2)">📄 日志</span><br><br>告诉我数据类型和大盘/图表名。');
+  await wait(400);await addMsg(T2,'user','指标，推荐外流大盘，1h新笔记曝光占比 和 24h新笔记曝光占比，各含-1d和-7d对比');
+  await wait(600);const tb1b=showTyping(T2);await wait(700);tb1b.remove();
+  await addMsg(T2,'ai','<div class="ack">✅ Step1 绑定完成</div><br>指标：<strong>rt_new_one_hour_new_note_imp_ratio + rt_new_note_imp_ratio</strong>（各含-1d/-7d）<br>原子Skill：<span class="chip chip-g">metrics-compare</span>');
+
+  // Step2
+  await wait(300);await addMsg(T2,'user','节点2');
+  await wait(500);const tb2=showTyping(T2);await wait(700);tb2.remove();
+  await addMsg(T2,'ai','<p><strong>Step2「定位阶段」</strong> — 还是 <span class="chip chip-m">📊 指标</span> · 推荐外流大盘吗？告诉我图表名。</p>');
+  await wait(300);await addMsg(T2,'user','对，各阶段1h新笔记占比，按 phase 分组');
+  await wait(500);const tb2b=showTyping(T2);await wait(600);tb2b.remove();
+  await addMsg(T2,'ai','<div class="ack">✅ Step2 绑定完成：<strong>各阶段新笔记占比</strong>（group_by=phase）· <span class="chip chip-g">metrics-breakdown</span></div>');
+
+  // Step3
+  await wait(300);await addMsg(T2,'user','节点3');
+  await wait(400);const tb3=showTyping(T2);await wait(600);tb3.remove();
+  await addMsg(T2,'ai','<p><strong>Step3「召回渠道」</strong> — 还是同一个大盘吗？</p>');
+  await wait(300);await addMsg(T2,'user','对，各渠道召回量占比，by name，主要关注 dssm/mllm/es 这些渠道');
+  await wait(500);const tb3b=showTyping(T2);await wait(600);tb3b.remove();
+  await addMsg(T2,'ai','<div class="ack">✅ Step3 绑定完成：<strong>各渠道召回量占比</strong>（group_by=name）· <span class="chip chip-g">metrics-breakdown</span></div>');
+
+  // Step4
+  await wait(300);await addMsg(T2,'user','节点4');
+  await wait(400);const tb4=showTyping(T2);await wait(700);tb4.remove();
+  await addMsg(T2,'ai','<p><strong>Step4「召回根因」</strong> — 还是同一个大盘？这个节点需要几个图表？</p>');
+  await wait(300);await addMsg(T2,'user','对，3个：种子个数（by reason_type）、召回笔记平均年龄（by type）、向量索引池quota（by name）');
+  await wait(500);const tb4b=showTyping(T2);await wait(600);tb4b.remove();
+  await addMsg(T2,'ai','<div class="ack">✅ Step4 绑定完成：<strong>种子个数 + 笔记年龄 + 索引池quota</strong>（3图）· <span class="chip chip-g">metrics-multi-compare</span></div>');
+
+  // Step5
+  await wait(300);await addMsg(T2,'user','节点5');
+  await wait(400);const tb5=showTyping(T2);await wait(800);tb5.remove();
+  await addMsg(T2,'ai','<p><strong>Step5「索引排查」</strong> — 这个节点有子步骤，数据跨两个数据源，我来确认：<br>· 5.0/5.1 用 vms-recommend 的笔记年龄和索引池quota<br>· 5.2 用 vms-search 的 omega侧笔记年龄<br>· 另外 5.1 需要调用 index-switch-check 工具<br>这样对吗？</p>');
+  await wait(300);await addMsg(T2,'user','对');
+  await wait(500);const tb5b=showTyping(T2);await wait(600);tb5b.remove();
+  await addMsg(T2,'ai','<div class="ack">✅ Step5 绑定完成：<strong>vms-recommend（5.0/5.1）+ vms-search（5.2）+ index-switch-check工具</strong> · <span class="chip chip-g">metrics-compare</span> <span class="chip chip-s" style="margin-left:2px">tool-invoke</span></div>');
+
+  // Step6
+  await wait(300);await addMsg(T2,'user','节点6');
+  await wait(400);const tb6=showTyping(T2);await wait(700);tb6.remove();
+  await addMsg(T2,'ai','<p><strong>Step6「内容供给」</strong> — 还是同一大盘？还是有跨 datasource？</p>');
+  await wait(300);await addMsg(T2,'user','跨两个，内容池用 vms-recommend，审核/转码/发布QPS 用 vms-shequ，4个图并行');
+  await wait(500);const tb6b=showTyping(T2);await wait(600);tb6b.remove();
+  await addMsg(T2,'ai','<div class="ack">✅ Step6 绑定完成：<strong>内容池新笔记数（vms-recommend）+ 审核重试/转码延迟/发布QPS（vms-shequ）</strong>（4图并行）· <span class="chip chip-g">metrics-multi-compare</span></div>');
+
+  // P4: 生成
+  setPhase(4);await wait(400);
+  const r10=await addMsg(T2,'ai','<p></p>');
+  await stream(r10,'6个节点全部绑定完成。说「生成 Skill」就可以了。');
+  await wait(300);await addMsg(T2,'user','生成 Skill');
+
+  setPhase(5);await wait(600);const tg=showTyping(T2);await wait(1200);tg.remove();
+  const r11=await addMsg(T2,'ai','<p></p>');await stream(r11,'好，正在生成…',28);
+  await wait(300);
+  const badge=document.createElement('div');
+  badge.innerHTML=`<div class="mr" style="padding-left:34px"><div class="mc"><div class="sd"><div style="font-size:16px">✅</div><div><div class="sd-t">biz-arkfeedx-newnote-drop v1.0 · 已激活</div><div class="sd-p">skills/biz-arkfeedx-newnote-drop/SKILL.md</div><div class="sd-p" style="margin-top:1px">references/sop.md（决策树 6步 + 子步骤）</div><div class="sd-p">references/metrics.md（PQL + datasource 完整）</div><div class="sd-p">references/routing.md（分支路由逻辑）</div></div></div></div></div>`;
+  $(T2).appendChild(badge);scrollB();
+
+  await wait(400);const r12=await addMsg(T2,'ai','<p></p>');
+  await stream(r12,'6个排查节点，3个分支出口，Step5子步骤完整，PQL原样保留。<br><br>Skill 已就绪。说「执行一下」，我用历史告警跑一遍验证。',20);
+
+  // P6: 验证
+  await wait(400);addDiv(T2,'验证 & 迭代','v1.0');
+  await wait(300);await addMsg(T2,'user','执行一下');
+  await wait(600);const te=showTyping(T2);await wait(1000);te.remove();
+  const r13=await addMsg(T2,'ai','<p></p>');await stream(r13,'用 <strong>2026-03-22 10:30</strong> 历史告警执行……',22);
+
+  await wait(500);
+  const ec=document.createElement('div');ec.className='exec-card';
+  ec.innerHTML=`
+    <div class="exec-h">🔄 执行结果 · biz-arkfeedx-newnote-drop</div>
+    <div class="exec-item"><div class="exec-num ok">1</div><div class="exec-body"><div class="exec-title">确认下跌</div><div class="exec-meta ok">✅ 1h占比当前0.31 &lt; -1d 0.36 &lt; -7d 0.35，<strong>双向下跌，异常时段：上午06:00-12:00</strong></div></div></div>
+    <div class="exec-item"><div class="exec-num ok">2</div><div class="exec-body"><div class="exec-title">定位阶段</div><div class="exec-meta ok">✅ postrank双向下跌，<strong>确认召回问题</strong>，进入Step3</div></div></div>
+    <div class="exec-item"><div class="exec-num ok">3</div><div class="exec-body"><div class="exec-title">召回渠道</div><div class="exec-meta ok">✅ <strong>dssm_low_engage渠道召回量下跌28%</strong>，其他渠道正常，进入Step4（带入渠道名）</div></div></div>
+    <div class="exec-item"><div class="exec-num yl">4</div><div class="exec-body"><div class="exec-title">召回根因</div><div class="exec-meta yl">⚠️ 笔记年龄相比-7d变老22%（超阈值20%）→ <strong>索引新鲜度问题，分支→Step5</strong></div></div></div>
+    <div class="exec-item"><div class="exec-num yl">5</div><div class="exec-body"><div class="exec-title">索引排查（5.0→5.1）</div><div class="exec-meta yl">⚠️ 5.0检测有数据，5.1向量索引池quota异常：<strong>dssm_low_engage_ali_imp_base 索引表</strong><br>调用 index-switch-check → <strong>切换卡住，联系索引侧</strong></div></div></div>
+    <div class="exec-item"><div class="exec-num sk">6</div><div class="exec-body"><div class="exec-title">内容供给</div><div class="exec-meta">⏭ 跳过（Step4根因已定位为索引问题，不进入供给排查）</div></div></div>`;
+  addMsg(T2,'ai','').then(rm=>{rm.querySelector('.mc').appendChild(ec);scrollB();});
+
+  await wait(700);const tv=showTyping(T2);await wait(900);tv.remove();
+  const r14=await addMsg(T2,'ai','<p></p>');
+  await stream(r14,'链路跑通，决策树分支正确执行（Step4→Step5→index-switch-check）。定位根因：<strong>dssm_low_engage 索引表切换卡住</strong>。<br><br>建议优化：Step5 当前是工具调用结果文字输出，可以加一个「索引表切换状态」直接可视化图，减少人工确认动作。要加吗？',18);
+
+  await wait(300);await addMsg(T2,'user','加上');
+  await wait(500);const tu=showTyping(T2);await wait(600);tu.remove();
+  const r15=await addMsg(T2,'ai','<p></p>');
+  await stream(r15,'<div class="ack">✅ Step5 新增「索引表切换状态」图表绑定，Skill 升版到 v1.1</div><br>还有要调整的吗？',18);
+  await wait(300);await addMsg(T2,'user','没了，完成');
+  await wait(400);const tf=showTyping(T2);await wait(500);tf.remove();
+  const r16=await addMsg(T2,'ai','<p></p>');
+  await stream(r16,'✅ <strong>biz-arkfeedx-newnote-drop v1.1</strong> 完成。6节点、决策树验证通过、PQL完整。每次排查完都可以回来继续优化。',18);
+  scrollB();
+}
+
+function us(){const ta=$('ita');const v=ta.value.trim();if(!v)return;addMsg('th2','user',v);ta.value='';ar(ta);}
+play();
+</script>
+</body>
+</html>

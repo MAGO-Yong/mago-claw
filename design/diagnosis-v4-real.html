@@ -1,0 +1,880 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>业务排障 Skill 创建 · 真实对话还原</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+:root {
+  --bg: #0f1117;
+  --s1: #181b25;
+  --s2: #1e2130;
+  --s3: #252840;
+  --b1: #262a3a;
+  --b2: #303450;
+  --b3: #3d4260;
+  --t1: #dde3ee;
+  --t2: #8b97b0;
+  --t3: #55607a;
+  --ac: #6366f1;
+  --ac2: rgba(99,102,241,0.12);
+  --gn: #10b981;
+  --gn2: rgba(16,185,129,0.10);
+  --rd: #ef4444;
+  --yl: #f59e0b;
+  --yl2: rgba(245,158,11,0.10);
+  --pu: #a855f7;
+  --bl: #3b82f6;
+  --bl2: rgba(59,130,246,0.10);
+}
+body {
+  font-family: -apple-system,'SF Pro Text','Inter',sans-serif;
+  background: var(--bg); color: var(--t1);
+  height: 100vh; display: flex; flex-direction: column; overflow: hidden;
+}
+
+/* Topbar */
+.tb {
+  height: 42px; display: flex; align-items: center;
+  padding: 0 18px; gap: 8px;
+  background: var(--s1); border-bottom: 1px solid var(--b1);
+  flex-shrink: 0;
+}
+.tb-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--ac); box-shadow: 0 0 5px var(--ac); }
+.tb-name { font-size: 13px; font-weight: 600; color: var(--t2); }
+.tb-chip {
+  font-size: 11px; color: var(--pu);
+  background: rgba(168,85,247,0.10); border: 1px solid rgba(168,85,247,0.22);
+  padding: 2px 7px; border-radius: 4px;
+}
+.tb-phase {
+  margin-left: 4px; font-size: 11px; color: var(--t3);
+  display: flex; align-items: center; gap: 6px;
+}
+.phase-dot {
+  width: 5px; height: 5px; border-radius: 50%;
+  background: var(--b3);
+  transition: background 0.3s;
+}
+.phase-dot.done { background: var(--gn); }
+.phase-dot.active { background: var(--ac); box-shadow: 0 0 4px var(--ac); }
+.tb-r { margin-left: auto; font-size: 11px; color: var(--t3); font-variant-numeric: tabular-nums; }
+
+/* Scroll */
+.scroll { flex: 1; overflow-y: auto; padding: 28px 0 12px; scrollbar-width: thin; scrollbar-color: var(--b1) transparent; }
+.scroll::-webkit-scrollbar { width: 3px; }
+.scroll::-webkit-scrollbar-thumb { background: var(--b2); border-radius: 2px; }
+
+.thread { max-width: 660px; margin: 0 auto; padding: 0 20px; display: flex; flex-direction: column; gap: 0; }
+
+/* Message row */
+.mr {
+  display: flex; gap: 11px; padding: 5px 0;
+  opacity: 0; transform: translateY(6px);
+  animation: fu 0.3s ease forwards;
+}
+@keyframes fu { to { opacity:1; transform:translateY(0); } }
+.mr.u { flex-direction: row-reverse; }
+.av {
+  width: 25px; height: 25px; border-radius: 7px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 12px; flex-shrink: 0; margin-top: 2px;
+}
+.av.ai { background: linear-gradient(135deg,#6366f1,#a855f7); }
+.av.u { background: var(--s2); border: 1px solid var(--b2); }
+.mc { flex: 1; min-width: 0; }
+.mr.u .mc { display: flex; flex-direction: column; align-items: flex-end; }
+.mn { font-size: 10.5px; color: var(--t3); font-weight: 500; margin-bottom: 4px; display: flex; align-items: center; gap: 5px; }
+.mr.u .mn { flex-direction: row-reverse; }
+
+/* User bubble */
+.ub {
+  background: var(--ac); color: #fff;
+  padding: 8px 13px; border-radius: 13px 13px 3px 13px;
+  font-size: 13.5px; line-height: 1.65;
+  display: inline-block; max-width: 90%;
+}
+
+/* AI text */
+.at { font-size: 13.5px; line-height: 1.8; color: var(--t1); }
+.at p { margin-bottom: 7px; }
+.at p:last-child { margin-bottom: 0; }
+.at strong { color: #fff; font-weight: 600; }
+.hl { color: var(--ac); }
+.hlg { color: var(--gn); }
+.hly { color: var(--yl); }
+
+/* Typing */
+.td { display: flex; gap: 4px; padding: 9px 0 3px; }
+.td span {
+  width: 5px; height: 5px; border-radius: 50%; background: var(--t3);
+  animation: bo 1.1s ease infinite;
+}
+.td span:nth-child(2) { animation-delay: .18s; }
+.td span:nth-child(3) { animation-delay: .36s; }
+@keyframes bo { 0%,80%,100%{transform:translateY(0);opacity:.35} 40%{transform:translateY(-5px);opacity:1} }
+
+/* Cursor */
+.cur { display:inline-block; width:2px; height:13px; background:var(--ac); margin-left:1px; vertical-align:middle; animation:bl .9s step-end infinite; }
+@keyframes bl { 0%,100%{opacity:1}50%{opacity:0} }
+
+/* Phase divider */
+.pdiv {
+  display: flex; align-items: center; gap: 10px; padding: 14px 0 6px;
+  opacity: 0; animation: fu 0.4s ease 0.05s forwards;
+}
+.pdiv-line { flex:1; height:1px; background:var(--b1); }
+.pdiv-label {
+  font-size: 10.5px; color: var(--t3); white-space: nowrap;
+  display: flex; align-items: center; gap: 5px;
+}
+.pdiv-badge {
+  font-size: 10px; padding: 1px 6px; border-radius: 3px;
+  background: var(--ac2); color: var(--ac); border: 1px solid rgba(99,102,241,0.2);
+}
+
+/* Confirm card */
+.cc {
+  background: var(--s2); border: 1px solid var(--b2);
+  border-radius: 10px; overflow: hidden; margin-top: 6px;
+}
+.cc-row { display: flex; gap: 10px; padding: 7px 13px; border-bottom: 1px solid var(--b1); align-items: flex-start; }
+.cc-row:last-child { border-bottom: none; }
+.cc-k { font-size: 11.5px; color: var(--t3); width: 68px; flex-shrink: 0; padding-top: 1px; }
+.cc-v { font-size: 12px; color: var(--t2); flex: 1; line-height: 1.6; }
+.cc-v strong { color: var(--t1); }
+.badge-p1 { display:inline-block; font-size:10.5px; padding:1px 6px; border-radius:3px; background:var(--yl2); color:var(--yl); border:1px solid rgba(245,158,11,0.25); font-weight:600; }
+.badge-ok { display:inline-block; font-size:10.5px; padding:1px 6px; border-radius:3px; background:var(--gn2); color:var(--gn); border:1px solid rgba(16,185,129,0.25); font-weight:600; }
+
+/* Step chain card */
+.sc {
+  background: var(--s2); border: 1px solid var(--b2);
+  border-radius: 10px; overflow: hidden; margin-top: 6px;
+}
+.sc-h {
+  padding: 9px 13px; border-bottom: 1px solid var(--b1);
+  font-size: 11px; color: var(--t3); font-weight: 600;
+  text-transform: uppercase; letter-spacing: 0.6px;
+  display: flex; align-items: center; gap: 6px;
+}
+.sc-item {
+  padding: 9px 13px; border-bottom: 1px solid var(--b1);
+  display: flex; align-items: flex-start; gap: 10px;
+  transition: background 0.15s; cursor: default;
+}
+.sc-item:last-child { border-bottom: none; }
+.sc-item.hl-item { background: rgba(99,102,241,0.05); }
+.sc-num {
+  width: 18px; height: 18px; border-radius: 50%;
+  background: var(--s3); border: 1px solid var(--b2);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 9.5px; color: var(--t3); flex-shrink: 0; margin-top: 1px;
+  font-weight: 600;
+}
+.sc-body { flex: 1; min-width: 0; }
+.sc-title { font-size: 12.5px; font-weight: 600; color: var(--t1); margin-bottom: 3px; }
+.sc-meta { font-size: 11px; color: var(--t3); display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.sc-meta .chip {
+  display: inline-flex; align-items: center; gap: 3px;
+  padding: 1px 7px; border-radius: 4px; font-size: 10.5px; font-weight: 500;
+}
+.chip-m { background: var(--bl2); color: var(--bl); border: 1px solid rgba(59,130,246,0.2); }
+.chip-s { background: var(--ac2); color: var(--ac); border: 1px solid rgba(99,102,241,0.2); }
+.chip-s.updated { background: rgba(16,185,129,0.10); color: var(--gn); border-color: rgba(16,185,129,0.25); }
+.sc-parallel {
+  margin: 0 13px 0; border: 1px dashed var(--b2); border-radius: 6px;
+  padding: 2px 0;
+}
+.sc-parallel-label {
+  font-size: 10px; color: var(--t3); padding: 4px 10px 2px;
+  display: flex; align-items: center; gap: 4px;
+}
+
+/* Chart picker — inline in chat */
+.picker {
+  background: var(--s2); border: 1px solid var(--b2);
+  border-radius: 9px; overflow: hidden; margin-top: 6px;
+}
+.picker-h {
+  padding: 8px 12px; border-bottom: 1px solid var(--b1);
+  font-size: 11px; color: var(--t3); font-weight: 600;
+  display: flex; align-items: center; gap: 6px;
+}
+.picker-item {
+  padding: 7px 12px; display: flex; align-items: center; gap: 8px;
+  border-bottom: 1px solid var(--b1); cursor: pointer; transition: background 0.12s;
+}
+.picker-item:last-child { border-bottom: none; }
+.picker-item:hover { background: var(--s3); }
+.picker-item.selected { background: rgba(16,185,129,0.06); }
+.picker-idx {
+  width: 18px; height: 18px; border-radius: 4px;
+  background: var(--s3); border: 1px solid var(--b2);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 10px; color: var(--t3); flex-shrink: 0; font-weight: 600;
+}
+.picker-item.selected .picker-idx { background: var(--gn2); color: var(--gn); border-color: rgba(16,185,129,0.3); }
+.picker-name { font-size: 12px; color: var(--t2); flex: 1; }
+.picker-item.selected .picker-name { color: var(--t1); }
+.picker-desc { font-size: 10.5px; color: var(--t3); }
+.picker-tag { font-size: 10px; padding: 1px 6px; border-radius: 3px; background: var(--bl2); color: var(--bl); border: 1px solid rgba(59,130,246,0.2); flex-shrink: 0; }
+
+/* Success ack */
+.ack {
+  display: flex; align-items: center; gap: 6px;
+  font-size: 12.5px; color: var(--gn); padding: 4px 0;
+}
+.ack-icon { font-size: 14px; }
+
+/* Flow diagram emerge */
+.fe {
+  max-width: 660px; margin: 0 auto; padding: 0 20px 10px;
+  opacity: 0; transform: translateY(20px);
+  transition: opacity 0.55s ease, transform 0.55s cubic-bezier(0.22,1,0.36,1);
+}
+.fe.vis { opacity: 1; transform: translateY(0); }
+.fc {
+  background: var(--s1); border: 1px solid var(--b2);
+  border-radius: 12px; overflow: hidden; position: relative;
+}
+.fc::before {
+  content:''; position:absolute; inset:-1px; border-radius:12px;
+  background: linear-gradient(135deg, rgba(99,102,241,0.35), rgba(168,85,247,0.18), transparent 55%);
+  opacity: 0; transition: opacity 0.9s ease 0.2s; pointer-events: none; z-index: 0;
+}
+.fe.vis .fc::before { opacity: 1; }
+.fc-inner { position: relative; z-index: 1; }
+.fc-h {
+  padding: 9px 14px; border-bottom: 1px solid var(--b1);
+  display: flex; align-items: center; gap: 7px; font-size: 11.5px; color: var(--t3); font-weight: 600;
+}
+.fc-hint { margin-left: auto; font-size: 10.5px; color: var(--t3); opacity: 0; transition: opacity 0.4s ease 0.7s; }
+.fe.vis .fc-hint { opacity: 1; }
+
+/* Trigger node */
+.fn-trigger {
+  margin: 14px 14px 0;
+  background: rgba(239,68,68,0.08); border: 1px solid rgba(239,68,68,0.25);
+  border-radius: 8px; padding: 8px 12px; text-align: center;
+}
+.fn-trigger-label { font-size: 11px; font-weight: 700; color: var(--rd); letter-spacing: 0.3px; }
+.fn-trigger-sub { font-size: 10.5px; color: var(--t3); margin-top: 2px; }
+
+/* Parallel wrapper */
+.fn-parallel {
+  margin: 10px 14px;
+  border: 1px dashed var(--b2); border-radius: 8px; padding: 10px 10px 6px;
+}
+.fn-par-label {
+  font-size: 9.5px; color: var(--t3); margin-bottom: 8px;
+  display: flex; align-items: center; gap: 4px;
+}
+.fn-row { display: flex; align-items: flex-start; gap: 6px; flex-wrap: wrap; }
+
+/* Flow node box */
+.fn {
+  display: flex; flex-direction: column; align-items: center; gap: 4px;
+  padding: 7px 8px; border-radius: 8px; cursor: pointer;
+  border: 1.5px solid transparent;
+  transition: all 0.15s;
+  min-width: 82px; max-width: 100px;
+  flex-shrink: 0;
+  /* stagger */
+  opacity: 0; transform: scale(0.88);
+  transition: opacity 0.35s ease, transform 0.35s cubic-bezier(0.34,1.5,0.64,1), background 0.15s, border-color 0.15s;
+}
+.fe.vis .fn { opacity: 1; transform: scale(1); }
+.fe.vis .fn:nth-child(1) { transition-delay: 0.12s; }
+.fe.vis .fn:nth-child(2) { transition-delay: 0.20s; }
+.fe.vis .fn:nth-child(3) { transition-delay: 0.28s; }
+.fe.vis .fn:nth-child(4) { transition-delay: 0.36s; }
+.fe.vis .fn:nth-child(5) { transition-delay: 0.44s; }
+.fe.vis .fn:nth-child(6) { transition-delay: 0.52s; }
+.fe.vis .fn:nth-child(7) { transition-delay: 0.60s; }
+
+.fn:hover { background: var(--s2); border-color: var(--b2); }
+.fn.active { background: var(--ac2); border-color: var(--ac); }
+
+.fn-box {
+  width: 40px; height: 40px; border-radius: 9px;
+  background: var(--s2); border: 1.5px solid var(--b2);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 18px; position: relative;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+.fn.active .fn-box { border-color: var(--ac); box-shadow: 0 0 0 2.5px rgba(99,102,241,0.12); }
+.fn-dot {
+  position: absolute; top: -3px; right: -3px;
+  width: 9px; height: 9px; border-radius: 50%;
+  border: 1.5px solid var(--s1);
+  opacity: 0; transform: scale(0);
+  transition: all 0.3s cubic-bezier(0.34,1.5,0.64,1);
+}
+.fn-dot.sh { opacity:1; transform: scale(1); }
+.fn-dot.ok { background: var(--gn); }
+.fn-dot.up { background: var(--ac); }
+
+.fn-label { font-size: 10.5px; font-weight: 600; color: var(--t2); text-align: center; line-height: 1.3; }
+.fn-sub { font-size: 9px; color: var(--t3); text-align: center; line-height: 1.3; }
+.fn-skill {
+  font-size: 9px; padding: 1px 5px; border-radius: 3px;
+  background: var(--ac2); color: var(--ac); border: 1px solid rgba(99,102,241,0.18);
+  white-space: nowrap; margin-top: 1px;
+}
+.fn-skill.up { background: var(--gn2); color: var(--gn); border-color: rgba(16,185,129,0.2); }
+
+/* Serial chain within parallel */
+.fn-serial { display: flex; flex-direction: column; gap: 3px; flex: 1; min-width: 0; }
+.fn-ser-label { font-size: 9.5px; color: var(--t3); padding: 0 2px 2px; display: flex; align-items: center; gap: 3px; }
+.fn-ser-row { display: flex; align-items: center; gap: 3px; flex-wrap: wrap; }
+.fn-arr { font-size: 9px; color: var(--b3); flex-shrink: 0; }
+
+/* Tooltip */
+.tt {
+  position: fixed; width: 210px;
+  background: var(--s2); border: 1px solid var(--b2);
+  border-radius: 9px; padding: 11px 13px;
+  box-shadow: 0 8px 22px rgba(0,0,0,0.45);
+  z-index: 200; opacity: 0; pointer-events: none;
+  transform: translateY(5px) scale(0.97);
+  transition: all 0.18s cubic-bezier(0.34,1,0.64,1);
+}
+.tt.show { opacity:1; pointer-events:auto; transform:translateY(0) scale(1); }
+.tt-h { display:flex; align-items:center; gap:7px; margin-bottom:7px; }
+.tt-ico { font-size:15px; }
+.tt-t { font-size:12.5px; font-weight:600; }
+.tt-b { font-size:11.5px; line-height:1.6; color:var(--t2); }
+.tt-b strong { color:var(--t1); }
+.tt-f { margin-top:8px; padding-top:7px; border-top:1px solid var(--b1); font-size:10.5px; color:var(--t3); font-style:italic; }
+
+/* Skill done */
+.sd {
+  display: flex; align-items: center; gap: 9px;
+  margin-top: 7px;
+  background: var(--gn2); border: 1px solid rgba(16,185,129,0.22);
+  border-radius: 8px; padding: 9px 12px;
+  opacity: 0; animation: fu 0.4s ease forwards;
+}
+.sd-icon { font-size: 17px; flex-shrink: 0; }
+.sd-t { font-size: 12.5px; font-weight: 600; color: var(--gn); }
+.sd-p { font-size: 10.5px; color: var(--t3); margin-top: 2px; font-family: 'SF Mono', monospace; }
+
+/* Input */
+.ia { padding: 13px 18px; border-top: 1px solid var(--b1); max-width: 660px; margin: 0 auto; width: 100%; }
+.ir {
+  display: flex; gap: 9px; align-items: flex-end;
+  background: var(--s1); border: 1px solid var(--b2);
+  border-radius: 11px; padding: 9px 11px 9px 13px;
+  transition: border-color 0.2s;
+}
+.ir:focus-within { border-color: var(--ac); }
+.ita { flex:1; background:transparent; border:none; outline:none; font-size:13.5px; color:var(--t1); font-family:inherit; resize:none; line-height:1.6; max-height:110px; min-height:21px; }
+.ita::placeholder { color:var(--t3); }
+.sb { width:29px; height:29px; border-radius:7px; border:none; background:var(--ac); cursor:pointer; display:flex; align-items:center; justify-content:center; flex-shrink:0; transition:opacity .15s; }
+.sb:hover { opacity:.85; }
+.isub { font-size:10.5px; color:var(--t3); text-align:center; margin-top:6px; }
+
+.wm { position:fixed; bottom:7px; right:14px; font-size:10px; color:var(--t3); pointer-events:none; }
+</style>
+</head>
+<body>
+
+<div class="tb">
+  <div class="tb-dot"></div>
+  <div class="tb-name">排障助手</div>
+  <div class="tb-chip">biz-diagnosis-creator</div>
+  <div class="tb-phase" id="phases">
+    <span style="font-size:10px">阶段：</span>
+    <div class="phase-dot" id="pd0" title="场景确认"></div>
+    <div class="phase-dot" id="pd1" title="排查链路"></div>
+    <div class="phase-dot" id="pd2" title="绑定图表"></div>
+    <div class="phase-dot" id="pd3" title="Skill匹配"></div>
+    <div class="phase-dot" id="pd4" title="流程图确认"></div>
+    <div class="phase-dot" id="pd5" title="生成Skill"></div>
+  </div>
+  <div class="tb-r" id="clock">--:--:--</div>
+</div>
+
+<div class="scroll" id="scr">
+  <div class="thread" id="th"></div>
+  <!-- Flow diagram injected here -->
+  <div class="fe" id="fe">
+    <div class="fc">
+      <div class="fc-inner">
+        <div class="fc-h">
+          <span>🗺</span>
+          <span>biz-ark-newnote-drop · 排障链路</span>
+          <span class="fc-hint">👆 点节点查看详情 · 说话可修改</span>
+        </div>
+        <!-- Trigger -->
+        <div class="fn-trigger">
+          <div class="fn-trigger-label">🚨 告警触发</div>
+          <div class="fn-trigger-sub">24h新笔记占比 周同比下跌 &gt; 20%（ark0 · P1）</div>
+        </div>
+        <!-- Parallel wrapper -->
+        <div class="fn-parallel">
+          <div class="fn-par-label">⚡ 并行执行</div>
+          <div class="fn-row">
+            <!-- S1 standalone -->
+            <div class="fn" id="fn0" onclick="showTt(event,'n0')">
+              <div class="fn-box">📊<div class="fn-dot ok sh"></div></div>
+              <div class="fn-label">分阶段新笔记占比</div>
+              <div class="fn-sub">新笔记占比_24hr</div>
+              <div class="fn-skill">metrics-compare</div>
+            </div>
+            <!-- Serial S2-7 -->
+            <div class="fn-serial">
+              <div class="fn-ser-label">🔢 串行</div>
+              <div class="fn-ser-row">
+                <div class="fn" id="fn1" onclick="showTt(event,'n1')">
+                  <div class="fn-box">🔍<div class="fn-dot ok sh"></div></div>
+                  <div class="fn-label">召回渠道量</div>
+                  <div class="fn-sub">分渠道新笔记量</div>
+                  <div class="fn-skill up" id="fn1skill">metrics-breakdown</div>
+                </div>
+                <div class="fn-arr">→</div>
+                <div class="fn" id="fn2" onclick="showTt(event,'n2')">
+                  <div class="fn-box">🗂<div class="fn-dot ok sh"></div></div>
+                  <div class="fn-label">召回&粗排队列</div>
+                  <div class="fn-sub">多队列分渠道数量</div>
+                  <div class="fn-skill">metrics-multi-compare</div>
+                </div>
+                <div class="fn-arr">→</div>
+                <div class="fn" id="fn3" onclick="showTt(event,'n3')">
+                  <div class="fn-box">📋<div class="fn-dot ok sh"></div></div>
+                  <div class="fn-label">正排完整率</div>
+                  <div class="fn-sub">正排索引完整率</div>
+                  <div class="fn-skill">metrics-threshold</div>
+                </div>
+                <div class="fn-arr">→</div>
+                <div class="fn" id="fn4" onclick="showTt(event,'n4')">
+                  <div class="fn-box">⚠️<div class="fn-dot ok sh"></div></div>
+                  <div class="fn-label">正排字段异常率</div>
+                  <div class="fn-sub">notecreate.* 过滤</div>
+                  <div class="fn-skill">metrics-compare</div>
+                </div>
+                <div class="fn-arr">→</div>
+                <div class="fn" id="fn5" onclick="showTt(event,'n5')">
+                  <div class="fn-box">🎯<div class="fn-dot ok sh"></div></div>
+                  <div class="fn-label">粗精排模型打分</div>
+                  <div class="fn-sub">粗排+精排打分均值</div>
+                  <div class="fn-skill">metrics-multi-compare</div>
+                </div>
+                <div class="fn-arr">→</div>
+                <div class="fn" id="fn6" onclick="showTt(event,'n6')">
+                  <div class="fn-box">📉<div class="fn-dot ok sh"></div></div>
+                  <div class="fn-label">后排打散情况</div>
+                  <div class="fn-sub">排序降级QPS</div>
+                  <div class="fn-skill">metrics-compare</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="thread" id="th2" style="margin-top:4px"></div>
+</div>
+
+<!-- Tooltip -->
+<div class="tt" id="tt"></div>
+
+<div style="flex-shrink:0">
+  <div class="ia">
+    <div class="ir">
+      <textarea class="ita" id="ita" placeholder="继续说…" rows="1" oninput="ar(this)" onkeydown="hk(event)"></textarea>
+      <button class="sb" onclick="us()">
+        <svg width="13" height="13" viewBox="0 0 13 13" fill="none">
+          <path d="M1 6.5h11M7 1.5l5 5-5 5" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </button>
+    </div>
+    <div class="isub">Enter 发送 · Shift+Enter 换行</div>
+  </div>
+</div>
+
+<div class="wm">设计稿 · v0.4 · 真实对话还原</div>
+
+<script>
+setInterval(()=>{
+  const n=new Date();
+  document.getElementById('clock').textContent=[n.getHours(),n.getMinutes(),n.getSeconds()].map(x=>String(x).padStart(2,'0')).join(':');
+},1000);
+
+const $=id=>document.getElementById(id);
+const scrollB=()=>{ const s=$('scr'); s.scrollTo({top:s.scrollHeight,behavior:'smooth'}); };
+function ar(el){ el.style.height='auto'; el.style.height=Math.min(el.scrollHeight,110)+'px'; }
+function hk(e){ if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();us();} }
+
+function nt(){ const n=new Date(); return [n.getHours(),n.getMinutes()].map(x=>String(x).padStart(2,'0')).join(':'); }
+
+function setPhase(i){ // 0-5
+  for(let j=0;j<6;j++){
+    const d=$('pd'+j);
+    if(j<i) d.className='phase-dot done';
+    else if(j===i) d.className='phase-dot active';
+    else d.className='phase-dot';
+  }
+}
+
+function addMsg(cont, role, html, delay=0){
+  return new Promise(r=>setTimeout(()=>{
+    const row=document.createElement('div');
+    row.className='mr'+(role==='user'?' u':'');
+    if(role==='user'){
+      row.innerHTML=`<div class="av u">你</div><div class="mc"><div class="mn" style="justify-content:flex-end">马恒阳 <span style="color:var(--t3)">${nt()}</span></div><div class="ub">${html}</div></div>`;
+    } else {
+      row.innerHTML=`<div class="av ai">🧠</div><div class="mc"><div class="mn">排障助手 <span style="color:var(--t3)">${nt()}</span></div><div class="at">${html}</div></div>`;
+    }
+    $(cont).appendChild(row); scrollB(); r(row);
+  }, delay));
+}
+
+function addDiv(cont, label, badge='', delay=0){
+  return new Promise(r=>setTimeout(()=>{
+    const d=document.createElement('div');
+    d.className='pdiv';
+    d.innerHTML=`<div class="pdiv-line"></div><div class="pdiv-label"><span>${label}</span>${badge?`<span class="pdiv-badge">${badge}</span>`:''}</div><div class="pdiv-line"></div>`;
+    $(cont).appendChild(d); scrollB(); r();
+  },delay));
+}
+
+function showTyping(cont){
+  const r=document.createElement('div');
+  r.className='mr';
+  r.innerHTML=`<div class="av ai">🧠</div><div class="mc"><div class="mn">排障助手 <span style="color:var(--t3)">${nt()}</span></div><div class="td"><span></span><span></span><span></span></div></div>`;
+  $(cont).appendChild(r); scrollB(); return r;
+}
+
+function stream(el, text, speed=20){
+  return new Promise(r=>{
+    const cur=document.createElement('span'); cur.className='cur';
+    const tgt=el.querySelector('.at')||el;
+    tgt.appendChild(cur);
+    const parts=[];
+    let buf='',inTag=false;
+    for(const ch of text){
+      if(ch==='<'){if(buf)parts.push({t:'tx',v:buf});buf='<';inTag=true;}
+      else if(ch==='>'&&inTag){buf+='>';parts.push({t:'tg',v:buf});buf='';inTag=false;}
+      else buf+=ch;
+    }
+    if(buf)parts.push({t:'tx',v:buf});
+    let pi=0,ci=0;
+    function tick(){
+      if(pi>=parts.length){cur.remove();r();return;}
+      const p=parts[pi];
+      if(p.t==='tg'){cur.insertAdjacentHTML('beforebegin',p.v);pi++;ci=0;setTimeout(tick,0);}
+      else{
+        if(ci<p.v.length){cur.insertAdjacentText('beforebegin',p.v[ci]);ci++;scrollB();setTimeout(tick,speed);}
+        else{pi++;ci=0;setTimeout(tick,0);}
+      }
+    }
+    tick();
+  });
+}
+
+function wait(ms){ return new Promise(r=>setTimeout(r,ms)); }
+
+// Tooltip data
+const ttd = {
+  n0:{ ico:'📊', t:'分阶段新笔记占比',
+    b:'图表：<strong>新笔记占比_笔记年龄1_24hr</strong><br>分stage统计，支持与7日前对比。用于定位是哪个stage开始出现下跌。',
+    skill:'metrics-compare', hint:'「把Step1的Skill换成metrics-breakdown」' },
+  n1:{ ico:'🔍', t:'召回渠道新笔记量',
+    b:'图表：<strong>召回阶段_分渠道新笔记量</strong><br>按召回渠道统计，只看TOP10，量太小的意义不大。',
+    skill:'metrics-breakdown ✎已更新', hint:'「Step2改成只看前5渠道」' },
+  n2:{ ico:'🗂', t:'召回&粗排多队列',
+    b:'图表：<strong>召回多队列分渠道数量</strong> + <strong>粗排多队列分渠道数量</strong><br>同时看两个图，判断是否有突变。',
+    skill:'metrics-multi-compare', hint:'想改这个节点直接说' },
+  n3:{ ico:'📋', t:'正排完整率',
+    b:'图表：<strong>正排完整率</strong><br>完整率过低说明正排索引有问题，导致新笔记取不到正排数据。',
+    skill:'metrics-threshold', hint:'想改这个节点直接说' },
+  n4:{ ico:'⚠️', t:'正排字段异常率',
+    b:'图表：<strong>正排字段异常率</strong><br>需要过滤条件：<code>name=~"noteCreate.*"</code>，专门看笔记创建时间特征。',
+    skill:'metrics-compare', hint:'想改这个节点直接说' },
+  n5:{ ico:'🎯', t:'粗精排模型打分',
+    b:'图表：<strong>粗排模型打分均值</strong> + <strong>精排模型打分均值</strong><br>两个图同时看，有突变说明模型异常。',
+    skill:'metrics-multi-compare', hint:'想改这个节点直接说' },
+  n6:{ ico:'📉', t:'后排打散情况',
+    b:'图表：<strong>排序降级QPS</strong>（Mock数据暂缺打散图表，已用最近似替代）',
+    skill:'metrics-compare', hint:'「后排打散换成真实的打散图表」' },
+};
+let activeTt=null;
+function showTt(e,id){
+  e.stopPropagation();
+  const d=ttd[id]; if(!d) return;
+  const tt=$('tt');
+  const sc=d.skill.includes('updated')||d.skill.includes('✎')?' style="color:var(--gn)"':'';
+  tt.innerHTML=`<div class="tt-h"><span class="tt-ico">${d.ico}</span><span class="tt-t">${d.t}</span></div><div class="tt-b">${d.b}<br><br>原子Skill：<strong${sc}>${d.skill}</strong></div><div class="tt-f">💬 ${d.hint}</div>`;
+  const rect=e.currentTarget.getBoundingClientRect();
+  let top=rect.bottom+7, left=rect.left+rect.width/2-105;
+  left=Math.max(6,Math.min(left,window.innerWidth-218));
+  if(top+170>window.innerHeight) top=rect.top-175;
+  tt.style.top=top+'px'; tt.style.left=left+'px';
+  document.querySelectorAll('.fn').forEach(n=>n.classList.remove('active'));
+  e.currentTarget.classList.add('active');
+  tt.classList.add('show'); activeTt=id;
+}
+document.addEventListener('click',e=>{
+  if(!$('tt').contains(e.target)&&!e.target.closest('.fn')){
+    $('tt').classList.remove('show');
+    document.querySelectorAll('.fn').forEach(n=>n.classList.remove('active'));
+    activeTt=null;
+  }
+});
+
+// ── Main play ──
+async function play(){
+  const T='th', T2='th2';
+
+  // P0: Scene
+  setPhase(0);
+  await addMsg(T,'user','帮我创建一个业务排障 Skill，场景是 <strong>24h 新笔记占比周同比下跌超过 20%</strong> 的告警',200);
+
+  await wait(900); const t1=showTyping(T); await wait(1000); t1.remove();
+  const r1=await addMsg(T,'ai','<p></p>');
+  await stream(r1,`👋 好，我来引导你把这个排障经验沉淀成 Skill。全程不需要写 PQL，也不需要了解 MCP，只需要把排查思路说清楚就行。<br><br>先确认一下——<strong>这个告警对应哪个服务？</strong>`);
+
+  await wait(500);
+  await addMsg(T,'user','内流推荐，ark0');
+
+  await wait(700); const t2=showTyping(T); await wait(800); t2.remove();
+  const r2=await addMsg(T,'ai','<p></p>');
+  await stream(r2,`收到。<strong>触发排查的通常是什么情况？</strong><br><br>🔔 告警触发 · 🔍 巡检发现 · 👤 用户反馈 · 🧑‍💻 主动发现`);
+
+  await wait(400);
+  await addMsg(T,'user','告警触发');
+
+  await wait(600); const t3=showTyping(T); await wait(700); t3.remove();
+  const r3=await addMsg(T,'ai','<p></p>');
+  await stream(r3,`严重级别？🔴 P0（分钟级）·  🟡 <strong>P1（小时内）</strong> · 🟢 定时巡检`);
+
+  await wait(400);
+  await addMsg(T,'user','P1');
+
+  await wait(700); const t4=showTyping(T); await wait(800); t4.remove();
+
+  // Confirm card
+  const r4=await addMsg(T,'ai','<p>好，场景信息收齐了：</p>');
+  const cc=document.createElement('div');
+  cc.className='cc';
+  cc.innerHTML=`
+    <div class="cc-row"><div class="cc-k">服务</div><div class="cc-v"><strong>内流推荐（ark0）</strong></div></div>
+    <div class="cc-row"><div class="cc-k">触发方式</div><div class="cc-v">🔔 告警触发</div></div>
+    <div class="cc-row"><div class="cc-k">核心异常</div><div class="cc-v"><strong>24h 新笔记占比 周同比下跌 > 20%</strong></div></div>
+    <div class="cc-row"><div class="cc-k">严重级别</div><div class="cc-v"><span class="badge-p1">P1</span> 小时内处理</div></div>`;
+  r4.querySelector('.mc').appendChild(cc);
+  scrollB();
+
+  await wait(400);
+  const r4b=await addMsg(T,'ai','<p></p>');
+  await stream(r4b,`理解对吗？如果没问题说「对」，继续排查链路。`);
+  await wait(400);
+  await addMsg(T,'user','对');
+
+  // P1: SOP
+  setPhase(1);
+  await wait(600);
+  await addDiv(T,'Phase 2 · 排查链路','SOP');
+
+  await wait(400); const t5=showTyping(T); await wait(900); t5.remove();
+  const r5=await addMsg(T,'ai','<p></p>');
+  await stream(r5,`上次遇到这个告警，你们是怎么排查的？先看什么，然后呢？<br><span style="color:var(--t3);font-size:12px">不用组织语言，就像跟同事说话一样。</span>`);
+
+  await wait(600);
+  await addMsg(T,'user','首先排查分阶段新笔记占比，看告警前后各 stage 的变化缩小范围；然后并行看：召回分渠道新笔记量（只看TOP10）、召回&粗排多队列、正排完整率、正排字段异常率（要加 notecreate.* 过滤）、粗精排模型打分、后排打散');
+
+  await wait(800); const t6=showTyping(T); await wait(1000); t6.remove();
+  const r6=await addMsg(T,'ai','<p></p>');
+  await stream(r6,`明白。Step1 和 Step2-7 是同时并行，还是先看 Step1 锁定 stage 再看其他？`);
+
+  await wait(400);
+  await addMsg(T,'user','并行，Step2-7 按顺序串行');
+
+  await wait(700); const t7=showTyping(T); await wait(800); t7.remove();
+  const r7=await addMsg(T,'ai','<p>好，结构清晰了：</p>');
+  const sc=document.createElement('div');
+  sc.className='sc';
+  sc.innerHTML=`
+    <div class="sc-h">⚡ 并行</div>
+    <div class="sc-item"><div class="sc-num">1</div><div class="sc-body"><div class="sc-title">分阶段新笔记占比</div><div class="sc-meta"><span>BEFORE_NOTEINFO → ... → post_rank_top</span></div></div></div>
+    <div class="sc-h">🔢 串行（Step 2-7）</div>
+    <div class="sc-item"><div class="sc-num">2</div><div class="sc-body"><div class="sc-title">召回阶段分渠道新笔记量</div><div class="sc-meta"><span>TOP10 渠道过滤</span></div></div></div>
+    <div class="sc-item"><div class="sc-num">3</div><div class="sc-body"><div class="sc-title">召回 & 粗排多队列</div></div></div>
+    <div class="sc-item"><div class="sc-num">4</div><div class="sc-body"><div class="sc-title">正排完整率</div></div></div>
+    <div class="sc-item"><div class="sc-num">5</div><div class="sc-body"><div class="sc-title">正排字段异常率</div><div class="sc-meta"><code style="font-size:10px;background:var(--s3);padding:1px 5px;border-radius:3px">name=~"noteCreate.*"</code></div></div></div>
+    <div class="sc-item"><div class="sc-num">6</div><div class="sc-body"><div class="sc-title">粗精排模型打分</div><div class="sc-meta"><span>粗排 + 精排</span></div></div></div>
+    <div class="sc-item"><div class="sc-num">7</div><div class="sc-body"><div class="sc-title">后排打散情况</div></div></div>`;
+  r7.querySelector('.mc').appendChild(sc);
+  scrollB();
+  await wait(300);
+  const r7b=await addMsg(T,'ai','<p></p>');
+  await stream(r7b,`这个理解对吗？确认后开始绑定每个步骤的大盘图表。`);
+  await wait(400);
+  await addMsg(T,'user','对的，开始绑定');
+
+  // P2: Chart binding
+  setPhase(2);
+  await wait(500);
+  await addDiv(T,'Phase 3 · 绑定大盘图表','逐步确认');
+
+  // Step 1
+  await wait(500); const t8=showTyping(T); await wait(900); t8.remove();
+  const r8=await addMsg(T,'ai','<p><strong>Step 1「分阶段新笔记占比」</strong> — 匹配到以下图表：</p>');
+  const pk1=document.createElement('div');
+  pk1.className='picker';
+  pk1.innerHTML=`
+    <div class="picker-h">📊 ark-notefeed 业务监控</div>
+    <div class="picker-item selected" id="pi1">
+      <div class="picker-idx">1</div>
+      <div>
+        <div class="picker-name">新笔记占比_笔记年龄1_24hr</div>
+        <div class="picker-desc">分stage统计新笔记（1-24hr）占比，支持与7日前对比</div>
+      </div>
+      <div class="picker-tag">推荐</div>
+    </div>`;
+  r8.querySelector('.mc').appendChild(pk1);
+  scrollB();
+
+  await wait(400);
+  await addMsg(T,'user','1');
+  await wait(500);
+  const ack1=await addMsg(T,'ai','<div class="ack"><span class="ack-icon">✅</span> Step 1 绑定完成：<strong>新笔记占比_笔记年龄1_24hr</strong></div>');
+
+  // Step 2
+  await wait(600);
+  const r9=await addMsg(T,'ai','<p><strong>Step 2「召回阶段分渠道新笔记量」</strong> — 匹配到：</p>');
+  const pk2=document.createElement('div');
+  pk2.className='picker';
+  pk2.innerHTML=`
+    <div class="picker-h">📊 ark-notefeed 业务监控</div>
+    <div class="picker-item selected">
+      <div class="picker-idx">1</div>
+      <div>
+        <div class="picker-name">召回阶段_分渠道新笔记量</div>
+        <div class="picker-desc">按召回渠道统计新笔记召回量，可用于定位哪个渠道突变</div>
+      </div>
+      <div class="picker-tag">推荐</div>
+    </div>`;
+  r9.querySelector('.mc').appendChild(pk2);
+  scrollB();
+
+  await wait(400);
+  await addMsg(T,'user','1');
+  await wait(500);
+  await addMsg(T,'ai','<div class="ack"><span class="ack-icon">✅</span> Step 2 绑定完成：<strong>召回阶段_分渠道新笔记量</strong></div>');
+
+  // Step 3
+  await wait(500);
+  const r10=await addMsg(T,'ai','<p><strong>Step 3「召回 & 粗排多队列」</strong> — 这步需要两个图表：</p>');
+  const pk3=document.createElement('div');
+  pk3.className='picker';
+  pk3.innerHTML=`
+    <div class="picker-h">📊 ark-notefeed 业务监控</div>
+    <div class="picker-item selected">
+      <div class="picker-idx">1</div>
+      <div><div class="picker-name">召回多队列分渠道数量</div><div class="picker-desc">召回阶段各多队列的笔记量，用于判断是否有突变</div></div>
+      <div class="picker-tag">推荐</div>
+    </div>
+    <div class="picker-item selected">
+      <div class="picker-idx">2</div>
+      <div><div class="picker-name">粗排多队列分渠道数量</div><div class="picker-desc">粗排阶段各多队列笔记量</div></div>
+    </div>`;
+  r10.querySelector('.mc').appendChild(pk3);
+  scrollB();
+
+  await wait(400);
+  await addMsg(T,'user','多选 1, 2');
+  await wait(500);
+  await addMsg(T,'ai','<div class="ack"><span class="ack-icon">✅</span> Step 3 绑定完成：<strong>召回多队列分渠道数量</strong> + <strong>粗排多队列分渠道数量</strong></div>');
+
+  // Step 4-7 fast
+  await wait(400);
+  await addMsg(T,'ai','<div class="ack"><span class="ack-icon">✅</span> Step 4 绑定完成：<strong>正排完整率</strong></div>');
+  await wait(300);
+  await addMsg(T,'ai','<div class="ack"><span class="ack-icon">✅</span> Step 5 绑定完成：<strong>正排字段异常率</strong></div>');
+  await wait(300);
+  await addMsg(T,'ai','<div class="ack"><span class="ack-icon">✅</span> Step 6 绑定完成：<strong>粗排模型打分均值</strong> + <strong>精排模型打分均值</strong></div>');
+  await wait(300);
+  await addMsg(T,'ai','<div class="ack" style="color:var(--yl)"><span class="ack-icon">⚠️</span> Step 7 未找到"打散"相关图表，已用 <strong>排序降级QPS</strong> 替代，后续可更换</div>');
+
+  // P3: Skill match
+  setPhase(3);
+  await wait(600);
+  await addDiv(T,'Phase 4 · 原子 Skill 自动匹配','无需感知');
+
+  await wait(500); const t9=showTyping(T); await wait(1000); t9.remove();
+  const r11=await addMsg(T,'ai','<p>匹配完成。基于你选择的图表数据类型，自动为每个节点推荐了最合适的原子 Skill：</p>');
+  const sc2=document.createElement('div');
+  sc2.className='sc';
+  sc2.innerHTML=`
+    <div class="sc-item"><div class="sc-num">1</div><div class="sc-body"><div class="sc-title">分阶段新笔记占比</div><div class="sc-meta"><span class="chip chip-m">新笔记占比_24hr</span><span class="chip chip-s">metrics-compare</span></div></div></div>
+    <div class="sc-item hl-item"><div class="sc-num">2</div><div class="sc-body"><div class="sc-title">召回渠道新笔记量</div><div class="sc-meta"><span class="chip chip-m">召回阶段_分渠道新笔记量</span><span class="chip chip-s">metrics-compare</span></div></div></div>
+    <div class="sc-item"><div class="sc-num">3</div><div class="sc-body"><div class="sc-title">召回&粗排多队列</div><div class="sc-meta"><span class="chip chip-s">metrics-multi-compare</span></div></div></div>
+    <div class="sc-item"><div class="sc-num">4</div><div class="sc-body"><div class="sc-title">正排完整率</div><div class="sc-meta"><span class="chip chip-s">metrics-threshold</span></div></div></div>
+    <div class="sc-item"><div class="sc-num">5</div><div class="sc-body"><div class="sc-title">正排字段异常率</div><div class="sc-meta"><span class="chip chip-s">metrics-compare</span></div></div></div>
+    <div class="sc-item"><div class="sc-num">6</div><div class="sc-body"><div class="sc-title">粗精排模型打分</div><div class="sc-meta"><span class="chip chip-s">metrics-multi-compare</span></div></div></div>
+    <div class="sc-item"><div class="sc-num">7</div><div class="sc-body"><div class="sc-title">后排打散情况</div><div class="sc-meta"><span class="chip chip-s">metrics-compare</span></div></div></div>`;
+  r11.querySelector('.mc').appendChild(sc2);
+  scrollB();
+
+  // User modifies Step 2
+  await wait(600);
+  await addMsg(T,'user','Step 2 的 Skill 改成 metrics-breakdown，分渠道下钻更合适');
+  await wait(700); const t10=showTyping(T); await wait(700); t10.remove();
+  // Update Step 2 in the card
+  sc2.querySelector('.sc-item.hl-item .chip-s').textContent='metrics-breakdown ✎';
+  sc2.querySelector('.sc-item.hl-item .chip-s').classList.add('updated');
+  const r12=await addMsg(T,'ai','<p></p>');
+  await stream(r12,`✅ Step 2 已更新：<span class="hl">metrics-compare</span> → <span class="hlg">metrics-breakdown</span>（group_by=channel, top_n=10）<br><br>其他节点没问题的话，说「生成 Skill」。`);
+
+  // P4: Flow confirm
+  setPhase(4);
+  await wait(500);
+  await addDiv(T,'Phase 5 · 排障链路确认','可视化');
+
+  await wait(500); const t11=showTyping(T); await wait(1000); t11.remove();
+  const r13=await addMsg(T,'ai','<p></p>');
+  await stream(r13,`好，排障链路如下——<span class="hl">点任意节点</span>可查看绑定的图表和原子 Skill，有问题直接说话修改：`);
+
+  // Emerge flow diagram
+  await wait(600);
+  $('fe').classList.add('vis');
+  scrollB();
+
+  await wait(1200);
+  await addMsg(T2,'user','生成 Skill');
+
+  // P5: Generate
+  setPhase(5);
+  await wait(500);
+  await addDiv(T2,'Phase 6 · 生成 Skill','写入文件');
+
+  await wait(600); const t12=showTyping(T2); await wait(1500); t12.remove();
+  const r14=await addMsg(T2,'ai','<p></p>');
+  await stream(r14,`好，正在生成…`, 30);
+
+  await wait(400);
+  const badge=document.createElement('div');
+  badge.innerHTML=`<div class="mr" style="padding-left:36px"><div class="mc"><div class="sd"><div class="sd-icon">✅</div><div><div class="sd-t">biz-ark-newnote-drop · 已激活</div><div class="sd-p">~/.openclaw/workspace/skills/biz-ark-newnote-drop/SKILL.md</div><div class="sd-p" style="margin-top:2px">references/sop.md · metrics.md · routing.md</div></div></div></div></div>`;
+  $('th2').appendChild(badge);
+  scrollB();
+
+  await wait(600);
+  const r15=await addMsg(T2,'ai','<p></p>');
+  await stream(r15,`7个排查步骤、9个图表绑定、4种原子 Skill 已写入。下次收到这个告警，我会自动按这条链路排查。<br><br>有什么要调整的随时说，比如加阈值判断、补打散图表、或者调整串并行结构。`,22);
+
+  scrollB();
+}
+
+play();
+
+function us(){
+  const ta=$('ita'); const v=ta.value.trim(); if(!v) return;
+  addMsg('th2','user',v); ta.value=''; ar(ta);
+}
+</script>
+</body>
+</html>

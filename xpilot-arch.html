@@ -1,0 +1,529 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<title>XPILOT 智能诊断 — 整体架构</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'PingFang SC', 'Microsoft YaHei', sans-serif;
+  background: #f5f7fa;
+  color: #1a2332;
+  padding: 36px 48px;
+}
+
+h1 {
+  text-align: center;
+  font-size: 20px;
+  font-weight: 700;
+  color: #1a2332;
+  margin-bottom: 4px;
+  letter-spacing: 1px;
+}
+.subtitle {
+  text-align: center;
+  font-size: 12px;
+  color: #8a9ab5;
+  margin-bottom: 28px;
+}
+
+/* ── 行容器 ── */
+.row {
+  display: flex;
+  align-items: stretch;
+  gap: 0;
+  margin-bottom: 0;
+}
+
+/* ── 左侧标签 ── */
+.row-label {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  writing-mode: horizontal-tb;
+  min-width: 72px;
+  margin-right: 12px;
+  flex-shrink: 0;
+}
+.row-label-inner {
+  background: #fff;
+  border: 1.5px solid #d0d8e8;
+  border-radius: 20px;
+  padding: 6px 14px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #3b5bdb;
+  white-space: nowrap;
+}
+
+/* ── 行内容区 ── */
+.row-content {
+  flex: 1;
+  display: flex;
+  gap: 12px;
+  align-items: stretch;
+}
+
+/* ── 卡片 ── */
+.card {
+  background: #fff;
+  border-radius: 10px;
+  border: 1.5px solid #e2e8f0;
+  overflow: hidden;
+  flex: 1;
+}
+.card-header {
+  padding: 8px 14px;
+  font-size: 12px;
+  font-weight: 700;
+  border-bottom: 1.5px solid #e2e8f0;
+}
+.card-body {
+  padding: 10px 14px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-content: flex-start;
+}
+
+/* 蓝色系 */
+.card.blue { border-color: #93c5fd; }
+.card.blue .card-header { background: #eff6ff; color: #1d4ed8; border-color: #bfdbfe; }
+
+/* 青色系 */
+.card.teal { border-color: #6ee7b7; }
+.card.teal .card-header { background: #f0fdf4; color: #065f46; border-color: #a7f3d0; }
+
+/* 紫色系 */
+.card.purple { border-color: #c4b5fd; }
+.card.purple .card-header { background: #f5f3ff; color: #5b21b6; border-color: #ddd6fe; }
+
+/* 橙色系 */
+.card.orange { border-color: #fcd34d; }
+.card.orange .card-header { background: #fffbeb; color: #92400e; border-color: #fde68a; }
+
+/* 灰色系 */
+.card.gray { border-color: #e2e8f0; }
+.card.gray .card-header { background: #f8fafc; color: #475569; border-color: #e2e8f0; }
+
+/* ── Tag ── */
+.tag {
+  font-size: 11px;
+  padding: 3px 9px;
+  border-radius: 4px;
+  font-weight: 500;
+  white-space: nowrap;
+}
+.t-blue   { background: #eff6ff; color: #1d4ed8; border: 1px solid #bfdbfe; }
+.t-teal   { background: #f0fdf4; color: #065f46; border: 1px solid #a7f3d0; }
+.t-purple { background: #f5f3ff; color: #5b21b6; border: 1px solid #ddd6fe; }
+.t-orange { background: #fffbeb; color: #92400e; border: 1px solid #fde68a; }
+.t-gray   { background: #f8fafc; color: #475569; border: 1px solid #e2e8f0; }
+.t-green  { background: #f0fdf4; color: #166534; border: 1px solid #bbf7d0; }
+.t-red    { background: #fff1f2; color: #9f1239; border: 1px solid #fecdd3; }
+
+/* ── 层间分隔 ── */
+.divider {
+  display: flex;
+  align-items: center;
+  margin: 10px 0;
+  padding-left: 84px;
+  gap: 8px;
+  color: #cbd5e1;
+  font-size: 11px;
+}
+.divider::before, .divider::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: #e2e8f0;
+}
+
+/* ── 子区块 ── */
+.sub-block {
+  border: 1px solid #e2e8f0;
+  border-radius: 7px;
+  overflow: hidden;
+  flex: 1;
+  min-width: 0;
+}
+.sub-block-header {
+  padding: 5px 10px;
+  font-size: 11px;
+  font-weight: 700;
+  border-bottom: 1px solid #e2e8f0;
+}
+.sub-block-body {
+  padding: 8px 10px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  background: #fafbfc;
+}
+
+.sub-header-blue   { background: #eff6ff; color: #1d4ed8; }
+.sub-header-teal   { background: #f0fdf4; color: #065f46; }
+.sub-header-purple { background: #f5f3ff; color: #5b21b6; }
+.sub-header-orange { background: #fffbeb; color: #92400e; }
+.sub-header-gray   { background: #f8fafc; color: #64748b; }
+
+/* ── 场景卡片 ── */
+.scene-card {
+  flex: 1;
+  border: 1px solid #e2e8f0;
+  border-radius: 7px;
+  overflow: hidden;
+}
+.scene-header {
+  padding: 6px 10px;
+  font-size: 11px;
+  font-weight: 700;
+  background: #f5f3ff;
+  color: #5b21b6;
+  border-bottom: 1px solid #e2e8f0;
+}
+.scene-body {
+  padding: 7px 10px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  background: #fafbfc;
+}
+
+/* ── 大卡片（跨列） ── */
+.card-wide {
+  background: #fff;
+  border-radius: 10px;
+  border: 1.5px solid #e2e8f0;
+  overflow: hidden;
+  flex: 1;
+}
+.card-wide-header {
+  padding: 8px 16px;
+  font-size: 12px;
+  font-weight: 700;
+  border-bottom: 1.5px solid #e2e8f0;
+}
+.card-wide-body {
+  padding: 12px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+/* ── 数据底座 ── */
+.data-row {
+  display: flex;
+  gap: 12px;
+}
+.data-card {
+  flex: 1;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  overflow: hidden;
+}
+.data-card-header {
+  padding: 6px 12px;
+  font-size: 11px;
+  font-weight: 700;
+  background: #eff6ff;
+  color: #1d4ed8;
+  border-bottom: 1px solid #bfdbfe;
+}
+.data-card-body {
+  padding: 8px 12px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  background: #fafbfc;
+}
+
+/* ── 两列内容 ── */
+.two-col { display: flex; gap: 10px; }
+.three-col { display: flex; gap: 10px; }
+</style>
+</head>
+<body>
+
+<h1>XPILOT 智能诊断 — 整体架构</h1>
+<p class="subtitle">服务指标 &amp; 业务指标双路径诊断体系</p>
+
+<!-- ════ 第一层：告警入口 ════ -->
+<div class="row">
+  <div class="row-label"><div class="row-label-inner">告警入口</div></div>
+  <div class="row-content">
+    <div class="card blue" style="flex:1;">
+      <div class="card-header">📊 服务指标告警</div>
+      <div class="card-body">
+        <span class="tag t-blue">资源告警</span>
+        <span class="tag t-blue">JVM 告警</span>
+        <span class="tag t-blue">接口告警</span>
+        <span class="tag t-blue">报错告警</span>
+        <span class="tag t-gray">可观测平台内置指标</span>
+      </div>
+    </div>
+    <div class="card purple" style="flex:1;">
+      <div class="card-header">📈 业务指标告警</div>
+      <div class="card-body">
+        <span class="tag t-purple">推荐 CTR</span>
+        <span class="tag t-purple">下单量</span>
+        <span class="tag t-purple">转化率</span>
+        <span class="tag t-gray">强业务语义指标</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="divider">↓</div>
+
+<!-- ════ 第二层：诊断层 ════ -->
+<div class="row">
+  <div class="row-label"><div class="row-label-inner">诊断层</div></div>
+  <div class="row-content">
+
+    <!-- 服务指标诊断 -->
+    <div class="card-wide blue" style="flex:1.1;">
+      <div class="card-wide-header" style="background:#eff6ff;color:#1d4ed8;border-color:#bfdbfe;">🔍 服务指标诊断</div>
+      <div class="card-wide-body">
+        <!-- 第一层 -->
+        <div class="sub-block">
+          <div class="sub-block-header sub-header-blue">① 整体分析（定界）</div>
+          <div class="sub-block-body">
+            <span class="tag t-blue">异常特征提取</span>
+            <span class="tag t-blue">多维指标关联</span>
+            <span class="tag t-blue">变更关联</span>
+            <span class="tag t-blue">上下文构建</span>
+            <span class="tag t-blue">Agent 推理决策</span>
+            <span style="font-size:11px;color:#1d4ed8;font-weight:600;">→ 定界</span>
+          </div>
+        </div>
+        <!-- 第二层 -->
+        <div class="sub-block">
+          <div class="sub-block-header sub-header-teal">② 根因分析（定位）— 场景化 SOP</div>
+          <div class="sub-block-body" style="flex-direction:column;gap:6px;">
+            <!-- 接口分析展开 -->
+            <div style="border:1px solid #a7f3d0;border-radius:5px;overflow:hidden;">
+              <div style="background:#f0fdf4;padding:4px 10px;font-size:11px;font-weight:700;color:#065f46;border-bottom:1px solid #a7f3d0;">a. 接口分析</div>
+              <div style="padding:6px 10px;display:flex;gap:12px;background:#fafbfc;">
+                <span style="font-size:10px;"><b style="color:#d97706;">【指标】</b><span style="color:#64748b;">单POD/Zone 检测</span></span>
+                <span style="font-size:10px;"><b style="color:#d97706;">【链路】</b><span style="color:#64748b;">错误/慢调用 Span</span></span>
+                <span style="font-size:10px;"><b style="color:#d97706;">【日志】</b><span style="color:#64748b;">异常日志聚类</span></span>
+              </div>
+            </div>
+            <!-- 其他场景 -->
+            <div style="display:flex;gap:6px;flex-wrap:wrap;">
+              <span class="tag t-teal">b. 异常分析</span>
+              <span class="tag t-teal">c. 系统负载</span>
+              <span class="tag t-teal">d. JVM GC</span>
+              <span class="tag t-teal">e. 存储</span>
+              <span class="tag t-teal">f. K8S</span>
+              <span class="tag t-gray">g. XXX…</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 业务指标诊断 -->
+    <div class="card-wide purple" style="flex:1;">
+      <div class="card-wide-header" style="background:#f5f3ff;color:#5b21b6;border-color:#ddd6fe;">📊 业务指标诊断</div>
+      <div class="card-wide-body">
+        <!-- 三个案例 -->
+        <div class="three-col">
+          <div class="scene-card">
+            <div class="scene-header">📱 推荐内流</div>
+            <div class="scene-body">
+              <span class="tag t-purple" style="font-size:10px;padding:2px 6px;">分阶段占比</span>
+              <span class="tag t-purple" style="font-size:10px;padding:2px 6px;">召回渠道</span>
+              <span class="tag t-purple" style="font-size:10px;padding:2px 6px;">正排完整率</span>
+              <span class="tag t-purple" style="font-size:10px;padding:2px 6px;">模型打分</span>
+            </div>
+          </div>
+          <div class="scene-card">
+            <div class="scene-header">💬 消息发送</div>
+            <div class="scene-body">
+              <span class="tag t-purple" style="font-size:10px;padding:2px 6px;">source 拆分</span>
+              <span class="tag t-purple" style="font-size:10px;padding:2px 6px;">下游成功率</span>
+              <span class="tag t-purple" style="font-size:10px;padding:2px 6px;">MQ 积压</span>
+              <span class="tag t-purple" style="font-size:10px;padding:2px 6px;">错误码归因</span>
+            </div>
+          </div>
+          <div class="scene-card">
+            <div class="scene-header">🎬 视频播放</div>
+            <div class="scene-body">
+              <span class="tag t-purple" style="font-size:10px;padding:2px 6px;">分版本聚合</span>
+              <span class="tag t-purple" style="font-size:10px;padding:2px 6px;">分场景定位</span>
+              <span class="tag t-purple" style="font-size:10px;padding:2px 6px;">用户聚合性</span>
+              <span class="tag t-purple" style="font-size:10px;padding:2px 6px;">APM 关联</span>
+            </div>
+          </div>
+        </div>
+        <!-- 知识技能化 + 能力工具化 -->
+        <div class="two-col">
+          <div class="sub-block">
+            <div class="sub-block-header sub-header-purple">🧠 知识"技能"化</div>
+            <div class="sub-block-body">
+              <span class="tag t-purple">SOP 封装</span>
+              <span class="tag t-purple">业务 Skill</span>
+              <span class="tag t-purple">领域知识复用</span>
+            </div>
+          </div>
+          <div class="sub-block">
+            <div class="sub-block-header sub-header-orange">🔧 能力"工具"化</div>
+            <div class="sub-block-body">
+              <span class="tag t-orange">指标查询 CLI</span>
+              <span class="tag t-orange">日志/Trace CLI</span>
+              <span class="tag t-orange">MCP 封装</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<div class="divider">↓</div>
+
+<!-- ════ 第三层：能力层 ════ -->
+<div class="row">
+  <div class="row-label"><div class="row-label-inner">能力层</div></div>
+  <div class="row-content">
+
+    <!-- 诊断 Agent -->
+    <div class="card-wide" style="flex:1;border-color:#93c5fd;">
+      <div class="card-wide-header" style="background:#eff6ff;color:#1d4ed8;border-color:#bfdbfe;">🤖 诊断 Agent（中控）</div>
+      <div class="card-wide-body">
+        <div style="font-size:11px;color:#64748b;line-height:1.5;padding:2px 0 4px;">扮演中控角色，通过服务特征及风险原因等数据，判断服务风险，给予推理链，驱动执行 Skill 能力</div>
+        <div class="two-col">
+          <div class="sub-block">
+            <div class="sub-block-header sub-header-blue">提示词工程</div>
+            <div class="sub-block-body">
+              <span class="tag t-blue">分级 Prompt 设计</span>
+              <span class="tag t-blue">场景化约束</span>
+              <span class="tag t-blue">CoT 推理链</span>
+            </div>
+          </div>
+          <div class="sub-block">
+            <div class="sub-block-header sub-header-blue">上下文工程</div>
+            <div class="sub-block-body">
+              <span class="tag t-blue">样本集生成</span>
+              <span class="tag t-blue">评估标注</span>
+              <span class="tag t-blue">用户反馈</span>
+            </div>
+          </div>
+        </div>
+        <div class="two-col">
+          <div class="sub-block">
+            <div class="sub-block-header sub-header-teal">空间（服务画像）</div>
+            <div class="sub-block-body">
+              <span class="tag t-teal">基线数据判断</span>
+              <span class="tag t-teal">问题特征提取</span>
+            </div>
+          </div>
+          <div class="sub-block">
+            <div class="sub-block-header sub-header-gray">知识库</div>
+            <div class="sub-block-body">
+              <span class="tag t-gray">RPC 调用异常</span>
+              <span class="tag t-gray">SQL 异常</span>
+              <span class="tag t-gray">Redis 异常</span>
+            </div>
+          </div>
+        </div>
+        <div class="sub-block">
+          <div class="sub-block-header sub-header-orange">Skill 集成</div>
+          <div class="sub-block-body">
+            <span class="tag t-orange">可观测能力</span>
+            <span class="tag t-orange">算法能力</span>
+            <span class="tag t-orange">三方能力集成</span>
+            <span class="tag t-orange">供 Agent 调用</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Skill 体系 -->
+    <div class="card-wide" style="flex:1.6;border-color:#6ee7b7;">
+      <div class="card-wide-header" style="background:#f0fdf4;color:#065f46;border-color:#a7f3d0;">🛠 Skill 体系</div>
+      <div class="card-wide-body">
+        <!-- Skill 矩阵 -->
+        <div class="sub-block">
+          <div class="sub-block-header sub-header-teal">📋 Skill 能力矩阵</div>
+          <div class="sub-block-body" style="flex-direction:row;gap:14px;">
+            <div>
+              <div style="font-size:10px;color:#94a3b8;font-weight:600;margin-bottom:4px;">可观测基础能力</div>
+              <div style="display:flex;flex-wrap:wrap;gap:4px;">
+                <span class="tag t-teal">指标查询</span><span class="tag t-teal">链路追踪</span><span class="tag t-teal">日志分析</span><span class="tag t-teal">变更查询</span><span class="tag t-teal">K8s 事件</span>
+              </div>
+            </div>
+            <div>
+              <div style="font-size:10px;color:#94a3b8;font-weight:600;margin-bottom:4px;">高阶算法能力</div>
+              <div style="display:flex;flex-wrap:wrap;gap:4px;">
+                <span class="tag t-blue">异常堆栈聚类</span><span class="tag t-blue">调用链分析</span><span class="tag t-blue">GC 分析</span><span class="tag t-blue">Profiling</span>
+              </div>
+            </div>
+            <div>
+              <div style="font-size:10px;color:#94a3b8;font-weight:600;margin-bottom:4px;">业务 &amp; 三方</div>
+              <div style="display:flex;flex-wrap:wrap;gap:4px;">
+                <span class="tag t-orange">业务 Skill</span><span class="tag t-orange">MCP 工具</span><span class="tag t-orange">CLI 原子操作</span>
+              </div>
+            </div>
+          </div>
+        </div>
+        <!-- 孵化 + 使用 -->
+        <div class="two-col">
+          <div class="sub-block">
+            <div class="sub-block-header sub-header-orange">🌱 Skill 孵化</div>
+            <div class="sub-block-body" style="flex-direction:column;gap:5px;">
+              <div style="display:flex;flex-wrap:wrap;gap:4px;">
+                <span class="tag t-orange">低代码构建</span><span class="tag t-orange">业务逻辑编排</span><span class="tag t-orange">Skill 市场</span><span class="tag t-orange">双向打通</span>
+              </div>
+            </div>
+          </div>
+          <div class="sub-block">
+            <div class="sub-block-header sub-header-purple">🚀 Skill 使用</div>
+            <div class="sub-block-body">
+              <span class="tag t-purple">告警自动触发</span><span class="tag t-purple">研发个人助手</span><span class="tag t-purple">人机协同排障</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<div class="divider">↓</div>
+
+<!-- ════ 第四层：数据底座 ════ -->
+<div class="row">
+  <div class="row-label"><div class="row-label-inner">数据底座</div></div>
+  <div class="row-content">
+    <div style="flex:1;background:#fff;border-radius:10px;border:1.5px solid #bfdbfe;overflow:hidden;">
+      <div style="padding:8px 16px;background:#eff6ff;color:#1d4ed8;font-size:12px;font-weight:700;border-bottom:1.5px solid #bfdbfe;text-align:center;">🗄 可观测数据底座</div>
+      <div style="padding:12px 14px;">
+        <div class="data-row">
+          <div class="data-card">
+            <div class="data-card-header">原始数据</div>
+            <div class="data-card-body"><span class="tag t-blue">指标</span><span class="tag t-blue">链路</span><span class="tag t-blue">日志</span><span class="tag t-blue">变更</span><span class="tag t-blue">告警</span><span class="tag t-blue">K8s 事件</span></div>
+          </div>
+          <div class="data-card">
+            <div class="data-card-header">服务画像</div>
+            <div class="data-card-body"><span class="tag t-teal">系统层特征</span><span class="tag t-teal">应用层特征</span><span class="tag t-teal">异常维度</span><span class="tag t-teal">时序基线</span></div>
+          </div>
+          <div class="data-card">
+            <div class="data-card-header">高阶算法能力</div>
+            <div class="data-card-body"><span class="tag t-blue">异常堆栈聚类</span><span class="tag t-blue">异常日志聚类</span><span class="tag t-blue">调用链分析</span><span class="tag t-blue">时序异常检测</span></div>
+          </div>
+          <div class="data-card">
+            <div class="data-card-header">性能诊断</div>
+            <div class="data-card-body"><span class="tag t-orange">Jstack</span><span class="tag t-orange">async_profiler</span><span class="tag t-orange">GC Log</span><span class="tag t-orange">火焰图</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+</body>
+</html>
