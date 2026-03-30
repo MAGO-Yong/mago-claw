@@ -67,9 +67,7 @@ def query_cluster_logs(
 
 
 def main():
-    parser = argparse.ArgumentParser(
-        description="查询 Xray 日志聚类（/cluster-logs 接口）"
-    )
+    parser = argparse.ArgumentParser(description="查询 Xray 日志聚类（/cluster-logs 接口）")
     parser.add_argument("--query", required=True, help="Lucene 查询条件")
     parser.add_argument("--st", required=True, type=int, help="开始时间 Unix 秒")
     parser.add_argument("--et", required=True, type=int, help="结束时间 Unix 秒")

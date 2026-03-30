@@ -54,13 +54,9 @@ def main():
         description="异常堆栈聚类分析 — POST /openapi/application/r/p/stack/cluster"
     )
     parser.add_argument("--app", required=True, help="服务 appkey")
-    parser.add_argument(
-        "--start", required=True, type=int, help="开始时间（秒级时间戳）"
-    )
+    parser.add_argument("--start", required=True, type=int, help="开始时间（秒级时间戳）")
     parser.add_argument("--end", required=True, type=int, help="结束时间（秒级时间戳）")
-    parser.add_argument(
-        "--exceptions", required=True, nargs="+", help="异常类全名列表，空格分隔"
-    )
+    parser.add_argument("--exceptions", required=True, nargs="+", help="异常类全名列表，空格分隔")
     args = parser.parse_args()
 
     url = f"{BASE_URL}/openapi/application/r/p/stack/cluster"

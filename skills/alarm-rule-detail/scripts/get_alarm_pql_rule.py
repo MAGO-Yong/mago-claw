@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
-import sys
 import json
-import urllib.request
+import sys
 import urllib.error
+import urllib.request
 
 API_URL = "http://xray.devops.xiaohongshu.com/openapi/alarm/pql/rule/detail"
 API_SIT_URL = "http://xray.devops.sit.xiaohongshu.com/openapi/alarm/pql/rule/detail"

@@ -17,17 +17,19 @@ Query参数: startTime  - (可选) 毫秒时间戳
 通过 HTTP header `xray_ticket` 传递，值为 Base64 编码的字符串。
 
 **生成规则**:
+
 ```
 ticket = Base64("{source}&{token}&{timestamp_ms}")
 ```
 
-| 参数 | 说明 |
-|------|------|
-| source | 来源标识，不能为空（例如 `codewiz`） |
-| token | 在 XRay 平台申请并审批后的 token |
+| 参数         | 说明                                     |
+| ------------ | ---------------------------------------- |
+| source       | 来源标识，不能为空（例如 `codewiz`）     |
+| token        | 在 XRay 平台申请并审批后的 token         |
 | timestamp_ms | 当前毫秒时间戳，ticket 默认有效期 3 分钟 |
 
 **Python 生成示例**:
+
 ```python
 import base64, time
 source, token = "codewiz", "your_token_here"
@@ -55,18 +57,18 @@ ticket = base64.b64encode(raw.encode("utf-8")).decode("utf-8")
     "threadName": "cat-io-1",
     "traceId": "abc123",
     "code": 200,
-    "message": { }
+    "message": {}
   }
 }
 ```
 
 ### code 含义
 
-| code | 含义 |
-|------|------|
-| 200  | 成功 |
+| code | 含义                               |
+| ---- | ---------------------------------- |
+| 200  | 成功                               |
 | 1003 | 数据缺失（数据尚在保留期但未找到） |
-| 1004 | 数据已过期归档 |
+| 1004 | 数据已过期归档                     |
 
 ## MessageDTO 消息树节点（递归结构）
 
@@ -88,31 +90,31 @@ ticket = base64.b64encode(raw.encode("utf-8")).decode("utf-8")
 
 ### 字段说明
 
-| 字段 | 说明 |
-|------|------|
-| type | 消息类型（见下表） |
-| name | 消息名称，Call类型为 `服务名.接口名` |
-| status | "0"=成功，其他=失败 |
-| durationInMillis | 耗时(ms)，≥0 为 Transaction，-1 为 Event |
-| error | type 为 Error/RuntimeException/Exception 时为 true |
-| data | KV字符串；Call节点额外含 slaLevel/strongDependence |
-| children | 子节点列表（递归） |
+| 字段             | 说明                                               |
+| ---------------- | -------------------------------------------------- |
+| type             | 消息类型（见下表）                                 |
+| name             | 消息名称，Call类型为 `服务名.接口名`               |
+| status           | "0"=成功，其他=失败                                |
+| durationInMillis | 耗时(ms)，≥0 为 Transaction，-1 为 Event           |
+| error            | type 为 Error/RuntimeException/Exception 时为 true |
+| data             | KV字符串；Call节点额外含 slaLevel/strongDependence |
+| children         | 子节点列表（递归）                                 |
 
 ### 常见 type 类型
 
-| type | 分类 | 说明 |
-|------|------|------|
-| URL | Transaction | HTTP 请求入口 |
-| PigeonCall / Call | Transaction | RPC 下游调用 |
-| SQL | Transaction | 数据库查询 |
-| Cache | Transaction | 缓存操作 |
-| HTTPClient | Transaction | HTTP 外部调用 |
-| Error | Event | Java 异常 |
-| RuntimeException | Event | 运行时异常 |
-| Exception | Event | 受检异常 |
-| RemoteCall | Event | 跨服务 traceId 引用 |
-| Trace | Event | 业务埋点日志 |
-| Heartbeat | Heartbeat | 系统心跳（CPU/内存等） |
+| type              | 分类        | 说明                   |
+| ----------------- | ----------- | ---------------------- |
+| URL               | Transaction | HTTP 请求入口          |
+| PigeonCall / Call | Transaction | RPC 下游调用           |
+| SQL               | Transaction | 数据库查询             |
+| Cache             | Transaction | 缓存操作               |
+| HTTPClient        | Transaction | HTTP 外部调用          |
+| Error             | Event       | Java 异常              |
+| RuntimeException  | Event       | 运行时异常             |
+| Exception         | Event       | 受检异常               |
+| RemoteCall        | Event       | 跨服务 traceId 引用    |
+| Trace             | Event       | 业务埋点日志           |
+| Heartbeat         | Heartbeat   | 系统心跳（CPU/内存等） |
 
 ### data 字段解析（Call 节点）
 
@@ -120,10 +122,10 @@ ticket = base64.b64encode(raw.encode("utf-8")).decode("utf-8")
 slaLevel=2&strongDependence=true
 ```
 
-| key | 说明 |
-|-----|------|
-| slaLevel | SLA 等级（1=P0核心, 2=P1重要, 3=P2一般, -1=未配置） |
-| strongDependence | 是否强依赖（true=强依赖，false/空=弱依赖） |
+| key              | 说明                                                |
+| ---------------- | --------------------------------------------------- |
+| slaLevel         | SLA 等级（1=P0核心, 2=P1重要, 3=P2一般, -1=未配置） |
+| strongDependence | 是否强依赖（true=强依赖，false/空=弱依赖）          |
 
 ## 异常接口（补充）
 

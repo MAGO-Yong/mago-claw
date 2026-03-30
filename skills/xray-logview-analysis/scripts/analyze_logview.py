@@ -134,9 +134,7 @@ def report(raw: dict) -> str:
     lines.append(f"| MessageId | `{data.get('messageId', '?')}` |")
     lines.append(f"| RootMessageId | `{data.get('rootMessageId', '?')}` |")
     lines.append(f"| TraceId | `{data.get('traceId', '?')}` |")
-    lines.append(
-        f"| 数据状态 | `{code}` {'✓' if code == 200 else '⚠️ 数据缺失/已过期'} |"
-    )
+    lines.append(f"| 数据状态 | `{code}` {'✓' if code == 200 else '⚠️ 数据缺失/已过期'} |")
     lines.append("")
 
     if code != 200:
@@ -175,11 +173,7 @@ def report(raw: dict) -> str:
         lines.append("")
 
     # ── 失败 Transaction ──
-    failed = [
-        s
-        for s in transactions
-        if s.status not in ("", "0", "success", "SUCCESS", "true")
-    ]
+    failed = [s for s in transactions if s.status not in ("", "0", "success", "SUCCESS", "true")]
     if failed:
         lines.append("## 失败的 Transaction\n")
         for s in failed:
@@ -202,9 +196,7 @@ def report(raw: dict) -> str:
         sla_str = f"L{sla}" if sla != "—" else "—"
         if strong == "true":
             sla_str += " 强依赖"
-        status_icon = (
-            "✓" if s.status in ("", "0", "success", "SUCCESS", "true") else "✗"
-        )
+        status_icon = "✓" if s.status in ("", "0", "success", "SUCCESS", "true") else "✗"
         lines.append(
             f"| {i} | `{s.type}` | `{s.name}` | {format_duration(s.duration_ms)} | {status_icon} | {sla_str} |"
         )
@@ -215,19 +207,14 @@ def report(raw: dict) -> str:
     lines.append("```")
     for s in stats[:30]:
         indent = "  " * s.depth
-        duration_str = (
-            f" [{format_duration(s.duration_ms)}]" if s.duration_ms >= 0 else ""
-        )
+        duration_str = f" [{format_duration(s.duration_ms)}]" if s.duration_ms >= 0 else ""
         error_mark = " ⚠️" if s.error else ""
         fail_mark = (
             " ✗"
-            if s.status not in ("", "0", "success", "SUCCESS", "true", "-1")
-            and s.status
+            if s.status not in ("", "0", "success", "SUCCESS", "true", "-1") and s.status
             else ""
         )
-        lines.append(
-            f"{indent}[{s.type}] {s.name}{duration_str}{error_mark}{fail_mark}"
-        )
+        lines.append(f"{indent}[{s.type}] {s.name}{duration_str}{error_mark}{fail_mark}")
     if len(stats) > 30:
         lines.append(f"  ... (共 {len(stats)} 个节点，仅显示前 30 个)")
     lines.append("```")
@@ -258,9 +245,7 @@ def report(raw: dict) -> str:
             kv = parse_data_kv(s.data)
             sla = kv.get("slaLevel", "—")
             strong = kv.get("strongDependence", "—")
-            status_icon = (
-                "✓" if s.status in ("", "0", "success", "SUCCESS", "true") else "✗"
-            )
+            status_icon = "✓" if s.status in ("", "0", "success", "SUCCESS", "true") else "✗"
             lines.append(
                 f"| `{s.name}` | {format_duration(s.duration_ms)} | {status_icon} | {sla} | {strong} |"
             )

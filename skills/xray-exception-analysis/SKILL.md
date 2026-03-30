@@ -1,6 +1,16 @@
 ---
 name: xray-exception-analysis
-description: '分析小红书 XRay 平台的异常堆栈和 Logview 调用链。支持两条排查链路：(1) 异常堆栈链路——通过服务名、时间范围、异常类名（如 java.util.concurrent.TimeoutException）获取聚类堆栈分布及关联的 messageId，再查询完整 Logview；(2) 错慢采样链路——通过服务名、接口类型（RPC 服务端用 Service，HTTP 用 URL，RPC 客户端用 Call）、时间范围、采样类型（fail/longest/success）获取采样 messageId，再查询完整 Logview 进行耗时分析。触发场景：上下文中包含exception 堆栈、错误堆栈、logview、异常详情、NullPointerException 堆栈、exception stack、堆栈查询、发现某个Exception、用户对话中包含"帮我查一下某服务的 TimeoutException"、"分析某接口的慢请求"、"看看这个异常的堆栈"、"帮我拿一个失败请求的 logview"、"排查 xxx 服务的报错"时使用本 skill。'
+description:
+  '分析异常堆栈exception和 Logview 调用链。支持两条排查链路：(1)
+  异常堆栈链路——通过服务名、时间范围、异常类名（如
+  java.util.concurrent.TimeoutException）获取聚类堆栈分布及关联的 messageId，再查询完整 Logview；(2)
+  错慢采样链路——通过服务名、接口类型（RPC 服务端用 Service，HTTP 用 URL，RPC 客户端用
+  Call）、时间范围、采样类型（fail/longest/success）获取采样 messageId，再查询完整 Logview
+  进行耗时分析。触发场景：上下文中包含exception
+  堆栈、错误堆栈、logview、异常详情、NullPointerException 堆栈、exception
+  stack、堆栈查询、发现某个Exception、用户对话中包含"帮我查一下某服务的
+  TimeoutException"、"分析某接口的慢请求"、"看看这个异常的堆栈"、"帮我拿一个失败请求的
+  logview"、"排查 xxx 服务的报错"时使用本 skill。'
 version: 1.0.0
 metadata:
   category: trace
@@ -33,16 +43,30 @@ metadata:
 
 ### Step 1 — 聚类分析异常堆栈
 
+若用户提供的是时间字符串（如 `"2024-03-25 14:00:00 - 2024-03-25 15:10:10"`），先用 `to_timestamp.py`
+转换为秒级时间戳：
+
+```bash
+python3 scripts/to_timestamp.py --range "2024-03-25 14:00:00 - 2024-03-25 15:10:10"
+# 输出: start → 1711346400 [单位: 秒(s)]   end → 1711350610 [单位: 秒(s)]
+# 注意: 输出为秒级时间戳，不是毫秒，直接作为 --start / --end 使用
+# 也支持: --range "now-1h - now" / --start "2024-03-25 14:00" --end "2024-03-25 15:00"
+```
+
 ```bash
 python3 scripts/stack_cluster.py \
-  --app <服务appkey> \
+  --app "<服务appkey>" \
   --start <秒级时间戳> \
   --end <秒级时间戳> \
   --exceptions java.util.concurrent.TimeoutException
   # 多个异常用空格分隔：--exceptions ExcA ExcB
 ```
 
+> **重要**：`--app` 参数必须严格使用用户提供的原始服务名，不得做任何拆分、补全或格式化。例如用户说
+> `liveanchor-service-default`，则传 `--app "liveanchor-service-default"`，禁止修改其中任何字符。
+
 从输出中读取：
+
 - **堆栈 #1**（ratio 最大）→ 最主要根因，向用户展示 stack 内容
 - **关联 messageId** → 取第一个用于 Step 2
 
@@ -62,9 +86,17 @@ python3 scripts/logview.py --message-id <messageId>
 
 ### Step 1 — 获取采样 MessageId
 
+若用户提供的是时间字符串，先用 `to_timestamp.py` 转换：
+
+```bash
+python3 scripts/to_timestamp.py --range "2024-03-25 14:00:00 - 2024-03-25 15:10:10"
+# 输出为秒级时间戳，不是毫秒，直接作为 --start / --end 使用
+# 也支持: --range "now-1h - now" / --start "..." --end "..."
+```
+
 ```bash
 python3 scripts/sample.py \
-  --app <服务appkey> \
+  --app "<服务appkey>" \
   --type <接口类型> \
   --name <接口名称> \
   --start <秒级时间戳> \
@@ -75,13 +107,13 @@ python3 scripts/sample.py \
 
 **`--type` 速查**：
 
-| 用户描述 | `--type` 值 | `--name` 示例 |
-|---------|------------|--------------|
-| RPC 接口（服务端被调用） | `Service` | `UserService.getUserById` |
-| HTTP 接口 | `URL` | `/api/v1/user/info` |
-| RPC 客户端调用 | `Call` | `UserService.getUserById` |
-| Redis 操作 | `Redis.<集群名>` | `GET` |
-| MySQL 操作 | `SQL` | `user.select` |
+| 用户描述                 | `--type` 值      | `--name` 示例             |
+| ------------------------ | ---------------- | ------------------------- |
+| RPC 接口（服务端被调用） | `Service`        | `UserService.getUserById` |
+| HTTP 接口                | `URL`            | `/api/v1/user/info`       |
+| RPC 客户端调用           | `Call`           | `UserService.getUserById` |
+| Redis 操作               | `Redis.<集群名>` | `GET`                     |
+| MySQL 操作               | `SQL`            | `user.select`             |
 
 输出中的 messageId 即为采样结果。若为"未获取到采样 messageId"，说明该时段无记录。
 

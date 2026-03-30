@@ -21,17 +21,19 @@
 所有接口均通过 HTTP Header `xray_ticket` 鉴权，值为 Base64 编码的字符串。
 
 **生成规则**:
+
 ```
 ticket = Base64("{source}&{token}&{timestamp_ms}")
 ```
 
-| 参数 | 说明 |
-|------|------|
-| `source` | 来源标识，不能为空（固定填 `codewiz`） |
-| `token` | 在 XRay 平台申请并审批后的 token（向用户询问） |
+| 参数           | 说明                                                         |
+| -------------- | ------------------------------------------------------------ |
+| `source`       | 来源标识，不能为空（固定填 `codewiz`）                       |
+| `token`        | 在 XRay 平台申请并审批后的 token（向用户询问）               |
 | `timestamp_ms` | 当前毫秒时间戳，ticket 有效期约 3 分钟，每次请求自动重新生成 |
 
 **Python 生成示例**:
+
 ```python
 import base64, time
 source, token = "codewiz", "<用户提供的token>"
@@ -64,20 +66,17 @@ ticket = base64.b64encode(raw.encode("utf-8")).decode("utf-8")
 {
   "app": "your-service-name",
   "start": 1700000000,
-  "end":   1700003600,
-  "exceptions": [
-    "java.util.concurrent.TimeoutException",
-    "java.net.SocketTimeoutException"
-  ]
+  "end": 1700003600,
+  "exceptions": ["java.util.concurrent.TimeoutException", "java.net.SocketTimeoutException"]
 }
 ```
 
-| 字段 | 类型 | 必填 | 说明 |
-|------|------|------|------|
-| `app` | string | 是 | 服务 appkey |
-| `start` | long | 是 | 开始时间，**秒级 Unix 时间戳** |
-| `end` | long | 是 | 结束时间，**秒级 Unix 时间戳** |
-| `exceptions` | string[] | 是 | 异常类全名列表 |
+| 字段         | 类型     | 必填 | 说明                           |
+| ------------ | -------- | ---- | ------------------------------ |
+| `app`        | string   | 是   | 服务 appkey                    |
+| `start`      | long     | 是   | 开始时间，**秒级 Unix 时间戳** |
+| `end`        | long     | 是   | 结束时间，**秒级 Unix 时间戳** |
+| `exceptions` | string[] | 是   | 异常类全名列表                 |
 
 ### 响应
 
@@ -104,14 +103,14 @@ ticket = base64.b64encode(raw.encode("utf-8")).decode("utf-8")
 }
 ```
 
-| 字段 | 说明 |
-|------|------|
-| `exception` | 异常类全名 |
-| `tags[].hash` | 堆栈指纹，同 hash 代表同一根因 |
-| `tags[].count` | 该堆栈在时间窗口内的出现次数 |
-| `tags[].ratio` | 占该异常总数的比例（0~1），按此字段降序排列 |
-| `tags[].stack` | 完整堆栈字符串 |
-| `tags[].type` | 固定为 `"clustering"` |
+| 字段                | 说明                                              |
+| ------------------- | ------------------------------------------------- |
+| `exception`         | 异常类全名                                        |
+| `tags[].hash`       | 堆栈指纹，同 hash 代表同一根因                    |
+| `tags[].count`      | 该堆栈在时间窗口内的出现次数                      |
+| `tags[].ratio`      | 占该异常总数的比例（0~1），按此字段降序排列       |
+| `tags[].stack`      | 完整堆栈字符串                                    |
+| `tags[].type`       | 固定为 `"clustering"`                             |
 | `tags[].messageIds` | 关联的 CAT messageId 列表，可传入接口三查 Logview |
 
 ### 注意事项
@@ -129,34 +128,34 @@ ticket = base64.b64encode(raw.encode("utf-8")).decode("utf-8")
 
 ### 请求参数
 
-| 参数 | 类型 | 必填 | 说明 |
-|------|------|------|------|
-| `app` | string | 是 | 服务 appkey |
-| `type` | string | 是 | Transaction 类型（接口分类前缀，见下表） |
-| `name` | string | 否 | 具体接口名称，为空时查该 type 下聚合 |
-| `ip` | string | 是 | 机器 IP，无特殊需求传 `ALL` |
-| `zone` | string | 否 | 机房，不传或传 `ALL` 表示全机房 |
-| `startTime` | long | 是 | 开始时间，秒级 Unix 时间戳 |
-| `endTime` | long | 是 | 结束时间，秒级 Unix 时间戳 |
-| `sampleType` | string | 是 | `fail` / `longest` / `success` |
+| 参数         | 类型   | 必填 | 说明                                     |
+| ------------ | ------ | ---- | ---------------------------------------- |
+| `app`        | string | 是   | 服务 appkey                              |
+| `type`       | string | 是   | Transaction 类型（接口分类前缀，见下表） |
+| `name`       | string | 否   | 具体接口名称，为空时查该 type 下聚合     |
+| `ip`         | string | 是   | 机器 IP，无特殊需求传 `ALL`              |
+| `zone`       | string | 否   | 机房，不传或传 `ALL` 表示全机房          |
+| `startTime`  | long   | 是   | 开始时间，秒级 Unix 时间戳               |
+| `endTime`    | long   | 是   | 结束时间，秒级 Unix 时间戳               |
+| `sampleType` | string | 是   | `fail` / `longest` / `success`           |
 
 ### type 参数速查表
 
-| 接口类型（用户描述） | `type` 值 | `name` 示例 |
-|---------------------|-----------|------------|
-| RPC 接口（服务端被调用） | `Service` | `UserService.getUserById` |
-| HTTP 接口 | `URL` | `/api/v1/user/info` |
-| RPC 客户端调用 | `Call` | `UserService.getUserById` |
-| Redis 操作 | `Redis.<集群名>` | `GET` / `SET` |
-| MySQL 操作 | `SQL` | `user.select` |
+| 接口类型（用户描述）     | `type` 值        | `name` 示例               |
+| ------------------------ | ---------------- | ------------------------- |
+| RPC 接口（服务端被调用） | `Service`        | `UserService.getUserById` |
+| HTTP 接口                | `URL`            | `/api/v1/user/info`       |
+| RPC 客户端调用           | `Call`           | `UserService.getUserById` |
+| Redis 操作               | `Redis.<集群名>` | `GET` / `SET`             |
+| MySQL 操作               | `SQL`            | `user.select`             |
 
 ### sampleType 说明
 
-| 值 | 含义 | 适用场景 |
-|----|------|---------|
-| `fail` | 随机一条失败请求 | 排查错误原因 |
-| `longest` | 耗时最长的请求 | 排查慢请求根因 |
-| `success` | 最新的成功请求 | 对比正常链路 |
+| 值        | 含义             | 适用场景       |
+| --------- | ---------------- | -------------- |
+| `fail`    | 随机一条失败请求 | 排查错误原因   |
+| `longest` | 耗时最长的请求   | 排查慢请求根因 |
+| `success` | 最新的成功请求   | 对比正常链路   |
 
 ### 响应
 
@@ -173,17 +172,18 @@ ticket = base64.b64encode(raw.encode("utf-8")).decode("utf-8")
 
 ## 接口三：/{messageId}/json — Logview 详情查询
 
-**完整 URL**: `GET https://xray.devops.xiaohongshu.com/openapi/application/r/logview/{messageId}/json`
+**完整 URL**:
+`GET https://xray.devops.xiaohongshu.com/openapi/application/r/logview/{messageId}/json`
 
 **功能**: 根据 CAT messageId 查询完整的请求调用链。
 
 ### 请求参数
 
-| 参数 | 类型 | 必填 | 说明 |
-|------|------|------|------|
-| `{messageId}` | string | 是 | 路径参数，CAT messageId |
-| `startTime` | long | 否 | 当前版本未实际使用 |
-| `endTime` | long | 否 | 当前版本未实际使用 |
+| 参数          | 类型   | 必填 | 说明                    |
+| ------------- | ------ | ---- | ----------------------- |
+| `{messageId}` | string | 是   | 路径参数，CAT messageId |
+| `startTime`   | long   | 否   | 当前版本未实际使用      |
+| `endTime`     | long   | 否   | 当前版本未实际使用      |
 
 ### 响应
 
@@ -235,23 +235,23 @@ ticket = base64.b64encode(raw.encode("utf-8")).decode("utf-8")
 
 ### data.code 含义
 
-| code | 含义 |
-|------|------|
-| 200  | 成功 |
+| code | 含义                         |
+| ---- | ---------------------------- |
+| 200  | 成功                         |
 | 1003 | 数据缺失（在保留期内未找到） |
-| 1004 | 数据已过期归档 |
+| 1004 | 数据已过期归档               |
 
 ### MessageDTO 关键字段
 
-| 字段 | 说明 |
-|------|------|
-| `type` | 消息类型（Service/Call/URL/SQL/Redis.xxx/Error 等） |
-| `name` | 接口名或异常类名 |
-| `status` | `"0"` 成功，其他失败 |
-| `durationInMillis` | 耗时（ms），`-1` 表示 Event 类型（无耗时） |
-| `error` | `true` 表示异常节点（type 为 Error/RuntimeException/Exception） |
-| `data` | 异常节点时为完整堆栈；Call 节点可能含 `slaLevel=X&strongDependence=true` |
-| `children` | 子调用列表，递归结构 |
+| 字段               | 说明                                                                     |
+| ------------------ | ------------------------------------------------------------------------ |
+| `type`             | 消息类型（Service/Call/URL/SQL/Redis.xxx/Error 等）                      |
+| `name`             | 接口名或异常类名                                                         |
+| `status`           | `"0"` 成功，其他失败                                                     |
+| `durationInMillis` | 耗时（ms），`-1` 表示 Event 类型（无耗时）                               |
+| `error`            | `true` 表示异常节点（type 为 Error/RuntimeException/Exception）          |
+| `data`             | 异常节点时为完整堆栈；Call 节点可能含 `slaLevel=X&strongDependence=true` |
+| `children`         | 子调用列表，递归结构                                                     |
 
 ### messageType 判断
 

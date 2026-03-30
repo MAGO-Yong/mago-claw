@@ -65,9 +65,7 @@ def fetch_trace_data(args: argparse.Namespace) -> dict:
 
 
 def create_parser() -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(
-        description="根据 trace_id 请求链路分析接口并输出 JSON。"
-    )
+    parser = argparse.ArgumentParser(description="根据 trace_id 请求链路分析接口并输出 JSON。")
     parser.add_argument("trace_id", help="要查询的 trace id")
     parser.add_argument(
         "--base-url",

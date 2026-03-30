@@ -52,9 +52,7 @@ def query_charts(query: str, st: int, et: int, page_size: int = 20) -> dict:
 
 
 def main():
-    parser = argparse.ArgumentParser(
-        description="查询 Xray 日志数量分布（/charts 接口）"
-    )
+    parser = argparse.ArgumentParser(description="查询 Xray 日志数量分布（/charts 接口）")
     parser.add_argument("--query", required=True, help="Lucene 查询条件")
     parser.add_argument("--st", required=True, type=int, help="开始时间 Unix 秒")
     parser.add_argument("--et", required=True, type=int, help="结束时间 Unix 秒")

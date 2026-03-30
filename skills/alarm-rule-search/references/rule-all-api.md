@@ -6,36 +6,36 @@
 
 ## 顶层字段
 
-| 字段 | 类型 | 含义 |
-|------|------|------|
-| `total` | int | 符合条件的规则总数 |
-| `page` | int | 当前页码 |
-| `total_page` | int | 总页数 |
-| `page_size` | int | 本页条数 |
-| `rows` | array | 本页规则列表，字段见下 |
+| 字段         | 类型  | 含义                   |
+| ------------ | ----- | ---------------------- |
+| `total`      | int   | 符合条件的规则总数     |
+| `page`       | int   | 当前页码               |
+| `total_page` | int   | 总页数                 |
+| `page_size`  | int   | 本页条数               |
+| `rows`       | array | 本页规则列表，字段见下 |
 
 ## rows[] 字段
 
-| 字段 | 类型 | 含义 |
-|------|------|------|
-| `ruleId` | string | 规则唯一标识；模板规则格式为 `{templateId}_{bindId}`，自定义规则为纯数字字符串 |
-| `type` | string | 数据源类型，见下方枚举 |
-| `name` | string | 规则名称 |
-| `alarmTarget` | string | 被监控目标名称（app/service 名，或 bizLine 名） |
-| `level` | string | 告警级别：`P0`、`P1`、`P2`、`P3` |
-| `status` | string | `启用` / `停用` |
-| `modifyTime` | string | 最后修改时间，格式 `YYYY-MM-DD HH:MM:SS` |
-| `modifier` | string | 最后修改人 |
+| 字段          | 类型   | 含义                                                                           |
+| ------------- | ------ | ------------------------------------------------------------------------------ |
+| `ruleId`      | string | 规则唯一标识；模板规则格式为 `{templateId}_{bindId}`，自定义规则为纯数字字符串 |
+| `type`        | string | 数据源类型，见下方枚举                                                         |
+| `name`        | string | 规则名称                                                                       |
+| `alarmTarget` | string | 被监控目标名称（app/service 名，或 bizLine 名）                                |
+| `level`       | string | 告警级别：`P0`、`P1`、`P2`、`P3`                                               |
+| `status`      | string | `启用` / `停用`                                                                |
+| `modifyTime`  | string | 最后修改时间，格式 `YYYY-MM-DD HH:MM:SS`                                       |
+| `modifier`    | string | 最后修改人                                                                     |
 
 ## type 枚举
 
-| 值 | 含义 |
-|----|------|
-| `middleware` | 中间件（MySQL、Redis、MQ 等） |
-| `transaction` | 客户端调用（RPC、HTTP 等） |
-| `problem` | Cat Problem 类指标 |
-| `jvm` | JVM 指标（GC、堆内存等） |
-| `host` | 主机指标（CPU、内存、磁盘等） |
+| 值            | 含义                          |
+| ------------- | ----------------------------- |
+| `middleware`  | 中间件（MySQL、Redis、MQ 等） |
+| `transaction` | 客户端调用（RPC、HTTP 等）    |
+| `problem`     | Cat Problem 类指标            |
+| `jvm`         | JVM 指标（GC、堆内存等）      |
+| `host`        | 主机指标（CPU、内存、磁盘等） |
 
 ## 脚本输出示例
 

@@ -1,19 +1,17 @@
 #!/usr/bin/env python3
-import sys
-import json
 import argparse
 import datetime
-import urllib.request
+import json
+import sys
 import urllib.error
+import urllib.request
 
 API_URL = "https://xray.devops.xiaohongshu.com/openapi/alarm/pql/rule/all/v1"
 TICKET = "pass"
 
 
 def fetch(filter_key: str, filter_val: str, page: int, size: int) -> dict:
-    body = json.dumps(
-        {"type": -1, "page": page, "size": size, filter_key: filter_val}
-    ).encode()
+    body = json.dumps({"type": -1, "page": page, "size": size, filter_key: filter_val}).encode()
     req = urllib.request.Request(
         API_URL,
         data=body,
@@ -41,11 +39,11 @@ def format_rule(r: dict) -> dict:
         "alarmTarget": r.get("app"),
         "level": r.get("level"),
         "status": "启用" if r.get("status") == 1 else "停用",
-        "modifyTime": datetime.datetime.fromtimestamp(modify_ts / 1000).strftime(
-            "%Y-%m-%d %H:%M:%S"
-        )
-        if modify_ts
-        else None,
+        "modifyTime": (
+            datetime.datetime.fromtimestamp(modify_ts / 1000).strftime("%Y-%m-%d %H:%M:%S")
+            if modify_ts
+            else None
+        ),
         "modifier": r.get("modifier"),
     }
 
@@ -76,18 +74,12 @@ def main():
         metavar="NAME",
         help="按 app 或 service 名称过滤（如 xrayaiagent-service-diagnosis）",
     )
-    group.add_argument(
-        "--prdLine", metavar="NAME", help="按产品线过滤（如 fulishe、community）"
-    )
-    group.add_argument(
-        "--bizLine", metavar="NAME", help="按业务线过滤（如 usergrowth、deal）"
-    )
+    group.add_argument("--prdLine", metavar="NAME", help="按产品线过滤（如 fulishe、community）")
+    group.add_argument("--bizLine", metavar="NAME", help="按业务线过滤（如 usergrowth、deal）")
     parser.add_argument(
         "--page", type=int, default=1, metavar="N", help="页码，从 1 开始（默认：1）"
     )
-    parser.add_argument(
-        "--size", type=int, default=20, metavar="N", help="每页条数（默认：20）"
-    )
+    parser.add_argument("--size", type=int, default=20, metavar="N", help="每页条数（默认：20）")
     args = parser.parse_args()
 
     if args.page < 1:

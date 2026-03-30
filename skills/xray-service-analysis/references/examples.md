@@ -1,10 +1,12 @@
 # Service Analysis JSON Response Examples
 
-This document provides representative examples of JSON responses from the Xray AI service analysis API. Use these to understand the structure of `serviceAnomalies`, `callAnomalies`, and `anomalies`.
+This document provides representative examples of JSON responses from the Xray AI service analysis
+API. Use these to understand the structure of `serviceAnomalies`, `callAnomalies`, and `exceptions`.
 
 ## Example 1: Service and Call Anomalies (clue-marketing-platform)
 
-This example shows a service with critical issues in its own provided API (`saveMessageApi`) and its downstream calls (`chattrade-service-default.bizMenuCommit`).
+This example shows a service with critical issues in its own provided API (`saveMessageApi`) and its
+downstream calls (`chattrade-service-default.bizMenuCommit`).
 
 ```json
 {
@@ -68,9 +70,7 @@ This example shows a service with critical issues in its own provided API (`save
           "status": "normal",
           "outliers": [],
           "anomalyZones": [],
-          "timeSeries": [
-            { "timestamp": "2026-03-26 13:36:00", "value": 0.016666666666666666 }
-          ]
+          "timeSeries": [{ "timestamp": "2026-03-26 13:36:00", "value": 0.016666666666666666 }]
         },
         {
           "metric": "RPC 客户端平均耗时",
@@ -90,14 +90,15 @@ This example shows a service with critical issues in its own provided API (`save
 
 ## Example 2: Internal Exceptions (mewtwo-service-default)
 
-This example focuses on internal Java exceptions, showing `outliers` and `timeSeries` for SQL and Spring related errors.
+This example focuses on internal Java exceptions, showing `outliers` and `timeSeries` for SQL and
+Spring related errors.
 
 ```json
 {
   "service": "mewtwo-service-default",
   "startTime": "2026-03-26T10:40:00",
   "endTime": "2026-03-26T10:59:00",
-  "anomalies": [
+  "exceptions": [
     {
       "target": "java.sql.SQLIntegrityConstraintViolationException",
       "status": "critical",

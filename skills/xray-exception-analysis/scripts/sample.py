@@ -67,14 +67,10 @@ def main():
         dest="type",
         help="Transaction 类型（Service/URL/Call/SQL/Redis.<集群名> 等）",
     )
-    parser.add_argument(
-        "--name", default=None, help="接口名称（可选，为空时查该 type 下聚合）"
-    )
+    parser.add_argument("--name", default=None, help="接口名称（可选，为空时查该 type 下聚合）")
     parser.add_argument("--ip", default="ALL", help="机器 IP，默认 ALL")
     parser.add_argument("--zone", default=None, help="机房（可选）")
-    parser.add_argument(
-        "--start", required=True, type=int, help="开始时间（秒级时间戳）"
-    )
+    parser.add_argument("--start", required=True, type=int, help="开始时间（秒级时间戳）")
     parser.add_argument("--end", required=True, type=int, help="结束时间（秒级时间戳）")
     parser.add_argument(
         "--sample-type",

@@ -121,9 +121,7 @@ def validate(
     for trace_id in trace_matches:
         trace_id = trace_id.strip().strip("'\"")
         if trace_id and not TRACE_ID_RE.match(trace_id):
-            errors.append(
-                f"xrayTraceId 格式错误：'{trace_id}' 应为 32 位十六进制字符串"
-            )
+            errors.append(f"xrayTraceId 格式错误：'{trace_id}' 应为 32 位十六进制字符串")
 
     # ── 5. 时间参数校验 ───────────────────────────────────────────────────────
     now = int(time.time())
@@ -150,8 +148,7 @@ def validate(
         # 未来时间警告（et 超过当前时间 5 分钟以上）
         if et > now + 300:
             errors.append(
-                f"结束时间 et({et}) 超过当前时间 {(et - now) // 60} 分钟，"
-                "可能导致查询结果为空"
+                f"结束时间 et({et}) 超过当前时间 {(et - now) // 60} 分钟，可能导致查询结果为空"
             )
 
     # ── 6. 分页参数校验 ───────────────────────────────────────────────────────
@@ -159,19 +156,13 @@ def validate(
         errors.append(f"page 必须 >= 1，当前值：{page}（服务端会自动修正为 1）")
 
     if page_size < 1:
-        errors.append(
-            f"pageSize 必须 >= 1，当前值：{page_size}（服务端会自动修正为 20）"
-        )
+        errors.append(f"pageSize 必须 >= 1，当前值：{page_size}（服务端会自动修正为 20）")
     elif page_size > MAX_PAGE_SIZE:
-        errors.append(
-            f"pageSize({page_size}) 超出最大值 {MAX_PAGE_SIZE}，请减小 pageSize"
-        )
+        errors.append(f"pageSize({page_size}) 超出最大值 {MAX_PAGE_SIZE}，请减小 pageSize")
 
     # ── 7. orderKeywords 校验 ─────────────────────────────────────────────────
     if order.lower() not in VALID_ORDER:
-        errors.append(
-            f"order '{order}' 不合法，必须为 'asc' 或 'desc'（服务端会强制转为 DESC）"
-        )
+        errors.append(f"order '{order}' 不合法，必须为 'asc' 或 'desc'（服务端会强制转为 DESC）")
 
     return len(errors) == 0, errors
 
@@ -195,9 +186,7 @@ def main():
     parser.add_argument("--query", required=True, help="Lucene XQL 查询条件")
     parser.add_argument("--st", required=True, type=int, help="开始时间 Unix 秒")
     parser.add_argument("--et", required=True, type=int, help="结束时间 Unix 秒")
-    parser.add_argument(
-        "--page", type=int, default=DEFAULT_PAGE, help=f"页码，默认 {DEFAULT_PAGE}"
-    )
+    parser.add_argument("--page", type=int, default=DEFAULT_PAGE, help=f"页码，默认 {DEFAULT_PAGE}")
     parser.add_argument(
         "--page-size",
         type=int,
@@ -227,9 +216,7 @@ def main():
         print(json.dumps({"valid": True}, ensure_ascii=False))
         sys.exit(0)
     else:
-        print(
-            json.dumps({"valid": False, "errors": errors}, ensure_ascii=False, indent=2)
-        )
+        print(json.dumps({"valid": False, "errors": errors}, ensure_ascii=False, indent=2))
         sys.exit(1)
 
 

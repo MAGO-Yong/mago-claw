@@ -31,9 +31,7 @@ def parse_args():
     parser.add_argument(
         "--start", required=True, type=int, help="开始时间（秒级 Unix 时间戳，必填）"
     )
-    parser.add_argument(
-        "--end", required=True, type=int, help="结束时间（秒级 Unix 时间戳，必填）"
-    )
+    parser.add_argument("--end", required=True, type=int, help="结束时间（秒级 Unix 时间戳，必填）")
     parser.add_argument(
         "--endpoint",
         default=None,
@@ -63,9 +61,7 @@ def build_payload(args):
     if args.endpoint:
         payload["endpoint"] = args.endpoint
     if args.error_names:
-        payload["errorNames"] = [
-            e.strip() for e in args.error_names.split(",") if e.strip()
-        ]
+        payload["errorNames"] = [e.strip() for e in args.error_names.split(",") if e.strip()]
     return payload
 
 

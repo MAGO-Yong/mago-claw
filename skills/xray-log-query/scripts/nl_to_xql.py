@@ -291,9 +291,7 @@ def _parse_rule(text: str) -> dict:
         "search_trace_app": search_trace_app,
         "mode": "rule",
         "confidence": confidence,
-        "explanation": "；".join(explanation_parts)
-        if explanation_parts
-        else "未能识别有效字段",
+        "explanation": "；".join(explanation_parts) if explanation_parts else "未能识别有效字段",
     }
 
 
