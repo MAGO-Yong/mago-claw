@@ -44,6 +44,46 @@
     "architecture-diagrams": {
       "version": "1.0.0",
       "installedAt": 1774624848039
+    },
+    "calendar": {
+      "version": "1.0.8",
+      "installedAt": 1775059853015
+    },
+    "summarize": {
+      "version": "1.0.0",
+      "installedAt": 1775059853492
+    },
+    "docx": {
+      "version": "1.0.0",
+      "installedAt": 1775059853981
+    },
+    "pptx": {
+      "version": "1.0.0",
+      "installedAt": 1775059854624
+    },
+    "xlsx": {
+      "version": "1.0.0",
+      "installedAt": 1775059855283
+    },
+    "hi-docs": {
+      "version": "1.0.2",
+      "installedAt": 1775059855768
+    },
+    "hi-im": {
+      "version": "1.0.1",
+      "installedAt": 1775059856289
+    },
+    "hi-search": {
+      "version": "1.0.3",
+      "installedAt": 1775059856762
+    },
+    "hi-todos": {
+      "version": "1.0.2",
+      "installedAt": 1775059857235
+    },
+    "hi-calendar": {
+      "version": "1.0.1",
+      "installedAt": 1775059857702
     }
   }
 }
