@@ -47,43 +47,43 @@
     },
     "calendar": {
       "version": "1.0.8",
-      "installedAt": 1775059853015
+      "installedAt": 1775112128056
     },
     "summarize": {
       "version": "1.0.0",
-      "installedAt": 1775059853492
+      "installedAt": 1775112128582
     },
     "docx": {
       "version": "1.0.0",
-      "installedAt": 1775059853981
+      "installedAt": 1775112129122
     },
     "pptx": {
       "version": "1.0.0",
-      "installedAt": 1775059854624
+      "installedAt": 1775112129656
     },
     "xlsx": {
       "version": "1.0.0",
-      "installedAt": 1775059855283
+      "installedAt": 1775112130169
     },
     "hi-docs": {
       "version": "1.0.2",
-      "installedAt": 1775059855768
+      "installedAt": 1775112140430
     },
     "hi-im": {
       "version": "1.0.1",
-      "installedAt": 1775059856289
+      "installedAt": 1775112140926
     },
     "hi-search": {
       "version": "1.0.3",
-      "installedAt": 1775059856762
+      "installedAt": 1775112141399
     },
     "hi-todos": {
       "version": "1.0.2",
-      "installedAt": 1775059857235
+      "installedAt": 1775112141875
     },
     "hi-calendar": {
-      "version": "1.0.1",
-      "installedAt": 1775059857702
+      "version": "1.0.2",
+      "installedAt": 1775138882839
     }
   }
 }
