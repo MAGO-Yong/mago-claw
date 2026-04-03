@@ -1,66 +1,118 @@
 ---
-name: metrics-query-by-template
-description: Prometheus系统/中间件指标数据查询，通过指标名称查询固定模板的指标（例如CPU、JVM、RPC等），结果根据数据量智能返回原始数据或特征数据。如果指标的维度数量超过10个，为了控制响应大小，只返回整体特征而不分时间段。适用于分析指标的时间趋势、发现异常时间段、了解指标的整体分布特征。。当用户想要查询服务指标数据、分析指标趋势、获取指标统计特征时使用此skill。
+name: metric-query
+description:
+  统一指标数据查询，支持三种查询模式：1)
+  系统/中间件模板指标查询（CPU、内存、JVM、RPC、Redis、MySQL、MQ、HTTP、线程池、Sentinel 等）；2)
+  PromQL(PQL) 自定义查询；3) Cat 指标查询（transaction/event/problem 的
+  QPS、耗时、成功率等）。根据数据量智能返回原始数据或特征数据。当用户想要查询服务的系统指标、中间件指标、JVM
+  信息、Cat 指标（transaction/event/problem）、或执行 PQL/PromQL 查询时使用此 skill。
 ---
 
-# 智能指标数据查询 Metrics Query by Template
+# 统一指标数据查询 Metric Query
 
-这个skill用于智能查询服务的系统/中间件指标数据，自动根据数据量选择最合适的返回格式。如果出现了metricIds范围外的指标，需要告知用户不支持自定义指标。
-
-## 使用场景
-
-当用户想要：
-
-- 查询服务的指标数据
-- 分析指标趋势
-- 获取指标的统计特征
-- 按维度分组查询指标
+这个 skill 是统一的指标数据查询入口，支持三种查询模式，覆盖所有常见的指标查询场景。
 
 ## 工作流程
 
-### Step 1: 收集必需参数
+### Step 1: 判断查询模式
 
-**Token配置**: 脚本会自动从环境变量 `XRAY_AUTH_TOKEN` 读取token。如果未设置，会在运行时提示输入。
+根据用户输入判断使用哪种查询模式，**按以下优先级**：
 
-Token申请地址: https://xray.devops.xiaohongshu.com/config/token
+1. **pql 模式** — 用户提供了 PromQL / PQL 表达式 → `--mode pql`
+2. **cat 模式** — 满足以下**任一**条件 → `--mode cat`
+   - 用户明确提到 Cat / transaction / event / problem 关键词
+   - 用户想按**接口维度**拆分查看（如「各接口的 QPS」「按接口看耗时」「哪个接口最慢」）
+   - 用户指定了具体的接口名称（如「getUserInfo 的 tp99」）
+   - 用户想按**机器/Pod 维度**或**机房维度**拆分看 Cat 类指标
+3. **system 模式**（默认） — 用户提到具体的指标名称（CPU、内存、JVM、RPC、Redis 等）且不涉及接口级拆分 →
+   `--mode system`
 
-**从用户问题中提取信息，只询问缺失的内容。**
-
-**必需参数**:
-
-- **app**: 服务名称
-- **start / end**: 时间范围 `yyyy-MM-dd HH:mm:ss`
-- **metricIds**: 指标ID列表
-
-**可选参数**:
-
-- **scope**: 查询范围 (CLUSTER表示集群/服务粒度，ZONE表示机房/可用区，CONTAINER表示单机/容器/POD视角)，默认CLUSTER
-- **groupBys**: 分组维度列表
+> **歧义处理**：
+> - 「RPC 耗时」「Redis QPS」等**整体指标**表述 → system 模式（查聚合值）
+> - 「各接口的 RPC 耗时」「看看哪个接口 QPS 最高」等**涉及拆分/对比**的表述 → cat 模式 + group by
+> - 简单理解：**想看整体** → system，**想拆开看** → cat + group by
 
 ---
 
-### Step 2: 调用API
+### Step 2: 收集参数
+
+**从用户问题中尽可能提取参数，只主动询问缺失的必需参数。**
+
+#### 公共参数
+
+| 参数      | 必需   | 说明                                 |
+| --------- | ------ | ------------------------------------ |
+| `--start` | 是     | 开始时间，格式 `yyyy-MM-dd HH:mm:ss` |
+| `--end`   | 是     | 结束时间，格式 `yyyy-MM-dd HH:mm:ss` |
+| `--app`   | 视模式 | 服务名，system/cat 必填，pql 可选    |
+
+#### system 模式参数
+
+| 参数             | 必需 | 说明                                                                                                 |
+| ---------------- | ---- | ---------------------------------------------------------------------------------------------------- |
+| `--metric-names` | 是   | 指标名称，逗号分隔。参考「指标映射表」章节                                                           |
+| `--view`         | 否   | 查询视角：`cluster`（默认，表示服务、集群视角）/ `zone`（机房、可用区） / `container`（单机、单pod） |
+| `--group-bys`    | 否   | 分组维度，逗号分隔                                                                                   |
+
+#### pql 模式参数
+
+| 参数           | 必需 | 说明                                   |
+| -------------- | ---- | -------------------------------------- |
+| `--pql`        | 是   | PromQL 表达式                          |
+| `--app`        | 否   | 辅助数据源解析，当无 datasource 时使用 |
+| `--datasource` | 否   | VMS 数据源名称，优先级最高             |
+
+> 数据源三级降级：`datasource` > `app` > PQL 中解析 metric name
+
+#### cat 模式参数
+
+| 参数       | 必需 | 说明                                                                                                 |
+| ---------- | ---- | ---------------------------------------------------------------------------------------------------- |
+| `--theme`  | 否   | 主题：`transaction`（默认）/ `event` / `problem`                                                     |
+| `--metric` | 否   | 指标：`qps`（默认）/ `avg` / `tp99` / `tp95` / `tp90` / `count` / `fail_percent` / `success_percent` |
+| `--type`   | 否   | Cat 类型，单选：`Call` / `Service` / `Http` / `URL` 等                                               |
+| `--types`  | 否   | Cat 类型，多选（逗号分隔），与 `--type` 互斥。默认 `Service,Http`                                    |
+| `--names`  | 否   | 接口名称，逗号分隔。默认 `All`                                                                       |
+| `--zones`  | 否   | 机房列表，逗号分隔。默认 `All`                                                                       |
+| `--ips`    | 否   | IP 列表，逗号分隔。默认 `All`                                                                        |
+| `--step`   | 否   | 步长（秒），默认 60                                                                                  |
+| `--group-bys` | 否 | 分组维度，逗号分隔。可选值：`ip`（按机器/Pod）、`name`（按接口名）、`zone`（按机房/可用区）        |
+
+---
+
+### Step 3: 调用 API
 
 ```bash
-python ~/.claude/skills/metrics-query-by-template/scripts/api_client.py \
+# system 模式 — 查询模板指标
+python {SKILL_DIR}/scripts/query.py --mode system \
   --app "creator-service-default" \
-  --start "2024-03-18 00:00:00" \
-  --end "2024-03-18 01:00:00" \
-  --metric-ids "CPU_USAGE,MEMORY_USAGE"
+  --start "2025-05-30 10:00:00" --end "2025-05-30 11:00:00" \
+  --metric-names "cpu.usage,mem.usage"
+
+# pql 模式 — 执行 PromQL
+python {SKILL_DIR}/scripts/query.py --mode pql \
+  --start "2025-05-30 10:00:00" --end "2025-05-30 11:00:00" \
+  --pql 'sum(rate(rpc_server_requests_total{app="creator-service-default"}[5m]))'
+
+# cat 模式 — 查询 Cat 指标
+python {SKILL_DIR}/scripts/query.py --mode cat \
+  --app "creator-service-default" \
+  --start "2025-05-30 10:00:00" --end "2025-05-30 11:00:00" \
+  --theme transaction --metric qps --type Call
 ```
 
 ---
 
-### Step 3: 灵活呈现结果
+### Step 4: 灵活呈现结果
 
-**根据用户问题灵活调整输出：**
+**根据用户问题灵活调整输出**：
 
-1. **"CPU使用率是多少？"** → 只回答当前值或平均值
-2. **"CPU使用率的趋势如何？"** → 描述趋势（上升/下降/平稳）和关键数据点
-3. **"CPU和内存的数据"** → 展示两个指标的关键统计信息
-4. **"帮我看看这些指标"** → 完整的指标数据和统计特征
+- **「CPU 使用率是多少？」** → 只回答平均值和当前值
+- **「CPU 趋势如何？」** → 描述趋势（上升/下降/平稳）和关键数据点
+- **「系统全面检查」** → 展示多个指标的摘要信息
+- **「transaction QPS 多少？」** → Cat 模式结果概要
 
-**输出要点**:
+**输出要点**：
 
 - 当前值、平均值、最大值、最小值
 - 趋势描述
@@ -69,400 +121,446 @@ python ~/.claude/skills/metrics-query-by-template/scripts/api_client.py \
 
 ---
 
-## 参数说明
+## 指标映射表（system 模式）
 
-**metricIds** - 支持两种类型：模板（自动展开）和具体指标
+使用 system 模式时，需要将用户的自然语言描述映射为 `--metric-names` 的值。
 
-### 一、模板类型（会自动展开为多个具体指标）
+### 分组模板
 
-使用模板可以一次性查询某个类别下的所有指标：
+当用户说「查看 XXX 类指标」时，自动展开为对应的指标列表：
 
-- **SYSTEM**: 系统指标（包含CPU、内存、网络、磁盘等所有系统级指标）
-- **THREAD**: 线程指标（线程利用率、线程数上限、线程队列数、线程执行时长）
-- **JVM**: JVM指标（GC次数、GC耗时、内存使用、线程数等）
-- **RPC**: RPC指标（包含RPC客户端和服务端的所有指标）
-- **MYSQL**: MySQL指标（包含MySQL请求和连接池的所有指标）
-- **HTTP**: HTTP指标（包含HTTP客户端和服务端的所有指标）
-- **REDIS**: Redis指标（QPS、耗时、连接池、命中率等）
-- **MQ**: MQ指标（包含MQ消费者和生产者的所有指标）
-- **SCHEDULE**: Schedule调用相关指标（任务执行耗时、失败数、QPS等）
-- **AI_INFRA**: AI基础设施监控指标（GPU使用率、显存、温度、功率等）
-- **SENTINEL**: Sentinel监控指标（限流、熔断、鉴权、超时等）
-- **AI_APP**: AI应用监控（算子、模型、Token、RAG、Embedding、Tool等）
+**SYSTEM**（系统基础）:
+`cpu.usage, mem.usage, mem.used, network.in.io, network.out.io, disk.write.io, disk.read.io`
 
-**示例**:
+**JVM**:
+`jvm.young.gc.count, jvm.young.gc.duration, jvm.old.gc.count, jvm.old.gc.duration, jvm.eden.space.used, jvm.survivor.space.used, jvm.old.space.used, jvm.metaspace.used, jvm.live.threads`
 
-- 查询所有系统指标：`["SYSTEM"]`
-- 查询JVM和RPC：`["JVM", "RPC"]`
+**THREAD**（线程池）:
+`executor.threads.usage, executor.threads.count.max, executor.queued.task.count, executor.execution.duration`
+
+**RPC**:
+`rpc.client.request.qps, rpc.client.request.success, rpc.client.request.duration.avg, rpc.server.request.qps, rpc.server.request.success, rpc.server.request.duration.avg`
+
+**HTTP**:
+`http.client.request.qps, http.client.request.success, http.client.request.duration.avg, http.server.request.qps, http.server.request.success, http.server.request.duration.avg`
+
+**MYSQL**: `mysql.request.qps, mysql.request.success, mysql.request.duration.avg`
+
+**REDIS**:
+`redis.jedis.request.qps, redis.jedis.request.success, redis.jedis.request.duration.avg, redis.jedis.connection.wait`
+
+**MQ**（RocketMQ）:
+`rocketmq.producer.qps, rocketmq.producer.success, rocketmq.producer.duration.avg, rocketmq.consumer.qps, rocketmq.consumer.success, rocketmq.consumer.duration.avg`
+
+**SENTINEL**: `sentinel.request.qps, sentinel.block.qps, sentinel.fail.qps`
+
+**SCHEDULE**:
+`xschedule.trigger.qps, xschedule.trigger.duration, xschedule.trigger.error, redschedule.task.processing.total`
 
 ---
 
-### 二、具体指标列表
+### 完整指标列表
 
-#### 1. 系统监控指标
+#### 1. 系统监控 (SYSTEM)
 
-**CPU相关**:
+**CPU**:
 
-- `CPU_USAGE` - CPU使用率
-- `KERNEL_UTILIZATION` - 内核态占用率
-- `USER_UTILIZATION` - 用户态占用率
-- `CPU_CYCLES_PER_SECOND` - 每秒执行的CPU时间周期数
-- `CPU_CYCLES_THROTTLED_CONTAINER_PER_MINUTE` - 每分钟容器被限制的CPU时间周期数
+- `cpu.usage` — CPU 使用率
+- `cpu.cfs.periods.total` — 每秒执行的 CPU 时间周期数
+- `cpu.cfs.throttled.periods.total` — 每分钟容器被限制的 CPU 时间周期数
 
-**内存相关**:
-
-- `MEMORY_UTILIZATION` - 内存占用率
-- `MEM_USAGE` - 内存使用率
-- `MEM_CACHE_USAGE` - 内存中的cache用量
-- `MEM_WORKING_SET_USAGE` - 内存工作集使用量
-- `MEM_WORKING_SET_OCCUPIED` - 内存工作集占用量
-- `SWAP_SPACE_USAGE` - 交换分区用量
-- `RECORD_MAXIMUM_MEM_USAGE` - 最大内存使用量的记录
-- `MEM_ALLOCATION_FAILURE_COUNT` - 每分钟申请内存失败次数计数
-- `CONTAINER_MEMORY_MAPPED_FILE_MEMORY_USAGE` - 容器中内存映射文件使用内存量
-
-**网络相关**:
-
-- `NET_IN` - 网络入流量
-- `NET_OUT` - 网络出流量
-- `SEND_THROUGHPUT_PER_MINUTE` - 以太网每分钟发送吞吐量
-- `RECEIVE_THROUGHPUT_PER_MINUTE` - 以太网每分钟接收吞吐量
-- `ACCEPT_PACKETS_COUNT` - 每秒接收到的packets数量
-- `SEND_PACKETS_COUNT` - 每秒发送的packets数量
-- `RECEIVE_PACKET_DROP_COUNT` - 接收时丢弃的packet数量
-- `SEND_PACKETS_DROPPED_COUNT` - 发送时丢弃的packet数量
-- `RECEIVE_FAILURE_COUNT` - 接收时出现的错误次数
-- `SEND_FAILURE_COUNT` - 发送时出现的错误次数
+**内存**:
 
-**磁盘相关**:
+- `mem.usage` — 内存使用率
+- `mem.used` — 已使用内存
+- `mem.total` — 总内存
+- `mem.cache` — 内存中的 cache 用量
+- `mem.swap` — 交换分区用量
+- `mem.working.set` — 当前内存工作集使用量
+- `mem.max.usage.bytes` — 最大内存使用量的记录
+- `mem.failcnt` — 每分钟申请内存失败次数
+- `mem.failures.total` — 每分钟累计内存申请错误次数
+- `mem.mapped.file` — 内存映射文件使用内存量
 
-- `DISK_USAGE` - 磁盘使用量
-- `DISK_WRITE_IO` - 磁盘写I/O
-- `DISK_READ_IO` - 磁盘读I/O
-- `OPEN_FILE_HANDLES_COUNT` - 打开的文件句柄数
-- `INODE_TOTAL_COUNT` - inode总量
-- `INODE_FREE_COUNT` - inode剩余量
-- `FILESYSTEM_AVAILABLE_DISK_SPACE` - 文件系统可用的磁盘空间量
-- `CONTAINER_FILESYSTEM_IO_OPERATION_COUNT` - 容器文件系统I/O操作数
-- `IO_TIME_PER_MINUTE` - 每分钟I/O操作花费的时间
-- `IO_READ_TIME_PER_MINUTE` - 每分钟I/O读操作花费的时间
-- `IO_WRITE_TIME_PER_MINUTE` - 每分钟I/O写操作花费的时间
+**网络**:
 
-#### 2. 线程指标
+- `network.in.io` — 网络入流量
+- `network.out.io` — 网络出流量
 
-- `THREAD_USAGE` - 线程利用率
-- `THREAD_MAX_COUNT` - 线程数上限
-- `THREAD_QUEUE_COUNT` - 线程队列数
-- `THREAD_EXECUTION_DURATION` - 线程执行时长
+**磁盘/IO**:
 
-#### 3. JVM指标
+- `disk.write.io` — 磁盘写 I/O
+- `disk.read.io` — 磁盘读 I/O
+- `fs.write.seconds.total` — 每分钟 I/O 写操作花费的时间
 
-**GC相关**:
+**日志**:
 
-- `JVM_OLD_GC_COUNT` - JVM老年代GC次数
-- `JVM_OLD_GC_TIME` - JVM老年代GC耗时
-- `JVM_YOUNG_GC_COUNT` - JVM年轻代GC次数
-- `JVM_YOUNG_GC_TIME` - JVM年轻代GC耗时
+- `logback.error.count` — 错误日志数量
 
-**内存相关**:
+#### 2. JVM
 
-- `JVM_OLD_USED` - JVM老年代使用内存
-- `JVM_EDEN_USED` - JVM eden区使用内存
-- `JVM_SURVIVOR_USED` - JVM survivor区使用内存
-- `JVM_METASPACE_USED` - JVM metaspace使用内存
-- `JVM_METASPACE_USAGE` - JVM metaspace使用率
-- `JVM_CODE_CACHE_USAGE` - JVM code cache使用率
+**GC**:
 
-**线程相关**:
+- `jvm.young.gc.count` — JVM Young GC 次数
+- `jvm.young.gc.duration` — JVM Young GC 耗时
+- `jvm.old.gc.count` — JVM Old GC 次数
+- `jvm.old.gc.duration` — JVM Old GC 耗时
 
-- `JVM_LIVE_THREAD_COUNT` - JVM live线程总数
+**内存区域**:
 
-#### 4. RPC指标
-
-**RPC服务端**:
+- `jvm.eden.space.used` — JVM Eden 区使用内存
+- `jvm.survivor.space.used` — JVM Survivor 区使用内存
+- `jvm.old.space.used` — JVM Old 区使用内存
+- `jvm.metaspace.used` — JVM Metaspace 使用内存
 
-- `RPC_SERVICE_SUCCESS_RATE` - RPC服务端调用成功率
-- `RPC_SERVICE_QPS` - RPC服务端调用QPS
-- `RPC_SERVICE_TIME` - RPC服务端调用耗时
+**线程**:
 
-**RPC客户端**:
+- `jvm.live.threads` — JVM Live 线程总数
 
-- `RPC_CLIENT_SUCCESS_RATE` - RPC客户端调用成功率
-- `RPC_CLIENT_QPS` - RPC客户端调用QPS
-- `RPC_CLIENT_TIME` - RPC客户端调用耗时
+#### 3. 线程池 (THREAD)
 
-#### 5. MySQL指标
+- `executor.threads.usage` — 线程池利用率
+- `executor.threads.count.max` — 线程池最大线程数
+- `executor.queued.task.count` — 线程池排队数
+- `executor.execution.duration` — 线程池任务处理耗时
 
-**MySQL请求**:
+#### 4. RPC
 
-- `MYSQL_SUCCESS_RATE` - MySQL调用成功率
-- `MYSQL_QPS` - MySQL调用QPS
-- `MYSQL_TIME` - MySQL调用平均耗时
-- `MYSQL_TP95_TIME` - MySQL请求调用耗时tp95
-- `MYSQL_TP99_TIME` - MySQL请求调用耗时tp99
+**客户端**:
 
-**MySQL连接池**:
-
-- `CONNECTION_TOTAL_COUNT` - 连接总数
-- `ACTIVE_CONNECTED_COUNT` - 活跃连接数
-- `FREE_CONNECTION_COUNT` - 空闲连接数
-- `WAITING_CONNECTION_COUNT` - 等待连接数
-- `CONNECTION_TIMEOUT_COUNT` - 建立连接超时数
-- `MAX_CONNECTION_COUNT` - 最大连接数
-- `CONNECTION_CREATED_TIME` - 连接创建耗时
-- `GET_CONNECTED_TIME` - 连接获取耗时
-- `CONNECTION_HOLD_TIME` - 连接占用耗时
+- `rpc.client.request.success` — RPC 客户端请求成功率
+- `rpc.client.request.qps` — RPC 客户端请求 QPS
+- `rpc.client.request.duration.avg` — RPC 客户端请求平均耗时
+- `rpc.client.request.duration.tp95` — RPC 客户端请求耗时 TP95
+- `rpc.client.request.duration.tp99` — RPC 客户端请求耗时 TP99
+- `rpc.client.request.duration.tp999` — RPC 客户端请求耗时 TP999
 
-#### 6. Redis指标
+**服务端**:
 
-- `REDIS_SUCCESS_RATE` - Redis调用成功率
-- `REDIS_QPS` - Redis调用QPS
-- `REDIS_TIME` - Redis调用耗时
-- `REDIS_TP95_TIME` - Redis请求耗时tp95
-- `REDIS_TP99_TIME` - Redis请求耗时tp99
-- `REDIS_CONNECTION_POOL_QUEUED` - Redis连接池排队数
-- `REDIS_GET_CONNECTED_TIME` - Redis获取连接耗时
-- `REDIS_HIT_RATE` - Redis命中率
+- `rpc.server.request.success` — RPC 服务端请求成功率
+- `rpc.server.request.qps` — RPC 服务端请求 QPS
+- `rpc.server.request.duration.avg` — RPC 服务端请求平均耗时
+- `rpc.server.request.duration.tp95` — RPC 服务端请求耗时 TP95
+- `rpc.server.request.duration.tp99` — RPC 服务端请求耗时 TP99
+- `rpc.server.request.duration.tp999` — RPC 服务端请求耗时 TP999
 
-#### 7. HTTP指标
+**C++ RPC**:
 
-**HTTP服务端**:
+- `cpp.rpc.client.request.time.TP<999` — RPC 客户端耗时 TP<999
+- `cpp.rpc.client.request.time.TP9999` — RPC 客户端耗时 TP9999
+- `cpp.rpc.server.request.time.TP<999` — RPC 服务端耗时 TP<999
+- `cpp.rpc.server.request.time.TP9999` — RPC 服务端耗时 TP9999
 
-- `HTTP_SERVICE_SUCCESS_RATE` - HTTP服务端调用成功率
-- `HTTP_SERVICE_QPS` - HTTP服务端调用QPS
-- `HTTP_SERVICE_TIME` - HTTP服务端调用耗时
+#### 5. HTTP
 
-**HTTP客户端**:
+**客户端**:
 
-- `HTTP_CLIENT_SUCCESS_RATE` - HTTP客户端调用成功率
-- `HTTP_CLIENT_QPS` - HTTP客户端调用QPS
-- `HTTP_CLIENT_TIME` - HTTP客户端调用耗时
+- `http.client.request.qps` — HTTP 客户端请求 QPS
+- `http.client.request.success` — HTTP 客户端请求成功率
+- `http.client.request.duration.avg` — HTTP 客户端请求平均耗时
+- `http.client.request.duration.tp95` — HTTP 客户端请求耗时 TP95
+- `http.client.request.duration.tp99` — HTTP 客户端请求耗时 TP99
 
-#### 8. MQ指标
+**服务端**:
 
-**MQ消费者**:
+- `http.server.request.success` — HTTP 服务端请求成功率
+- `http.server.request.qps` — HTTP 服务端请求 QPS
+- `http.server.request.duration.avg` — HTTP 服务端请求平均耗时
+- `http.server.request.duration.tp95` — HTTP 服务端请求耗时 TP95
+- `http.server.request.duration.tp99` — HTTP 服务端请求耗时 TP99
 
-- `MQ_CONSUMPTION_SUCCESS_RATE` - MQ消费成功率
-- `MQ_CONSUMER_QPS` - MQ消费者QPS
-- `MQ_CONSUMPTION_AVERAGE_TIME` - MQ消费平均耗时
-- `MQ_CONSUMPTION_TP95_TIME` - MQ消费耗时tp95
-- `MQ_CONSUMPTION_TP99_TIME` - MQ消费耗时tp99
+#### 6. MySQL
 
-**MQ生产者**:
+- `mysql.request.success` — MySQL 请求成功率
+- `mysql.request.qps` — MySQL 请求 QPS
+- `mysql.request.duration.avg` — MySQL 请求平均耗时
+- `mysql.request.duration.tp95` — MySQL 请求耗时 TP95
+- `mysql.request.duration.tp99` — MySQL 请求耗时 TP99
 
-- `MQ_PRODUCTION_SUCCESS_RATE` - MQ生产成功率
-- `MQ_PRODUCER_QPS` - MQ生产者QPS
-- `MQ_PRODUCTION_AVERAGE_TIME` - MQ生产平均耗时
-- `MQ_PRODUCTION_TP95_TIME` - MQ生产耗时tp95
-- `MQ_PRODUCTION_TP99_TIME` - MQ生产耗时tp99
+#### 7. Redis
 
-#### 9. Schedule调度指标
+**Jedis**:
 
-- `SINGLE_TASK_EXECUTION_TIME` - 单任务执行耗时
-- `SINGLE_TASK_EXECUTION_FAILED` - 单任务执行失败
-- `SINGLE_JOB_EXECUTION_QPS` - 单Job执行QPS
-- `RUNNING_JOB` - 运行中的Job
-
-#### 10. AI基础设施指标
-
-**GPU相关**:
-
-- `GPU_USAGE` - GPU使用率
-- `TENSOR_CORE_USAGE` - TensorCore使用率
-- `GPU_BANDWIDTH_USAGE` - 显卡带宽使用率
-- `GPU_MEM_USED` - 显存占用
-- `GPU_MEM_USAGE` - 显存占用率
-- `GPU_MEM_ACTIVE` - 显存利用率
-- `GPU_MEM_TEMPERATURE` - GPU显存温度
-- `GPU_CORE_TEMPERATURE` - GPU核心温度
-- `GPU_POWER` - GPU功率
-- `GPU_SM_USAGE` - GPU SM设备使用率
-- `GPU_SM_OCC_USAGE` - GPU SM_OCC使用率
-
-**PCIE相关**:
-
-- `PCIE_OUTPUT` - PCI-E发送数据速率
-- `PCIE_INPUT` - PCI-E接收数据速率
-
-#### 11. Sentinel指标
-
-**单机限流**:
-
-- `SINGLE_NODE_LIMIT_QPS_COUNT` - 单机限流QPS总数
-- `QPS_TARGET_THRESHOLD` - QPS目标阈值
-- `RATE_LIMITED_REJECTED_QPS` - 触发限流后拒绝的QPS
-- `SUCCESSFUL_PROCESSED_QPS` - 通过并执行成功的QPS
-- `FAILED_PROCESSED_QPS` - 通过并执行失败的QPS
-- `RATE_LIMITED_REJECTED_QPM` - 触发限流后拒绝的QPM
-- `SINGLE_NODE_RATE_LIMITED_LEVEL` - 单机限流水位
-- `DRYRUN_ALLOWED_QPS` - 开启DryRun下应限流但放行的QPS
-
-**鉴权**:
-
-- `AUTHORIZATION_SUCCESSFUL_QPS` - 鉴权通过的QPS
-- `AUTHORIZATION_FAILED_QPS` - 鉴权拦截的QPS
-- `DRYRUN_ALLOWED_QPS_SHOULD_BE_DENNY` - 开启DryRun下应拦截但放行的QPS
-
-**并发限流**:
-
-- `CURRENT_CONCURRENCY_COUNT` - 当前并发数
-- `MAX_CONCURRENCY_COUNT` - 最大并发数
-- `DENNY_QPS` - 拒绝的请求QPS
-- `DENNY_COUNT` - 拒绝的请求数量
-- `DRYRUN_ALLOWED_SHOULD_BE_DENNY` - 开启DryRun后通过的应该拒绝的请求QPS
-
-**过载保护**:
-
-- `CPU_OVERLOAD_PROTECTED_QPS` - CPU过载保护block QPS
-- `CPU_USAGE_RATIO` - 系统CPU使用比
-
-**超时**:
-
-- `SERVICE_DYNAMIC_TIMEOUT_CONFIG` - 服务治理动态超时配置
-- `RPC_CLIENT_REAL_TIME_TIMEOUT_CONFIG` - RPC-Client实时生效超时配置
-- `TRIGGER_TIMEOUT_QPS` - 触发超时QPS
-
-**熔断**:
-
-- `SENTINEL_TOTAL_REQUEST_QPS` - Sentinel总请求QPS
-- `TRIGGER_CIRCUIT_BREAK_QPS` - 触发熔断的QPS
-- `DOWNSTREAM_FAILURE_QPS` - 请求下游失败(未发生熔断)的QPS
-- `DOWNSTREAM_SUCCEED_QPS` - 请求下游成功(未发生熔断)的QPS
-- `DRYRUN_ALLOWED_BLOCKED_REQUEST_QPS` - 开启DryRun后通过的应该阻塞的请求QPS
-
-**集群限流**:
-
-- `CLUSTER_RATE_LIMITED_QPS_COUNT` - 集群限流总请求QPS
-- `RATE_LIMITED_CLUSTER_REJECTED_QPS` - 触发集群限流后拒绝的QPS
-- `CLUSTER_RATE_LIMITED_REQUEST_PASSED_QPS` - 集群限流请求通过QPS
-- `CLUSTER_RATE_LIMITED_REQUEST_FALLBACK_QPS` - 集群限流请求fallback QPS
-- `CLUSTER_RATE_LIMITED_PASSED_BLOCKED_REQUEST_QPS` - 集群限流通过的阻塞请求QPS
-- `CLUSTER_RATE_LIMITED_THRESHOLD_QPS` - 集群限流阈值QPS
-- `REDIS_CLUSTER_REQUEST_QPS` - Redis集群请求QPS
-- `SERVICE_INSTANCE_COUNT` - 服务实例数量
-- `CLUSTER_RATE_LIMITED_LEVEL` - 集群限流水位
-
-#### 12. AI应用指标
-
-**算子相关**:
-
-- `OPERATOR_REQUEST_QPS` - 算子调用QPS
-- `OPERATOR_REQUEST_SUCCESS_RATE` - 算子调用成功率
-- `OPERATOR_AVERAGE_TIME` - 算子调用平均耗时
-- `OPERATOR_P50_TIME` - 算子调用耗时p50
-- `OPERATOR_P90_TIME` - 算子调用耗时p90
-- `OPERATOR_P95_TIME` - 算子调用耗时p95
-
-**模型相关**:
-
-- `MODEL_REQUEST_QPS` - 模型调用QPS
-- `MODEL_REQUEST_SUCCESS_RATE` - 模型调用成功率
-- `MODEL_AVERAGE_TIME` - 模型调用平均耗时
-- `MODEL_P50_TIME` - 模型调用耗时p50
-- `MODEL_P90_TIME` - 模型调用耗时p90
-- `MODEL_P95_TIME` - 模型调用耗时p95
-- `MODEL_AVERAGE_TTFT` - 模型调用平均TTFT
-- `MODEL_MAX_TTFT` - 模型调用最大TTFT
-- `MODEL_P50_TTFT` - 模型调用p50TTFT
-- `MODEL_P90_TTFT` - 模型调用p90TTFT
-- `MODEL_P95_TTFT` - 模型调用p95TTFT
-- `MODEL_AVERAGE_TPOT` - 模型调用平均TPOT
-- `MODEL_MAX_TPOT` - 模型调用最大TPOT
-- `MODEL_P50_TPOT` - 模型调用p50TPOT
-- `MODEL_P90_TPOT` - 模型调用p90TPOT
-- `MODEL_P95_TPOT` - 模型调用p95TPOT
-- `MODEL_AVERAGE_E2E` - 模型调用平均E2E
-- `MODEL_MAX_E2E` - 模型调用最大E2E
-- `MODEL_P50_E2E` - 模型调用p50E2E
-- `MODEL_P90_E2E` - 模型调用p90E2E
-- `MODEL_P95_E2E` - 模型调用p95E2E
-
-**Token相关**:
-
-- `MODEL_CALL_TOKEN_COUNT` - 模型调用总token数
-- `MODEL_CALL_INPUT_TOKEN_COUNT` - 模型调用输入token数
-- `MODEL_CALL_OUTPUT_TOKEN_COUNT` - 模型调用输出token数
-
-**RAG相关**:
-
-- `VECTOR_DB_CALL_QPS` - 向量数据库调用QPS
-- `VECTOR_DB_CALL_SUCCESS_RATE` - 向量数据库调用成功率
-- `VECTOR_DB_CALL_AVERAGE_TIME` - 向量数据库调用平均耗时
-- `VECTOR_DB_CALL_P50_TIME` - 向量数据库调用耗时p50
-- `VECTOR_DB_CALL_90_TIME` - 向量数据库调用耗时p90
-- `VECTOR_DB_CALL_95_TIME` - 向量数据库调用耗时p95
-- `VECTOR_DB_AVERAGE_RETRIEVAL_COUNT` - 向量数据库平均召回数
-- `VECTOR_DB_ZERO_RETRIEVAL_COUNT` - 向量数据库0召回数
-- `VECTOR_DB_P50_RETRIEVAL_COUNT` - 向量数据库召回数p50
-- `VECTOR_DB_P90_RETRIEVAL_COUNT` - 向量数据库召回数p90
-
-**Embedding相关**:
-
-- `EMBEDDING_CALL_QPS` - embedding调用QPS
-- `EMBEDDING_CALL_SUCCESS_RATE` - embedding调用成功率
-- `EMBEDDING_CALL_AVERAGE_TIME` - embedding调用平均耗时
-- `EMBEDDING_CALL_P50_TIME` - embedding调用耗时p50
-- `EMBEDDING_CALL_P90_TIME` - embedding调用耗时p90
-- `EMBEDDING_CALL_P95_TIME` - embedding调用耗时p95
-- `EMBEDDING_CALL_ALL_TOKEN_COUNT` - embedding调用总token数
-- `AVERAGE_TOKENS_PER_EMBEDDING_CALL` - embedding平均每次消耗token数
-- `EMBEDDING_TOKEN_CONSUMPTION_P50` - embedding token消耗p50
-- `EMBEDDING_TOKEN_CONSUMPTION_P90` - embedding token消耗p90
-- `EMBEDDING_TOKEN_CONSUMPTION_P95` - embedding token消耗p95
-
-**Tool相关**:
-
-- `TOOL_CALL_QPS` - 工具调用QPS
-- `TOOL_CALL_SUCCESS_RATE` - 工具调用成功率
-- `TOOL_CALL_AVERAGE_TIME` - 工具调用平均耗时
-- `TOOL_CALL_P50_TIME` - 工具调用耗时p50
-- `TOOL_CALL_P90_TIME` - 工具调用耗时p90
-- `TOOL_CALL_P95_TIME` - 工具调用耗时p95
+- `redis.jedis.request.success` — Redis(Jedis) 请求成功率
+- `redis.jedis.request.qps` — Redis(Jedis) 请求 QPS
+- `redis.jedis.request.duration.avg` — Redis(Jedis) 请求平均耗时
+- `redis.jedis.request.duration.tp95` — Redis(Jedis) 请求耗时 TP95
+- `redis.jedis.request.duration.tp99` — Redis(Jedis) 请求耗时 TP99
+- `redis.jedis.connection.wait` — Redis(Jedis) 连接池排队数
+- `redis.jedis.connection.duration.avg` — Redis(Jedis) 获取连接耗时
+
+**Lettuce**:
+
+- `lettuce.ops.count` — Redis 请求 QPS (Lettuce)
+- `lettuce.conn.count` — Redis 建联 (Lettuce)
+- `lettuce.failover.down` — Redis 实例摘除 (Lettuce)
+- `lettuce.failover.recovered` — Redis 实例恢复 (Lettuce)
+- `lettuce.ops` — Redis 请求耗时 (Lettuce)
+- `lettuce.timeout` — Redis 生效的 soTimeout 配置 (Lettuce)
+- `redis.lettuce.request.success` — Redis 请求成功率 (Lettuce)
+
+**通用**:
+
+- `infra_redis_hit_total` — Redis 命中率
+
+#### 8. MQ (RocketMQ)
+
+**生产者**:
+
+- `rocketmq.producer.qps` — RocketMQ 生产者 QPS
+- `rocketmq.producer.success` — RocketMQ 生产成功率
+- `rocketmq.producer.duration.avg` — RocketMQ 生产平均耗时
+- `rocketmq.producer.duration.tp95` — RocketMQ 生产耗时 TP95
+- `rocketmq.producer.duration.tp99` — RocketMQ 生产耗时 TP99
+
+**消费者**:
+
+- `rocketmq.consumer.qps` — RocketMQ 消费者 QPS
+- `rocketmq.consumer.success` — RocketMQ 消费成功率
+- `rocketmq.consumer.duration.avg` — RocketMQ 消费平均耗时
+- `rocketmq.consumer.duration.tp95` — RocketMQ 消费耗时 TP95
+- `rocketmq.consumer.duration.tp99` — RocketMQ 消费耗时 TP99
+
+#### 9. Sentinel
+
+**基础限流**:
+
+- `sentinel.request.qps` — Sentinel 请求 QPS
+- `sentinel.block.qps` — Sentinel Block QPS
+- `sentinel.fail.qps` — Sentinel Fail QPS
+
+**动态限流 (dynamicLimiter)**:
+
+- `sentinel.dynamicLimiter.request.qps` — 总请求 QPS
+- `sentinel.dynamicLimiter.block.qps` — 触发 Block QPS
+- `sentinel.dynamicLimiter.fail.qps` — Fail QPS
+- `sentinel.dynamicLimiter.success.qps` — Success QPS
+- `sentinel.dynamic.qps` — 阈值 QPS
+- `sentinel.rate.dynamicLimiter.block.qps` — Block 高流量 QPS
+
+**熔断 (circuitBreaker)**:
+
+- `sentinel.circuitBreaker.request.qps` — 总请求 QPS
+- `sentinel.circuitBreaker.block.qps` — 触发 Block QPS
+- `sentinel.circuitBreaker.fail.qps` — Fail QPS
+- `sentinel.circuitBreaker.success.qps` — Success QPS
+- `sentinel.rate.circuitBreaker.block.qps` — 触发熔断 QPS
+
+**超时/其他**:
+
+- `red.rpc.cds.timeout` — 服务治理动态超时配置
+- `triggered.timeout.qps` — 触发超时 QPS
+- `distributed_rate_limiter_waterLevel` — 集群限流水位
+
+#### 10. Schedule (RedSchedule)
+
+- `xschedule.trigger.qps` — 单 Job 执行 QPS
+- `xschedule.trigger.duration` — 单任务执行耗时(ms)
+- `xschedule.trigger.error` — 单任务执行失败
+- `redschedule.task.processing.total` — 运行中的 Job
 
 ---
 
-### 使用示例
+## Cat 指标说明（cat 模式）
 
-**单个指标**:
+Cat 指标用于查询应用的 Transaction / Event / Problem 维度的时序数据。
 
-```json
-["CPU_USAGE"]
+### theme（主题）
+
+| 值            | 说明                                               |
+| ------------- | -------------------------------------------------- |
+| `transaction` | 调用链指标（默认），如接口调用的 QPS、耗时、成功率 |
+| `event`       | 事件指标                                           |
+| `problem`     | 异常/问题指标                                      |
+
+### metric（指标类型）
+
+| 值                | 说明               |
+| ----------------- | ------------------ |
+| `qps`             | 每秒请求数（默认） |
+| `avg`             | 平均耗时(ms)       |
+| `tp50`            | 耗时 TP50          |
+| `tp90`            | 耗时 TP90          |
+| `tp95`            | 耗时 TP95          |
+| `tp99`            | 耗时 TP99          |
+| `tp999`           | 耗时 TP999         |
+| `count`           | 总数               |
+| `fail_percent`    | 失败率(%)          |
+| `success_percent` | 成功率(%)          |
+
+### type / types（Cat 类型）
+
+`--type`（单选）和 `--types`（多选）互斥，常用值：
+
+| 值        | 说明                   |
+| --------- | ---------------------- |
+| `Call`    | 下游调用（RPC 客户端） |
+| `Service` | 服务端处理             |
+| `Http`    | HTTP 请求              |
+| `URL`     | URL 请求               |
+
+如果用户未指定，默认使用 `--types "Service,Http"`。
+
+### group by（分组维度）
+
+`--group-bys` 支持三种维度，可组合使用：
+
+| 维度   | 含义                                   | 典型场景                              |
+| ------ | -------------------------------------- | ------------------------------------- |
+| `ip`   | 按机器/Pod 分组                         | 想看各实例的负载分布                   |
+| `name` | 按接口名分组（含义取决于 type）         | 想看各接口各自的 QPS / 耗时            |
+| `zone` | 按机房/可用区分组                       | 想看跨机房的流量分布                   |
+
+> **重要**：`name` 维度的含义取决于 `type`：
+> - `type=Service` → `name` 是服务端接口名
+> - `type=Call` → `name` 是下游调用接口名
+> - `type=Http` → `name` 是 HTTP 请求路径
+> - `type=URL` → `name` 是 URL 路径
+
+#### 意图→参数推断指南
+
+当用户描述中出现以下意图时，自动推断 `--group-bys` 和 `--type`：
+
+| 用户意图                                          | 推断参数                                             |
+| ------------------------------------------------- | ---------------------------------------------------- |
+| 「看各接口的 QPS」「按接口维度看」                 | `--type Service --group-bys name`                    |
+| 「看各 RPC 接口的耗时」「下游调用拆分看」          | `--type Call --group-bys name`                       |
+| 「按机器维度看」「看各 Pod 的情况」                | `--group-bys ip`（不影响 type/types 默认值）          |
+| 「按机房看流量」「看各可用区的 QPS」               | `--group-bys zone`                                   |
+| 「各接口在各机器上的分布」                         | `--type Service --group-bys name,ip`                 |
+| 「某个接口在各机器上的表现」                       | `--type Service --names xxx --group-bys ip`          |
+
+> 注意：使用 `--group-bys name` 时，通常需要搭配 `--type`（单选），因为 name 的含义由 type 决定。
+> 如果用户未指定 type 且使用了 `--group-bys name`，默认使用 `--type Service`。
+
+### 常见用法示例
+
+```bash
+# 查看 transaction 的 QPS（默认 Service+Http 类型）
+--mode cat --app xxx --theme transaction --metric qps
+
+# 查看 Call 类型的平均耗时
+--mode cat --app xxx --metric avg --type Call
+
+# 查看特定接口的 TP99
+--mode cat --app xxx --metric tp99 --type Service --names "UserService.getUser"
+
+# 查看 event 的数量
+--mode cat --app xxx --theme event --metric count
+
+# 看各 Service 接口各自的 QPS
+--mode cat --app xxx --metric qps --type Service --group-bys name
+
+# 看各机器的 tp99
+--mode cat --app xxx --metric tp99 --group-bys ip
+
+# 看某个接口在各机房的 QPS
+--mode cat --app xxx --metric qps --type Service --names "getUserInfo" --group-bys zone
 ```
-
-**多个指标**:
-
-```json
-["CPU_USAGE", "MEMORY_UTILIZATION", "DISK_USAGE"]
-```
-
-**使用模板（自动展开）**:
-
-```json
-["SYSTEM"] // 会自动展开为所有系统相关指标
-```
-
-**混合使用**:
-
-```json
-["SYSTEM", "JVM", "RPC_SERVICE_QPS"] // 模板+具体指标
-```
-
-**常见场景**:
-
-- 查看系统资源：`["CPU_USAGE", "MEMORY_UTILIZATION", "DISK_USAGE"]`
-- 查看JVM状态：`["JVM_OLD_GC_COUNT", "JVM_YOUNG_GC_COUNT", "JVM_METASPACE_USAGE"]`
-- 查看RPC性能：`["RPC_SERVICE_QPS", "RPC_SERVICE_SUCCESS_RATE", "RPC_SERVICE_TIME"]`
-- 查看数据库性能：`["MYSQL_QPS", "MYSQL_SUCCESS_RATE", "MYSQL_TP95_TIME"]`
-- 查看GPU状态：`["GPU_USAGE", "GPU_MEM_USAGE", "GPU_CORE_TEMPERATURE"]`
 
 ---
 
-### 其他参数
+## PQL 查询说明（pql 模式）
 
-**scope**:
+直接执行 PromQL 表达式查询 VMS 数据。
 
-- `CLUSTER`: 集群级别（默认）
-- `POD`: Pod级别
-- `HOST`: 主机级别
+### 数据源解析优先级
 
-**groupBys**: 分组维度数组，如 `["zone", "pod"]`
+1. `--datasource` — 直接指定 VMS 数据源名称
+2. `--app` — 通过服务名反查数据源
+3. 自动从 PQL 表达式中解析 metric name 来查找数据源
+
+### 常见用法示例
+
+```bash
+# 提供 app 辅助数据源解析
+--mode pql --app "creator-service-default" \
+  --pql 'sum(rate(rpc_server_requests_total[5m]))'
+
+# 直接指定数据源
+--mode pql --datasource "vms-prod" \
+  --pql 'histogram_quantile(0.99, rate(http_request_duration_seconds_bucket[5m]))'
+
+# 不提供 app 和 datasource，自动从 PQL 解析
+--mode pql --pql 'node_cpu_seconds_total{mode="idle"}'
+```
+
+---
+
+## 使用场景示例
+
+### 场景 1：查看服务 CPU 和内存
+
+用户：「看一下 creator-service-default 最近一小时的 CPU 和内存」
+
+```bash
+python {SKILL_DIR}/scripts/query.py --mode system \
+  --app "creator-service-default" \
+  --start "2025-05-30 10:00:00" --end "2025-05-30 11:00:00" \
+  --metric-names "cpu.usage,mem.usage"
+```
+
+### 场景 2：JVM 全面检查
+
+用户：「检查一下 xxx 服务的 JVM 状况」
+
+```bash
+python {SKILL_DIR}/scripts/query.py --mode system \
+  --app "xxx-service" \
+  --start "2025-05-30 10:00:00" --end "2025-05-30 11:00:00" \
+  --metric-names "jvm.young.gc.count,jvm.young.gc.duration,jvm.old.gc.count,jvm.old.gc.duration,jvm.eden.space.used,jvm.old.space.used,jvm.metaspace.used,jvm.live.threads"
+```
+
+### 场景 3：查看 Cat Transaction QPS
+
+用户：「看一下 creator-service-default 的 transaction QPS」
+
+```bash
+python {SKILL_DIR}/scripts/query.py --mode cat \
+  --app "creator-service-default" \
+  --start "2025-05-30 10:00:00" --end "2025-05-30 11:00:00" \
+  --theme transaction --metric qps
+```
+
+### 场景 4：查看特定接口的 TP99
+
+用户：「creator-service-default 的 Call 类型接口 TP99 是多少」
+
+```bash
+python {SKILL_DIR}/scripts/query.py --mode cat \
+  --app "creator-service-default" \
+  --start "2025-05-30 10:00:00" --end "2025-05-30 11:00:00" \
+  --metric tp99 --type Call
+```
+
+### 场景 5：执行自定义 PQL
+
+用户：「帮我查一下这个 PQL：sum(rate(rpc_server_requests_total{app="xxx"}[5m]))」
+
+```bash
+python {SKILL_DIR}/scripts/query.py --mode pql \
+  --start "2025-05-30 10:00:00" --end "2025-05-30 11:00:00" \
+  --pql 'sum(rate(rpc_server_requests_total{app="xxx"}[5m]))'
+```
+
+### 场景 6：查看各 RPC 接口的 QPS（Cat group by）
+
+用户：「看一下 creator-service-default 各个 Service 接口的 QPS」
+
+```bash
+python {SKILL_DIR}/scripts/query.py --mode cat \
+  --app "creator-service-default" \
+  --start "2025-05-30 10:00:00" --end "2025-05-30 11:00:00" \
+  --metric qps --type Service --group-bys name
+```
+
+### 场景 7：RPC + MySQL + Redis 综合排查
+
+用户：「全面看一下 xxx 服务的中间件指标」
+
+```bash
+python {SKILL_DIR}/scripts/query.py --mode system \
+  --app "xxx-service" \
+  --start "2025-05-30 10:00:00" --end "2025-05-30 11:00:00" \
+  --metric-names "rpc.server.request.qps,rpc.server.request.success,rpc.server.request.duration.avg,mysql.request.qps,mysql.request.success,mysql.request.duration.avg,redis.jedis.request.qps,redis.jedis.request.success,redis.jedis.request.duration.avg"
+```
