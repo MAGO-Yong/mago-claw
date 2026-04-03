@@ -1,0 +1,472 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>技术风险组 Skills 全景图</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: -apple-system, "PingFang SC", "Helvetica Neue", Arial, sans-serif;
+    background: #F5F6FA;
+    width: 1200px;
+    min-height: 600px;
+  }
+
+  .card {
+    background: #fff;
+    border-radius: 20px;
+    padding: 48px 56px 44px;
+    margin: 24px;
+    box-shadow: 0 4px 24px rgba(0,0,0,0.08);
+  }
+
+  /* ===== HEADER ===== */
+  .header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 40px;
+  }
+  .header-left h1 {
+    font-size: 26px;
+    font-weight: 700;
+    color: #1A1A2E;
+    line-height: 1.3;
+  }
+  .header-left p {
+    margin-top: 6px;
+    font-size: 14px;
+    color: #8C8FA3;
+  }
+  .badge-row {
+    display: flex;
+    gap: 10px;
+  }
+  .badge {
+    background: linear-gradient(135deg, #1677FF 0%, #722ED1 100%);
+    color: #fff;
+    border-radius: 100px;
+    padding: 6px 18px;
+    font-size: 13px;
+    font-weight: 600;
+  }
+  .badge.green {
+    background: linear-gradient(135deg, #00B259 0%, #00C97A 100%);
+  }
+
+  /* ===== BEFORE / AFTER ===== */
+  .compare {
+    display: grid;
+    grid-template-columns: 1fr 56px 1fr;
+    gap: 0;
+    align-items: center;
+    margin-bottom: 40px;
+  }
+
+  /* BEFORE */
+  .before-box {
+    background: #FFF5F5;
+    border: 1.5px solid #FFD0CF;
+    border-radius: 16px;
+    padding: 24px 28px;
+  }
+  .before-box .label {
+    font-size: 12px;
+    font-weight: 700;
+    color: #E5503C;
+    letter-spacing: 0.08em;
+    margin-bottom: 16px;
+    text-transform: uppercase;
+  }
+  .before-box .title {
+    font-size: 15px;
+    font-weight: 600;
+    color: #1A1A2E;
+    margin-bottom: 14px;
+  }
+  .step-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .step-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 13px;
+    color: #4A4A6A;
+  }
+  .step-num {
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    background: #FFD0CF;
+    color: #E5503C;
+    font-size: 11px;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+  .step-arrow {
+    font-size: 10px;
+    color: #FFAAAA;
+    margin-left: 2px;
+  }
+  .before-footer {
+    margin-top: 14px;
+    padding-top: 12px;
+    border-top: 1px dashed #FFD0CF;
+    font-size: 12px;
+    color: #E5503C;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  /* ARROW */
+  .arrow-col {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+  }
+  .arrow-icon {
+    width: 40px;
+    height: 40px;
+    background: linear-gradient(135deg, #1677FF, #722ED1);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #fff;
+    font-size: 18px;
+    box-shadow: 0 4px 14px rgba(22,119,255,0.3);
+  }
+  .arrow-label {
+    font-size: 11px;
+    color: #8C8FA3;
+    text-align: center;
+    font-weight: 600;
+  }
+
+  /* AFTER */
+  .after-box {
+    background: linear-gradient(135deg, #EFF6FF 0%, #F3EEFF 100%);
+    border: 1.5px solid #BAD4FF;
+    border-radius: 16px;
+    padding: 24px 28px;
+  }
+  .after-box .label {
+    font-size: 12px;
+    font-weight: 700;
+    color: #1677FF;
+    letter-spacing: 0.08em;
+    margin-bottom: 16px;
+    text-transform: uppercase;
+  }
+  .after-box .title {
+    font-size: 15px;
+    font-weight: 600;
+    color: #1A1A2E;
+    margin-bottom: 10px;
+  }
+  .after-desc {
+    font-size: 13px;
+    color: #4A4A6A;
+    line-height: 1.7;
+  }
+  .after-footer {
+    margin-top: 14px;
+    padding-top: 12px;
+    border-top: 1px dashed #BAD4FF;
+    font-size: 12px;
+    color: #1677FF;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-weight: 600;
+  }
+  .tag {
+    display: inline-block;
+    background: rgba(22,119,255,0.12);
+    color: #1677FF;
+    border-radius: 6px;
+    padding: 2px 8px;
+    font-size: 11px;
+    font-weight: 600;
+    margin: 2px 2px;
+  }
+  .tag.purple { background: rgba(114,46,209,0.1); color: #722ED1; }
+  .tag.green { background: rgba(0,178,83,0.1); color: #00B253; }
+  .tag.orange { background: rgba(229,83,0,0.1); color: #E55300; }
+  .tag.red { background: rgba(229,0,0,0.1); color: #E50000; }
+
+  /* ===== DIVIDER ===== */
+  .divider {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin: 32px 0;
+    color: #8C8FA3;
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+  }
+  .divider::before, .divider::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: #E8EAF0;
+  }
+
+  /* ===== PLATFORM GRID ===== */
+  .platform-grid {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 14px;
+  }
+  .platform-card {
+    border-radius: 14px;
+    padding: 18px 16px;
+    position: relative;
+    overflow: hidden;
+  }
+  .platform-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 3px;
+    border-radius: 14px 14px 0 0;
+  }
+  .platform-card.blue { background: #EFF6FF; }
+  .platform-card.blue::before { background: linear-gradient(90deg, #1677FF, #40A9FF); }
+  .platform-card.purple { background: #F5F0FF; }
+  .platform-card.purple::before { background: linear-gradient(90deg, #722ED1, #9254DE); }
+  .platform-card.green { background: #F0FFF7; }
+  .platform-card.green::before { background: linear-gradient(90deg, #00B259, #52C41A); }
+  .platform-card.orange { background: #FFF8F0; }
+  .platform-card.orange::before { background: linear-gradient(90deg, #E55300, #FA8C16); }
+  .platform-card.red { background: #FFF5F5; }
+  .platform-card.red::before { background: linear-gradient(90deg, #E50000, #FF4D4F); }
+
+  .platform-icon { font-size: 22px; margin-bottom: 8px; }
+  .platform-name {
+    font-size: 13px;
+    font-weight: 700;
+    color: #1A1A2E;
+    margin-bottom: 4px;
+  }
+  .platform-count {
+    font-size: 11px;
+    color: #8C8FA3;
+    margin-bottom: 10px;
+  }
+  .skill-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+  }
+  .skill-tag {
+    background: rgba(0,0,0,0.06);
+    border-radius: 4px;
+    padding: 2px 6px;
+    font-size: 10px;
+    color: #4A4A6A;
+    white-space: nowrap;
+  }
+  .skill-tag.highlight {
+    font-weight: 600;
+    color: #1677FF;
+    background: rgba(22,119,255,0.1);
+  }
+
+  /* ===== FOOTER STATS ===== */
+  .stats-row {
+    display: flex;
+    justify-content: center;
+    gap: 48px;
+    margin-top: 32px;
+    padding-top: 24px;
+    border-top: 1px solid #E8EAF0;
+  }
+  .stat {
+    text-align: center;
+  }
+  .stat-num {
+    font-size: 28px;
+    font-weight: 800;
+    background: linear-gradient(135deg, #1677FF, #722ED1);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+  .stat-label {
+    font-size: 12px;
+    color: #8C8FA3;
+    margin-top: 2px;
+  }
+</style>
+</head>
+<body>
+<div class="card">
+
+  <!-- HEADER -->
+  <div class="header">
+    <div class="header-left">
+      <h1>🎁 技术风险组 Skills · 全景一览</h1>
+      <p>五大平台 · 一句话驱动全链路运维工作流</p>
+    </div>
+    <div class="badge-row">
+      <div class="badge">18 款 Skills</div>
+      <div class="badge green">正式上线</div>
+    </div>
+  </div>
+
+  <!-- BEFORE / AFTER -->
+  <div class="compare">
+    <div class="before-box">
+      <div class="label">⚠️ Before · 以前</div>
+      <div class="title">排查一个线上告警，要跳 5 个平台</div>
+      <div class="step-list">
+        <div class="step-item">
+          <div class="step-num">1</div>
+          <span>打开 ONES → 查服务发布记录</span>
+          <span class="step-arrow">↓</span>
+        </div>
+        <div class="step-item">
+          <div class="step-num">2</div>
+          <span>打开 X-Ray → 查日志 / 链路 / 指标</span>
+          <span class="step-arrow">↓</span>
+        </div>
+        <div class="step-item">
+          <div class="step-num">3</div>
+          <span>打开 RCM → 确认近期变更</span>
+          <span class="step-arrow">↓</span>
+        </div>
+        <div class="step-item">
+          <div class="step-num">4</div>
+          <span>打开鸿鹄 → 看容量水位</span>
+          <span class="step-arrow">↓</span>
+        </div>
+        <div class="step-item">
+          <div class="step-num">5</div>
+          <span>打开 HA → 找预案 / 巡检结果</span>
+        </div>
+      </div>
+      <div class="before-footer">⏱ 平均耗时：15–30 分钟，多平台反复跳转</div>
+    </div>
+
+    <div class="arrow-col">
+      <div class="arrow-icon">→</div>
+      <div class="arrow-label">现在</div>
+    </div>
+
+    <div class="after-box">
+      <div class="label">✅ After · 现在</div>
+      <div class="title">一句自然语言，搞定全链路</div>
+      <div class="after-desc">
+        打开小龙虾🦞，说一句：<br>
+        <br>
+        <strong>「帮我查一下 xxx 服务最近的告警、链路异常和变更记录」</strong><br>
+        <br>
+        Skills 自动调用五大平台接口，聚合返回结果——<br>
+        <span class="tag">发布状态</span>
+        <span class="tag purple">异常链路</span>
+        <span class="tag green">容量水位</span>
+        <span class="tag orange">变更事件</span>
+        <span class="tag red">高可用预案</span>
+      </div>
+      <div class="after-footer">🚀 信息主动找人，告别多平台跳转</div>
+    </div>
+  </div>
+
+  <div class="divider">5 大平台 · Skills 全景</div>
+
+  <!-- PLATFORM GRID -->
+  <div class="platform-grid">
+    <div class="platform-card blue">
+      <div class="platform-icon">🚀</div>
+      <div class="platform-name">ONES 发布平台</div>
+      <div class="platform-count">1 个 Skill</div>
+      <div class="skill-tags">
+        <span class="skill-tag highlight">发布助手</span>
+        <span class="skill-tag">信息查询</span>
+        <span class="skill-tag">测试环境发布</span>
+        <span class="skill-tag">发布诊断</span>
+      </div>
+    </div>
+    <div class="platform-card purple">
+      <div class="platform-icon">🔭</div>
+      <div class="platform-name">X-Ray 可观测</div>
+      <div class="platform-count">9 个 Skills</div>
+      <div class="skill-tags">
+        <span class="skill-tag highlight">指标查询</span>
+        <span class="skill-tag highlight">日志查询</span>
+        <span class="skill-tag highlight">链路追踪</span>
+        <span class="skill-tag">单链路诊断</span>
+        <span class="skill-tag">告警规则</span>
+        <span class="skill-tag">告警事件</span>
+      </div>
+    </div>
+    <div class="platform-card green">
+      <div class="platform-icon">📊</div>
+      <div class="platform-name">鸿鹄容量平台</div>
+      <div class="platform-count">2 个 Skills</div>
+      <div class="skill-tags">
+        <span class="skill-tag highlight">服务容量信息</span>
+        <span class="skill-tag highlight">容量评估详情</span>
+        <span class="skill-tag">实时水位</span>
+        <span class="skill-tag">极限QPS</span>
+      </div>
+    </div>
+    <div class="platform-card orange">
+      <div class="platform-icon">🔒</div>
+      <div class="platform-name">RCM 变更管控</div>
+      <div class="platform-count">3 个 Skills</div>
+      <div class="skill-tags">
+        <span class="skill-tag highlight">变更事件查询</span>
+        <span class="skill-tag highlight">合规率查询</span>
+        <span class="skill-tag highlight">封网查询</span>
+      </div>
+    </div>
+    <div class="platform-card red">
+      <div class="platform-icon">🛡️</div>
+      <div class="platform-name">HA 高可用平台</div>
+      <div class="platform-count">3 个 Skills + 故障演练</div>
+      <div class="skill-tags">
+        <span class="skill-tag highlight">稳定性元数据</span>
+        <span class="skill-tag highlight">预案检索</span>
+        <span class="skill-tag">风险巡检</span>
+        <span class="skill-tag">故障演练</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- STATS -->
+  <div class="stats-row">
+    <div class="stat">
+      <div class="stat-num">5</div>
+      <div class="stat-label">大平台全覆盖</div>
+    </div>
+    <div class="stat">
+      <div class="stat-num">18</div>
+      <div class="stat-label">生产级 Skills</div>
+    </div>
+    <div class="stat">
+      <div class="stat-num">1</div>
+      <div class="stat-label">句话驱动全链路</div>
+    </div>
+    <div class="stat">
+      <div class="stat-num">0</div>
+      <div class="stat-label">平台跳转</div>
+    </div>
+  </div>
+
+</div>
+</body>
+</html>

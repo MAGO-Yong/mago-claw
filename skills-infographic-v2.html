@@ -1,0 +1,428 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: -apple-system, "PingFang SC", "Helvetica Neue", Arial, sans-serif;
+    background: #0D0F1A;
+    width: 1200px;
+    height: 760px;
+    overflow: hidden;
+  }
+  canvas { display: block; }
+</style>
+</head>
+<body>
+<canvas id="c" width="1200" height="760"></canvas>
+<script>
+const canvas = document.getElementById('c');
+const ctx = canvas.getContext('2d');
+const W = 1200, H = 760;
+const cx = W / 2, cy = H / 2 + 45;
+
+// platforms with fixed label/tag positions
+const platforms = [
+  {
+    name: 'ONES 发布平台', abbr: 'ONES', count: '1 Skill',
+    color: '#1677FF', dark: '#0D4FBF',
+    skills: ['发布信息查询', '测试环境发布', '发布诊断'],
+    angle: 270,  // top center
+    labelDir: 'top'
+  },
+  {
+    name: 'X-Ray 可观测', abbr: 'X-Ray', count: '9 Skills',
+    color: '#722ED1', dark: '#4A1A8C',
+    skills: ['指标查询', '日志查询', '链路追踪', '单链路诊断', '告警管理'],
+    angle: 342,  // upper right
+    labelDir: 'right'
+  },
+  {
+    name: '鸿鹄容量平台', abbr: '鸿鹄', count: '2 Skills',
+    color: '#00A854', dark: '#006633',
+    skills: ['服务容量信息', '容量评估详情'],
+    angle: 54,   // lower right
+    labelDir: 'right'
+  },
+  {
+    name: 'RCM 变更管控', abbr: 'RCM', count: '3 Skills',
+    color: '#FA8C16', dark: '#A85800',
+    skills: ['变更事件查询', '合规率查询', '封网查询'],
+    angle: 126,  // lower left
+    labelDir: 'left'
+  },
+  {
+    name: 'HA 高可用平台', abbr: 'HA', count: '4 Skills',
+    color: '#CF1322', dark: '#870D17',
+    skills: ['稳定性元数据', '预案检索', '风险巡检', '故障演练'],
+    angle: 198,  // upper left
+    labelDir: 'left'
+  }
+];
+
+const R_orbit = 220;
+const R_center = 64;
+const R_node = 44;
+
+function deg2rad(d) { return d * Math.PI / 180; }
+
+function roundRect(x, y, w, h, r) {
+  ctx.beginPath();
+  ctx.moveTo(x + r, y);
+  ctx.lineTo(x + w - r, y);
+  ctx.quadraticCurveTo(x + w, y, x + w, y + r);
+  ctx.lineTo(x + w, y + h - r);
+  ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+  ctx.lineTo(x + r, y + h);
+  ctx.quadraticCurveTo(x, y + h, x, y + h - r);
+  ctx.lineTo(x, y + r);
+  ctx.quadraticCurveTo(x, y, x + r, y);
+  ctx.closePath();
+}
+
+// ---- background ----
+const bg = ctx.createRadialGradient(cx, cy, 0, cx, cy, 620);
+bg.addColorStop(0, '#18203A');
+bg.addColorStop(1, '#070910');
+ctx.fillStyle = bg;
+ctx.fillRect(0, 0, W, H);
+
+// grid dots
+ctx.save();
+ctx.globalAlpha = 0.05;
+ctx.fillStyle = '#8899CC';
+for (let x = 20; x < W; x += 40)
+  for (let y = 20; y < H; y += 40) {
+    ctx.beginPath();
+    ctx.arc(x, y, 1, 0, Math.PI * 2);
+    ctx.fill();
+  }
+ctx.restore();
+
+// ---- orbit ring ----
+ctx.save();
+ctx.globalAlpha = 0.1;
+ctx.strokeStyle = '#6699FF';
+ctx.lineWidth = 1;
+ctx.setLineDash([5, 10]);
+ctx.beginPath();
+ctx.arc(cx, cy, R_orbit, 0, Math.PI * 2);
+ctx.stroke();
+ctx.restore();
+
+// ---- center glow ----
+const glowGrad = ctx.createRadialGradient(cx, cy, 0, cx, cy, R_orbit + 60);
+glowGrad.addColorStop(0, 'rgba(22,119,255,0.10)');
+glowGrad.addColorStop(0.5, 'rgba(22,119,255,0.04)');
+glowGrad.addColorStop(1, 'rgba(22,119,255,0)');
+ctx.fillStyle = glowGrad;
+ctx.fillRect(0, 0, W, H);
+
+// ---- platforms ----
+platforms.forEach(p => {
+  const rad = deg2rad(p.angle);
+  const px = cx + R_orbit * Math.cos(rad);
+  const py = cy + R_orbit * Math.sin(rad);
+
+  // connection line
+  const ex = cx + (R_center + 2) * Math.cos(rad);
+  const ey = cy + (R_center + 2) * Math.sin(rad);
+  const nx = px - (R_node + 2) * Math.cos(rad);
+  const ny = py - (R_node + 2) * Math.sin(rad);
+
+  const lineGrad = ctx.createLinearGradient(ex, ey, nx, ny);
+  lineGrad.addColorStop(0, 'rgba(100,160,255,0.4)');
+  lineGrad.addColorStop(1, p.color + '99');
+  ctx.save();
+  ctx.strokeStyle = lineGrad;
+  ctx.lineWidth = 1.5;
+  ctx.beginPath();
+  ctx.moveTo(ex, ey);
+  ctx.lineTo(nx, ny);
+  ctx.stroke();
+  ctx.restore();
+
+  // node glow halo
+  ctx.save();
+  ctx.shadowColor = p.color;
+  ctx.shadowBlur = 35;
+  const nGrad = ctx.createRadialGradient(px, py, 0, px, py, R_node);
+  nGrad.addColorStop(0, p.color + 'EE');
+  nGrad.addColorStop(0.7, p.dark + 'DD');
+  nGrad.addColorStop(1, p.dark + '88');
+  ctx.fillStyle = nGrad;
+  ctx.beginPath();
+  ctx.arc(px, py, R_node, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.restore();
+
+  // node border
+  ctx.save();
+  ctx.strokeStyle = p.color + 'CC';
+  ctx.lineWidth = 1.5;
+  ctx.beginPath();
+  ctx.arc(px, py, R_node, 0, Math.PI * 2);
+  ctx.stroke();
+  ctx.restore();
+
+  // abbr text in node (no emoji since headless chrome can't render)
+  ctx.save();
+  ctx.font = 'bold 14px "PingFang SC", Arial';
+  ctx.fillStyle = '#FFFFFF';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText(p.abbr, px, py - 8);
+  ctx.restore();
+
+  // count in node
+  ctx.save();
+  ctx.font = '10px "PingFang SC", Arial';
+  ctx.fillStyle = 'rgba(220,235,255,0.85)';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText(p.count, px, py + 10);
+  ctx.restore();
+
+  // ---- label + skill tags (fixed layout by direction) ----
+  const tagH = 20, tagGap = 5;
+  const totalH = p.skills.length * (tagH + tagGap) - tagGap;
+
+  let startX, startY, align;
+
+  if (p.labelDir === 'top') {
+    // ONES: name above node, tags split left/right of node
+    ctx.save();
+    ctx.font = 'bold 12px "PingFang SC", Arial';
+    ctx.fillStyle = p.color;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(p.name, px, py - R_node - 18);
+    ctx.restore();
+    // left tags / right tags split
+    const left = p.skills.slice(0, Math.ceil(p.skills.length / 2));
+    const right = p.skills.slice(Math.ceil(p.skills.length / 2));
+    // left side: right-aligned
+    left.forEach((s, i) => {
+      ctx.save();
+      ctx.font = '10px "PingFang SC", Arial';
+      const sw = ctx.measureText(s).width + 14;
+      const tx = px - R_node - 14 - sw / 2;
+      const ty = py - (left.length - 1) * (tagH + tagGap) / 2 + i * (tagH + tagGap);
+      ctx.globalAlpha = 0.8;
+      ctx.fillStyle = p.color + '22';
+      roundRect(tx - sw / 2, ty - tagH / 2, sw, tagH, tagH / 2);
+      ctx.fill();
+      ctx.strokeStyle = p.color + '77'; ctx.lineWidth = 0.8;
+      roundRect(tx - sw / 2, ty - tagH / 2, sw, tagH, tagH / 2);
+      ctx.stroke();
+      ctx.fillStyle = '#BBDDFF'; ctx.globalAlpha = 0.9;
+      ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      ctx.fillText(s, tx, ty);
+      ctx.restore();
+    });
+    // right side
+    right.forEach((s, i) => {
+      ctx.save();
+      ctx.font = '10px "PingFang SC", Arial';
+      const sw = ctx.measureText(s).width + 14;
+      const tx = px + R_node + 14 + sw / 2;
+      const ty = py - (right.length - 1) * (tagH + tagGap) / 2 + i * (tagH + tagGap);
+      ctx.globalAlpha = 0.8;
+      ctx.fillStyle = p.color + '22';
+      roundRect(tx - sw / 2, ty - tagH / 2, sw, tagH, tagH / 2);
+      ctx.fill();
+      ctx.strokeStyle = p.color + '77'; ctx.lineWidth = 0.8;
+      roundRect(tx - sw / 2, ty - tagH / 2, sw, tagH, tagH / 2);
+      ctx.stroke();
+      ctx.fillStyle = '#BBDDFF'; ctx.globalAlpha = 0.9;
+      ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      ctx.fillText(s, tx, ty);
+      ctx.restore();
+    });
+  } else if (p.labelDir === 'right') {
+    // X-Ray (upper right) and 鸿鹄 (lower right): tags to the right
+    const labelX = px + R_node + 14;
+    const labelY = py - totalH / 2 - 20;
+    // platform name
+    ctx.save();
+    ctx.font = 'bold 12px "PingFang SC", Arial';
+    ctx.fillStyle = p.color;
+    ctx.textAlign = 'left';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(p.name, labelX, labelY);
+    ctx.restore();
+    // tags stacked
+    p.skills.forEach((s, i) => {
+      ctx.save();
+      ctx.font = '10px "PingFang SC", Arial';
+      const sw = ctx.measureText(s).width + 14;
+      const tx = labelX + sw / 2;
+      const ty = labelY + 20 + i * (tagH + tagGap) + tagH / 2;
+      ctx.globalAlpha = 0.8;
+      ctx.fillStyle = p.color + '22';
+      roundRect(labelX, ty - tagH / 2, sw, tagH, tagH / 2);
+      ctx.fill();
+      ctx.strokeStyle = p.color + '77';
+      ctx.lineWidth = 0.8;
+      roundRect(labelX, ty - tagH / 2, sw, tagH, tagH / 2);
+      ctx.stroke();
+      ctx.fillStyle = '#BBDDFF';
+      ctx.globalAlpha = 0.9;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(s, tx, ty);
+      ctx.restore();
+    });
+  } else {
+    // RCM (lower left) and HA (upper left): tags to the left
+    ctx.save();
+    ctx.font = 'bold 12px "PingFang SC", Arial';
+    const nameW = ctx.measureText(p.name).width;
+    const labelX = px - R_node - 14;
+    const labelY = py - totalH / 2 - 20;
+    ctx.fillStyle = p.color;
+    ctx.textAlign = 'right';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(p.name, labelX, labelY);
+    ctx.restore();
+    p.skills.forEach((s, i) => {
+      ctx.save();
+      ctx.font = '10px "PingFang SC", Arial';
+      const sw = ctx.measureText(s).width + 14;
+      const tx = labelX - sw / 2;
+      const ty = labelY + 20 + i * (tagH + tagGap) + tagH / 2;
+      ctx.globalAlpha = 0.8;
+      ctx.fillStyle = p.color + '22';
+      roundRect(labelX - sw, ty - tagH / 2, sw, tagH, tagH / 2);
+      ctx.fill();
+      ctx.strokeStyle = p.color + '77';
+      ctx.lineWidth = 0.8;
+      roundRect(labelX - sw, ty - tagH / 2, sw, tagH, tagH / 2);
+      ctx.stroke();
+      ctx.fillStyle = '#BBDDFF';
+      ctx.globalAlpha = 0.9;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(s, labelX - sw / 2, ty);
+      ctx.restore();
+    });
+  }
+});
+
+// ---- center circle ----
+// outer pulse rings
+[110, 85].forEach((r, i) => {
+  ctx.save();
+  ctx.globalAlpha = 0.05 - i * 0.02;
+  ctx.fillStyle = '#3399FF';
+  ctx.beginPath();
+  ctx.arc(cx, cy, r, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.restore();
+});
+
+const cGrad = ctx.createRadialGradient(cx, cy, 0, cx, cy, R_center);
+cGrad.addColorStop(0, '#4488FF');
+cGrad.addColorStop(0.6, '#1555DD');
+cGrad.addColorStop(1, '#0A3499');
+ctx.save();
+ctx.shadowColor = '#2266FF';
+ctx.shadowBlur = 40;
+ctx.fillStyle = cGrad;
+ctx.beginPath();
+ctx.arc(cx, cy, R_center, 0, Math.PI * 2);
+ctx.fill();
+ctx.restore();
+
+ctx.save();
+ctx.strokeStyle = 'rgba(100,180,255,0.6)';
+ctx.lineWidth = 1.5;
+ctx.beginPath();
+ctx.arc(cx, cy, R_center, 0, Math.PI * 2);
+ctx.stroke();
+ctx.restore();
+
+// center text
+ctx.save();
+ctx.font = 'bold 18px "PingFang SC", Arial';
+ctx.fillStyle = '#FFFFFF';
+ctx.textAlign = 'center';
+ctx.textBaseline = 'middle';
+ctx.fillText('RedLobi', cx, cy - 10);
+ctx.restore();
+
+ctx.save();
+ctx.font = '11px "PingFang SC", Arial';
+ctx.fillStyle = 'rgba(180,210,255,0.8)';
+ctx.textAlign = 'center';
+ctx.textBaseline = 'middle';
+ctx.fillText('小龙虾 🦞', cx, cy + 12);
+ctx.restore();
+
+// ---- title ----
+ctx.save();
+ctx.font = 'bold 20px "PingFang SC", Arial';
+ctx.fillStyle = '#FFFFFF';
+ctx.textAlign = 'center';
+ctx.textBaseline = 'top';
+ctx.shadowColor = 'rgba(22,100,255,0.5)';
+ctx.shadowBlur = 12;
+ctx.fillText('技术风险组 · 五大平台 Skills 全景', cx, 22);
+ctx.restore();
+
+ctx.save();
+ctx.font = '12px "PingFang SC", Arial';
+ctx.fillStyle = 'rgba(130,155,200,0.8)';
+ctx.textAlign = 'center';
+ctx.textBaseline = 'top';
+ctx.fillText('18 款生产级 Skills · 一句自然语言 · 全链路运维工作流', cx, 50);
+ctx.restore();
+
+// ---- bottom stats ----
+const stats = [
+  { num: '5', label: '大平台全覆盖' },
+  { num: '18', label: '生产级 Skills' },
+  { num: '1', label: '句话驱动全链路' },
+  { num: '0', label: '平台跳转' },
+];
+const bY = H - 50;
+const bW = 160;
+const bStart = cx - (stats.length * bW) / 2 + bW / 2;
+
+stats.forEach((s, i) => {
+  const sx = bStart + i * bW;
+  // number
+  ctx.save();
+  ctx.font = 'bold 28px "PingFang SC", Arial';
+  const ng = ctx.createLinearGradient(sx - 20, bY, sx + 20, bY + 28);
+  ng.addColorStop(0, '#66AAFF');
+  ng.addColorStop(1, '#AA88FF');
+  ctx.fillStyle = ng;
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'top';
+  ctx.fillText(s.num, sx, bY);
+  ctx.restore();
+  // label
+  ctx.save();
+  ctx.font = '11px "PingFang SC", Arial';
+  ctx.fillStyle = 'rgba(130,155,200,0.7)';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'top';
+  ctx.fillText(s.label, sx, bY + 32);
+  ctx.restore();
+});
+
+// divider above stats
+ctx.save();
+ctx.globalAlpha = 0.12;
+ctx.strokeStyle = '#AABBDD';
+ctx.lineWidth = 1;
+ctx.beginPath();
+ctx.moveTo(cx - 280, H - 76);
+ctx.lineTo(cx + 280, H - 76);
+ctx.stroke();
+ctx.restore();
+</script>
+</body>
+</html>

@@ -19,6 +19,8 @@ metadata:
 
 # Xray 日志查询
 
+> `{SKILL_DIR}` 为本 skill 所在目录的绝对路径，执行脚本时必须使用绝对路径。
+
 ## 概述
 
 通过调用 Xray 日志平台的 HTTP API，查询小红书应用日志（application 表）。  
@@ -48,11 +50,11 @@ ID 为输入，但职责不同，需根据用户意图选择：
 
 根据用户描述，确定以下参数：
 
-| 参数        | 确定方式                                                              |
-| ----------- | --------------------------------------------------------------------- |
-| `query`     | 从用户描述中提取服务名、TraceId、关键词等，组合 Lucene 语法           |
-| `st` / `et` | 从用户描述中提取时间范围，转换为 Unix 秒；未指定则默认最近 1 小时     |
-| 查询类型    | 用户要看"数量/趋势" → charts；要看"具体日志内容" → logs；通常两个都调 |
+| 参数        | 确定方式                                                                                                 |
+| ----------- | -------------------------------------------------------------------------------------------------------- |
+| `query`     | 从用户描述中提取服务名、TraceId、关键词等，组合 Lucene 语法                                              |
+| `st` / `et` | 从用户描述中提取时间范围，转换为 Unix 秒；未指定则默认最近 1 小时                                        |
+| 查询类型    | 用户要看"数量/趋势" → charts + logs；要看"聚类/模式分析" → charts + cluster-logs；默认只调 charts + logs |
 
 **query 构建原则（重要）：**
 
@@ -73,112 +75,81 @@ ID 为输入，但职责不同，需根据用户意图选择：
 - 若用户提供时间字符串（如 `"2024-03-25 14:00:00 - 2024-03-25 15:10:10"`），先用 `to_timestamp.py`
   转换为 Unix 秒：
   ```bash
-  python3 scripts/to_timestamp.py --range "2024-03-25 14:00:00 - 2024-03-25 15:10:10"
+  python3 {SKILL_DIR}/scripts/to_timestamp.py --range "2024-03-25 14:00:00 - 2024-03-25 15:10:10"
   # 输出为秒级时间戳，不是毫秒，直接作为 --st / --et 使用
   # 也支持: --range "now-1h - now" / --start "2024-03-25 14:00" --end "2024-03-25 15:00"
   ```
 
-### Step 2：设置鉴权
+`scripts/` 目录下共 5 个脚本：
 
-所有查询脚本均内置鉴权逻辑，ticket 生成规则为 `Base64(app&token&timestamp_ms)`，请求头字段名为
-`xray_ticket`。
+| 脚本                                        | 说明                                                                         |
+| ------------------------------------------- | ---------------------------------------------------------------------------- |
+| `{SKILL_DIR}/scripts/nl_to_xql.py`          | 自然语言 → XQL 查询参数（支持规则模式和 LLM 模式，也可单独使用）             |
+| `{SKILL_DIR}/scripts/validate_query.py`     | 前置参数校验（也可单独使用，三个查询脚本的 --text 模式均已内置校验）         |
+| `{SKILL_DIR}/scripts/query_charts.py`       | `/charts` 接口：**支持 --text 一步到位**（自然语言解析 + 校验 + 查询）       |
+| `{SKILL_DIR}/scripts/query_logs.py`         | `/logs` 接口：**支持 --text 一步到位**（自然语言解析 + 校验 + 查询）         |
+| `{SKILL_DIR}/scripts/query_cluster_logs.py` | `/cluster-logs` 接口：**支持 --text 一步到位**（自然语言解析 + 校验 + 查询） |
 
-**Token 获取策略（按优先级）：**
+### Step 2：调用 query_charts.py 获取日志分布（为 /logs 预热缓存）
 
-1. 读取环境变量 `XRAY_AUTH_TOKEN`（推荐，在 `.env` 或 shell profile 中预先配置）
-2. 若环境变量未设置，脚本运行时会在终端提示用户交互式输入
+`query_charts.py` 支持两种模式，**优先使用 --text 模式**以减少工具调用次数：
 
-**app 来源：**
+**模式 A：--text 一步到位（推荐）**
 
-- 优先读取环境变量 `XRAY_APP`；未设置时默认使用 `xray`
-
-**推荐配置方式：**
+当用户用自然语言描述查询意图时，直接传
+`--text`，脚本内部自动完成：自然语言解析（nl_to_xql）→ 参数校验（validate_query）→
+charts 查询，**一次调用完成**。
 
 ```bash
-export XRAY_AUTH_TOKEN="your_token_here"   # 在 XRay 平台申请并审批后获取
-# export XRAY_APP="your_app_name"          # 可选，默认 xray
+python3 {SKILL_DIR}/scripts/query_charts.py \
+  --text "查一下 my-service 最近 1 小时的 error 日志"
+# 输出 JSON 同时包含 charts 结果和 parse_result（解析详情）
+# parse_result 中的 query/st/et/search_trace_app 可直接用于后续 query_logs.py / query_cluster_logs.py 调用
+
+# 启用 LLM 模式（更准确，可选）
+python3 {SKILL_DIR}/scripts/query_charts.py \
+  --text "..." --llm-api-key $LLM_API_KEY
 ```
 
-Token 申请地址：[xray.devops.xiaohongshu.com/config/token](http://xray.devops.xiaohongshu.com/config/token)（申请后需联系 @阿普 或 @荀诩 审批，QPS 上限 20）
+输出 JSON 中 `parse_result` 字段含义：
 
-`scripts/` 目录下共 6 个脚本：
+- `query` / `st` / `et`：解析出的查询参数，直接传给后续 query_logs.py / query_cluster_logs.py
+- `search_trace_app`：含 xrayTraceId 时为 true，需传给 query_logs.py 的 `--search-trace-app`
+- `confidence`：high/medium/low；low 时 stderr 有警告，建议人工确认
+- `explanation`：解析逻辑说明
 
-| 脚本                            | 说明                                                                    |
-| ------------------------------- | ----------------------------------------------------------------------- |
-| `scripts/auth.py`               | **鉴权公共模块**：ticket 生成、token 读取（被其他脚本复用，不直接调用） |
-| `scripts/nl_to_xql.py`          | 自然语言 → XQL 查询参数（支持规则模式和 LLM 模式）                      |
-| `scripts/validate_query.py`     | 前置参数校验，尽早发现问题（必须在调用接口前执行）                      |
-| `scripts/query_charts.py`       | `/charts` 接口：查询日志数量分布，同时为 /logs 预热缓存                 |
-| `scripts/query_logs.py`         | `/logs` 接口：查询日志详情列表                                          |
-| `scripts/query_cluster_logs.py` | `/cluster-logs` 接口：查询日志聚类模板                                  |
+错误处理：
 
-**当用户用自然语言描述查询意图时**，先调用 `nl_to_xql.py` 生成 query/st/et 参数，再进入 Step
-3 流程。
+- 解析失败（无法生成 query）：exit 2，输出含 `error` 和 `parse_result`
+- 校验失败：exit 1，输出含 `error`、`validation_errors` 和 `parse_result`
+- charts 接口错误：exit 1，正常输出接口响应（含 `code` 和 `msg`）
 
-```bash
-# 规则模式（无需 LLM，基于正则匹配）
-python scripts/nl_to_xql.py --text "查一下 my-service 最近 1 小时的 error 日志"
-# 输出 {"query": "subApplication:my-service AND level:error", "st": ..., "et": ..., ...}
+**模式 B：--query 直接传参**
 
-# LLM 模式（更准确，需配置 API Key）
-python scripts/nl_to_xql.py --text "..." --llm-api-key $LLM_API_KEY
-```
-
-`nl_to_xql.py` 输出 JSON，字段含义：
-
-- `query` / `st` / `et`：直接传给后续脚本
-- `search_trace_app`：含 xrayTraceId 时为 true，需传给 query_logs.py
-- `confidence`：high/medium/low；low 时 exit 2，建议人工确认或启用 LLM 模式
-
-### Step 3：前置校验（必须）
-
-在调用任何接口脚本前，先用 `validate_query.py` 校验参数。校验失败（exit
-1）时终止流程并告知用户错误原因。
+当你已经有明确的 Lucene query 和时间戳时（如从上一步获得），直接传 `--query`/`--st`/`--et`：
 
 ```bash
-python scripts/validate_query.py \
-  --query "<XQL查询条件>" \
-  --st <开始Unix秒> \
-  --et <结束Unix秒>
-# exit 0 → 通过，继续；exit 1 → 失败，输出 {"valid": false, "errors": [...]}
-```
-
-校验内容（来自服务端同名逻辑）：
-
-- query 非空，且不含 `| SELECT` 注入
-- query 含 `subApplication` / `xrayTraceId` / `_pod_name_` 等必要字段之一
-- `xrayTraceId` 格式为 32 位十六进制
-- `ET > ST`，时间跨度不超过 5 天（与 Apollo `max_query_time_range_day` 一致）
-- `pageSize` 在 [1, 10000] 范围内
-
-### Step 4：先调 query_charts.py，再并行调 query_cluster_logs.py 和 query_logs.py
-
-**第一步：调用 query_charts.py（必须最先调，为 /logs 预热缓存）**
-
-```bash
-python scripts/query_charts.py \
+python3 {SKILL_DIR}/scripts/query_charts.py \
   --query "<Lucene查询条件>" \
   --st <开始Unix秒> \
   --et <结束Unix秒> \
   [--page-size 20]
 ```
 
-**第二步：同时调用 query_cluster_logs.py 和 query_logs.py（可并行）**
+> 注意：--query 模式不含自动校验，如需校验请先调用 `validate_query.py`。
 
-调用 query_cluster_logs.py：
+### Step 3：调用 query_logs.py 获取日志详情
 
-```bash
-python scripts/query_cluster_logs.py \
-  --query "<Lucene查询条件>" \
-  --st <开始Unix秒> \
-  --et <结束Unix秒> \
-  [--compare-st <对比开始Unix秒> --compare-et <对比结束Unix秒>]
-```
-
-调用 query_logs.py：
+`query_logs.py` 同样支持 `--text` 和 `--query` 两种模式：
 
 ```bash
-python scripts/query_logs.py \
+# --text 模式（自然语言一步到位，内含解析 + 校验，自动设置 search-trace-app）
+python3 {SKILL_DIR}/scripts/query_logs.py \
+  --text "查一下 my-service 最近 1 小时的 error 日志" \
+  [--page 1] [--page-size 20] [--order desc]
+
+# --query 模式（直接传参）
+python3 {SKILL_DIR}/scripts/query_logs.py \
   --query "<Lucene查询条件>" \
   --st <开始Unix秒> \
   --et <结束Unix秒> \
@@ -186,28 +157,35 @@ python scripts/query_logs.py \
   [--search-trace-app]   # 按 TraceId 查时加上
 ```
 
-### Step 5：解读并呈现结果
+### Step 3b（仅当用户明确要求聚类时）：调用 query_cluster_logs.py
+
+**不要默认调用 cluster-logs。** 仅当用户明确提到以下意图时才调用：
+
+- 关键词：聚类、聚合、模式分析、日志模式、归类、分类、cluster、pattern、template
+- 场景：对比两个时段的日志模式变化
+- 用户说："帮我看看有哪些类型的日志"、"日志聚类分析"、"日志有哪些模式"
+
+```bash
+# --text 模式（自然语言一步到位，内含解析 + 校验）
+python3 {SKILL_DIR}/scripts/query_cluster_logs.py \
+  --text "查一下 my-service 最近 1 小时的日志聚类" \
+  [--compare-st <对比开始Unix秒> --compare-et <对比结束Unix秒>]
+
+# --query 模式（直接传参）
+python3 {SKILL_DIR}/scripts/query_cluster_logs.py \
+  --query "<Lucene查询条件>" \
+  --st <开始Unix秒> \
+  --et <结束Unix秒> \
+  [--compare-st <对比开始Unix秒> --compare-et <对比结束Unix秒>]
+```
+
+### Step 4：解读并呈现结果
 
 **charts 结果解读：**
 
 - 提取 `data.count` 作为总日志数
 - 遍历 `data.histograms`，找出数量最多的时间段
 - 如有 `details`（level 分色），汇总各 level 占比
-
-**聚类结果优先策略（重要）：**
-
-优先检查 `/cluster-logs` 的 `data.templates` 是否非空：
-
-- **有聚类数据**（`templates` 长度 > 0）：
-  - 优先基于聚类分析，按 `count` 降序呈现各模板
-  - 解读模板文本（`[*]` 是变量占位符，代表实际值）
-  - 重点标出 count 最高的 top 3~5 个模板，说明它们代表的典型日志模式
-  - 再用 /logs 的原始日志补充具体上下文（如时间、level、traceId 等）
-  - 向用户说明："以下是按日志内容聚类的分析结果，共 N 种模式"
-
-- **无聚类数据**（`templates` 为空数组）：
-  - 不报错，静默降级，直接使用 /logs 原始日志进行分析
-  - 如有必要，向用户说明："聚类数据暂不可用（可能是该服务日志量较少或聚类模型尚未训练），以下为原始日志分析"
 
 **logs 结果解读：**
 
@@ -216,83 +194,90 @@ python scripts/query_logs.py \
 - 报告 `data.cost`（查询耗时）和 `data.where`（实际过滤条件）
 - 如果 `data.count` 为 0，告知用户未找到日志，建议放宽时间范围或调整查询条件
 
+**聚类结果解读（仅当调用了 cluster-logs 时）：**
+
+- **有聚类数据**（`data.templates` 长度 > 0）：
+  - 按 `count` 降序呈现各模板
+  - 解读模板文本（`[*]` 是变量占位符，代表实际值）
+  - 重点标出 count 最高的 top 3~5 个模板，说明它们代表的典型日志模式
+  - 向用户说明："以下是按日志内容聚类的分析结果，共 N 种模式"
+
+- **无聚类数据**（`templates` 为空数组）：
+  - 向用户说明："聚类数据暂不可用（可能是该服务日志量较少或聚类模型尚未训练）"
+
 **错误处理：**
 
 - `code != 0`：直接将 `msg` 字段告知用户
 - 包含"没有对应的访问权限"：提示用户申请权限，响应中通常含申请链接
 - 包含"查询超出限制"：建议缩小时间范围或增加 subApplication 过滤条件
 - 包含"必须含有 subApplication"：提示用户在 query 中补充服务名等必要字段
-- /cluster-logs 返回错误时：不影响主流程，降级为纯 /logs 分析
 
-### Step 6：分页处理（如需）
+### Step 5：分页处理（如需）
 
 如用户需要更多日志，递增 `page` 参数继续调用 /logs，直到 `data.count < pageSize` 表示已到末页。
 
 ## 快速示例
 
-### 从自然语言到完整查询（端到端流程）
+### 查询某服务最近 1 小时的错误日志（自然语言，一步到位）
 
 ```bash
-# Step 0：自然语言 → XQL 参数
-python scripts/nl_to_xql.py --text "查一下 my-service 最近 1 小时的 error 日志"
-# → {"query": "subApplication:my-service AND level:error", "st": ..., "et": ...}
+# Step 1：自然语言 → 校验 → charts（一次调用完成）
+python3 {SKILL_DIR}/scripts/query_charts.py \
+  --text "查一下 my-service 最近 1 小时的 error 日志"
+# 输出中 parse_result.query = "subApplication:my-service AND level:error"
+# 输出中 parse_result.st / parse_result.et 为解析出的时间戳
 
-# Step 1：前置校验
-python scripts/validate_query.py \
-  --query "subApplication:my-service AND level:error" \
-  --st $(($(date +%s) - 3600)) --et $(date +%s)
-# → {"valid": true}
+# Step 2：获取原始日志详情
+python3 {SKILL_DIR}/scripts/query_logs.py \
+  --text "查一下 my-service 最近 1 小时的 error 日志" \
+  --page-size 20 --order desc
 
-# Step 2-4：正常查询（见下方示例）
+# 注意：不调用 cluster-logs（用户未要求聚类分析）
 ```
 
-### 查询某服务最近 1 小时的错误日志（含聚类分析）
+### 查询某服务最近 1 小时的错误日志（直接传参模式）
 
 ```bash
-# Step 1：前置校验
-python scripts/validate_query.py \
+# Step 1：前置校验（--query 模式需手动校验）
+python3 {SKILL_DIR}/scripts/validate_query.py \
   --query "subApplication:my-service AND level:error" \
   --st $(($(date +%s) - 3600)) --et $(date +%s)
 
-# Step 2：先获取分布（为 logs 预热缓存）
-python scripts/query_charts.py \
+# Step 2：获取分布（为 logs 预热缓存）
+python3 {SKILL_DIR}/scripts/query_charts.py \
   --query "subApplication:my-service AND level:error" \
   --st $(($(date +%s) - 3600)) --et $(date +%s)
 
-# Step 2：并行获取聚类 + 原始日志
-python scripts/query_cluster_logs.py \
-  --query "subApplication:my-service AND level:error" \
-  --st $(($(date +%s) - 3600)) --et $(date +%s)
-
-python scripts/query_logs.py \
+# Step 3：获取原始日志详情
+python3 {SKILL_DIR}/scripts/query_logs.py \
   --query "subApplication:my-service AND level:error" \
   --st $(($(date +%s) - 3600)) --et $(date +%s) \
   --page-size 20 --order desc
 
-# 若 cluster-logs 的 templates 非空 → 优先展示聚类分析
-# 若 cluster-logs 的 templates 为空  → 直接展示 logs 原始日志
+# 注意：不调用 cluster-logs（用户未要求聚类分析）
 ```
 
 ### 按 TraceId 查询链路日志
 
 ```bash
 # Step 1：先获取分布
-python scripts/query_charts.py \
+python3 {SKILL_DIR}/scripts/query_charts.py \
   --query "xrayTraceId:a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4" \
   --st $((ts - 300)) --et $((ts + 600))
 
 # Step 2：获取详情（traceId 场景通常不适合聚类，直接查 logs）
-python scripts/query_logs.py \
+python3 {SKILL_DIR}/scripts/query_logs.py \
   --query "xrayTraceId:a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4" \
   --st $((ts - 300)) --et $((ts + 600)) \
   --search-trace-app --order asc --page-size 100
 ```
 
-### 聚类对比分析（排查两个时段的变化）
+### 聚类对比分析（仅当用户明确要求聚类时）
 
 ```bash
+# 用户说："帮我对比一下这两个时段的日志模式变化"
 # 对比"当前1小时"与"昨天同一时段"的日志模式变化
-python scripts/query_cluster_logs.py \
+python3 {SKILL_DIR}/scripts/query_cluster_logs.py \
   --query "subApplication:my-service" \
   --st $((now - 3600)) --et $now \
   --compare-st $((yesterday - 3600)) --compare-et $yesterday

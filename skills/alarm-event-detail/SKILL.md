@@ -2,7 +2,6 @@
 name: alarm-event-detail
 description:
   查询 Xray 告警事件详情。当用户提供事件 ID 需要查看完整的事件信息、操作记录、告警详情时触发。
-version: 1.0.0
 metadata:
   category: alarm
   subcategory: event

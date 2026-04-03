@@ -16,19 +16,13 @@ import urllib.error
 import urllib.parse
 import urllib.request
 
-API_URL = "https://xray.devops.xiaohongshu.com/api/ac/event"
-ST_ID = "xray_overview"
-ST_SECRET = "3dd67e04c899313aae19bc99c0a5c551"
+API_URL = "https://xray-ai.devops.xiaohongshu.com/open/skill/xray-proxy/ac/event"
 
 
 def fetch(event_id: int) -> dict:
     url = f"{API_URL}/{event_id}"
     req = urllib.request.Request(
         url,
-        headers={
-            "x_authorization_st_id": ST_ID,
-            "x_authorization_st_secret": ST_SECRET,
-        },
         method="GET",
     )
     try:

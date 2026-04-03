@@ -3,7 +3,6 @@ name: alarm-rule-search
 description:
   按 app/service 名称、产品线或业务线搜索 Xray 告警规则列表，支持 PQL
   告警和服务告警两类。当用户需要查询某个服务/产品线/业务线下有哪些告警规则时触发。
-version: 1.0.0
 metadata:
   category: alarm
   subcategory: rule

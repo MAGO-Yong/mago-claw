@@ -1,7 +1,6 @@
 ---
 name: "xray-single-trace-analysis"
 description: "单链路分析，提供异常的Span和日志信息、定位根因并输出结构化结论，触发源:traceId"
-version: 1.0.0
 metadata:
   category: trace
   subcategory: single-trace
@@ -13,6 +12,8 @@ metadata:
 ---
 
 # 单链路 Trace 分析能力说明
+
+> `{SKILL_DIR}` 为本 skill 所在目录的绝对路径，执行脚本时必须使用绝对路径。
 
 ## 角色设定
 
@@ -45,13 +46,13 @@ ID 为输入，但职责不同，需根据用户意图选择：
 
 ### 1) 数据拉取脚本
 
-脚本路径（相对 skill 根目录）：
+脚本路径：
 
-- `scripts/fetch_trace_data.py`
+- `{SKILL_DIR}/scripts/fetch_trace_data.py`
 
 该脚本会请求以下接口（默认）：
 
-- `https://xray.devops.xiaohongshu.com/api/trace/traceid/analysis`
+- `https://xray-ai.devops.xiaohongshu.com/open/skill/tracing/traceid/analysis`
 
 默认查询参数：
 
@@ -72,16 +73,14 @@ ID 为输入，但职责不同，需根据用户意图选择：
 示例：
 
 ```bash
-python3 /绝对路径/xray-single-trace-analysis/scripts/fetch_trace_data.py <trace_id>
+python3 {SKILL_DIR}/scripts/fetch_trace_data.py <trace_id>
 ```
 
 如果需要将原始结果落盘：
 
 ```bash
-python3 /绝对路径/xray-single-trace-analysis/scripts/fetch_trace_data.py <trace_id> --output /tmp/trace_<trace_id>.json
+python3 {SKILL_DIR}/scripts/fetch_trace_data.py <trace_id> --output /tmp/trace_<trace_id>.json
 ```
-
-> 注意：执行脚本时必须使用绝对路径。
 
 ## 返回数据关注字段
 

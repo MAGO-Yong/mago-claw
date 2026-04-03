@@ -1,16 +1,30 @@
 #!/usr/bin/env python3
 """
-XRay 异常 Span 批量查询脚本
-调用 /analysisSearch 接口，查询指定服务+接口在某时间段内的异常 Span，
-输出精简 Span 列表、traceId 列表及 8 维度聚合分析。
+XRay Span 批量查询脚本
+调用 /analysisSearch 接口，支持两种模式：
+  - ERROR（默认）: 查询异常 Span（status=1），可按 errorNames 过滤
+  - SLOW         : 查询慢 Span（按耗时降序），可设定 minDurationMs 阈值 + topN 截断，
+                   额外返回 durationStats（avg/p50/p90/p99）和耗时桶分布
 
 用法：
+    # ERROR 模式（默认，与旧版兼容）
     python3 analysis_search.py \
         --app xray-server \
         --start 1711339200 \
         --end 1711342800 \
         [--endpoint "Http./api/trace/search"] \
         [--error-names "TimeoutException,IOException"] \
+        [--limit 500]
+
+    # SLOW 模式
+    python3 analysis_search.py \
+        --app xray-server \
+        --start 1711339200 \
+        --end 1711342800 \
+        --mode SLOW \
+        [--endpoint "Service.com.xxx.SomeService"] \
+        [--min-duration-ms 1000] \
+        [--top-n 20] \
         [--limit 500]
 """
 
@@ -20,13 +34,12 @@ import sys
 import urllib.request
 import urllib.error
 
-API_URL = "https://xray.devops.xiaohongshu.com/api/trace/analysisSearch"
-AUTH_HEADER = "pass"
+API_URL = "https://xray-ai.devops.xiaohongshu.com/open/skill/tracing/analysisSearch"
 TOP_N = 10  # Span 列表展示条数
 
 
 def parse_args():
-    parser = argparse.ArgumentParser(description="XRay 异常 Span 批量查询")
+    parser = argparse.ArgumentParser(description="XRay Span 批量查询（支持 ERROR / SLOW 两种模式）")
     parser.add_argument("--app", required=True, help="服务名（必填）")
     parser.add_argument(
         "--start", required=True, type=int, help="开始时间（秒级 Unix 时间戳，必填）"
@@ -37,11 +50,33 @@ def parse_args():
         default=None,
         help="接口，格式 transactionType.transactionName（选填）",
     )
+    # 搜索模式
+    parser.add_argument(
+        "--mode",
+        default=None,
+        choices=["ERROR", "SLOW"],
+        help="搜索模式：ERROR（异常 Span，默认）/ SLOW（慢 Span）",
+    )
+    # ERROR 模式参数
     parser.add_argument(
         "--error-names",
         default=None,
-        help="异常类型过滤，逗号分隔（选填），如 TimeoutException,IOException",
+        help="[ERROR 模式] 异常类型过滤，逗号分隔，如 TimeoutException,IOException",
     )
+    # SLOW 模式参数
+    parser.add_argument(
+        "--min-duration-ms",
+        type=int,
+        default=None,
+        help="[SLOW 模式] 耗时下限（毫秒），只返回 durationMs >= 该值的 Span",
+    )
+    parser.add_argument(
+        "--top-n",
+        type=int,
+        default=None,
+        help="[SLOW 模式] 返回最慢的 Top N 条 Span，默认 10",
+    )
+    # 通用参数
     parser.add_argument(
         "--limit",
         type=int,
@@ -60,8 +95,20 @@ def build_payload(args):
     }
     if args.endpoint:
         payload["endpoint"] = args.endpoint
-    if args.error_names:
-        payload["errorNames"] = [e.strip() for e in args.error_names.split(",") if e.strip()]
+    if args.mode:
+        payload["mode"] = args.mode
+
+    effective_mode = args.mode or "ERROR"
+
+    if effective_mode == "ERROR":
+        if args.error_names:
+            payload["errorNames"] = [e.strip() for e in args.error_names.split(",") if e.strip()]
+    elif effective_mode == "SLOW":
+        if args.min_duration_ms is not None:
+            payload["minDurationMs"] = args.min_duration_ms
+        if args.top_n is not None:
+            payload["topN"] = args.top_n
+
     return payload
 
 
@@ -72,7 +119,6 @@ def call_api(payload):
         data=data,
         headers={
             "Content-Type": "application/json",
-            "xray_ticket": AUTH_HEADER,
         },
         method="POST",
     )
@@ -101,7 +147,30 @@ def fmt_dist(dist, top=10):
     return "\n".join(lines)
 
 
-def print_results(resp):
+def print_duration_stats(stats):
+    """输出 SLOW 模式的耗时统计摘要。"""
+    if not stats:
+        return
+    print("\n【耗时统计】")
+    print(f"  采样数 : {stats.get('count', '-')}")
+    print(f"  avg    : {stats.get('avgMs', '-')} ms")
+    print(f"  min    : {stats.get('minMs', '-')} ms")
+    print(f"  max    : {stats.get('maxMs', '-')} ms")
+    print(f"  p50    : {stats.get('p50Ms', '-')} ms")
+    print(f"  p90    : {stats.get('p90Ms', '-')} ms")
+    print(f"  p99    : {stats.get('p99Ms', '-')} ms")
+
+
+def print_duration_buckets(buckets):
+    """输出 SLOW 模式的耗时桶分布。"""
+    if not buckets:
+        return
+    print("\n【耗时分布】")
+    for bucket, cnt in buckets.items():
+        print(f"  {bucket}: {cnt}")
+
+
+def print_results(resp, mode):
     if not resp.get("success"):
         print(
             f"[ERROR] 接口返回失败: code={resp.get('code')}, msg={resp.get('message')}",
@@ -115,16 +184,22 @@ def print_results(resp):
     trace_ids = data.get("traceIds", [])
     agg = data.get("aggregation", {})
 
+    effective_mode = mode or "ERROR"
+
     # --- 1. 概览 ---
     print("=" * 60)
-    print("【概览】")
-    print(f"  命中异常 Span 总数 : {total}")
-    print(f"  返回 Span 数       : {len(spans)}")
-    print(f"  去重 traceId 数    : {len(trace_ids)}")
+    print(f"【概览】(模式: {effective_mode})")
+    print(f"  命中 Span 总数  : {total}")
+    print(f"  返回 Span 数    : {len(spans)}")
+    print(f"  去重 traceId 数 : {len(trace_ids)}")
 
-    # --- 2. 8 维度聚合分析 ---
-    print("\n【8 维度聚合分析】")
+    # --- 2. SLOW 模式：耗时统计 + 桶分布 ---
+    if effective_mode == "SLOW":
+        print_duration_stats(agg.get("durationStats"))
+        print_duration_buckets(agg.get("durationBucketDistribution"))
 
+    # --- 3. 通用聚合分析 ---
+    print("\n【聚合分析】")
     sections = [
         ("异常类型分布", "errorTypeDistribution"),
         ("接口分布", "spanNameDistribution"),
@@ -144,27 +219,28 @@ def print_results(resp):
     if cross_zone is not None:
         print(f"\n  [跨机房占比] {cross_zone:.2f}%")
 
-    # --- 3. 异常 Span 列表摘要（前 TOP_N 条）---
-    print(f"\n【异常 Span 列表（前 {TOP_N} 条）】")
+    # --- 4. Span 列表摘要（前 TOP_N 条）---
+    label = "慢 Span" if effective_mode == "SLOW" else "异常 Span"
+    print(f"\n【{label}列表（前 {TOP_N} 条）】")
     for i, span in enumerate(spans[:TOP_N]):
-        ts = span.get("startTimestamp", "")
-        errs = ", ".join(span.get("errorTypes") or []) or "(无 errorTypes)"
+        errs = ", ".join(span.get("errorTypes") or []) or "-"
+        duration = span.get("durationMs", "-")
         print(
             f"  [{i + 1}] traceId={span.get('traceId')} | "
-            f"duration={span.get('durationMs')}ms | "
+            f"duration={duration}ms | "
             f"type={span.get('spanType')} | "
             f"pod={span.get('podName')} | "
             f"zone={span.get('zone')} | "
             f"errors={errs}"
         )
 
-    # --- 4. traceId 列表 ---
+    # --- 5. traceId 列表 ---
     print(f"\n【去重 traceId 列表（共 {len(trace_ids)} 条）】")
     for tid in trace_ids:
         print(f"  {tid}")
 
     if trace_ids:
-        print("\n提示：可将 traceId 传入 xray-logview-analyzer 做单链路深度分析。")
+        print("\n提示：可将 traceId 传入 xray-single-trace-analysis 做单链路深度分析。")
 
     print("=" * 60)
 
@@ -173,9 +249,9 @@ def main():
     args = parse_args()
     payload = build_payload(args)
 
-    print(f"[INFO] 查询参数: {json.dumps(payload, ensure_ascii=False)}")
+    print(f"[INFO] 查询参数: {json.dumps(payload, ensure_ascii=False)}", file=sys.stderr)
     resp = call_api(payload)
-    print_results(resp)
+    print_results(resp, args.mode)
 
 
 if __name__ == "__main__":

@@ -1,10 +1,8 @@
 ---
 name: xray-service-analysis
-
 description:
   "提供“服务异常分析”和“接口性能分析”能力。支持分析指定时段内的服务内部异常（exceptions）、本服务提供接口（serviceAnomalies）以及下游调用接口（callAnomalies）的健康状况，并基于分析结果引导至日志、堆栈或链路的深度分析。适用场景:
   用于在询问中对于接口、异常没有明确的指定，询问服务整体情况。"
-version: 1.0.0
 metadata:
   category: diagnosis
   subcategory: service-analysis
@@ -16,6 +14,8 @@ metadata:
 ---
 
 # 服务异常与接口分析
+
+> `{SKILL_DIR}` 为本 skill 所在目录的绝对路径，执行脚本时必须使用绝对路径。
 
 ## 能力说明
 
@@ -55,8 +55,6 @@ python3 {SKILL_DIR}/scripts/analyze_service.py \
   --endTime "<endTime>"
 ```
 
-> `{SKILL_DIR}` 为本 skill 所在目录的绝对路径。
->
 > 脚本会在调用接口前自动将 `--startTime` / `--endTime` 转换为 `YYYY-MM-DD HH:MM:SS`
 > 格式，并在 stderr 打印转换结果供确认，例如：
 >

@@ -4,7 +4,6 @@ description:
   查询 Xray 服务树节点信息，解析服务归属的 prdLine/bizLine/app/service
   层级路径。当用户输入服务名称、询问其在服务树中的归属（产品线/业务线/app），或需要确认某个名称是
   service 还是 app 时触发。
-version: 1.0.0
 metadata:
   category: service-tree
   platform: xray

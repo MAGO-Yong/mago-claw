@@ -1,6 +1,6 @@
 # Xray 日志查询 API 参考
 
-Base URL: `https://xray.devops.xiaohongshu.com/logging`
+Base URL: `https://xray-ai.devops.xiaohongshu.com/open/skill/logging`
 
 ## 认证方式
 

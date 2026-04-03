@@ -4,7 +4,6 @@ description:
   Process, filter, and transform JSON data using jq - the lightweight and flexible command-line JSON
   processor. Triggered when user needs to parse JSON, extract fields, filter arrays, transform data
   structures, or debug JSON responses.
-version: 1.0.0
 metadata:
   category: data-processing
   subcategory: json

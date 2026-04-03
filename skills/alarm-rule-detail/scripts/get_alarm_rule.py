@@ -4,8 +4,8 @@ import sys
 import urllib.error
 import urllib.request
 
-API_URL = "http://xray.devops.xiaohongshu.com/openapi/alarm/rule/detail"
-API_SIT_URL = "http://xray.devops.sit.xiaohongshu.com/openapi/alarm/rule/detail"
+API_URL = "https://xray-ai.devops.xiaohongshu.com/open/skill/alarm/rule/detail"
+API_SIT_URL = "https://xray-ai.devops.xiaohongshu.com/open/skill/alarm/rule/detail"
 TICKET = "pass"
 
 
@@ -13,7 +13,7 @@ def fetch_rule(rule_id: int, bind_id: int | None = None) -> dict:
     url = f"{API_URL}?id={rule_id}&source=rule"
     if bind_id is not None:
         url += f"&bindId={bind_id}"
-    req = urllib.request.Request(url, headers={"xray_ticket": TICKET})
+    req = urllib.request.Request(url)
     with urllib.request.urlopen(req, timeout=10) as resp:
         return json.loads(resp.read().decode())
 

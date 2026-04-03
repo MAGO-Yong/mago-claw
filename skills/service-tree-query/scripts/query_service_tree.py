@@ -6,8 +6,7 @@ import urllib.error
 import urllib.parse
 import urllib.request
 
-API_URL = "https://xray.devops.xiaohongshu.com/api/alarm/analysis/node"
-TICKET = "pass"
+API_URL = "https://xray-ai.devops.xiaohongshu.com/open/skill/alarm/analysis/node"
 
 # path 格式: xhs.<prdLine>.<bizLine>.<app>.<service>
 LEVEL_NAMES = ["prdLine", "bizLine", "app", "service"]
@@ -17,7 +16,6 @@ def fetch(service: str) -> dict:
     url = f"{API_URL}?{urllib.parse.urlencode({'service': service})}"
     req = urllib.request.Request(
         url,
-        headers={"xray_ticket": TICKET},
         method="GET",
     )
     try:

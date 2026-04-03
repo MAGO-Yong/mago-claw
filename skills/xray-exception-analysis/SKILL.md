@@ -11,7 +11,6 @@ description:
   stack、堆栈查询、发现某个Exception、用户对话中包含"帮我查一下某服务的
   TimeoutException"、"分析某接口的慢请求"、"看看这个异常的堆栈"、"帮我拿一个失败请求的
   logview"、"排查 xxx 服务的报错"时使用本 skill。'
-version: 1.0.0
 metadata:
   category: trace
   subcategory: exception-analysis
@@ -24,14 +23,14 @@ metadata:
 
 # XRay Exception & Logview 排查
 
+> `{SKILL_DIR}` 为本 skill 所在目录的绝对路径，执行脚本时必须使用绝对路径。
+
 ## 概述
 
 两条独立排查链路，每条链路对应独立的 Python 脚本：
 
-- **链路一（异常堆栈）**: `scripts/stack_cluster.py` → `scripts/logview.py`
-- **链路二（错慢采样）**: `scripts/sample.py` → `scripts/logview.py`
-
-所有接口请求统一使用 `xray_ticket: pass` 通过鉴权，无需用户提供 token。
+- **链路一（异常堆栈）**: `{SKILL_DIR}/scripts/stack_cluster.py` → `{SKILL_DIR}/scripts/logview.py`
+- **链路二（错慢采样）**: `{SKILL_DIR}/scripts/sample.py` → `{SKILL_DIR}/scripts/logview.py`
 
 接口完整规范见 [references/api-spec.md](references/api-spec.md)。
 
@@ -47,14 +46,14 @@ metadata:
 转换为秒级时间戳：
 
 ```bash
-python3 scripts/to_timestamp.py --range "2024-03-25 14:00:00 - 2024-03-25 15:10:10"
+python3 {SKILL_DIR}/scripts/to_timestamp.py --range "2024-03-25 14:00:00 - 2024-03-25 15:10:10"
 # 输出: start → 1711346400 [单位: 秒(s)]   end → 1711350610 [单位: 秒(s)]
 # 注意: 输出为秒级时间戳，不是毫秒，直接作为 --start / --end 使用
 # 也支持: --range "now-1h - now" / --start "2024-03-25 14:00" --end "2024-03-25 15:00"
 ```
 
 ```bash
-python3 scripts/stack_cluster.py \
+python3 {SKILL_DIR}/scripts/stack_cluster.py \
   --app "<服务appkey>" \
   --start <秒级时间戳> \
   --end <秒级时间戳> \
@@ -73,7 +72,7 @@ python3 scripts/stack_cluster.py \
 ### Step 2 — 查询 Logview
 
 ```bash
-python3 scripts/logview.py --message-id <messageId>
+python3 {SKILL_DIR}/scripts/logview.py --message-id <messageId>
 ```
 
 输出为原始 JSON，分析要点见下方"Logview 分析要点"。
@@ -84,43 +83,51 @@ python3 scripts/logview.py --message-id <messageId>
 
 **适用场景**: 排查某个接口的慢请求或失败请求。
 
-### Step 1 — 获取采样 MessageId
+### Step 1 — 批量获取采样 MessageId
 
 若用户提供的是时间字符串，先用 `to_timestamp.py` 转换：
 
 ```bash
-python3 scripts/to_timestamp.py --range "2024-03-25 14:00:00 - 2024-03-25 15:10:10"
+python3 {SKILL_DIR}/scripts/to_timestamp.py --range "2024-03-25 14:00:00 - 2024-03-25 15:10:10"
 # 输出为秒级时间戳，不是毫秒，直接作为 --start / --end 使用
 # 也支持: --range "now-1h - now" / --start "..." --end "..."
 ```
 
 ```bash
-python3 scripts/sample.py \
+python3 {SKILL_DIR}/scripts/sample.py \
   --app "<服务appkey>" \
   --type <接口类型> \
-  --name <接口名称> \
   --start <秒级时间戳> \
   --end <秒级时间戳> \
   --sample-type fail   # fail / longest / success
-  # --ip ALL（默认） --zone <机房>（可选）
+  # --name <接口名称>（用户未指定时不传，查该 type 下聚合）
+  # --ip All（默认，用户未指定时传默认值）
+  # --zone All（默认，用户未指定时传默认值）
+  # --limit 10（默认，仅 fail 有效）
 ```
 
 **`--type` 速查**：
 
-| 用户描述                 | `--type` 值      | `--name` 示例             |
-| ------------------------ | ---------------- | ------------------------- |
-| RPC 接口（服务端被调用） | `Service`        | `UserService.getUserById` |
-| HTTP 接口                | `URL`            | `/api/v1/user/info`       |
-| RPC 客户端调用           | `Call`           | `UserService.getUserById` |
-| Redis 操作               | `Redis.<集群名>` | `GET`                     |
-| MySQL 操作               | `SQL`            | `user.select`             |
+| 用户描述                 | `--type` 值      | `--name` 示例                                                     |
+| ------------------------ | ---------------- | ----------------------------------------------------------------- |
+| RPC 接口（服务端被调用） | `Service`        | `UserService.getUserById`                                         |
+| HTTP 接口                | `Http`           | `/api/v1/user/info`                                               |
+| RPC 客户端调用           | `Call`           | `UserService.getUserById`                                         |
+| Redis 操作               | `Redis.<集群名>` | `GET`                                                             |
+| MySQL 操作               | `SQL.<操作类型>` | `user.select`（操作类型如 `Conn` / `shopping_cart` / `Sequence`） |
 
-输出中的 messageId 即为采样结果。若为"未获取到采样 messageId"，说明该时段无记录。
+输出为 messageId 列表：
+
+- `fail` 类型返回多条（最多 `--limit` 条），可逐条分析以覆盖不同失败场景
+- `longest` / `success` 类型固定返回最多 1 条
+- 若提示"未获取到采样 messageId"，说明该时段无记录
 
 ### Step 2 — 查询 Logview
 
+取列表中第一条 messageId 查询（如需对比多条，可重复执行）：
+
 ```bash
-python3 scripts/logview.py --message-id <messageId>
+python3 {SKILL_DIR}/scripts/logview.py --message-id <messageId>
 ```
 
 ---

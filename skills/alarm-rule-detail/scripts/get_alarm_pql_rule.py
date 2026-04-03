@@ -4,14 +4,13 @@ import sys
 import urllib.error
 import urllib.request
 
-API_URL = "http://xray.devops.xiaohongshu.com/openapi/alarm/pql/rule/detail"
-API_SIT_URL = "http://xray.devops.sit.xiaohongshu.com/openapi/alarm/pql/rule/detail"
-TICKET = "pass"
+API_URL = "https://xray-ai.devops.xiaohongshu.com/open/skill/alarm/pql/rule/detail"
+API_SIT_URL = "https://xray-ai.devops.xiaohongshu.com/open/skill/alarm/pql/rule/detail"
 
 
 def fetch_rule(rule_id: int) -> dict:
     url = f"{API_URL}?id={rule_id}"
-    req = urllib.request.Request(url, headers={"xray_ticket": TICKET})
+    req = urllib.request.Request(url)
     with urllib.request.urlopen(req, timeout=10) as resp:
         return json.loads(resp.read().decode())
 

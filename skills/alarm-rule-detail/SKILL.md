@@ -4,7 +4,6 @@ description:
   根据 rule_id 查询 Xray 告警规则的完整配置。支持 PQL 告警（PromQL
   表达式类）和服务告警（中间件/客户端/RPC 阈值类）两类规则。当用户提供 rule_id
   并需要查看规则详情时触发。
-version: 1.0.0
 metadata:
   category: alarm
   subcategory: rule

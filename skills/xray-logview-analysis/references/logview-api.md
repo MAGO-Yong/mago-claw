@@ -3,39 +3,12 @@
 ## 接口
 
 ```
-GET {base_url}/openapi/application/r/logview/{messageId}/json
+GET {base_url}/open/skill/application/r/logview/{messageId}/json
 
 Path参数:  messageId  - CAT消息ID，格式: {domain}-{ip}-{hour}-{index}
                         例: order-service-c0a80101-456789-1
 Query参数: startTime  - (可选) 毫秒时间戳
            endTime    - (可选) 毫秒时间戳
-认证:      xray_ticket（见下方鉴权说明）
-```
-
-## 鉴权：XRay Ticket
-
-通过 HTTP header `xray_ticket` 传递，值为 Base64 编码的字符串。
-
-**生成规则**:
-
-```
-ticket = Base64("{source}&{token}&{timestamp_ms}")
-```
-
-| 参数         | 说明                                     |
-| ------------ | ---------------------------------------- |
-| source       | 来源标识，不能为空（例如 `codewiz`）     |
-| token        | 在 XRay 平台申请并审批后的 token         |
-| timestamp_ms | 当前毫秒时间戳，ticket 默认有效期 3 分钟 |
-
-**Python 生成示例**:
-
-```python
-import base64, time
-source, token = "codewiz", "your_token_here"
-raw = f"{source}&{token}&{int(time.time() * 1000)}"
-ticket = base64.b64encode(raw.encode("utf-8")).decode("utf-8")
-# 请求时: headers["xray_ticket"] = ticket
 ```
 
 ## 返回值结构
@@ -130,7 +103,7 @@ slaLevel=2&strongDependence=true
 ## 异常接口（补充）
 
 ```
-GET {base_url}/application/r/logview/{messageId}/exception
+GET {base_url}/open/skill/application/r/logview/{messageId}/exception
 返回: type 为 Error/RuntimeException/Exception 的所有节点列表
 ```
 

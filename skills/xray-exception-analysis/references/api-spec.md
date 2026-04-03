@@ -2,7 +2,7 @@
 
 ## 目录
 
-1. [基础信息与鉴权](#基础信息与鉴权)
+1. [基础信息](#基础信息)
 2. [接口一：/stack/cluster — 异常堆栈聚类分析](#接口一stackcluster--异常堆栈聚类分析)
 3. [接口二：/sample — 错慢请求采样 MessageId](#接口二sample--错慢请求采样-messageid)
 4. [接口三：/{messageId}/json — Logview 详情查询](#接口三messageidjson--logview-详情查询)
@@ -10,37 +10,11 @@
 
 ---
 
-## 基础信息与鉴权
+## 基础信息
 
-- **Base URL**: `https://xray.devops.xiaohongshu.com`
-- **接口前缀**: `/openapi/application/r`
-- **完整前缀**: `https://xray.devops.xiaohongshu.com/openapi/application/r`
-
-### 鉴权：xray_ticket
-
-所有接口均通过 HTTP Header `xray_ticket` 鉴权，值为 Base64 编码的字符串。
-
-**生成规则**:
-
-```
-ticket = Base64("{source}&{token}&{timestamp_ms}")
-```
-
-| 参数           | 说明                                                         |
-| -------------- | ------------------------------------------------------------ |
-| `source`       | 来源标识，不能为空（固定填 `codewiz`）                       |
-| `token`        | 在 XRay 平台申请并审批后的 token（向用户询问）               |
-| `timestamp_ms` | 当前毫秒时间戳，ticket 有效期约 3 分钟，每次请求自动重新生成 |
-
-**Python 生成示例**:
-
-```python
-import base64, time
-source, token = "codewiz", "<用户提供的token>"
-raw = f"{source}&{token}&{int(time.time() * 1000)}"
-ticket = base64.b64encode(raw.encode("utf-8")).decode("utf-8")
-# headers["xray_ticket"] = ticket
-```
+- **Base URL**: `https://xray-ai.devops.xiaohongshu.com`
+- **接口前缀**: `/open/skill/application/r`
+- **完整前缀**: `https://xray-ai.devops.xiaohongshu.com/open/skill/application/r`
 
 ### 统一响应包装
 
@@ -56,7 +30,7 @@ ticket = base64.b64encode(raw.encode("utf-8")).decode("utf-8")
 
 ## 接口一：/stack/cluster — 异常堆栈聚类分析
 
-**完整 URL**: `POST https://xray.devops.xiaohongshu.com/openapi/application/r/p/stack/cluster`
+**完整 URL**: `POST https://xray-ai.devops.xiaohongshu.com/open/skill/application/r/p/stack/cluster`
 
 **功能**: 对指定服务、时间范围内的一批异常类型进行聚类分析，返回每种异常的堆栈分布（按出现比例降序），并附带关联的 messageId 列表。
 
@@ -120,60 +94,69 @@ ticket = base64.b64encode(raw.encode("utf-8")).decode("utf-8")
 
 ---
 
-## 接口二：/sample — 错慢请求采样 MessageId
+## 接口二：/sample/batchIds — 错慢请求批量采样 MessageId
 
-**完整 URL**: `GET https://xray.devops.xiaohongshu.com/openapi/application/r/t/sample`
+**完整 URL**:
+`GET https://xray-ai.devops.xiaohongshu.com/open/skill/application/r/t/sample/batchIds`
 
-**功能**: 根据服务名、接口 type/name、时间范围，获取一个具有代表性的采样 messageId。
+**功能**: 根据服务名、接口 type/name、时间范围，批量获取采样 messageId 列表。`fail` 类型最多返回
+`limit` 条，`success`/`longest` 类型固定返回最多 1 条。
 
 ### 请求参数
 
-| 参数         | 类型   | 必填 | 说明                                     |
-| ------------ | ------ | ---- | ---------------------------------------- |
-| `app`        | string | 是   | 服务 appkey                              |
-| `type`       | string | 是   | Transaction 类型（接口分类前缀，见下表） |
-| `name`       | string | 否   | 具体接口名称，为空时查该 type 下聚合     |
-| `ip`         | string | 是   | 机器 IP，无特殊需求传 `ALL`              |
-| `zone`       | string | 否   | 机房，不传或传 `ALL` 表示全机房          |
-| `startTime`  | long   | 是   | 开始时间，秒级 Unix 时间戳               |
-| `endTime`    | long   | 是   | 结束时间，秒级 Unix 时间戳               |
-| `sampleType` | string | 是   | `fail` / `longest` / `success`           |
+| 参数         | 类型   | 必填 | 默认值 | 说明                                     |
+| ------------ | ------ | ---- | ------ | ---------------------------------------- |
+| `app`        | string | 是   | -      | 服务 appkey                              |
+| `type`       | string | 是   | -      | Transaction 类型（接口分类前缀，见下表） |
+| `name`       | string | 否   | -      | 具体接口名称，为空时查该 type 下聚合     |
+| `ip`         | string | 是   | -      | 机器 IP，无特殊需求传 `All`              |
+| `zone`       | string | 否   | -      | 机房，不传或传 `All` 表示全机房          |
+| `startTime`  | long   | 是   | -      | 开始时间，秒级 Unix 时间戳               |
+| `endTime`    | long   | 是   | -      | 结束时间，秒级 Unix 时间戳               |
+| `sampleType` | string | 是   | -      | `fail` / `longest` / `success`           |
+| `limit`      | int    | 否   | `50`   | 最大返回条数，仅对 `fail` 类型有效       |
 
 ### type 参数速查表
 
-| 接口类型（用户描述）     | `type` 值        | `name` 示例               |
-| ------------------------ | ---------------- | ------------------------- |
-| RPC 接口（服务端被调用） | `Service`        | `UserService.getUserById` |
-| HTTP 接口                | `URL`            | `/api/v1/user/info`       |
-| RPC 客户端调用           | `Call`           | `UserService.getUserById` |
-| Redis 操作               | `Redis.<集群名>` | `GET` / `SET`             |
-| MySQL 操作               | `SQL`            | `user.select`             |
+| 接口类型（用户描述）     | `type` 值        | `name` 示例                                                       |
+| ------------------------ | ---------------- | ----------------------------------------------------------------- |
+| RPC 接口（服务端被调用） | `Service`        | `UserService.getUserById`                                         |
+| HTTP 接口                | `Http`           | `/api/v1/user/info`                                               |
+| RPC 客户端调用           | `Call`           | `UserService.getUserById`                                         |
+| Redis 操作               | `Redis.<集群名>` | `GET` / `SET`                                                     |
+| MySQL 操作               | `SQL.<操作类型>` | `user.select`（操作类型如 `Conn` / `shopping_cart` / `Sequence`） |
 
 ### sampleType 说明
 
-| 值        | 含义             | 适用场景       |
-| --------- | ---------------- | -------------- |
-| `fail`    | 随机一条失败请求 | 排查错误原因   |
-| `longest` | 耗时最长的请求   | 排查慢请求根因 |
-| `success` | 最新的成功请求   | 对比正常链路   |
+| 值        | 含义           | 返回数量        | 适用场景       |
+| --------- | -------------- | --------------- | -------------- |
+| `fail`    | 批量失败请求   | 最多 `limit` 条 | 排查错误原因   |
+| `longest` | 耗时最长的请求 | 最多 1 条       | 排查慢请求根因 |
+| `success` | 最新的成功请求 | 最多 1 条       | 对比正常链路   |
 
 ### 响应
 
 ```json
 {
-  "code": 0,
-  "data": "svc-name-abc123-1700001234"
+  "success": true,
+  "message": null,
+  "cat_id": "xxx",
+  "trace_id": "yyy",
+  "data": ["svc-name-abc123-1700001234", "svc-name-def456-1700001290"]
 }
 ```
 
-`data` 为 messageId 字符串，若为 `null` 表示该时段无采样数据。
+| 字段      | 说明                                            |
+| --------- | ----------------------------------------------- |
+| `success` | 是否成功，`false` 时 `message` 中有错误信息     |
+| `data`    | messageId 字符串列表，无采样数据时为空列表 `[]` |
 
 ---
 
 ## 接口三：/{messageId}/json — Logview 详情查询
 
 **完整 URL**:
-`GET https://xray.devops.xiaohongshu.com/openapi/application/r/logview/{messageId}/json`
+`GET https://xray-ai.devops.xiaohongshu.com/open/skill/application/r/logview/{messageId}/json`
 
 **功能**: 根据 CAT messageId 查询完整的请求调用链。
 

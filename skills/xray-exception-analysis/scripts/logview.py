@@ -4,7 +4,7 @@ Logview 调用链详情查询脚本
 
 根据 CAT messageId 查询完整的请求调用链（消息树），输出原始 JSON 供分析。
 
-接口: GET https://xray.devops.xiaohongshu.com/openapi/application/r/logview/{messageId}/json
+接口: GET https://xray-ai.devops.xiaohongshu.com/open/skill/application/r/logview/{messageId}/json
 
 messageId 格式: Domain-index-timestamp-seq
   例如: MyApp-0-1700000000-0
@@ -24,21 +24,13 @@ import sys
 import urllib.error
 import urllib.request
 
-BASE_URL = "https://xray.devops.xiaohongshu.com"
-
-
-def make_headers() -> dict:
-    return {
-        "xray_ticket": "pass",
-        "Content-Type": "application/json",
-        "Accept": "application/json",
-    }
+BASE_URL = "https://xray-ai.devops.xiaohongshu.com"
 
 
 def do_get(url: str) -> dict:
     req = urllib.request.Request(url)
-    for k, v in make_headers().items():
-        req.add_header(k, v)
+    req.add_header("Content-Type", "application/json")
+    req.add_header("Accept", "application/json")
     try:
         with urllib.request.urlopen(req, timeout=15) as resp:
             return json.loads(resp.read().decode("utf-8"))
@@ -54,12 +46,12 @@ def do_get(url: str) -> dict:
 
 def main():
     parser = argparse.ArgumentParser(
-        description="Logview 调用链详情查询 — GET /openapi/application/r/logview/{messageId}/json"
+        description="Logview 调用链详情查询 — GET /open/skill/application/r/logview/{messageId}/json"
     )
     parser.add_argument("--message-id", required=True, help="CAT messageId")
     args = parser.parse_args()
 
-    url = f"{BASE_URL}/openapi/application/r/logview/{args.message_id}/json"
+    url = f"{BASE_URL}/open/skill/application/r/logview/{args.message_id}/json"
     print(f"[INFO] 调用 logview: messageId={args.message_id}", file=sys.stderr)
     resp = do_get(url)
 

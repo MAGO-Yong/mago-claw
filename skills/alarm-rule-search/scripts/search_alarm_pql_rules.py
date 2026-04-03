@@ -6,7 +6,7 @@ import sys
 import urllib.error
 import urllib.request
 
-API_URL = "https://xray.devops.xiaohongshu.com/openapi/alarm/pql/rule/all/v1"
+API_URL = "https://xray-ai.devops.xiaohongshu.com/open/skill/alarm/pql/rule/all/v1"
 TICKET = "pass"
 
 
@@ -15,7 +15,7 @@ def fetch(filter_key: str, filter_val: str, page: int, size: int) -> dict:
     req = urllib.request.Request(
         API_URL,
         data=body,
-        headers={"Content-Type": "application/json", "xray_ticket": TICKET},
+        headers={"Content-Type": "application/json"},
         method="POST",
     )
     try:

@@ -9,7 +9,7 @@ import sys
 from typing import Dict
 from urllib import error, parse, request
 
-DEFAULT_ANALYSIS_URL = "https://xray.devops.xiaohongshu.com/api/trace/traceid/analysis"
+DEFAULT_ANALYSIS_URL = "https://xray-ai.devops.xiaohongshu.com/open/skill/tracing/traceid/analysis"
 
 
 def parse_bool(value: str) -> str:

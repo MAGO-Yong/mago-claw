@@ -5,7 +5,7 @@
 对指定服务、时间范围内的一批异常类型进行聚类分析，返回每种异常的堆栈分布
 （按出现比例降序），并附带关联的 messageId 列表。
 
-接口: POST https://xray.devops.xiaohongshu.com/openapi/application/r/p/stack/cluster
+接口: POST https://xray-ai.devops.xiaohongshu.com/open/skill/application/r/p/stack/cluster
 
 用法示例:
   python3 stack_cluster.py \\
@@ -20,22 +20,14 @@ import sys
 import urllib.error
 import urllib.request
 
-BASE_URL = "https://xray.devops.xiaohongshu.com"
-
-
-def make_headers() -> dict:
-    return {
-        "xray_ticket": "pass",
-        "Content-Type": "application/json",
-        "Accept": "application/json",
-    }
+BASE_URL = "https://xray-ai.devops.xiaohongshu.com"
 
 
 def do_post(url: str, body: dict) -> dict:
     data = json.dumps(body).encode("utf-8")
     req = urllib.request.Request(url, data=data, method="POST")
-    for k, v in make_headers().items():
-        req.add_header(k, v)
+    req.add_header("Content-Type", "application/json")
+    req.add_header("Accept", "application/json")
     try:
         with urllib.request.urlopen(req, timeout=15) as resp:
             return json.loads(resp.read().decode("utf-8"))
@@ -51,7 +43,7 @@ def do_post(url: str, body: dict) -> dict:
 
 def main():
     parser = argparse.ArgumentParser(
-        description="异常堆栈聚类分析 — POST /openapi/application/r/p/stack/cluster"
+        description="异常堆栈聚类分析 — POST /open/skill/application/r/p/stack/cluster"
     )
     parser.add_argument("--app", required=True, help="服务 appkey")
     parser.add_argument("--start", required=True, type=int, help="开始时间（秒级时间戳）")
@@ -59,7 +51,7 @@ def main():
     parser.add_argument("--exceptions", required=True, nargs="+", help="异常类全名列表，空格分隔")
     args = parser.parse_args()
 
-    url = f"{BASE_URL}/openapi/application/r/p/stack/cluster"
+    url = f"{BASE_URL}/open/skill/application/r/p/stack/cluster"
     body = {
         "app": args.app,
         "start": args.start,

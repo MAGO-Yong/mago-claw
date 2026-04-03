@@ -189,7 +189,6 @@ def run_analysis(analysis_type, service, raw_start_time, raw_end_time):
 
     url = f"https://xray-ai.devops.xiaohongshu.com{endpoints[analysis_type]}"
     headers = {
-        "User-Agent": "Apipost client Runtime/+https://www.apipost.cn/",
         "Content-Type": "application/json",
     }
     data = {"service": service, "startTime": start_time, "endTime": end_time}

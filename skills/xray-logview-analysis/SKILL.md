@@ -6,18 +6,19 @@ description:
   查看某次调用的下游依赖健康状态（SLA等级/强弱依赖）；(4)
   排查慢请求或失败请求。触发词包括：在上下文中包含messageId，分析 logview、分析
   messageId、查看调用链、分析这个请求、根因分析、性能瓶颈分析等。"
-version: 1.0.0
 metadata:
   category: trace
   subcategory: logview
   platform: xray
   trigger: messageId
-  input: [messageId, base_url, token, source]
+  input: [messageId, base_url]
   output: [call_chain, latency_distribution, exception_nodes, dependency_health]
   impl: python-script
 ---
 
 # XRay Logview 分析
+
+> `{SKILL_DIR}` 为本 skill 所在目录的绝对路径，执行脚本时必须使用绝对路径。
 
 ## 工作流程
 
@@ -57,24 +58,18 @@ metadata:
 
 - **messageId**: CAT 消息 ID，格式为
   `{服务名}-{ip十六进制}.{线程号}-{小时时间戳}-{序列号}`（例：`checkoutcenter-service-defaultunit-0a25edef.62955-492924-345307`）。必须原样使用用户提供的完整 messageId，不得修改任何字符
-- **base_url**: xray 平台地址（例：`https://xray.devops.xiaohongshu.com`），未提供时使用默认值
-
-## 鉴权说明
-
-所有接口请求统一使用 `xray_ticket: pass` 通过鉴权，无需用户提供 token 或 source。
+- **base_url**: xray 平台地址（例：`https://xray-ai.devops.xiaohongshu.com`），未提供时使用默认值
 
 ## 执行分析
 
 ```bash
-# 通过 API 获取并分析（使用 xray_ticket: pass 鉴权）
-python3 scripts/analyze_logview.py <messageId> \
+# 通过 API 获取并分析
+python3 {SKILL_DIR}/scripts/analyze_logview.py <messageId> \
   --base-url <base_url>
 
 # 直接分析用户粘贴的 JSON（保存为临时文件后执行）
-python3 scripts/analyze_logview.py --json /tmp/logview.json
+python3 {SKILL_DIR}/scripts/analyze_logview.py --json /tmp/logview.json
 ```
-
-脚本路径相对于 skill 目录：`scripts/analyze_logview.py`
 
 ## 报告解读指引
 

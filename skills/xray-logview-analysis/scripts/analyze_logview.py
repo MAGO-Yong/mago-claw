@@ -6,9 +6,6 @@ XRay Logview 分析脚本
     python3 analyze_logview.py <messageId> --base-url <url>
     python3 analyze_logview.py --json <file>   # 直接分析本地 JSON 文件
 
-鉴权说明:
-    使用固定 xray_ticket: pass 通过鉴权，无需提供 token。
-
 输出: 结构化分析报告（Markdown 格式）
 """
 
@@ -27,9 +24,8 @@ from typing import Optional
 
 
 def fetch_logview(base_url: str, message_id: str) -> dict:
-    url = f"{base_url.rstrip('/')}/openapi/application/r/logview/{message_id}/json"
+    url = f"{base_url.rstrip('/')}/open/skill/application/r/logview/{message_id}/json"
     req = urllib.request.Request(url)
-    req.add_header("xray_ticket", "pass")
     req.add_header("Accept", "application/json")
     try:
         with urllib.request.urlopen(req, timeout=15) as resp:
@@ -264,8 +260,8 @@ def main():
     parser.add_argument("message_id", nargs="?", help="CAT MessageId")
     parser.add_argument(
         "--base-url",
-        default="https://xray.devops.xiaohongshu.com",
-        help="xray 平台地址，默认 https://xray.devops.xiaohongshu.com",
+        default="https://xray-ai.devops.xiaohongshu.com",
+        help="xray 平台地址，默认 https://xray-ai.devops.xiaohongshu.com",
     )
     parser.add_argument("--json", help="直接读取本地 JSON 文件进行分析")
     parser.add_argument("--output", default="-", help="输出文件（默认 stdout）")
