@@ -467,6 +467,68 @@ trace_data = "等待补充 trace"
 
 ---
 
+### Phase 5：交付报告
+
+报告生成后，根据用户环境决定交付方式：
+
+#### 判断逻辑
+
+```
+if 用户在 OpenClaw/Claw 环境：
+    → 优先创建 REDoc 文档（hi-docs SKILL）
+    → 同时生成本地 markdown 备份
+else（用户不在 Claw 环境 / hi-docs 不可用）：
+    → 只生成本地 markdown 文件，提供路径
+```
+
+#### 创建 REDoc 文档
+
+使用 hi-docs SKILL（`pnpm dlx @xhs/hi-workspace-cli@0.2.5`）创建：
+
+```bash
+cat {report_file}.md | pnpm dlx @xhs/hi-workspace-cli@0.2.5 docs:create \
+  --title "{SKILL_NAME} SKILL 评估报告（{YYYY-MM-DD}）" \
+  --content - \
+  --operate-code "{skill_name}-eval-{YYYYMMDD}"
+```
+
+- `operate-code` 格式：`{skill_name}-eval-{YYYYMMDD}`，确保幂等（重试不重复创建）
+- 创建成功后输出 shortcutId 和 URL，提供给用户
+
+#### 生成本地 markdown 备份
+
+无论是否创建了 REDoc，都保存一份本地 markdown 文件：
+
+```
+路径：workspace/memory/{skill_name}-eval-report-{YYYY-MM-DD}.md
+内容：完整评估报告（与 REDoc 内容一致）
+```
+
+保存后执行：
+
+```bash
+cd {workspace} && git add memory/{skill_name}-eval-report-{YYYY-MM-DD}.md && git commit -m "docs: {SKILL_NAME} 评估报告 {YYYY-MM-DD}
+
+RedDoc: {url}（若无则省略此行）
+综合得分: {score}/5.0 {PASS/WARN/FAIL}，通过率{n}/{total}"
+```
+
+#### 最终交付消息模板
+
+```
+评估报告已生成：
+
+📊 综合得分：{score}/5.0 {PASS ✅ / WARN ⚠️ / FAIL ❌}
+📝 REDoc 文档：{url}（若无则省略）
+💾 本地备份：memory/{skill_name}-eval-report-{YYYY-MM-DD}.md
+
+核心问题：
+- [P0] {问题1}
+- [P1] {问题2}
+```
+
+---
+
 ## 触发示例
 
 ```
