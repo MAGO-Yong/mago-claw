@@ -2,7 +2,7 @@
 name: hi-search
 version: 1.0.0
 description: 'hi 官方搜索 Skill，支持查询员工自己的基础信息；支持通过邮箱、员工姓名、薯名查询员工基础信息；支持根据业务方向、项目名、功能点等自然语言线索语义化查找负责人、部门、账号；支持通过关键词搜索 hi 的群聊；支持通过关键词搜索 REDoc 文档和 REDoc 空间，支持通过关键词搜索 hi 的应用。'
-metadata: { 'openclaw': { 'requires': { 'bins': ["pnpm"] } } }
+metadata: { 'openclaw': { 'requires': { 'bins': ["bun"] } } }
 ---
 
 # hi-search
@@ -10,7 +10,7 @@ metadata: { 'openclaw': { 'requires': { 'bins': ["pnpm"] } } }
 技能核心能力通过 CLI 提供，在执行 CLI 命令时，**禁止**猜测命令用法：
 
 ```bash
-pnpm dlx @xhs/hi-workspace-cli@0.2.5 search --help              # 所有命令概览
+bunx @xhs/hi-workspace-cli@0.2.9 search --help              # 所有命令概览
 ```
 
 ## 技能使用方式

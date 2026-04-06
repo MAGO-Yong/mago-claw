@@ -2,7 +2,7 @@
 name: hi-im
 version: 1.0.0
 description: 'hi 官方即时通讯 Skill，支持上传文件到 Hi IM 服务，返回 fileId 和 fileUrl'
-metadata: { 'openclaw': { 'requires': { 'bins': ["pnpm"] } } }
+metadata: { 'openclaw': { 'requires': { 'bins': ["bun"] } } }
 ---
 
 # hi-im
@@ -19,10 +19,10 @@ metadata: { 'openclaw': { 'requires': { 'bins': ["pnpm"] } } }
 
 ```bash
 # 列出所有 im 子命令
-pnpm dlx @xhs/hi-workspace-cli@0.2.5 im --help
+bunx @xhs/hi-workspace-cli@0.2.9 im --help
 
 # 查看具体命令的参数（含输出格式）
-pnpm dlx @xhs/hi-workspace-cli@0.2.5 im:<method> --help
+bunx @xhs/hi-workspace-cli@0.2.9 im:<method> --help
 ```
 
 ## 文件上传

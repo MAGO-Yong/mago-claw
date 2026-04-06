@@ -2,7 +2,7 @@
 name: hi-todos
 version: 1.0.0
 description: 'hi 官方待办 Skill。支持查询待办列表、待办详情；支持为用户创建、关闭、完成待办事项'
-metadata: { 'openclaw': { 'requires': { 'bins': ["pnpm"] } } }
+metadata: { 'openclaw': { 'requires': { 'bins': ["bun"] } } }
 ---
 
 # hi-todos
@@ -19,10 +19,10 @@ metadata: { 'openclaw': { 'requires': { 'bins': ["pnpm"] } } }
 
 ```bash
 # 列出所有 todos 子命令
-pnpm dlx @xhs/hi-workspace-cli@0.2.5 todos --help
+bunx @xhs/hi-workspace-cli@0.2.9 todos --help
 
 # 查看具体命令的参数（含输出格式）
-pnpm dlx @xhs/hi-workspace-cli@0.2.5 todos:<method> --help
+bunx @xhs/hi-workspace-cli@0.2.9 todos:<method> --help
 ```
 
 以下是 `--help` 中没有的约束和指引。
@@ -32,6 +32,9 @@ pnpm dlx @xhs/hi-workspace-cli@0.2.5 todos:<method> --help
 - 当前时间必须以**系统时间**为唯一依据，禁止自行假设当前日期、当前时间、当前时区。
 - 所有时间参数均使用 **ISO 8601 格式**
 - 所有相对时间表达（今天、明天、昨天、本周、当前、最近）都必须基于当前时间
+- **时区规则**：
+  - 用户输入自然语言时间或本地时间表达时，先查询并确认用户当前时区，再整理成完整 ISO 8601
+  - 若用户已经给出完整 ISO 8601 且包含 offset，则直接使用，禁止再按其他时区重复换算
 
 ## 操作约束
 
@@ -39,7 +42,22 @@ pnpm dlx @xhs/hi-workspace-cli@0.2.5 todos:<method> --help
 
 - **幂等**：每次新建任务须单独调用 `todos:generate-operate-code` 获取新的 `operateCode`，不同任务之间不得共用。同一任务因网络失败重试时复用同一 `operateCode`，最多重试 3 次
 - **参与人确认**：通过 `search:employee` 查找参与人时，若存在多个同名人员，须向用户确认具体是哪一位
+- **时区查询**：处理含自然语言时间的待办创建或截止时间修改时，可用 `calendar:get-timezone` 查询用户当前时区和本地时间；`timeZoneIana` 缺失时不得静默假设，须向用户询问所在时区
+- **写时间前置条件**：凡是 create、update-task 这类会写入或修改 `deadline` 的操作，只要用户输入不是已经带 offset 的完整 ISO 8601，就必须先完成用户时区查询与确认，再继续整理时间和执行写操作
 
-### close-task / complete-task
+### 查询任务 (list-tasks)
 
-- 操作不可逆，执行前须向用户确认任务 ID 或任务标题，避免误操作
+- **全量查询策略**：当用户请求“查看任务”、“列出任务”且未明确指明类型（如“我创建的”或“待我处理的”）时，**必须同时**以 `taskScenario=responsible` 和 `taskScenario=assigned` 调用两次接口，并将结果合并展示给用户，以确保任务列表的完整性。
+
+### 结束任务的操作区分
+
+当用户发出“完成”、“结束”、“搞定”、“关闭”等模糊指令时，**必须先区分并向用户确认意图**：
+
+- **标记完成 (Complete)**：作为任务**参与者**，标记自己已完成（任务整体对其他参与者仍有效）。
+- **彻底关闭 (Close)**：作为任务**创建者**，终止整个任务生命周期。
+
+**操作准则**：
+
+1. **意图确认优先**：遇到模糊需求，先向用户说明上述两种操作的区别，询问其具体意图。
+2. **权限校验**：确认意图后，调用 `todos:get-task` 验证用户是否具备对应身份（创建者 vs 参与者）。若身份不符（如非创建者却想关闭），应告知用户并建议正确操作。
+3. **安全确认**：所有结束操作均不可逆，执行前务必确认任务标题或 ID。
