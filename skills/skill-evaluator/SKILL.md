@@ -50,13 +50,36 @@ metadata:
 
 ### Phase 0：启动确认
 
-用户触发评估时，先确认三件事：
+用户触发评估时，必须先确认以下四件事，**缺任何一项都不能进入 Phase 1**：
 
 ```
 ① 目标 SKILL 路径（或名称）是什么？
-② 是否有 Agent/Chatbot 接入点可以实际调用？（提供调用方式）
+② 目标 Agent 接入点是什么？（必须明确，见下方说明）
 ③ 有没有业务上下文？（服务名、事件 ID 等具体测试数据）
+④ 是否有已知的 bad case 或关注的边界场景？
 ```
+
+#### ② 目标 Agent 接入点（必须确认，不可跳过）
+
+评估的核心是测试 **Agent 对 SKILL 的理解和调用能力**，而不是直接测试 SKILL 脚本本身。
+必须通过真实的 Agent 接入点发 query，观察 Agent 的完整响应链路。
+
+接入点类型（三选一，必须用户明确指定）：
+
+| 类型 | 说明 | 执行方式 |
+|------|------|---------|
+| **当前会话**（主 Agent） | 就是当前对话的 Agent | 直接在对话中发 query，评估者观察响应 |
+| **外部 Agent URL** | 独立部署的 Agent（如 XRay Agent、Chatbot） | 用 browser 工具访问 URL，发 query，截取响应 |
+| **其他 session** | 另一个 OpenClaw session | 用 sessions_send 向目标 session 发 query |
+
+**⚠️ 禁止行为**：不得绕过 Agent、直接调用 SKILL 的底层脚本或 API 来替代评估。
+直接调脚本测的是"脚本能跑通吗"，不是"Agent 能正确使用 SKILL 吗"，两者本质不同。
+
+**如果用户只提供了 SKILL 路径，但未指定接入点，必须明确询问**：
+> "请问你想评估哪个 Agent 对这个 SKILL 的使用效果？可以告诉我：
+> 1. 当前这个对话窗口（主 Agent）
+> 2. 某个外部 Agent 的 URL
+> 3. 某个特定的 session"
 
 **如果用户只提供了 SKILL 路径，进入零配置快速评估模式（Phase 1A）。**
 **如果用户还提供了业务上下文，进入精评模式（Phase 1B）。**
@@ -128,11 +151,43 @@ metadata:
 
 **分组策略**：将题目按 5 题一组，每组 spawn 一个独立 sub-agent 执行。
 
-每个 sub-agent 的任务：
-1. 接收题目列表
-2. 对每道题，以用户身份向目标 Agent 发出 Query
-3. 记录完整的问答过程
-4. 提取可观测数据（执行时间、响应长度等）
+#### 根据接入点类型选择执行方式
+
+**接入点类型 A：外部 Agent URL（如 https://xray-agent.devops.xiaohongshu.com/）**
+
+每个 sub-agent 使用 `browser` 工具：
+1. 打开目标 URL（`browser action=navigate`）
+2. 找到输入框，输入 query（`browser action=act kind=type`）
+3. 提交并等待响应（`browser action=act kind=press key=Enter` + 等待）
+4. 截取完整响应文本（`browser action=snapshot` 或 `screenshot`）
+5. 记录耗时和响应内容
+
+```
+browser → navigate to URL
+browser → type query into input box
+browser → press Enter / click Send
+browser → wait for response (loadState=networkidle or 等待响应元素出现)
+browser → snapshot 截取完整响应
+```
+
+**接入点类型 B：当前主 Agent（自评）**
+
+评估者（本 Agent）直接在当前会话中以用户角色执行 query，观察自身响应。
+注意：自评存在偏差风险，建议尽量使用外部接入点。
+
+**接入点类型 C：其他 OpenClaw session**
+
+使用 `sessions_send` 向目标 session 发 query，等待回复：
+```
+sessions_send(sessionKey=<target>, message=<query>, timeoutSeconds=60)
+```
+
+#### 每个 sub-agent 的通用任务
+
+1. 接收题目列表和接入点信息
+2. 对每道题，**通过 Agent 接入点**以用户身份发出 Query
+3. 记录完整的问答过程（原始响应文本）
+4. 提取可观测数据（执行时间、响应长度、是否有错误）
 5. 返回结构化执行结果
 
 **执行结果格式：**
@@ -140,16 +195,19 @@ metadata:
 {
   "question_id": "Q1",
   "query": "原始 Query",
-  "response": "Agent 完整回答",
+  "response": "Agent 完整回答（原文）",
   "execution_ms": 12000,
+  "access_point": "https://xray-agent.devops.xiaohongshu.com/",
   "observations": {
-    "tool_calls": ["tool_a", "tool_b"],
-    "llm_rounds": 3,
+    "tool_calls_inferred": ["根据回答内容推断的工具调用"],
     "had_error": false,
-    "error_message": null
+    "error_message": null,
+    "response_length": 500
   }
 }
 ```
+
+> 注意：通过 URL 访问时无法直接观察工具调用序列，需根据 Agent 的回答内容**推断**其调用链路（如回答中提到"查询了 charts 接口"、"找到了 N 条日志"等），并在打分时适当降低 Trajectory 层的置信度。
 
 ---
 
@@ -283,13 +341,21 @@ metadata:
 
 ```
 用户：帮我评估一下 xray-log-query 这个 SKILL
-→ skill-evaluator 确认：你可以用它直接在对话里调用吗？有具体的测试服务名吗？
+→ skill-evaluator 必须先问：
+  "请问你想评估哪个 Agent 对这个 SKILL 的使用效果？
+   1. 当前对话窗口（主 Agent）
+   2. 某个外部 Agent 的 URL（如 https://xray-agent.devops.xiaohongshu.com/）
+   3. 某个特定的 session"
 
-用户：可以，服务名用 ark0，最近1小时
-→ 进入精评模式，基于 ark0 生成针对性题目，执行，出报告
+用户：用 https://xray-agent.devops.xiaohongshu.com/，服务名用 creator-service-default
+→ 进入精评模式，生成题目，通过 browser 工具访问 URL 执行每道题，出报告
 
-用户：帮我快速评估一下 alarm-event-detail，不需要配置
-→ 进入零配置模式，读 SKILL.md 自动生成10题，展示后确认，执行，出报告
+用户：帮我快速评估一下 alarm-event-detail，用当前这个 Agent
+→ 进入零配置模式，读 SKILL.md 自动生成10题，展示后确认，在当前会话中执行，出报告
+
+❌ 错误示范（禁止）：
+用户：帮我评估 xray-log-query
+→ ~~直接 spawn sub-agent 调用 SKILL 脚本~~  ← 错误！这测的是脚本，不是 Agent
 ```
 
 ---
