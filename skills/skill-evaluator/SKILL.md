@@ -114,93 +114,101 @@ metadata:
 
 #### 关键规则
 
-1. **每道题独立 spawn 一个 sub-agent**（不要把多题放进一个 sub-agent，会超时）
-2. **所有题并行 spawn**，不要等一题完成再跑下一题
-3. **sub-agent 只负责执行 + 截图**，不打分
+1. **spawn 一个 sub-agent 串行执行所有题目**（不要并行，browser 共用同一页面，并行会互相干扰）
+2. **每题完成后刷新页面开新对话**，避免上下文污染
+3. **sub-agent 只负责执行 + 记录响应**，不打分
 4. **主 agent 收集所有结果后统一打分**（Phase 3）
-5. **收到 sub-agent 结果后，主 agent 必须先验证执行方式**（见下方验证规则）
+5. **sub-agent runTimeoutSeconds 必须设置为 题目数 × 180**（每题最多 3 分钟）
+6. **收到 sub-agent 结果后，主 agent 必须先验证执行方式**（见下方验证规则）
 
-#### Sub-agent task prompt 模板（必须照此格式，不得自行发挥）
+#### Sub-agent task prompt 模板（直接复用，填入变量，不得自行改动结构）
 
 ```
-你是评估执行员，任务是扮演用户向目标 Agent 发送一道测试题，记录完整响应后返回结构化结果。
+你是评估执行员。你的唯一任务是：扮演用户，按顺序向目标 Agent 发送每道测试题，记录完整响应，最终返回结构化 JSON。
 
-【强制约束 - 不得违反】
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+【强制约束 - 违反即作废】
+
 评估对象是 Agent（接入点：{ACCESS_POINT}），不是 SKILL 底层脚本。
 
-❌ 严禁：
-- 直接调用任何 SKILL 脚本（*.py、*.sh 等）
+❌ 严禁（无论理由）：
+- 直接调用任何 SKILL 脚本（.py / .sh 等）
 - 直接调用业务平台 HTTP API
 - 自己构造参数执行查询
+- 用 exec 运行任何脚本
 
-✅ 唯一允许的方式：
-- 通过 browser 工具访问 {ACCESS_POINT}，在对话框输入 query，等待 Agent 响应
+✅ 唯一允许的执行方式：
+- browser 工具（target="host"）访问 {ACCESS_POINT}，在对话框输入 query，等待 Agent 响应
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+## 接入点信息
+
+- URL：{ACCESS_POINT}
+- 类型：外部 URL（browser）
+
+## 题目列表
+
+{QUESTIONS_JSON}
+
+## 每道题的执行步骤
+
+### 步骤 1：导航到接入点（第一题前执行一次）
+browser action=navigate url={ACCESS_POINT} target="host"
+截图确认页面已加载，找到 Agent 对话入口（如有选择，选择与被评估 SKILL 匹配的 Agent）
+
+### 步骤 2：发送 query
+- 找到输入框（textarea 或 contenteditable div）
+- 输入题目的 query 文本（原样输入，不要修改）
+- 按 Enter 发送
+- 记录发送时间
+
+### 步骤 3：轮询等待响应（禁止 sleep 硬等）
+- 每隔 10 秒执行一次 browser action=screenshot target="host"
+- 判断完成信号：页面上 loading 动画/转圈/黑点消失，且出现新的 Agent 回复文本块
+- 最多等待 150 秒
+- 超时则记录 timed_out=true，继续下一题
+
+### 步骤 4：获取完整响应
+browser action=snapshot target="host"
+从 snapshot 中提取 Agent 的完整回复文本
+
+### 步骤 5：刷新页面，准备下一题
+browser action=navigate url={ACCESS_POINT} target="host"
+等页面加载完成后执行下一题
 
 ---
 
-## 本题信息
-
-- **Query**（原样发送，不要修改）：{QUERY}
-- **预期行为**：{EXPECTED_BEHAVIOR}
-- **成功标准**：{SUCCESS_CRITERIA}
-- **接入点**：{ACCESS_POINT}
-- **接入点类型**：{ACCESS_POINT_TYPE}（url / current_session / other_session）
-
----
-
-## 执行步骤（外部 URL 类型）
-
-1. `browser action=navigate url={ACCESS_POINT} target="host"`
-2. 找到对话输入框（通常是 textarea 或 contenteditable div）
-3. 输入 query 文本，按 Enter 发送，记录发送时间戳
-4. **轮询等待响应**（禁止 sleep 硬等）：
-   - 每隔 10 秒：`browser action=screenshot target="host"`
-   - 判断完成信号：loading 指示器消失 + 出现新的 Agent 回复文本
-   - 最多等 120 秒；超时记录 timed_out=true
-5. 响应完成后：`browser action=snapshot target="host"` 获取完整文本
-
-## 执行步骤（current_session 类型）
-
-说明当前 task 是在 sub-agent 里执行，无法直接向主 session 发 query。
-改为：将本题 query 和预期行为原样返回，标注 execution_method=skipped_self_eval。
-（自评由主 agent 直接处理，不 spawn sub-agent）
-
-## 执行步骤（other_session 类型）
-
-`sessions_send(sessionKey={SESSION_KEY}, message={QUERY}, timeoutSeconds=120)`
-记录返回的 response。
-
----
-
-## 返回格式（JSON，只返回这个，不要其他说明）
+## 返回格式（只返回此 JSON，不要任何其他说明）
 
 {
-  "question_id": "{QUESTION_ID}",
-  "query": "{QUERY}",
   "access_point": "{ACCESS_POINT}",
-  "execution_method": "browser | sessions_send | timed_out | error",
-  "response_text": "Agent 完整回答原文（尽量完整，不要截断）",
-  "execution_seconds": 45,
-  "timed_out": false,
-  "error_message": null
+  "execution_method": "browser",
+  "results": [
+    {
+      "id": "S1",
+      "query": "原始 query 文本",
+      "response_text": "Agent 完整回答原文（不要截断，尽量完整）",
+      "execution_seconds": 45,
+      "timed_out": false,
+      "error_message": null
+    }
+  ]
 }
 ```
 
 #### 执行方式验证（主 agent 收到结果后必做）
 
-收到每个 sub-agent 的结果，逐一检查：
+收到 sub-agent 结果后，检查：
 
 ```
-验证项：
-✅ execution_method 为 "browser" 或 "sessions_send"（不是 "error" 或其他）
-✅ response_text 是 Agent 的自然语言回复（不是脚本 JSON 输出、不是 API 响应体）
-✅ access_point 字段与预期一致
+✅ execution_method == "browser"
+✅ results 中每条 response_text 是 Agent 的自然语言回复
+   （不是脚本 JSON 输出、不是 API 响应体、不是 "无法执行" 类说明）
 
 如果验证失败：
-→ 该题结果作废
-→ 告知用户："Q{id} 执行方式有误（{原因}），正在重试"
-→ 重新 spawn 该题的 sub-agent，task 开头加一行：
-   "【重要】上一次执行违反了约束（{具体原因}），本次必须通过 browser 访问接入点执行"
+→ 结果作废，告知用户执行方式有误
+→ 重新 spawn，task 开头追加：
+  "【警告】上次执行违反了约束：{原因}。本次必须且只能通过 browser 访问接入点。"
 ```
 
 ---
@@ -321,14 +329,20 @@ metadata:
 
 用户：用 https://xray-agent.devops.xiaohongshu.com/，服务名用 creator-service-default
 → 读 xray-log-query SKILL.md → 生成10题 → 展示给用户确认
-→ 用户确认后 → 每题并行 spawn 一个 sub-agent（共10个）
-→ 收集结果 → 验证执行方式 → 主 agent 统一打分 → 出报告
+→ 用户确认后：
+  sessions_spawn(
+    task = <sub-agent task prompt 模板，填入 ACCESS_POINT 和 QUESTIONS_JSON>,
+    mode = "run",
+    runTimeoutSeconds = 10 * 180  # 题目数 × 180 秒
+  )
+→ 等 sub-agent 完成 → 验证执行方式 → 主 agent 统一打分 → 出报告
 ```
-
----
 
 ## 已知边界
 
 - 外部 URL 接入点：无法直接观察 Agent 的工具调用序列，只能从回答内容推断，Trajectory 层置信度较低
 - 当前会话自评：存在评分偏差风险，主 agent 打分时需额外严格
-- 单题 sub-agent 超时上限约 10 分钟，所以必须每题独立 spawn（不能串行）
+- browser 共用同一页面，必须串行执行（每题后刷新），不能并行
+- 单题响应最长约 150 秒，10 题总计约 25-30 分钟，runTimeoutSeconds 需相应设置
+
+
