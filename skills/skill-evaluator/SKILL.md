@@ -151,6 +151,42 @@ metadata:
 
 **分组策略**：将题目按 5 题一组，每组 spawn 一个独立 sub-agent 执行。
 
+#### ⚠️ 执行前强制声明（必须写入每个 sub-agent 的 task prompt）
+
+每个 sub-agent 的 task 开头必须包含以下约束，**不得省略**：
+
+```
+【强制约束】
+本次评估的对象是 Agent（通过接入点 {access_point}），不是 SKILL 的底层脚本。
+
+❌ 严禁以下行为（即使你认为更方便）：
+- 直接调用 SKILL 目录下的任何脚本（如 query_logs.py、nl_to_xql.py 等）
+- 直接调用 Xray/业务平台的 HTTP API
+- 自己构造查询参数后直接执行
+
+✅ 唯一允许的执行方式：
+- 通过 browser 工具访问 {access_point}，在对话框中输入 query，等待 Agent 响应
+- 你的任务是"扮演用户"，不是"直接做事"
+
+如果你发现自己在调脚本或直接调 API，立即停止，改用 browser。
+```
+
+#### 执行方式验证（主 agent 职责）
+
+每批 sub-agent 完成后，**主 agent 必须先验证执行方式是否合规**，再决定是否使用结果：
+
+```
+验证项：
+1. sub-agent 是否使用了 browser 工具访问接入点？（查看返回结果中是否有 access_point 字段）
+2. response 字段是否为 Agent 的真实回复？（不应该是脚本输出的 JSON）
+3. 如果 sub-agent 调用了底层脚本 → 结果作废，重新 spawn 并强调约束
+
+如果发现执行方式不合规：
+- 立即停止，不出报告
+- 告知用户"sub-agent 执行方式有误，正在重新运行"
+- 重新 spawn，task prompt 中加强约束
+```
+
 #### 根据接入点类型选择执行方式
 
 **接入点类型 A：外部 Agent URL（如 https://xray-agent.devops.xiaohongshu.com/）**
