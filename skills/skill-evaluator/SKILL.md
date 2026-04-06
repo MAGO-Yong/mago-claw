@@ -233,6 +233,40 @@ browser action=navigate url={ACCESS_POINT} target="host"
 
 ---
 
+### Phase 2.5：查询 AI 链路 Trace（每题执行后）
+
+> ⏳ **当前状态：等待 AI 链路 trace 查询 SKILL 孵化完成后接入，当前步骤跳过，记录占位。**
+
+**背景**：Agent 处理每道题时，内部会产生 LLM 调用链路（tool call 序列、推理轮次、token 消耗等）。这些数据存在 AI 链路 trace 系统中，是 Trajectory 层评估的客观依据。
+
+**目标**：在 sub-agent 返回响应后，立即查询该次对话对应的 AI trace，获取：
+
+| 数据项 | 用途 |
+|--------|------|
+| tool call 序列 | 验证 Agent 实际调用了哪些工具（而非从回答内推断） |
+| LLM 推理轮次 | 评估推理过程是否有冗余 |
+| 总 token 消耗 | 辅助评估响应效率 |
+| 端到端耗时分布 | 精确响应速度，区分 Agent 思考耗时 vs 工具执行耗时 |
+
+**接入后的执行流程**（SKILL ready 后替换占位）：
+
+```
+# 当前：占位，跳过
+trace_data = "等待补充 trace"
+
+# 接入后：
+# 1. 从 sub-agent 返回结果中提取 session_id 或 conversation_id
+# 2. 调用 AI trace 查询 SKILL，传入 session_id + 时间范围
+# 3. 提取 tool_calls、llm_rounds、token_count、latency_breakdown
+# 4. 将 trace_data 传入 Phase 3 打分，补充 Trajectory 层客观数据
+```
+
+**对评分的影响**：
+- trace 可用时：Skill 选择、推理过程两个维度基于客观 trace 数据打分，置信度高
+- trace 不可用时（当前）：从 response_text 内容推断，在评分结果中标注 `trajectory_confidence: low`
+
+---
+
 ### Phase 3：打分（主 agent 执行）
 
 收集完所有题的执行结果后，主 agent 对每道题按 7 个维度打分：
@@ -242,6 +276,13 @@ browser action=navigate url={ACCESS_POINT} target="host"
 - 本题的预期行为和成功标准
 - sub-agent 返回的 response_text（Agent 真实回答）
 - execution_seconds（用于响应速度评分）
+- trace_data（当前为"等待补充 trace"，接入后为真实 trace 数据）
+
+**当 trace_data 为"等待补充 trace"时**，在每题打分结果中追加：
+```json
+"trajectory_confidence": "low",
+"trajectory_note": "Skill选择/推理过程维度基于回答内容推断，非客观 trace 数据，待 AI trace SKILL 接入后重评"
+```
 
 **响应速度评分标准（外部 Agent，标准放宽）：**
 - < 30s → 0.5
@@ -255,6 +296,8 @@ browser action=navigate url={ACCESS_POINT} target="host"
   "id": "S1",
   "query": "...",
   "response_summary": "Agent 回答摘要（50字以内）",
+  "trajectory_confidence": "low | high",
+  "trajectory_note": "low 时说明原因；high 时留空",
   "scores": {
     "intent_recognition": 0.0,
     "skill_selection": 0.0,
@@ -284,6 +327,7 @@ browser action=navigate url={ACCESS_POINT} target="host"
 **时间**：{timestamp}  
 **接入点**：{access_point}  
 **题目数**：{n} 题  
+**Trajectory 置信度**：⏳ 低（AI trace SKILL 待接入，Skill选择/推理过程维度基于回答内容推断）
 
 ---
 
