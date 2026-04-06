@@ -149,7 +149,15 @@ metadata:
 
 ### Phase 2：分批执行评估
 
-**分组策略**：将题目按 5 题一组，每组 spawn 一个独立 sub-agent 执行。
+**分组策略**：**每题独立 spawn 一个 sub-agent，并行执行**，不要把多题串行放在一个 sub-agent 里。
+
+原因：
+- xray-agent 等外部 Agent 响应慢（单题可能需要 60-120 秒）
+- 串行执行 5 题必然超时（sub-agent 上限约 10 分钟）
+- 单题失败不应影响其他题的结果
+
+**每个 sub-agent 只负责一道题**：执行 + 截图存结果，不打分。
+**打分统一由主 agent 在所有题完成后集中处理。**
 
 #### ⚠️ 执行前强制声明（必须写入每个 sub-agent 的 task prompt）
 
@@ -191,19 +199,24 @@ metadata:
 
 **接入点类型 A：外部 Agent URL（如 https://xray-agent.devops.xiaohongshu.com/）**
 
-每个 sub-agent 使用 `browser` 工具：
-1. 打开目标 URL（`browser action=navigate`）
-2. 找到输入框，输入 query（`browser action=act kind=type`）
-3. 提交并等待响应（`browser action=act kind=press key=Enter` + 等待）
-4. 截取完整响应文本（`browser action=snapshot` 或 `screenshot`）
-5. 记录耗时和响应内容
+每个 sub-agent 使用 `browser` 工具（target="host"）：
+1. 打开目标 URL，进入对话界面
+2. 找到输入框，输入 query
+3. 按 Enter 发送，记录发送时间
+4. **轮询等待响应完成**（禁止用 `sleep N` 硬等）：
+   - 每隔 10 秒截一次图
+   - 判断响应是否完成的信号：页面不再出现 loading 指示器（转圈/黑点/省略号），且出现新的 Agent 回复文本
+   - 最多等待 120 秒，超时则记录"响应超时"并继续
+5. 截取完整响应文本，记录耗时
 
 ```
 browser → navigate to URL
-browser → type query into input box
-browser → press Enter / click Send
-browser → wait for response (loadState=networkidle or 等待响应元素出现)
-browser → snapshot 截取完整响应
+browser → type query, press Enter
+loop（每 10 秒）:
+  browser → screenshot
+  if 响应完成: break
+  if 超过 120 秒: 记录超时, break
+browser → snapshot 获取完整响应文本
 ```
 
 **接入点类型 B：当前主 Agent（自评）**
