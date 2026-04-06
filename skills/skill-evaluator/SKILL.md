@@ -62,8 +62,14 @@ metadata:
 
 触发评估后，先确认以下内容：
 
-**① 目标 SKILL**
-- 读取 SKILL.md，提取：description、触发场景、输入参数、输出内容、边界条件
+**① 目标 SKILL 路径（必须用户明确指定）**
+
+如果用户没有提供 SKILL 路径，**必须先询问**，不能跳过：
+> "请告诉我要评估哪个 SKILL？可以提供：
+> 1. SKILL.md 的本地路径（如 `~/.openclaw/workspace/skills/xray-log-query/SKILL.md`）
+> 2. SKILL 的名称（我会在 workspace/skills/ 下查找）"
+
+用户提供后，读取 SKILL.md，提取：description、触发场景、输入参数、输出内容、边界条件。
 
 **② Agent 接入点（必须用户明确指定）**
 
@@ -533,21 +539,32 @@ RedDoc: {url}（若无则省略此行）
 
 ```
 用户：帮我评估 xray-log-query
-→ 必须先问接入点：
+→ Phase 0 两问缺一不可：
+
+  问①（SKILL 路径）：
+  "要评估哪个 SKILL？
+   1. 提供 SKILL.md 路径
+   2. 提供 SKILL 名称（我在 workspace/skills/ 下查找）"
+
+  用户：skills/xray-log-query/SKILL.md
+  → 读取 SKILL.md，提取能力边界
+
+  问②（Agent 接入点）：
   "用哪个 Agent 来评估？
    1. https://xray-agent.devops.xiaohongshu.com/
    2. 当前对话窗口
    3. 其他 session key"
 
-用户：用 https://xray-agent.devops.xiaohongshu.com/，服务名用 creator-service-default
-→ 读 xray-log-query SKILL.md → 生成10题 → 展示给用户确认
+  用户：用 https://xray-agent.devops.xiaohongshu.com/，服务名用 creator-service-default
+
+→ 生成 10 题 → 展示给用户确认
 → 用户确认后：
   sessions_spawn(
     task = <sub-agent task prompt 模板，填入 ACCESS_POINT 和 QUESTIONS_JSON>,
     mode = "run",
     runTimeoutSeconds = 10 * 180  # 题目数 × 180 秒
   )
-→ 等 sub-agent 完成 → 验证执行方式 → 主 agent 统一打分 → 出报告
+→ 等 sub-agent 完成 → 验证执行方式 → 主 agent 统一打分 → 出报告 → 交付（REDoc + markdown）
 ```
 
 ## 已知边界
