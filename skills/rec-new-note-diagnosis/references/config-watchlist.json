@@ -1,0 +1,211 @@
+{
+  "version": "3.0",
+  "description": "ark-feedx 新笔记相关配置监控清单 - 用于 rec-new-note-diagnosis skill",
+  "last_updated": "2026-03-23",
+  "apollo_configs": {
+    "critical": [
+      {
+        "key": "hf_lve_merge_age_1h_ratio",
+        "description": "1小时新笔记merge比例",
+        "default_value": "1.0",
+        "risk_description": "<1.0会减少1小时内新笔记的召回量，导致新笔记占比下降",
+        "related_step": "step5",
+        "related_code": "VectoreOmegaRecallProc.java"
+      },
+      {
+        "key": "hf_all_lve_merge_age_1h_ratio",
+        "description": "全量1小时新笔记merge比例",
+        "default_value": "1.0",
+        "risk_description": "<1.0会减少1小时内新笔记的召回量（全量模式）",
+        "related_step": "step5",
+        "related_code": "VectoreOmegaRecallProc.java"
+      },
+      {
+        "key": "hf_lve_merge_age_1d_ratio",
+        "description": "1天新笔记merge比例",
+        "default_value": "1.0",
+        "risk_description": "<1.0会减少1天内新笔记的召回量",
+        "related_step": "step5",
+        "related_code": "VectoreOmegaRecallProc.java"
+      },
+      {
+        "key": "hf_all_lve_merge_age_1d_ratio",
+        "description": "全量1天新笔记merge比例",
+        "default_value": "1.0",
+        "risk_description": "<1.0会减少1天内新笔记的召回量（全量模式）",
+        "related_step": "step5",
+        "related_code": "VectoreOmegaRecallProc.java"
+      }
+    ],
+    "high": [
+      {
+        "key": "enable_fdx_filter_note_time",
+        "description": "笔记时间过滤开关",
+        "default_value": "false",
+        "risk_description": "意外开启会过滤掉超过阈值的笔记，包括老新笔记",
+        "related_step": "step2_5",
+        "related_code": "NoteAgeSinkFilterProc.java"
+      },
+      {
+        "key": "feedx_life_time_filter_min_create_hour",
+        "description": "笔记最小创建时间阈值",
+        "default_value": "336",
+        "risk_description": "值过小会过滤掉超过该时间的笔记（336小时=14天）",
+        "related_step": "step2_5",
+        "related_code": "NoteAgeSinkFilterProc.java"
+      },
+      {
+        "key": "hf_enable_lve_merge_age",
+        "description": "LVE Merge Age总开关",
+        "default_value": "false",
+        "risk_description": "开启后各年龄段merge比例配置生效，可能影响新笔记召回",
+        "related_step": "step5",
+        "related_code": "VectoreOmegaRecallProc.java"
+      },
+      {
+        "key": "hf_enable_lve",
+        "description": "LVE迁移总开关",
+        "default_value": "true",
+        "risk_description": "关闭会切换回非LVE模式，可能影响召回性能",
+        "related_step": "step5",
+        "related_code": "VectoreOmegaRecallProc.java"
+      },
+      {
+        "key": "hf_enable_new_lve",
+        "description": "LVE新业务逻辑开关",
+        "default_value": "false",
+        "risk_description": "新逻辑可能改变召回行为",
+        "related_step": "step5",
+        "related_code": "VectoreOmegaRecallProc.java"
+      }
+    ],
+    "medium": [
+      {
+        "key": "enable_new_note_cnt_by_reason_counter",
+        "description": "分渠道新笔记统计开关",
+        "default_value": "false",
+        "risk_description": "关闭后无法观测分渠道新笔记数据，影响排查",
+        "related_step": "monitoring",
+        "related_code": "MonitorProc.java, PostGenerateMonitorProc.java"
+      },
+      {
+        "key": "enable_avg_note_age_counter",
+        "description": "平均笔记年龄统计开关",
+        "default_value": "true",
+        "risk_description": "关闭后无法观测笔记年龄，影响矛盾判断",
+        "related_step": "monitoring",
+        "related_code": "MonitorProc.java, PostGenerateMonitorProc.java"
+      },
+      {
+        "key": "feedx_online_monitor_ratio",
+        "description": "整体监控采样率",
+        "default_value": "0.01",
+        "risk_description": "过低会导致数据点稀疏，影响观测",
+        "related_step": "monitoring",
+        "related_code": "MonitorProc.java"
+      },
+      {
+        "key": "enable_vec_reason_and_pool_cnt_counter",
+        "description": "向量池quota统计开关",
+        "default_value": "false",
+        "risk_description": "关闭后无法观测各渠道quota",
+        "related_step": "step4",
+        "related_code": "RecallMonitorUtil.java"
+      },
+      {
+        "key": "hf_adjust_req_compress_v3_enable",
+        "description": "请求压缩V3开关",
+        "default_value": "true",
+        "risk_description": "变更可能导致请求数量变化，影响召回",
+        "related_step": "step3",
+        "related_code": "GenQueryProc.java"
+      },
+      {
+        "key": "hf_adjust_req_compress_num_v3",
+        "description": "请求压缩数量V3",
+        "default_value": "12000",
+        "risk_description": "过低会导致召回笔记被截断",
+        "related_step": "step3",
+        "related_code": "GenQueryProc.java"
+      }
+    ]
+  },
+  "experiment_flags": {
+    "critical": [
+      {
+        "pattern": "hf_lve_merge_age_*_ratio",
+        "description": "LVE Merge Age各时间段比例",
+        "risk_description": "任何<1.0的ratio都会减少对应年龄段新笔记召回",
+        "related_step": "step5"
+      },
+      {
+        "pattern": "hf_all_lve_merge_age_*_ratio",
+        "description": "全量LVE Merge Age各时间段比例",
+        "risk_description": "任何<1.0的ratio都会减少对应年龄段新笔记召回（全量模式）",
+        "related_step": "step5"
+      }
+    ],
+    "high": [
+      {
+        "pattern": "enable_fdx_filter_note_time",
+        "description": "笔记年龄过滤",
+        "risk_description": "开启后会过滤超过阈值的笔记",
+        "related_step": "step2_5"
+      },
+      {
+        "pattern": "hf_enable_lve*",
+        "description": "LVE相关开关",
+        "risk_description": "LVE模式切换可能影响召回",
+        "related_step": "step5"
+      },
+      {
+        "pattern": "*mix*rank*",
+        "description": "混排相关实验",
+        "risk_description": "混排逻辑变更影响新笔记最终曝光",
+        "related_step": "step2"
+      },
+      {
+        "pattern": "*first*screen*",
+        "description": "首屏相关实验",
+        "risk_description": "首屏筛选逻辑影响新笔记首屏曝光",
+        "related_step": "step2"
+      }
+    ],
+    "medium": [
+      {
+        "pattern": "hf_adjust_req_compress_*",
+        "description": "请求压缩配置",
+        "risk_description": "影响召回请求数量",
+        "related_step": "step3"
+      },
+      {
+        "pattern": "fdx_recall_req_num_adjust_*",
+        "description": "召回请求数量调整",
+        "risk_description": "影响各渠道召回quota",
+        "related_step": "step3"
+      },
+      {
+        "pattern": "*pgy*recall*",
+        "description": "蒲公英召回相关",
+        "risk_description": "蒲公英召回增加会挤压正常新笔记quota",
+        "related_step": "step3"
+      }
+    ]
+  },
+  "experiment_tags": {
+    "业务标签": ["外流推荐"],
+    "domain_code": ["rec", "rec_mix", "rec_global", "rec_trade"],
+    "services": ["arkfeedx", "arkfeedx-1-default", "arkfeedxmerchant"]
+  },
+  "checklist": {
+    "渐进式故障预防": {
+      "发布时间": ["14:00-16:00"],
+      "关键监控点": [
+        "18:00 是否从峰值下降>5%",
+        "22:00 是否跌破0.065",
+        "23:00 是否跌破0.060"
+      ],
+      "止损窗口": "22:00-24:00"
+    }
+  }
+}

@@ -1,0 +1,1163 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>告警诊断方案 B · 卡片状态更新</title>
+<style>
+
+  @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Noto+Sans+SC:wght@300;400;500;700&display=swap');
+
+  :root {
+    --bg: #0d0f14;
+    --surface: #161920;
+    --surface2: #1e2230;
+    --surface3: #252a3a;
+    --border: #2a3050;
+    --border2: #363d5a;
+    --text: #e2e8f0;
+    --text-muted: #7b8ab8;
+    --text-dim: #4a5580;
+    --red: #ff4757;
+    --red-dim: rgba(255,71,87,0.12);
+    --orange: #ff8c42;
+    --orange-dim: rgba(255,140,66,0.12);
+    --blue: #4e9eff;
+    --blue-dim: rgba(78,158,255,0.12);
+    --green: #2ecc71;
+    --green-dim: rgba(46,204,113,0.12);
+    --yellow: #f7c948;
+    --yellow-dim: rgba(247,201,72,0.12);
+    --purple: #a855f7;
+    --purple-dim: rgba(168,85,247,0.12);
+    --mono: 'JetBrains Mono', monospace;
+    --sans: 'Noto Sans SC', sans-serif;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--sans);
+    min-height: 100vh;
+  }
+
+  /* ===== LAYOUT ===== */
+  .header {
+    padding: 24px 32px 20px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    position: sticky;
+    top: 0;
+    background: var(--bg);
+    z-index: 100;
+  }
+  .header-badge {
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--text-muted);
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    padding: 3px 8px;
+    border-radius: 4px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+  .header h1 {
+    font-size: 15px;
+    font-weight: 500;
+    color: var(--text);
+    letter-spacing: -0.01em;
+  }
+
+  .schemes-nav {
+    display: flex;
+    gap: 0;
+    padding: 0 32px;
+    border-bottom: 1px solid var(--border);
+    overflow-x: auto;
+  }
+  .scheme-tab {
+    padding: 12px 20px;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text-muted);
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+    transition: all 0.2s;
+    white-space: nowrap;
+    user-select: none;
+  }
+  .scheme-tab:hover { color: var(--text); }
+  .scheme-tab.active { color: var(--blue); border-bottom-color: var(--blue); }
+
+  .scheme-panel { display: none; }
+  .scheme-panel.active { display: flex; gap: 0; height: calc(100vh - 100px); }
+
+  /* ===== CHAT AREA ===== */
+  .chat-area {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    border-right: 1px solid var(--border);
+    min-width: 0;
+  }
+  .chat-header {
+    padding: 14px 20px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: var(--surface);
+  }
+  .chat-header .group-icon {
+    width: 32px; height: 32px;
+    background: linear-gradient(135deg, var(--red), #c0392b);
+    border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 14px;
+  }
+  .chat-header .group-name { font-size: 14px; font-weight: 500; }
+  .chat-header .group-count { font-size: 11px; color: var(--text-muted); margin-left: auto; }
+
+  .chat-messages {
+    flex: 1;
+    overflow-y: auto;
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    scroll-behavior: smooth;
+  }
+  .chat-messages::-webkit-scrollbar { width: 4px; }
+  .chat-messages::-webkit-scrollbar-track { background: transparent; }
+  .chat-messages::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 2px; }
+
+  /* ===== MESSAGE BASE ===== */
+  .msg-group { margin-bottom: 8px; }
+  .msg-row {
+    display: flex;
+    gap: 10px;
+    padding: 2px 0;
+  }
+  .msg-row.system { justify-content: center; }
+  .msg-avatar {
+    width: 32px; height: 32px;
+    border-radius: 8px;
+    flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 12px;
+    font-weight: 700;
+    margin-top: 2px;
+  }
+  .msg-body { flex: 1; min-width: 0; }
+  .msg-meta {
+    display: flex; align-items: baseline; gap: 8px;
+    margin-bottom: 4px;
+  }
+  .msg-name { font-size: 12px; font-weight: 500; color: var(--text-muted); }
+  .msg-time { font-size: 11px; color: var(--text-dim); font-family: var(--mono); }
+
+  .system-label {
+    font-size: 11px;
+    color: var(--text-dim);
+    background: var(--surface2);
+    padding: 3px 12px;
+    border-radius: 20px;
+    border: 1px solid var(--border);
+  }
+
+  /* ===== ALARM CARD ===== */
+  .alarm-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    overflow: hidden;
+    max-width: 380px;
+    cursor: pointer;
+    transition: border-color 0.2s, box-shadow 0.2s;
+    position: relative;
+  }
+  .alarm-card:hover { border-color: var(--border2); box-shadow: 0 4px 20px rgba(0,0,0,0.3); }
+
+  .alarm-card-header {
+    padding: 10px 14px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    border-bottom: 1px solid var(--border);
+  }
+  .severity-dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+  .severity-dot.p0 { background: var(--red); box-shadow: 0 0 6px var(--red); }
+  .severity-dot.p1 { background: var(--orange); box-shadow: 0 0 6px var(--orange); }
+  .severity-dot.p2 { background: var(--yellow); }
+
+  .alarm-card-header .severity-label {
+    font-family: var(--mono);
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+  }
+  .severity-label.p0 { color: var(--red); }
+  .severity-label.p1 { color: var(--orange); }
+  .severity-label.p2 { color: var(--yellow); }
+
+  .alarm-card-header .rule-name {
+    font-size: 12px;
+    font-weight: 500;
+    flex: 1;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .alarm-card-header .alarm-time {
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--text-dim);
+  }
+
+  .alarm-card-body { padding: 10px 14px; }
+  .alarm-meta-row {
+    display: flex;
+    gap: 16px;
+    margin-bottom: 8px;
+  }
+  .alarm-meta-item { min-width: 0; }
+  .alarm-meta-label {
+    font-size: 10px;
+    color: var(--text-dim);
+    margin-bottom: 2px;
+    font-family: var(--mono);
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+  }
+  .alarm-meta-value {
+    font-size: 12px;
+    font-weight: 500;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .alarm-trigger-row {
+    background: var(--surface2);
+    border-radius: 6px;
+    padding: 6px 10px;
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--text-muted);
+  }
+  .alarm-trigger-row span { color: var(--red); font-weight: 700; }
+
+  .alarm-card-footer {
+    padding: 8px 14px;
+    border-top: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .alarm-action-btn {
+    font-size: 11px;
+    padding: 4px 10px;
+    border-radius: 5px;
+    border: 1px solid var(--border2);
+    background: var(--surface2);
+    color: var(--text-muted);
+    cursor: pointer;
+    transition: all 0.15s;
+    font-family: var(--sans);
+  }
+  .alarm-action-btn:hover { background: var(--surface3); color: var(--text); border-color: var(--blue); }
+  .alarm-action-btn.primary { background: var(--blue-dim); color: var(--blue); border-color: var(--blue); }
+
+  /* diagnosis status badges */
+  .diag-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 11px;
+    padding: 3px 8px;
+    border-radius: 20px;
+    font-family: var(--mono);
+    margin-left: auto;
+  }
+  .diag-badge.analyzing {
+    background: var(--blue-dim);
+    color: var(--blue);
+    border: 1px solid rgba(78,158,255,0.25);
+  }
+  .diag-badge.done {
+    background: var(--green-dim);
+    color: var(--green);
+    border: 1px solid rgba(46,204,113,0.25);
+  }
+  .diag-badge .pulse {
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: currentColor;
+    animation: pulse 1.2s infinite;
+  }
+  @keyframes pulse {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.4; transform: scale(0.7); }
+  }
+
+  /* ===== SCHEME A: Reply Thread ===== */
+  .reply-thread {
+    max-width: 380px;
+    margin-top: 2px;
+  }
+  .reply-thread-line {
+    display: flex;
+    gap: 10px;
+    padding: 6px 10px 6px 14px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-top: none;
+    border-radius: 0 0 10px 10px;
+    cursor: pointer;
+    transition: background 0.15s;
+  }
+  .reply-thread-line:hover { background: var(--surface2); }
+  .reply-thread-count {
+    font-size: 11px;
+    color: var(--blue);
+    font-weight: 500;
+    white-space: nowrap;
+  }
+  .reply-thread-preview {
+    font-size: 11px;
+    color: var(--text-muted);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  /* thread panel */
+  .thread-panel {
+    width: 340px;
+    flex-shrink: 0;
+    background: var(--surface);
+    border-left: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    transition: all 0.3s cubic-bezier(0.4,0,0.2,1);
+  }
+  .thread-panel.hidden { width: 0; opacity: 0; }
+  .thread-panel-header {
+    padding: 14px 16px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .thread-panel-header h3 { font-size: 13px; font-weight: 600; flex: 1; }
+  .close-btn {
+    width: 24px; height: 24px;
+    border-radius: 6px;
+    border: 1px solid var(--border);
+    background: var(--surface2);
+    color: var(--text-muted);
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 14px;
+    transition: all 0.15s;
+  }
+  .close-btn:hover { background: var(--surface3); color: var(--text); }
+
+  .thread-panel-body { flex: 1; overflow-y: auto; padding: 16px; display: flex; flex-direction: column; gap: 12px; }
+  .thread-panel-body::-webkit-scrollbar { width: 4px; }
+  .thread-panel-body::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 2px; }
+
+  .thread-orig-card {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 10px 12px;
+    border-left: 3px solid var(--red);
+  }
+  .thread-orig-card .label { font-size: 10px; color: var(--text-dim); margin-bottom: 4px; font-family: var(--mono); }
+  .thread-orig-card .name { font-size: 12px; font-weight: 600; }
+  .thread-orig-card .meta { font-size: 11px; color: var(--text-muted); margin-top: 3px; }
+
+  .thread-divider {
+    display: flex; align-items: center; gap: 8px;
+    font-size: 10px; color: var(--text-dim); font-family: var(--mono);
+    text-transform: uppercase; letter-spacing: 0.08em;
+  }
+  .thread-divider::before, .thread-divider::after {
+    content: ''; flex: 1; height: 1px; background: var(--border);
+  }
+
+  /* ===== DIAGNOSIS CARD ===== */
+  .diag-card {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    overflow: hidden;
+    max-width: 380px;
+  }
+  .diag-card-header {
+    padding: 10px 14px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    border-bottom: 1px solid var(--border);
+    background: linear-gradient(90deg, rgba(46,204,113,0.06), transparent);
+  }
+  .diag-icon {
+    width: 22px; height: 22px;
+    background: var(--green-dim);
+    border: 1px solid rgba(46,204,113,0.3);
+    border-radius: 6px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 11px;
+  }
+  .diag-card-header .diag-title { font-size: 12px; font-weight: 600; flex: 1; }
+  .diag-card-header .diag-time { font-family: var(--mono); font-size: 10px; color: var(--text-dim); }
+
+  .diag-card-body { padding: 12px 14px; }
+
+  .diag-conclusion {
+    background: var(--surface3);
+    border-radius: 8px;
+    padding: 10px 12px;
+    margin-bottom: 10px;
+    border-left: 3px solid var(--green);
+  }
+  .diag-conclusion .conclusion-label {
+    font-size: 10px; color: var(--green); font-family: var(--mono);
+    text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 5px;
+  }
+  .diag-conclusion .conclusion-text { font-size: 13px; font-weight: 500; line-height: 1.5; }
+  .diag-conclusion .confidence {
+    margin-top: 6px;
+    display: flex; align-items: center; gap: 6px;
+    font-size: 11px; color: var(--text-muted);
+  }
+  .confidence-bar {
+    flex: 1; height: 3px; background: var(--border);
+    border-radius: 2px; overflow: hidden;
+  }
+  .confidence-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--green), var(--blue));
+    border-radius: 2px;
+    transition: width 0.8s ease;
+  }
+
+  .diag-steps {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    margin-bottom: 10px;
+  }
+  .diag-step {
+    display: flex;
+    gap: 8px;
+    align-items: flex-start;
+  }
+  .diag-step-num {
+    width: 18px; height: 18px;
+    border-radius: 50%;
+    background: var(--surface3);
+    border: 1px solid var(--border2);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 9px;
+    font-family: var(--mono);
+    font-weight: 700;
+    color: var(--text-muted);
+    flex-shrink: 0;
+    margin-top: 1px;
+  }
+  .diag-step-text { font-size: 12px; color: var(--text-muted); line-height: 1.4; }
+  .diag-step-text strong { color: var(--text); font-weight: 500; }
+
+  .diag-card-footer {
+    padding: 8px 14px;
+    border-top: 1px solid var(--border);
+    display: flex; align-items: center; gap: 8px;
+  }
+
+  /* reference quoted card */
+  .alarm-ref {
+    max-width: 380px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--blue);
+    border-radius: 8px;
+    padding: 8px 12px;
+    margin-bottom: 4px;
+    cursor: pointer;
+    transition: background 0.15s;
+  }
+  .alarm-ref:hover { background: var(--surface2); }
+  .alarm-ref .ref-label { font-size: 10px; color: var(--blue); font-family: var(--mono); margin-bottom: 3px; }
+  .alarm-ref .ref-name { font-size: 12px; font-weight: 500; }
+  .alarm-ref .ref-meta { font-size: 11px; color: var(--text-muted); margin-top: 2px; }
+
+  /* ===== SCHEME B: card state update ===== */
+  .alarm-card.has-diag { border-color: rgba(46,204,113,0.3); }
+  .diag-inline {
+    border-top: 1px solid var(--border);
+    padding: 10px 14px;
+    background: linear-gradient(90deg, rgba(46,204,113,0.04), transparent);
+  }
+  .diag-inline-header {
+    display: flex; align-items: center; gap: 6px; margin-bottom: 6px;
+  }
+  .diag-inline-header .label { font-size: 10px; color: var(--green); font-family: var(--mono); text-transform: uppercase; }
+  .diag-inline-summary { font-size: 12px; color: var(--text-muted); line-height: 1.4; margin-bottom: 8px; }
+  .diag-inline-summary strong { color: var(--text); }
+
+  /* ===== SCHEME D: Sidebar panel ===== */
+  .side-panel {
+    width: 360px;
+    flex-shrink: 0;
+    background: var(--surface);
+    border-left: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    transition: all 0.35s cubic-bezier(0.4,0,0.2,1);
+  }
+  .side-panel.hidden { width: 0; opacity: 0; pointer-events: none; }
+  .side-panel-header {
+    padding: 14px 16px;
+    border-bottom: 1px solid var(--border);
+    background: var(--surface2);
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  .side-panel-header .top-row { display: flex; align-items: center; gap: 8px; }
+  .side-panel-header h3 { font-size: 13px; font-weight: 600; flex: 1; }
+
+  .side-panel-body { flex: 1; overflow-y: auto; padding: 16px; display: flex; flex-direction: column; gap: 16px; }
+  .side-panel-body::-webkit-scrollbar { width: 4px; }
+  .side-panel-body::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 2px; }
+
+  .side-section { }
+  .side-section-title {
+    font-size: 10px;
+    font-family: var(--mono);
+    color: var(--text-dim);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    margin-bottom: 8px;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .side-section-title::after { content: ''; flex: 1; height: 1px; background: var(--border); }
+
+  .metric-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    margin-bottom: 10px;
+  }
+  .metric-cell {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 10px;
+  }
+  .metric-cell .m-label { font-size: 10px; color: var(--text-dim); margin-bottom: 4px; font-family: var(--mono); }
+  .metric-cell .m-value { font-size: 18px; font-weight: 700; font-family: var(--mono); }
+  .metric-cell .m-value.bad { color: var(--red); }
+  .metric-cell .m-value.warn { color: var(--orange); }
+  .metric-cell .m-value.ok { color: var(--green); }
+  .metric-cell .m-unit { font-size: 11px; color: var(--text-muted); margin-top: 2px; }
+
+  .timeline { display: flex; flex-direction: column; gap: 0; }
+  .timeline-item {
+    display: flex;
+    gap: 12px;
+    padding-bottom: 14px;
+    position: relative;
+  }
+  .timeline-item::before {
+    content: '';
+    position: absolute;
+    left: 7px;
+    top: 18px;
+    bottom: 0;
+    width: 1px;
+    background: var(--border);
+  }
+  .timeline-item:last-child::before { display: none; }
+  .timeline-dot {
+    width: 15px; height: 15px;
+    border-radius: 50%;
+    border: 2px solid var(--border2);
+    background: var(--surface2);
+    flex-shrink: 0;
+    margin-top: 2px;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .timeline-dot.active { border-color: var(--blue); background: var(--blue-dim); }
+  .timeline-dot.done { border-color: var(--green); background: var(--green-dim); }
+  .timeline-dot.warn { border-color: var(--orange); background: var(--orange-dim); }
+  .timeline-content { flex: 1; }
+  .timeline-content .t-title { font-size: 12px; font-weight: 500; margin-bottom: 2px; }
+  .timeline-content .t-desc { font-size: 11px; color: var(--text-muted); line-height: 1.4; }
+  .timeline-content .t-time { font-size: 10px; color: var(--text-dim); font-family: var(--mono); margin-top: 3px; }
+
+  /* ===== SCHEME C: Aggregated broadcast ===== */
+  .broadcast-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    overflow: hidden;
+    max-width: 400px;
+    position: relative;
+  }
+  .broadcast-header {
+    padding: 10px 14px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: linear-gradient(90deg, rgba(168,85,247,0.08), transparent);
+    border-bottom: 1px solid var(--border);
+  }
+  .broadcast-icon {
+    width: 24px; height: 24px;
+    background: var(--purple-dim);
+    border: 1px solid rgba(168,85,247,0.3);
+    border-radius: 6px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 12px;
+  }
+  .broadcast-header .b-title { font-size: 13px; font-weight: 600; flex: 1; }
+  .broadcast-header .b-badge {
+    font-family: var(--mono);
+    font-size: 10px;
+    background: var(--purple-dim);
+    color: var(--purple);
+    border: 1px solid rgba(168,85,247,0.3);
+    padding: 2px 7px;
+    border-radius: 20px;
+  }
+  .broadcast-body { padding: 12px 14px; }
+  .broadcast-conclusion {
+    font-size: 13px;
+    font-weight: 500;
+    line-height: 1.5;
+    margin-bottom: 10px;
+    color: var(--text);
+  }
+  .broadcast-events {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    margin-bottom: 10px;
+  }
+  .broadcast-event-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 5px 8px;
+    background: var(--surface2);
+    border-radius: 6px;
+    font-size: 11px;
+    cursor: pointer;
+    transition: background 0.15s;
+  }
+  .broadcast-event-item:hover { background: var(--surface3); }
+  .broadcast-event-item .ev-dot {
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+  .broadcast-event-item .ev-name { flex: 1; color: var(--text-muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .broadcast-event-item .ev-time { font-family: var(--mono); color: var(--text-dim); flex-shrink: 0; }
+  .broadcast-footer {
+    padding: 8px 14px;
+    border-top: 1px solid var(--border);
+    display: flex; align-items: center; gap: 8px;
+  }
+
+  /* ===== DESCRIPTION PANEL ===== */
+  .desc-panel {
+    width: 260px;
+    flex-shrink: 0;
+    padding: 20px;
+    border-left: 1px solid var(--border);
+    overflow-y: auto;
+  }
+  .desc-panel h2 {
+    font-size: 12px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--text-muted);
+    margin-bottom: 16px;
+    font-family: var(--mono);
+  }
+  .desc-scheme-title {
+    font-size: 15px;
+    font-weight: 600;
+    margin-bottom: 8px;
+    line-height: 1.3;
+  }
+  .desc-text {
+    font-size: 12px;
+    color: var(--text-muted);
+    line-height: 1.6;
+    margin-bottom: 16px;
+  }
+  .desc-pros, .desc-cons {
+    margin-bottom: 12px;
+  }
+  .desc-pros .label { color: var(--green); font-size: 11px; font-family: var(--mono); margin-bottom: 6px; font-weight: 700; }
+  .desc-cons .label { color: var(--red); font-size: 11px; font-family: var(--mono); margin-bottom: 6px; font-weight: 700; }
+  .desc-list { list-style: none; display: flex; flex-direction: column; gap: 5px; }
+  .desc-list li {
+    font-size: 12px;
+    color: var(--text-muted);
+    padding-left: 14px;
+    position: relative;
+    line-height: 1.4;
+  }
+  .desc-pros .desc-list li::before { content: '↑'; position: absolute; left: 0; color: var(--green); font-size: 10px; }
+  .desc-cons .desc-list li::before { content: '↓'; position: absolute; left: 0; color: var(--red); font-size: 10px; }
+
+  .desc-tip {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 10px 12px;
+    font-size: 11px;
+    color: var(--text-muted);
+    line-height: 1.5;
+    margin-top: 8px;
+  }
+  .desc-tip strong { color: var(--blue); }
+
+  /* ===== UTILS ===== */
+  .flex-1 { flex: 1; }
+  .text-muted { color: var(--text-muted); }
+
+  .loading-dots::after {
+    content: '...';
+    animation: dots 1.5s infinite;
+  }
+  @keyframes dots {
+    0%, 100% { content: '.'; }
+    33% { content: '..'; }
+    66% { content: '...'; }
+  }
+
+  /* scheme C aggregate event expanded */
+  .broadcast-detail-panel {
+    width: 340px;
+    flex-shrink: 0;
+    background: var(--surface);
+    border-left: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    transition: all 0.3s cubic-bezier(0.4,0,0.2,1);
+  }
+  .broadcast-detail-panel.hidden { width: 0; opacity: 0; pointer-events: none; }
+
+
+/* override scheme-panel for standalone */
+body { overflow: hidden; }
+</style>
+</head>
+<body>
+<div class="header" style="padding:14px 24px;">
+  <span class="header-badge">Scheme B</span>
+  <h1>告警诊断推送 · B · 卡片状态更新</h1>
+</div>
+<div style="display:flex;height:calc(100vh - 60px);" id="panel-b">
+  <div class="chat-area">
+    <div class="chat-header">
+      <div class="group-icon">🔔</div>
+      <div><div class="group-name">creator-service 告警群</div></div>
+      <div class="group-count">23人</div>
+    </div>
+    <div class="chat-messages">
+
+      <div class="msg-group">
+        <div class="msg-row">
+          <div class="msg-avatar" style="background:linear-gradient(135deg,#c0392b,#922b21)">🤖</div>
+          <div class="msg-body">
+            <div class="msg-meta"><span class="msg-name">XRay 告警</span><span class="msg-time">19:42:03</span></div>
+            <div class="alarm-card has-diag" onclick="toggleInlineDiag(this)">
+              <div class="alarm-card-header">
+                <div class="severity-dot p0"></div>
+                <span class="severity-label p0">P0</span>
+                <span class="rule-name">creator-service 接口失败率 > 5%</span>
+                <span class="alarm-time">19:42</span>
+              </div>
+              <div class="alarm-card-body">
+                <div class="alarm-meta-row">
+                  <div class="alarm-meta-item"><div class="alarm-meta-label">App</div><div class="alarm-meta-value">creator-service</div></div>
+                  <div class="alarm-meta-item"><div class="alarm-meta-label">接口</div><div class="alarm-meta-value">/api/publish</div></div>
+                </div>
+                <div class="alarm-trigger-row">失败率 <span>8.3%</span> ↑ 阈值 5% · 持续 3min</div>
+              </div>
+              <div class="diag-inline">
+                <div class="diag-inline-header">
+                  <div class="diag-icon">🔍</div>
+                  <span class="label">AI 诊断完成 · 19:45:12</span>
+                  <span style="margin-left:auto;font-size:11px;color:var(--text-dim);font-family:var(--mono)">▼ 展开</span>
+                </div>
+                <div class="diag-inline-summary">
+                  根因：<strong>MySQL 连接池耗尽</strong>（连接数 495/500，等待超时）。建议立即扩容连接池或重启部分 pod。
+                </div>
+                <div style="display:flex;gap:8px;">
+                  <div class="alarm-action-btn primary">查看完整诊断</div>
+                  <div class="alarm-action-btn">执行建议操作</div>
+                </div>
+              </div>
+              <div class="alarm-card-footer">
+                <div class="alarm-action-btn">查看告警</div>
+                <div class="alarm-action-btn">关联事件</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="msg-group">
+        <div class="msg-row">
+          <div class="msg-avatar" style="background:linear-gradient(135deg,#2980b9,#1a5276)">张</div>
+          <div class="msg-body">
+            <div class="msg-meta"><span class="msg-name">张明</span><span class="msg-time">19:42:18</span></div>
+            <div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:8px 12px;max-width:240px;font-size:13px;">在看了，先排查一下</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="msg-group">
+        <div class="msg-row">
+          <div class="msg-avatar" style="background:linear-gradient(135deg,#c0392b,#922b21)">🤖</div>
+          <div class="msg-body">
+            <div class="msg-meta"><span class="msg-name">XRay 告警</span><span class="msg-time">19:44:11</span></div>
+            <div class="alarm-card has-diag" onclick="toggleInlineDiag(this)">
+              <div class="alarm-card-header">
+                <div class="severity-dot p1"></div>
+                <span class="severity-label p1">P1</span>
+                <span class="rule-name">creator-service GC 停顿 > 500ms</span>
+                <span class="alarm-time">19:44</span>
+              </div>
+              <div class="alarm-card-body">
+                <div class="alarm-meta-row">
+                  <div class="alarm-meta-item"><div class="alarm-meta-label">App</div><div class="alarm-meta-value">creator-service</div></div>
+                  <div class="alarm-meta-item"><div class="alarm-meta-label">Pod</div><div class="alarm-meta-value">pod-7d9f2-xk2p1</div></div>
+                </div>
+                <div class="alarm-trigger-row">Full GC 停顿 <span>780ms</span> ↑ 阈值 500ms</div>
+              </div>
+              <div class="diag-inline">
+                <div class="diag-inline-header">
+                  <div class="diag-icon">🔍</div>
+                  <span class="label">AI 诊断完成 · 19:46:30</span>
+                  <span style="margin-left:auto;font-size:11px;color:var(--text-dim);font-family:var(--mono)">▼ 展开</span>
+                </div>
+                <div class="diag-inline-summary">
+                  根因：<strong>堆内存溢出</strong>，老年代占用 97%，频繁 Full GC。与接口失败率告警<strong>高度相关</strong>，建议优先处理。
+                </div>
+                <div style="display:flex;gap:8px;">
+                  <div class="alarm-action-btn primary">查看完整诊断</div>
+                  <div class="alarm-action-btn">查看关联告警</div>
+                </div>
+              </div>
+              <div class="alarm-card-footer">
+                <div class="alarm-action-btn">查看告警</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="msg-group">
+        <div class="msg-row">
+          <div class="msg-avatar" style="background:linear-gradient(135deg,#c0392b,#922b21)">🤖</div>
+          <div class="msg-body">
+            <div class="msg-meta"><span class="msg-name">XRay 告警</span><span class="msg-time">19:47:05</span></div>
+            <div class="alarm-card">
+              <div class="alarm-card-header">
+                <div class="severity-dot p0"></div>
+                <span class="severity-label p0">P0</span>
+                <span class="rule-name">creator-service 接口失败率 > 5%</span>
+                <span class="alarm-time">19:47</span>
+              </div>
+              <div class="alarm-card-body">
+                <div class="alarm-meta-row">
+                  <div class="alarm-meta-item"><div class="alarm-meta-label">App</div><div class="alarm-meta-value">creator-service</div></div>
+                  <div class="alarm-meta-item"><div class="alarm-meta-label">接口</div><div class="alarm-meta-value">/api/publish</div></div>
+                </div>
+                <div class="alarm-trigger-row">失败率 <span>11.2%</span> ↑ 持续上升</div>
+              </div>
+              <div class="alarm-card-footer">
+                <div class="diag-badge analyzing"><div class="pulse"></div>AI 诊断中</div>
+                <div class="alarm-action-btn" style="margin-left:auto">查看告警</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <div class="desc-panel">
+    <h2>方案说明</h2>
+    <div class="desc-scheme-title">B · 卡片状态更新模式</div>
+    <div class="desc-text">原告警卡片本身增加"诊断区域"。诊断完成后，卡片底部追加摘要内容，关联感最强，不需要额外操作就能看到诊断结论。</div>
+    <div class="desc-pros">
+      <div class="label">↑ 优势</div>
+      <ul class="desc-list">
+        <li>零点击：诊断摘要直接展示在卡片内</li>
+        <li>关联最强：告警与诊断物理上是同一张卡片</li>
+        <li>不依赖平台线程能力</li>
+      </ul>
+    </div>
+    <div class="desc-cons">
+      <div class="label">↓ 挑战</div>
+      <ul class="desc-list">
+        <li>卡片高度变化，消息流视觉不稳定</li>
+        <li>需要平台支持消息内容动态更新</li>
+        <li>多条告警同时展示摘要，信息密度高</li>
+      </ul>
+    </div>
+    <div class="desc-tip">💡 <strong>交互提示</strong>：点击告警卡片可展开/收起诊断摘要区域</div>
+  </div>
+</div>
+<script>
+
+// ===== Tab switching =====
+function switchScheme(id) {
+  document.querySelectorAll('.scheme-tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.scheme-panel').forEach(p => p.classList.remove('active'));
+  event.currentTarget.classList.add('active');
+  document.getElementById('panel-' + id).classList.add('active');
+}
+
+// ===== Scheme A: Thread =====
+const threadData = {
+  a1: {
+    title: '接口失败率 > 5% · 诊断线程',
+    alarmName: 'creator-service 接口失败率 > 5%',
+    alarmMeta: 'P0 · 19:42:03 · /api/publish',
+    conclusion: 'MySQL 连接池耗尽（当前 495/500），新请求等待超时导致接口失败',
+    confidence: 88,
+    steps: [
+      { text: '获取失败链路 Trace，定位超时发生在 <strong>MySQL 查询层</strong>' },
+      { text: '检查连接池状态：active=495，max=500，wait=47，平均等待 <strong>320ms</strong>' },
+      { text: '关联 GC 告警：Full GC 停顿导致连接未及时释放，形成积压' },
+    ]
+  },
+  a2: {
+    title: 'GC 停顿 > 500ms · 诊断线程',
+    alarmName: 'creator-service GC 停顿 > 500ms',
+    alarmMeta: 'P1 · 19:44:11 · pod-7d9f2-xk2p1',
+    conclusion: '堆内存溢出，老年代占用 97%，触发频繁 Full GC，停顿时间超阈值',
+    confidence: 95,
+    steps: [
+      { text: 'JVM 指标：老年代 <strong>97%</strong>，Eden 区 100%，触发 Full GC 3次/min' },
+      { text: '内存分配分析：ImageUploadHandler 持有大量未释放 byte[] 对象' },
+      { text: '与接口失败率告警高度相关，GC 停顿期间连接池无法释放' },
+    ]
+  }
+};
+
+function openThreadA(id) {
+  const data = threadData[id];
+  if (!data) return;
+  const panel = document.getElementById('thread-panel-a');
+  document.getElementById('thread-panel-title-a').textContent = data.title;
+  document.getElementById('thread-preview-a1').style.display = id === 'a1' ? 'block' : 'none';
+
+  const stepsHTML = data.steps.map((s, i) => `
+    <div class="diag-step">
+      <div class="diag-step-num">${i+1}</div>
+      <div class="diag-step-text">${s.text}</div>
+    </div>`).join('');
+
+  document.getElementById('thread-panel-body-a').innerHTML = `
+    <div class="thread-orig-card">
+      <div class="label">原始告警</div>
+      <div class="name">${data.alarmName}</div>
+      <div class="meta">${data.alarmMeta}</div>
+    </div>
+    <div class="thread-divider">AI 诊断结论</div>
+    <div class="diag-conclusion">
+      <div class="conclusion-label">根因</div>
+      <div class="conclusion-text">${data.conclusion}</div>
+      <div class="confidence">
+        <span>置信度</span>
+        <div class="confidence-bar"><div class="confidence-fill" style="width:${data.confidence}%"></div></div>
+        <span style="font-family:var(--mono)">${data.confidence}%</span>
+      </div>
+    </div>
+    <div class="thread-divider">诊断过程</div>
+    <div class="diag-steps">${stepsHTML}</div>
+    <div style="display:flex;gap:8px;">
+      <div class="alarm-action-btn primary">查看完整 Logview</div>
+      <div class="alarm-action-btn">创建故障单</div>
+    </div>
+  `;
+  panel.classList.remove('hidden');
+}
+
+function closePanel(id) {
+  document.getElementById(id).classList.add('hidden');
+}
+
+// ===== Scheme B: Inline toggle =====
+function toggleInlineDiag(card) {
+  const summary = card.querySelector('.diag-inline-summary');
+  const btn = card.querySelector('.diag-inline .alarm-action-btn');
+  const arrow = card.querySelector('.diag-inline-header span:last-child');
+  if (!summary) return;
+  const isHidden = summary.style.display === 'none';
+  summary.style.display = isHidden ? 'block' : 'none';
+  if (arrow) arrow.textContent = isHidden ? '▲ 收起' : '▼ 展开';
+}
+
+// ===== Scheme C: Broadcast detail =====
+function openBroadcastDetail(id) {
+  document.getElementById('broadcast-detail-panel').classList.remove('hidden');
+}
+
+// ===== Scheme D: Side panel =====
+const sidePanelData = {
+  d1: {
+    title: '接口失败率诊断',
+    alarmName: 'creator-service 接口失败率 > 5%',
+    alarmMeta: 'P0 · /api/publish · 19:42:03',
+    borderColor: 'var(--red)',
+    ready: true,
+    conclusion: 'MySQL 连接池耗尽（495/500），GC 停顿导致连接未及时释放',
+    confidence: 88,
+    metrics: [
+      { label: '接口失败率', value: '8.3', unit: '%', cls: 'bad' },
+      { label: '连接池占用', value: '495', unit: '/500', cls: 'bad' },
+      { label: 'GC 停顿', value: '780', unit: 'ms', cls: 'warn' },
+      { label: '受影响 Pod', value: '3', unit: '个', cls: 'warn' },
+    ],
+    timeline: [
+      { state: 'done', title: '采集异常 Trace', desc: '获取 /api/publish 失败链路 47条', time: '19:43:05' },
+      { state: 'warn', title: '定位超时节点', desc: 'MySQL 查询层平均等待 320ms', time: '19:43:31' },
+      { state: 'warn', title: '检查连接池', desc: '活跃连接 495/500，wait 队列 47', time: '19:44:10' },
+      { state: 'done', title: '关联 GC 分析', desc: 'Full GC 停顿造成连接归还延迟', time: '19:44:52' },
+      { state: 'done', title: '结论生成', desc: '置信度 88%，建议扩容连接池', time: '19:45:12' },
+    ]
+  },
+  d2: {
+    title: 'GC 停顿诊断',
+    alarmName: 'creator-service GC 停顿 > 500ms',
+    alarmMeta: 'P1 · pod-7d9f2-xk2p1 · 19:44:11',
+    borderColor: 'var(--orange)',
+    ready: true,
+    conclusion: '堆内存溢出，老年代占用 97%，ImageUploadHandler 存在内存泄漏',
+    confidence: 95,
+    metrics: [
+      { label: '老年代占用', value: '97', unit: '%', cls: 'bad' },
+      { label: 'Full GC 频率', value: '3', unit: '次/min', cls: 'bad' },
+      { label: 'GC 停顿时长', value: '780', unit: 'ms', cls: 'bad' },
+      { label: '内存增长速率', value: '+2.1', unit: 'GB/h', cls: 'warn' },
+    ],
+    timeline: [
+      { state: 'done', title: '拉取 JVM 指标', desc: '老年代 97%，Eden 区 100%', time: '19:45:05' },
+      { state: 'done', title: '分析内存分配', desc: 'ImageUploadHandler byte[] 对象泄漏', time: '19:45:40' },
+      { state: 'done', title: '关联接口失败', desc: 'GC 停顿与失败率峰值时序吻合', time: '19:46:10' },
+      { state: 'done', title: '结论生成', desc: '置信度 95%，建议滚动重启', time: '19:46:30' },
+    ]
+  },
+  d3: {
+    title: '接口失败率诊断（诊断中）',
+    alarmName: 'creator-service 接口失败率 > 5%',
+    alarmMeta: 'P0 · /api/publish · 19:47:05',
+    borderColor: 'var(--blue)',
+    ready: false,
+  }
+};
+
+function openSidePanel(id) {
+  const data = sidePanelData[id];
+  if (!data) return;
+  const panel = document.getElementById('side-panel-d');
+  document.getElementById('side-panel-title').textContent = data.title;
+  document.getElementById('side-alarm-name').textContent = data.alarmName;
+  document.getElementById('side-alarm-meta').textContent = data.alarmMeta;
+  document.getElementById('side-alarm-ref').style.borderLeftColor = data.borderColor;
+
+  const body = document.getElementById('side-panel-body-d');
+
+  if (!data.ready) {
+    body.innerHTML = `
+      <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:200px;gap:12px;">
+        <div style="width:40px;height:40px;border:2px solid var(--border2);border-top-color:var(--blue);border-radius:50%;animation:spin 0.8s linear infinite;"></div>
+        <div style="font-size:13px;color:var(--text-muted);">AI 诊断进行中<span class="loading-dots"></span></div>
+        <div style="font-size:11px;color:var(--text-dim);">预计 2-5 分钟完成</div>
+      </div>
+      <style>@keyframes spin{to{transform:rotate(360deg)}}</style>
+    `;
+  } else {
+    const metricsHTML = data.metrics.map(m => `
+      <div class="metric-cell">
+        <div class="m-label">${m.label}</div>
+        <div class="m-value ${m.cls}">${m.value}</div>
+        <div class="m-unit">${m.unit}</div>
+      </div>`).join('');
+
+    const timelineHTML = data.timeline.map(t => `
+      <div class="timeline-item">
+        <div class="timeline-dot ${t.state}"></div>
+        <div class="timeline-content">
+          <div class="t-title">${t.title}</div>
+          <div class="t-desc">${t.desc}</div>
+          <div class="t-time">${t.time}</div>
+        </div>
+      </div>`).join('');
+
+    body.innerHTML = `
+      <div class="diag-conclusion">
+        <div class="conclusion-label">根因结论</div>
+        <div class="conclusion-text">${data.conclusion}</div>
+        <div class="confidence">
+          <span>置信度</span>
+          <div class="confidence-bar"><div class="confidence-fill" style="width:${data.confidence}%"></div></div>
+          <span style="font-family:var(--mono)">${data.confidence}%</span>
+        </div>
+      </div>
+      <div class="side-section">
+        <div class="side-section-title">关键指标</div>
+        <div class="metric-grid">${metricsHTML}</div>
+      </div>
+      <div class="side-section">
+        <div class="side-section-title">诊断过程</div>
+        <div class="timeline">${timelineHTML}</div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:8px;">
+        <div class="alarm-action-btn primary" style="text-align:center;padding:10px;">查看完整 Logview</div>
+        <div class="alarm-action-btn" style="text-align:center;padding:10px;">创建故障单</div>
+      </div>
+    `;
+  }
+  panel.classList.remove('hidden');
+}
+
+function closeSidePanel() {
+  document.getElementById('side-panel-d').classList.add('hidden');
+}
+
+// ===== Auto show thread for A =====
+setTimeout(() => {
+  document.getElementById('thread-preview-a1').style.display = 'block';
+}, 800);
+
+</script>
+</body>
+</html>

@@ -47,43 +47,67 @@
     },
     "calendar": {
       "version": "1.0.8",
-      "installedAt": 1775485505719
+      "installedAt": 1775560935562
     },
     "summarize": {
       "version": "1.0.0",
-      "installedAt": 1775485506223
+      "installedAt": 1775560945807
     },
     "docx": {
       "version": "1.0.0",
-      "installedAt": 1775485506724
+      "installedAt": 1775560946430
     },
     "pptx": {
       "version": "1.0.0",
-      "installedAt": 1775485507241
+      "installedAt": 1775560946970
     },
     "xlsx": {
       "version": "1.0.0",
-      "installedAt": 1775485507766
+      "installedAt": 1775560947538
     },
     "hi-docs": {
       "version": "1.0.4",
-      "installedAt": 1775485508254
+      "installedAt": 1775560948025
     },
     "hi-im": {
       "version": "1.0.3",
-      "installedAt": 1775485508713
+      "installedAt": 1775560948519
     },
     "hi-search": {
       "version": "1.0.5",
-      "installedAt": 1775485509181
+      "installedAt": 1775560949020
     },
     "hi-todos": {
       "version": "1.0.4",
-      "installedAt": 1775485509650
+      "installedAt": 1775560949488
     },
     "hi-calendar": {
       "version": "1.0.3",
-      "installedAt": 1775485510131
+      "installedAt": 1775560949973
+    },
+    "ones-assistant": {
+      "version": "1.0.4",
+      "installedAt": 1775544418226
+    },
+    "rec-new-note-diagnosis": {
+      "version": "1.0.8",
+      "installedAt": 1775554851917
+    },
+    "xray_changevent_query": {
+      "version": "1.0.2",
+      "installedAt": 1775554907706
+    },
+    "xray-metric-query": {
+      "version": "1.0.0",
+      "installedAt": 1775554915308
+    },
+    "index-switch-check": {
+      "version": "1.0.2",
+      "installedAt": 1775554915796
+    },
+    "xray-metrics-query": {
+      "version": "1.0.1",
+      "installedAt": 1775555141578
     }
   }
 }

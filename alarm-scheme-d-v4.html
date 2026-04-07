@@ -1,0 +1,1134 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>告警诊断方案 D · v4 · 双 Tab 侧边栏</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Noto+Sans+SC:wght@300;400;500;700&display=swap');
+
+  :root {
+    --bg: #0d0f14;
+    --surface: #161920;
+    --surface2: #1e2230;
+    --surface3: #252a3a;
+    --border: #2a3050;
+    --border2: #363d5a;
+    --text: #e2e8f0;
+    --text-muted: #7b8ab8;
+    --text-dim: #4a5580;
+    --red: #ff4757;
+    --red-dim: rgba(255,71,87,0.12);
+    --orange: #ff8c42;
+    --orange-dim: rgba(255,140,66,0.12);
+    --blue: #4e9eff;
+    --blue-dim: rgba(78,158,255,0.12);
+    --green: #2ecc71;
+    --green-dim: rgba(46,204,113,0.12);
+    --yellow: #f7c948;
+    --yellow-dim: rgba(247,201,72,0.12);
+    --purple: #9b59b6;
+    --purple-dim: rgba(155,89,182,0.12);
+    --mono: 'JetBrains Mono', monospace;
+    --sans: 'Noto Sans SC', sans-serif;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: var(--bg); color: var(--text); font-family: var(--sans);
+    height: 100vh; overflow: hidden; display: flex; flex-direction: column;
+  }
+
+  /* ===== HEADER ===== */
+  .header {
+    padding: 11px 20px; border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; gap: 12px; flex-shrink: 0;
+  }
+  .header-badge {
+    font-family: var(--mono); font-size: 10px; color: var(--text-muted);
+    background: var(--surface2); border: 1px solid var(--border);
+    padding: 2px 8px; border-radius: 4px; letter-spacing: 0.08em; text-transform: uppercase;
+  }
+  .header h1 { font-size: 13px; font-weight: 500; }
+
+  /* demo bar */
+  .demo-bar {
+    padding: 7px 20px; border-bottom: 1px solid var(--border);
+    background: var(--surface); display: flex; align-items: center; gap: 8px; flex-shrink: 0;
+  }
+  .demo-label { font-size: 11px; color: var(--text-dim); font-family: var(--mono); }
+  .demo-btn {
+    font-size: 11px; padding: 3px 10px; border-radius: 5px;
+    border: 1px solid var(--border2); background: var(--surface2);
+    color: var(--text-muted); cursor: pointer; transition: all 0.15s;
+  }
+  .demo-btn:hover { background: var(--surface3); color: var(--text); border-color: var(--blue); }
+  .demo-btn.green { border-color: rgba(46,204,113,0.4); color: var(--green); background: var(--green-dim); }
+  .demo-btn.reset { margin-left: auto; }
+
+  /* ===== LAYOUT ===== */
+  .main { display: flex; flex: 1; overflow: hidden; }
+
+  /* ===== CHAT ===== */
+  .chat-area { flex: 1; display: flex; flex-direction: column; border-right: 1px solid var(--border); min-width: 0; position: relative; }
+
+  /* top banner */
+  .diag-banner {
+    position: absolute; top: 0; left: 0; right: 0; z-index: 20;
+    transform: translateY(-100%); transition: transform 0.3s cubic-bezier(0.4,0,0.2,1);
+  }
+  .diag-banner.visible { transform: translateY(0); }
+  .banner-collapsed {
+    background: linear-gradient(90deg, rgba(46,204,113,0.10), rgba(46,204,113,0.03));
+    border-bottom: 1px solid rgba(46,204,113,0.22);
+    padding: 7px 14px; display: flex; align-items: center; gap: 9px; cursor: pointer;
+  }
+  .banner-collapsed:hover { background: linear-gradient(90deg, rgba(46,204,113,0.15), rgba(46,204,113,0.05)); }
+  .banner-pulse {
+    width: 7px; height: 7px; border-radius: 50%; background: var(--green); flex-shrink: 0; position: relative;
+  }
+  .banner-pulse::after {
+    content: ''; position: absolute; inset: -3px; border-radius: 50%;
+    border: 1.5px solid var(--green); opacity: 0; animation: ripple 2s ease-out infinite;
+  }
+  @keyframes ripple { 0% { opacity:.8; transform:scale(.8); } 100% { opacity:0; transform:scale(2.4); } }
+  .banner-text { font-size: 12px; color: var(--green); font-weight: 500; flex: 1; }
+  .banner-count {
+    font-size: 10px; font-family: var(--mono);
+    background: rgba(46,204,113,0.12); border: 1px solid rgba(46,204,113,0.28);
+    color: var(--green); padding: 1px 7px; border-radius: 20px;
+  }
+  .banner-toggle { font-size: 10px; color: var(--text-dim); transition: transform 0.2s; }
+  .banner-toggle.open { transform: rotate(180deg); }
+  .banner-close { width: 18px; height: 18px; border-radius: 4px; display: flex; align-items: center; justify-content: center; font-size: 11px; color: var(--text-dim); }
+  .banner-close:hover { background: var(--surface3); color: var(--text); }
+  .banner-list { background: var(--surface); border-bottom: 1px solid rgba(46,204,113,0.18); max-height: 0; overflow: hidden; transition: max-height 0.28s cubic-bezier(0.4,0,0.2,1); }
+  .banner-list.open { max-height: 260px; }
+  .banner-list-inner { padding: 5px 8px; display: flex; flex-direction: column; gap: 2px; }
+  .banner-item { display: flex; align-items: center; gap: 9px; padding: 6px 9px; border-radius: 6px; cursor: pointer; transition: background 0.12s; }
+  .banner-item:hover { background: var(--surface2); }
+  .banner-item.viewed { opacity: 0.45; }
+  .bi-dot { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; }
+  .bi-name { font-size: 12px; font-weight: 500; flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .bi-summary { font-size: 11px; color: var(--text-muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 150px; }
+  .bi-badge { font-size: 9px; font-family: var(--mono); padding: 1px 5px; border-radius: 3px; flex-shrink: 0; }
+  .bi-badge.done { background: var(--green-dim); color: var(--green); border: 1px solid rgba(46,204,113,0.22); }
+  .bi-badge.warn { background: var(--yellow-dim); color: var(--yellow); border: 1px solid rgba(247,201,72,0.22); }
+  .bi-new { width: 5px; height: 5px; border-radius: 50%; background: var(--green); flex-shrink: 0; }
+
+  .chat-header {
+    padding: 11px 16px; border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; gap: 9px; background: var(--surface); flex-shrink: 0;
+  }
+  .group-icon { width: 30px; height: 30px; background: linear-gradient(135deg,#c0392b,#922b21); border-radius: 7px; display: flex; align-items: center; justify-content: center; font-size: 13px; }
+  .group-name { font-size: 13px; font-weight: 600; }
+  .group-sub { font-size: 10px; color: var(--text-muted); margin-top: 1px; }
+  .group-count { font-size: 10px; color: var(--text-dim); margin-left: auto; }
+
+  .chat-messages {
+    flex: 1; overflow-y: auto; padding: 12px 14px;
+    display: flex; flex-direction: column; gap: 3px; transition: padding-top 0.3s;
+  }
+  .chat-messages::-webkit-scrollbar { width: 3px; }
+  .chat-messages::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 2px; }
+
+  /* messages */
+  .msg-group { margin-bottom: 9px; }
+  .msg-row { display: flex; gap: 9px; padding: 1px 0; }
+  .msg-avatar {
+    width: 28px; height: 28px; border-radius: 7px; flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: 700; margin-top: 2px;
+  }
+  .msg-body { flex: 1; min-width: 0; }
+  .msg-meta { display: flex; align-items: baseline; gap: 7px; margin-bottom: 3px; }
+  .msg-name { font-size: 11px; font-weight: 600; color: var(--text-muted); }
+  .msg-time { font-size: 10px; color: var(--text-dim); font-family: var(--mono); }
+  .bubble { background: var(--surface); border: 1px solid var(--border); border-radius: 9px; padding: 7px 11px; font-size: 13px; display: inline-block; max-width: 240px; line-height: 1.5; }
+
+  /* alarm card */
+  .alarm-card {
+    background: var(--surface); border: 1px solid var(--border); border-radius: 9px; overflow: hidden;
+    max-width: 340px; cursor: pointer; transition: border-color 0.2s, box-shadow 0.2s;
+    border-left: 3px solid transparent;
+  }
+  .alarm-card:hover { border-color: var(--border2); box-shadow: 0 3px 16px rgba(0,0,0,0.3); }
+  .alarm-card.selected { border-left-color: var(--blue) !important; border-color: rgba(78,158,255,0.4); box-shadow: 0 3px 20px rgba(78,158,255,0.1); }
+  .alarm-card.p0-border { border-left-color: rgba(255,71,87,0.45); }
+  .alarm-card.p1-border { border-left-color: rgba(255,140,66,0.4); }
+
+  .alarm-card-header { padding: 8px 11px; display: flex; align-items: center; gap: 6px; border-bottom: 1px solid var(--border); }
+  .severity-dot { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; }
+  .severity-dot.p0 { background: var(--red); box-shadow: 0 0 4px var(--red); }
+  .severity-dot.p1 { background: var(--orange); box-shadow: 0 0 4px var(--orange); }
+  .severity-label { font-family: var(--mono); font-size: 10px; font-weight: 700; }
+  .severity-label.p0 { color: var(--red); }
+  .severity-label.p1 { color: var(--orange); }
+  .rule-name { font-size: 12px; font-weight: 500; flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .alarm-time { font-family: var(--mono); font-size: 10px; color: var(--text-dim); }
+
+  .alarm-card-body { padding: 8px 11px; }
+  .alarm-meta-row { display: flex; gap: 12px; margin-bottom: 6px; }
+  .alarm-meta-item { min-width: 0; }
+  .alarm-meta-label { font-size: 9px; color: var(--text-dim); margin-bottom: 2px; font-family: var(--mono); text-transform: uppercase; letter-spacing: 0.04em; }
+  .alarm-meta-value { font-size: 12px; font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .alarm-trigger-row { background: var(--surface2); border-radius: 4px; padding: 4px 8px; font-family: var(--mono); font-size: 11px; color: var(--text-muted); }
+  .alarm-trigger-row .val { color: var(--red); font-weight: 700; }
+
+  .alarm-card-footer { border-top: 1px solid var(--border); overflow: hidden; }
+  .diag-analyzing-footer { padding: 7px 11px; display: flex; flex-direction: column; gap: 5px; }
+  .diag-analyzing-top { display: flex; align-items: center; gap: 6px; }
+  .diag-analyzing-label { font-size: 11px; color: var(--blue); font-family: var(--mono); flex: 1; }
+  .diag-eta { font-size: 10px; color: var(--text-dim); font-family: var(--mono); }
+  .diag-progress-bar { height: 2px; background: var(--border); border-radius: 2px; overflow: hidden; }
+  .diag-progress-fill { height: 100%; border-radius: 2px; background: linear-gradient(90deg,var(--blue),rgba(78,158,255,0.35)); animation: shimmer 1.8s ease-in-out infinite; }
+  @keyframes shimmer { 0%,100% { opacity:.55; } 50% { opacity:1; } }
+  .diag-step-hint { font-size: 10px; color: var(--text-dim); font-family: var(--mono); }
+  .diag-step-hint .step-active { color: var(--blue); }
+
+  .diag-done-footer {
+    padding: 7px 11px; display: flex; align-items: center; gap: 7px;
+    background: linear-gradient(90deg,rgba(46,204,113,0.05),transparent);
+    cursor: pointer; transition: background 0.14s;
+  }
+  .diag-done-footer:hover { background: linear-gradient(90deg,rgba(46,204,113,0.10),transparent); }
+  .done-pulse { width: 6px; height: 6px; border-radius: 50%; background: var(--green); flex-shrink: 0; position: relative; }
+  .done-pulse::after { content: ''; position: absolute; inset: -3px; border-radius: 50%; border: 1.5px solid var(--green); opacity: 0; animation: ripple2 2s ease-out infinite; }
+  @keyframes ripple2 { 0% { opacity:.8; transform:scale(.8); } 100% { opacity:0; transform:scale(2.2); } }
+  .done-label { font-size: 11px; color: var(--green); font-family: var(--mono); flex: 1; }
+  .done-preview { font-size: 11px; color: var(--text-muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 160px; }
+  .done-arrow { font-size: 11px; color: var(--text-dim); flex-shrink: 0; transition: transform 0.2s, color 0.2s; }
+  .alarm-card:hover .done-arrow { transform: translateX(3px); color: var(--blue); }
+
+  /* ===== SIDE PANEL ===== */
+  .side-panel {
+    width: 0; flex-shrink: 0; background: var(--surface);
+    display: flex; flex-direction: column; overflow: hidden;
+    transition: width 0.35s cubic-bezier(0.4,0,0.2,1);
+    border-left: 1px solid transparent;
+  }
+  .side-panel.open { width: 400px; border-left-color: var(--border); }
+
+  .side-panel-inner {
+    width: 400px; flex-shrink: 0; display: flex; flex-direction: column; height: 100%;
+    opacity: 0; transform: translateX(20px);
+    transition: opacity 0.25s ease 0.1s, transform 0.25s ease 0.1s;
+  }
+  .side-panel.open .side-panel-inner { opacity: 1; transform: translateX(0); }
+
+  /* sp header */
+  .sp-header { padding: 11px 15px; border-bottom: 1px solid var(--border); background: var(--surface2); flex-shrink: 0; }
+  .sp-header-top { display: flex; align-items: center; gap: 7px; margin-bottom: 9px; }
+  .sp-title { font-size: 13px; font-weight: 600; flex: 1; }
+  .sp-elapsed { font-size: 10px; font-family: var(--mono); color: var(--text-dim); background: var(--surface3); border: 1px solid var(--border2); padding: 2px 6px; border-radius: 4px; }
+  .close-btn {
+    width: 20px; height: 20px; border-radius: 5px; border: 1px solid var(--border);
+    background: var(--surface); color: var(--text-muted); cursor: pointer;
+    display: flex; align-items: center; justify-content: center; font-size: 12px; transition: all 0.14s;
+  }
+  .close-btn:hover { background: var(--surface3); color: var(--text); }
+  .sp-alarm-ref { background: var(--surface3); border: 1px solid var(--border); border-radius: 7px; padding: 7px 9px; display: flex; align-items: center; gap: 7px; }
+  .ref-dot { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; }
+  .ref-name { font-size: 12px; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .ref-meta { font-size: 10px; color: var(--text-muted); margin-top: 1px; font-family: var(--mono); }
+
+  /* ===== TABS ===== */
+  .sp-tabs {
+    display: flex; border-bottom: 1px solid var(--border);
+    background: var(--surface2); flex-shrink: 0;
+    padding: 0 15px;
+  }
+  .sp-tab {
+    padding: 9px 14px; font-size: 12px; font-weight: 500;
+    color: var(--text-dim); cursor: pointer; position: relative;
+    display: flex; align-items: center; gap: 6px;
+    border-bottom: 2px solid transparent; margin-bottom: -1px;
+    transition: color 0.15s;
+    white-space: nowrap;
+  }
+  .sp-tab:hover { color: var(--text-muted); }
+  .sp-tab.active { color: var(--text); border-bottom-color: var(--blue); }
+  .sp-tab .tab-icon { font-size: 13px; }
+  .tab-badge {
+    font-size: 9px; font-family: var(--mono);
+    background: var(--purple-dim); border: 1px solid rgba(155,89,182,0.3);
+    color: var(--purple); padding: 1px 5px; border-radius: 10px;
+  }
+
+  /* tab content wrapper */
+  .sp-content { flex: 1; overflow: hidden; display: flex; flex-direction: column; }
+  .tab-pane { display: none; flex: 1; overflow: hidden; flex-direction: column; }
+  .tab-pane.active { display: flex; }
+
+  /* DIAGNOSIS TAB */
+  .sp-body { flex: 1; overflow-y: auto; padding: 13px 15px; display: flex; flex-direction: column; gap: 13px; }
+  .sp-body::-webkit-scrollbar { width: 3px; }
+  .sp-body::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 2px; }
+
+  /* conclusion */
+  .conclusion-hero { background: var(--surface2); border: 1px solid var(--border); border-radius: 9px; overflow: hidden; }
+  .conclusion-hero-header {
+    padding: 7px 11px; display: flex; align-items: center; gap: 6px;
+    border-bottom: 1px solid var(--border);
+    background: linear-gradient(90deg,rgba(46,204,113,0.07),transparent);
+  }
+  .ch-label { font-size: 10px; font-family: var(--mono); color: var(--green); text-transform: uppercase; letter-spacing: 0.07em; }
+  .ch-conf { margin-left: auto; display: flex; align-items: center; gap: 5px; }
+  .conf-bar { width: 44px; height: 3px; background: var(--border); border-radius: 2px; overflow: hidden; }
+  .conf-fill { height: 100%; border-radius: 2px; background: linear-gradient(90deg,var(--green),var(--blue)); }
+  .conf-warn .conf-fill { background: linear-gradient(90deg,var(--yellow),var(--orange)); }
+  .conclusion-hero-body { padding: 9px 11px; }
+  .conclusion-text { font-size: 14px; font-weight: 600; line-height: 1.5; color: var(--text); margin-bottom: 7px; }
+  .conclusion-chain { display: flex; align-items: center; gap: 4px; flex-wrap: wrap; }
+  .chain-node { font-size: 10px; font-family: var(--mono); background: var(--surface3); border: 1px solid var(--border2); padding: 2px 7px; border-radius: 4px; color: var(--text-muted); white-space: nowrap; }
+  .chain-node.root { border-color: rgba(255,71,87,0.4); color: var(--red); }
+  .chain-arrow { color: var(--text-dim); font-size: 10px; }
+  .conclusion-hero.warn-state .conclusion-hero-header { background: linear-gradient(90deg,rgba(247,201,72,0.07),transparent); }
+  .conclusion-hero.warn-state .ch-label { color: var(--yellow); }
+  .conclusion-hero.warn-state .conclusion-text { color: var(--yellow); }
+
+  .sp-section-title {
+    font-size: 9px; font-family: var(--mono); color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.1em;
+    display: flex; align-items: center; gap: 7px; margin-bottom: 7px;
+  }
+  .sp-section-title::after { content: ''; flex: 1; height: 1px; background: var(--border); }
+
+  .metric-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+  .metric-cell { background: var(--surface2); border: 1px solid var(--border); border-radius: 7px; padding: 8px 9px; }
+  .m-label { font-size: 9px; color: var(--text-dim); margin-bottom: 3px; font-family: var(--mono); }
+  .m-value { font-size: 20px; font-weight: 700; font-family: var(--mono); line-height: 1; }
+  .m-value.bad { color: var(--red); }
+  .m-value.warn { color: var(--orange); }
+  .m-value.ok { color: var(--green); }
+  .m-unit { font-size: 10px; color: var(--text-muted); margin-top: 3px; }
+
+  .timeline { display: flex; flex-direction: column; }
+  .tl-item { display: flex; gap: 9px; padding-bottom: 11px; position: relative; }
+  .tl-item::before { content: ''; position: absolute; left: 5px; top: 15px; bottom: 0; width: 1px; background: var(--border); }
+  .tl-item:last-child::before { display: none; }
+  .tl-dot {
+    width: 12px; height: 12px; border-radius: 50%; border: 2px solid var(--border2);
+    background: var(--surface2); flex-shrink: 0; margin-top: 2px;
+    display: flex; align-items: center; justify-content: center; font-size: 6px;
+  }
+  .tl-dot.done { border-color: var(--green); background: var(--green-dim); }
+  .tl-dot.done::after { content: '✓'; color: var(--green); font-size: 6px; font-weight: 700; }
+  .tl-dot.warn { border-color: var(--orange); background: var(--orange-dim); }
+  .tl-dot.warn::after { content: '!'; color: var(--orange); font-size: 6px; font-weight: 700; }
+  .tl-content { flex: 1; }
+  .tl-title { font-size: 12px; font-weight: 500; margin-bottom: 2px; }
+  .tl-desc { font-size: 11px; color: var(--text-muted); line-height: 1.4; }
+  .tl-time { font-size: 10px; color: var(--text-dim); font-family: var(--mono); margin-top: 2px; }
+
+  .action-group { display: flex; flex-direction: column; gap: 6px; }
+  .action-btn {
+    display: flex; align-items: center; gap: 9px; padding: 9px 11px;
+    border-radius: 7px; border: 1px solid var(--border); background: var(--surface2);
+    cursor: pointer; transition: all 0.14s;
+  }
+  .action-btn:hover { background: var(--surface3); border-color: var(--border2); }
+  .action-btn.primary { background: var(--blue-dim); border-color: rgba(78,158,255,0.28); }
+  .action-btn.primary:hover { background: rgba(78,158,255,0.18); border-color: var(--blue); }
+  .action-icon { width: 26px; height: 26px; border-radius: 6px; display: flex; align-items: center; justify-content: center; font-size: 12px; flex-shrink: 0; background: var(--surface3); }
+  .action-btn.primary .action-icon { background: rgba(78,158,255,0.13); }
+  .action-info { flex: 1; }
+  .action-name { font-size: 12px; font-weight: 500; margin-bottom: 1px; }
+  .action-desc { font-size: 10px; color: var(--text-muted); }
+  .action-risk { font-size: 9px; font-family: var(--mono); padding: 2px 5px; border-radius: 3px; flex-shrink: 0; }
+  .risk-low { background: var(--green-dim); color: var(--green); border: 1px solid rgba(46,204,113,0.22); }
+  .risk-med { background: var(--orange-dim); color: var(--orange); border: 1px solid rgba(255,140,66,0.22); }
+
+  /* ===== CHAT TAB ===== */
+  .chat-tab-body { flex: 1; overflow: hidden; display: flex; flex-direction: column; }
+
+  /* context strip */
+  .chat-context-strip {
+    padding: 7px 14px; border-bottom: 1px solid var(--border);
+    background: var(--surface2); display: flex; align-items: center; gap: 7px; flex-shrink: 0;
+  }
+  .ctx-label { font-size: 10px; color: var(--text-dim); font-family: var(--mono); }
+  .ctx-chip {
+    font-size: 10px; padding: 2px 8px; border-radius: 20px;
+    background: var(--blue-dim); border: 1px solid rgba(78,158,255,0.25); color: var(--blue);
+    font-family: var(--mono); white-space: nowrap;
+  }
+  .ctx-chip.ctx-loaded { background: var(--green-dim); border-color: rgba(46,204,113,0.25); color: var(--green); }
+
+  .ai-messages { flex: 1; overflow-y: auto; padding: 12px 14px; display: flex; flex-direction: column; gap: 10px; }
+  .ai-messages::-webkit-scrollbar { width: 3px; }
+  .ai-messages::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 2px; }
+
+  /* welcome */
+  .ai-welcome {
+    background: var(--surface2); border: 1px solid var(--border); border-radius: 9px;
+    padding: 13px 14px; display: flex; flex-direction: column; gap: 9px;
+  }
+  .ai-welcome-title { font-size: 13px; font-weight: 600; display: flex; align-items: center; gap: 7px; }
+  .ai-welcome-title .ai-icon {
+    width: 24px; height: 24px; border-radius: 7px;
+    background: linear-gradient(135deg, var(--blue), var(--purple));
+    display: flex; align-items: center; justify-content: center; font-size: 12px;
+  }
+  .ai-welcome-desc { font-size: 12px; color: var(--text-muted); line-height: 1.55; }
+  .ai-welcome-tips { display: flex; flex-direction: column; gap: 5px; }
+  .ai-tip {
+    display: flex; align-items: center; gap: 8px; padding: 7px 10px;
+    background: var(--surface3); border: 1px solid var(--border); border-radius: 7px;
+    cursor: pointer; transition: all 0.13s; font-size: 12px; color: var(--text-muted);
+  }
+  .ai-tip:hover { background: var(--surface2); border-color: var(--blue); color: var(--text); }
+  .ai-tip::before { content: '→'; color: var(--blue); font-size: 11px; flex-shrink: 0; }
+
+  /* chat messages */
+  .ai-msg { display: flex; gap: 8px; }
+  .ai-msg.user { flex-direction: row-reverse; }
+  .ai-msg-avatar {
+    width: 26px; height: 26px; border-radius: 7px; flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center; font-size: 11px;
+    margin-top: 2px;
+  }
+  .ai-msg.user .ai-msg-avatar { background: linear-gradient(135deg,#2980b9,#1a5276); color: #fff; }
+  .ai-msg.bot .ai-msg-avatar { background: linear-gradient(135deg, var(--blue), var(--purple)); }
+
+  .ai-msg-bubble {
+    max-width: 290px; padding: 9px 12px; border-radius: 9px;
+    font-size: 13px; line-height: 1.55;
+  }
+  .ai-msg.user .ai-msg-bubble { background: var(--blue-dim); border: 1px solid rgba(78,158,255,0.25); border-radius: 9px 2px 9px 9px; }
+  .ai-msg.bot .ai-msg-bubble { background: var(--surface2); border: 1px solid var(--border); border-radius: 2px 9px 9px 9px; }
+  .ai-msg-time { font-size: 9px; color: var(--text-dim); font-family: var(--mono); margin-top: 4px; }
+
+  .ai-msg.bot .code-block {
+    background: var(--surface3); border: 1px solid var(--border2);
+    border-radius: 5px; padding: 7px 9px; margin: 6px 0;
+    font-family: var(--mono); font-size: 11px; color: var(--text-muted); overflow-x: auto;
+  }
+  .ai-msg.bot .highlight { color: var(--blue); font-weight: 600; }
+  .ai-msg.bot .warn-text { color: var(--yellow); }
+  .ai-msg.bot .ok-text { color: var(--green); }
+
+  /* typing indicator */
+  .typing-indicator { display: flex; gap: 4px; align-items: center; padding: 4px 0; }
+  .typing-dot { width: 5px; height: 5px; border-radius: 50%; background: var(--text-dim); animation: typing 1.2s infinite; }
+  .typing-dot:nth-child(2) { animation-delay: 0.2s; }
+  .typing-dot:nth-child(3) { animation-delay: 0.4s; }
+  @keyframes typing { 0%,60%,100% { opacity:.25; transform:scale(.8); } 30% { opacity:1; transform:scale(1); } }
+
+  /* chat input */
+  .ai-input-area { padding: 10px 13px; border-top: 1px solid var(--border); background: var(--surface2); flex-shrink: 0; }
+  .ai-input-row { display: flex; gap: 8px; align-items: flex-end; }
+  .ai-input {
+    flex: 1; background: var(--surface3); border: 1px solid var(--border2);
+    border-radius: 8px; padding: 8px 11px; font-size: 13px; color: var(--text);
+    font-family: var(--sans); resize: none; min-height: 36px; max-height: 100px; line-height: 1.4;
+    outline: none; transition: border-color 0.15s;
+  }
+  .ai-input::placeholder { color: var(--text-dim); }
+  .ai-input:focus { border-color: var(--blue); }
+  .ai-send-btn {
+    width: 34px; height: 34px; border-radius: 8px;
+    background: var(--blue); border: none; color: #fff; cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 14px; transition: background 0.14s; flex-shrink: 0;
+  }
+  .ai-send-btn:hover { background: #3a8eef; }
+  .ai-send-btn:disabled { background: var(--surface3); color: var(--text-dim); cursor: default; }
+  .ai-input-hint { font-size: 10px; color: var(--text-dim); margin-top: 5px; font-family: var(--mono); }
+
+  /* ===== TOAST ===== */
+  .toast-stack { position: fixed; bottom: 20px; right: 20px; display: flex; flex-direction: column; gap: 7px; z-index: 200; pointer-events: none; align-items: flex-end; }
+  .toast {
+    background: var(--surface2); border: 1px solid rgba(46,204,113,0.32); border-radius: 9px;
+    padding: 9px 12px; display: flex; align-items: center; gap: 9px;
+    min-width: 250px; max-width: 310px; box-shadow: 0 8px 28px rgba(0,0,0,0.45);
+    pointer-events: all; cursor: pointer;
+    transform: translateX(110%); opacity: 0;
+    transition: transform 0.32s cubic-bezier(0.34,1.56,0.64,1), opacity 0.22s ease;
+  }
+  .toast.show { transform: translateX(0); opacity: 1; }
+  .toast.hide { transform: translateX(110%); opacity: 0; }
+  .toast.warn-toast { border-color: rgba(247,201,72,0.32); }
+  .toast-icon { width: 26px; height: 26px; border-radius: 7px; background: var(--green-dim); border: 1px solid rgba(46,204,113,0.22); display: flex; align-items: center; justify-content: center; font-size: 12px; flex-shrink: 0; }
+  .toast.warn-toast .toast-icon { background: var(--yellow-dim); border-color: rgba(247,201,72,0.22); }
+  .toast-body { flex: 1; min-width: 0; }
+  .toast-title { font-size: 12px; font-weight: 600; color: var(--green); margin-bottom: 2px; }
+  .toast.warn-toast .toast-title { color: var(--yellow); }
+  .toast-desc { font-size: 11px; color: var(--text-muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .toast-sub { font-size: 10px; color: var(--text-dim); font-family: var(--mono); margin-top: 1px; }
+  .toast-action { font-size: 10px; font-family: var(--mono); color: var(--blue); padding: 2px 7px; border: 1px solid rgba(78,158,255,0.28); border-radius: 4px; background: var(--blue-dim); flex-shrink: 0; }
+  .toast-dismiss { width: 14px; height: 14px; border-radius: 3px; display: flex; align-items: center; justify-content: center; font-size: 10px; color: var(--text-dim); flex-shrink: 0; }
+  .toast-dismiss:hover { background: var(--surface3); color: var(--text); }
+
+  @keyframes pulse { 0%,100% { opacity:1; transform:scale(1); } 50% { opacity:.4; transform:scale(.7); } }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <span class="header-badge">Scheme D · v4</span>
+  <h1>告警诊断推送 · 侧边栏双 Tab（诊断 + 深度排障对话）</h1>
+</div>
+
+<div class="demo-bar">
+  <span class="demo-label">演示：</span>
+  <button class="demo-btn green" onclick="simulateDone('card1',false)">✓ 告警① 诊断完成</button>
+  <button class="demo-btn green" onclick="simulateDone('card2',false)">✓ 告警② 诊断完成</button>
+  <button class="demo-btn" onclick="simulateDone('card4',true)">⚠ 告警③ 低置信度</button>
+  <button class="demo-btn reset" onclick="resetDemo()">↺ 重置</button>
+</div>
+
+<div class="main">
+
+  <!-- CHAT AREA -->
+  <div class="chat-area" id="chat-area">
+
+    <!-- BANNER -->
+    <div class="diag-banner" id="diag-banner">
+      <div class="banner-collapsed" onclick="toggleBannerList()">
+        <div class="banner-pulse"></div>
+        <span class="banner-text">AI 诊断已完成</span>
+        <span class="banner-count" id="banner-count">0 条未查看</span>
+        <span class="banner-toggle" id="banner-toggle">▼</span>
+        <div class="banner-close" onclick="event.stopPropagation();closeBanner()">✕</div>
+      </div>
+      <div class="banner-list" id="banner-list">
+        <div class="banner-list-inner" id="banner-list-inner"></div>
+      </div>
+    </div>
+
+    <div class="chat-header">
+      <div class="group-icon">🔔</div>
+      <div>
+        <div class="group-name">creator-service 告警群</div>
+        <div class="group-sub">P0/P1 告警 · 实时推送</div>
+      </div>
+      <div class="group-count">23人</div>
+    </div>
+
+    <div class="chat-messages" id="chat-messages">
+
+      <div class="msg-group">
+        <div class="msg-row">
+          <div class="msg-avatar" style="background:linear-gradient(135deg,#c0392b,#922b21)">🤖</div>
+          <div class="msg-body">
+            <div class="msg-meta"><span class="msg-name">XRay 告警</span><span class="msg-time">19:42:03</span></div>
+            <div class="alarm-card p0-border" id="card-1" onclick="openPanel('card1')">
+              <div class="alarm-card-header">
+                <div class="severity-dot p0"></div><span class="severity-label p0">P0</span>
+                <span class="rule-name">creator-service 接口失败率 > 5%</span><span class="alarm-time">19:42</span>
+              </div>
+              <div class="alarm-card-body">
+                <div class="alarm-meta-row">
+                  <div class="alarm-meta-item"><div class="alarm-meta-label">App</div><div class="alarm-meta-value">creator-service</div></div>
+                  <div class="alarm-meta-item"><div class="alarm-meta-label">接口</div><div class="alarm-meta-value">/api/publish</div></div>
+                  <div class="alarm-meta-item"><div class="alarm-meta-label">环境</div><div class="alarm-meta-value">prod</div></div>
+                </div>
+                <div class="alarm-trigger-row">失败率 <span class="val">8.3%</span> ↑ 阈值 5% · 持续 3min</div>
+              </div>
+              <div class="alarm-card-footer" id="footer-card1">
+                <div class="diag-analyzing-footer">
+                  <div class="diag-analyzing-top">
+                    <div style="width:6px;height:6px;border-radius:50%;background:var(--blue);animation:pulse 1.2s infinite;flex-shrink:0;"></div>
+                    <span class="diag-analyzing-label">AI 诊断中</span><span class="diag-eta">预计 ~2min</span>
+                  </div>
+                  <div class="diag-progress-bar"><div class="diag-progress-fill" style="width:60%;"></div></div>
+                  <div class="diag-step-hint">已完成: 采集 Trace · 分析连接池 · <span class="step-active">正在: 生成结论</span></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="msg-group">
+        <div class="msg-row">
+          <div class="msg-avatar" style="background:linear-gradient(135deg,#2980b9,#1a5276)">张</div>
+          <div class="msg-body">
+            <div class="msg-meta"><span class="msg-name">张明</span><span class="msg-time">19:42:18</span></div>
+            <div class="bubble">在看了，先排查一下</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="msg-group">
+        <div class="msg-row">
+          <div class="msg-avatar" style="background:linear-gradient(135deg,#c0392b,#922b21)">🤖</div>
+          <div class="msg-body">
+            <div class="msg-meta"><span class="msg-name">XRay 告警</span><span class="msg-time">19:44:11</span></div>
+            <div class="alarm-card p1-border" id="card-2" onclick="openPanel('card2')">
+              <div class="alarm-card-header">
+                <div class="severity-dot p1"></div><span class="severity-label p1">P1</span>
+                <span class="rule-name">creator-service GC 停顿 > 500ms</span><span class="alarm-time">19:44</span>
+              </div>
+              <div class="alarm-card-body">
+                <div class="alarm-meta-row">
+                  <div class="alarm-meta-item"><div class="alarm-meta-label">App</div><div class="alarm-meta-value">creator-service</div></div>
+                  <div class="alarm-meta-item"><div class="alarm-meta-label">Pod</div><div class="alarm-meta-value">pod-7d9f2-xk2p1</div></div>
+                </div>
+                <div class="alarm-trigger-row">Full GC 停顿 <span class="val">780ms</span> ↑ 阈值 500ms</div>
+              </div>
+              <div class="alarm-card-footer" id="footer-card2">
+                <div class="diag-analyzing-footer">
+                  <div class="diag-analyzing-top">
+                    <div style="width:6px;height:6px;border-radius:50%;background:var(--blue);animation:pulse 1.2s infinite;flex-shrink:0;"></div>
+                    <span class="diag-analyzing-label">AI 诊断中</span><span class="diag-eta">预计 ~1min</span>
+                  </div>
+                  <div class="diag-progress-bar"><div class="diag-progress-fill" style="width:80%;"></div></div>
+                  <div class="diag-step-hint">已完成: 拉取 JVM · 分析内存 · <span class="step-active">正在: 关联接口失败</span></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="msg-group">
+        <div class="msg-row">
+          <div class="msg-avatar" style="background:linear-gradient(135deg,#8e44ad,#6c3483)">李</div>
+          <div class="msg-body">
+            <div class="msg-meta"><span class="msg-name">李婷</span><span class="msg-time">19:44:33</span></div>
+            <div class="bubble">GC 和接口失败率有关联吗，AI 的诊断出来了吗</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="msg-group">
+        <div class="msg-row">
+          <div class="msg-avatar" style="background:linear-gradient(135deg,#27ae60,#1e8449)">王</div>
+          <div class="msg-body">
+            <div class="msg-meta"><span class="msg-name">王磊</span><span class="msg-time">19:45:02</span></div>
+            <div class="bubble">连接池满了，我手动扩一下先</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="msg-group">
+        <div class="msg-row">
+          <div class="msg-avatar" style="background:linear-gradient(135deg,#c0392b,#922b21)">🤖</div>
+          <div class="msg-body">
+            <div class="msg-meta"><span class="msg-name">XRay 告警</span><span class="msg-time">19:47:05</span></div>
+            <div class="alarm-card p0-border" id="card-4" onclick="openPanel('card4')">
+              <div class="alarm-card-header">
+                <div class="severity-dot p0"></div><span class="severity-label p0">P0</span>
+                <span class="rule-name">creator-service 接口失败率 > 5%</span><span class="alarm-time">19:47</span>
+              </div>
+              <div class="alarm-card-body">
+                <div class="alarm-meta-row">
+                  <div class="alarm-meta-item"><div class="alarm-meta-label">App</div><div class="alarm-meta-value">creator-service</div></div>
+                  <div class="alarm-meta-item"><div class="alarm-meta-label">接口</div><div class="alarm-meta-value">/api/publish</div></div>
+                </div>
+                <div class="alarm-trigger-row">失败率 <span class="val">11.2%</span> ↑ 持续上升</div>
+              </div>
+              <div class="alarm-card-footer" id="footer-card4">
+                <div class="diag-analyzing-footer">
+                  <div class="diag-analyzing-top">
+                    <div style="width:6px;height:6px;border-radius:50%;background:var(--blue);animation:pulse 1.2s infinite;flex-shrink:0;"></div>
+                    <span class="diag-analyzing-label">AI 诊断中</span><span class="diag-eta">预计 ~3min</span>
+                  </div>
+                  <div class="diag-progress-bar"><div class="diag-progress-fill" style="width:20%;"></div></div>
+                  <div class="diag-step-hint"><span class="step-active">正在: 采集异常 Trace</span></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="msg-group">
+        <div class="msg-row">
+          <div class="msg-avatar" style="background:linear-gradient(135deg,#27ae60,#1e8449)">王</div>
+          <div class="msg-body">
+            <div class="msg-meta"><span class="msg-name">王磊</span><span class="msg-time">19:47:35</span></div>
+            <div class="bubble">JVM 老年代快满了，准备重启几个 pod</div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- SIDE PANEL -->
+  <div class="side-panel" id="side-panel">
+    <div class="side-panel-inner">
+
+      <!-- sp header -->
+      <div class="sp-header">
+        <div class="sp-header-top">
+          <span class="sp-title" id="sp-title">诊断详情</span>
+          <span class="sp-elapsed" id="sp-elapsed">距触发 3min</span>
+          <div class="close-btn" onclick="closePanel()">✕</div>
+        </div>
+        <div class="sp-alarm-ref">
+          <div class="ref-dot" id="sp-ref-dot" style="background:var(--red);"></div>
+          <div style="flex:1;min-width:0;">
+            <div class="ref-name" id="sp-ref-name">creator-service 接口失败率 > 5%</div>
+            <div class="ref-meta" id="sp-ref-meta">P0 · /api/publish · 19:42:03</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- TABS -->
+      <div class="sp-tabs">
+        <div class="sp-tab active" id="tab-diag" onclick="switchTab('diag')">
+          <span class="tab-icon">🔍</span> 诊断信息
+        </div>
+        <div class="sp-tab" id="tab-chat" onclick="switchTab('chat')">
+          <span class="tab-icon">💬</span> 深度排障
+          <span class="tab-badge" id="chat-badge" style="display:none;">AI</span>
+        </div>
+      </div>
+
+      <!-- TAB CONTENT -->
+      <div class="sp-content">
+
+        <!-- DIAG TAB -->
+        <div class="tab-pane active" id="pane-diag">
+          <div class="sp-body" id="sp-body">
+            <!-- injected -->
+          </div>
+        </div>
+
+        <!-- CHAT TAB -->
+        <div class="tab-pane" id="pane-chat">
+          <div class="chat-tab-body">
+
+            <!-- context strip -->
+            <div class="chat-context-strip">
+              <span class="ctx-label">上下文：</span>
+              <span class="ctx-chip ctx-loaded" id="ctx-alarm">告警已加载</span>
+              <span class="ctx-chip ctx-loaded" id="ctx-diag">诊断结论已加载</span>
+              <span class="ctx-chip" id="ctx-trace">Trace 数据</span>
+            </div>
+
+            <!-- messages -->
+            <div class="ai-messages" id="ai-messages">
+
+              <!-- welcome -->
+              <div id="ai-welcome" class="ai-welcome">
+                <div class="ai-welcome-title">
+                  <div class="ai-icon">🤖</div>
+                  深度排障 AI
+                </div>
+                <div class="ai-welcome-desc">
+                  我已读取当前告警和诊断结论，可以继续深度分析。你可以直接提问，或者从下面的快捷问题开始：
+                </div>
+                <div class="ai-welcome-tips">
+                  <div class="ai-tip" onclick="sendQuick('为什么连接池会耗尽？扩容能根治吗？')">为什么连接池会耗尽？扩容能根治吗？</div>
+                  <div class="ai-tip" onclick="sendQuick('GC 停顿和接口失败率是什么因果关系？')">GC 停顿和接口失败率是什么因果关系？</div>
+                  <div class="ai-tip" onclick="sendQuick('历史上有过类似告警吗？上次怎么处理的？')">历史上有过类似告警吗？上次怎么处理的？</div>
+                  <div class="ai-tip" onclick="sendQuick('帮我生成故障复盘的初稿')">帮我生成故障复盘的初稿</div>
+                </div>
+              </div>
+
+            </div>
+
+            <!-- input -->
+            <div class="ai-input-area">
+              <div class="ai-input-row">
+                <textarea class="ai-input" id="ai-input" placeholder="继续追问 AI，例如：「扩容有没有风险？」" rows="1"
+                  onkeydown="handleInputKey(event)"
+                  oninput="autoResize(this)"></textarea>
+                <button class="ai-send-btn" id="ai-send-btn" onclick="sendMessage()">↑</button>
+              </div>
+              <div class="ai-input-hint">Enter 发送 · Shift+Enter 换行 · 已自动注入当前告警上下文</div>
+            </div>
+
+          </div>
+        </div>
+
+      </div>
+
+    </div>
+  </div>
+
+</div>
+
+<!-- TOAST -->
+<div class="toast-stack" id="toast-stack"></div>
+
+<script>
+// ===== DATA =====
+const cardData = {
+  card1: {
+    title:'接口失败率诊断', elapsed:'距触发 3min',
+    refDot:'var(--red)', refName:'creator-service 接口失败率 > 5%', refMeta:'P0 · /api/publish · 19:42:03',
+    footerLabel:'诊断完成', footerPreview:'根因：MySQL 连接池耗尽', isWarn:false,
+    bannerName:'接口失败率 > 5% (P0)', bannerSummary:'根因：MySQL 连接池耗尽', bannerDot:'var(--red)',
+    state:'done', confidence:88,
+    conclusion:'MySQL 连接池耗尽，新请求等待超时，导致接口大规模失败',
+    chain:['JVM GC 停顿','连接未归还','MySQL 连接池满','接口超时失败'],
+    metrics:[
+      {label:'接口失败率',value:'8.3',unit:'%',cls:'bad'},
+      {label:'连接池占用',value:'495',unit:'/500',cls:'bad'},
+      {label:'GC 停顿',value:'780',unit:'ms',cls:'warn'},
+      {label:'受影响 Pod',value:'3',unit:'个',cls:'warn'},
+    ],
+    timeline:[
+      {state:'done',title:'采集异常 Trace',desc:'获取 /api/publish 失败链路 47 条',time:'19:43:05'},
+      {state:'warn',title:'定位超时节点',desc:'MySQL 查询层平均等待 320ms',time:'19:43:31'},
+      {state:'warn',title:'检查连接池状态',desc:'活跃连接 495/500，wait 队列 47',time:'19:44:10'},
+      {state:'done',title:'关联 GC 分析',desc:'Full GC 停顿导致连接归还延迟，形成积压',time:'19:44:52'},
+      {state:'done',title:'生成诊断结论',desc:'置信度 88%，确认根因链路',time:'19:45:12'},
+    ],
+    actions:[
+      {type:'primary',icon:'⚡',name:'扩容连接池',desc:'临时将 maxPoolSize 调至 800',risk:'low',riskLabel:'低风险'},
+      {type:'',icon:'🔄',name:'滚动重启',desc:'重启高 GC 的 pod，释放内存',risk:'med',riskLabel:'中风险'},
+      {type:'',icon:'📋',name:'创建故障单',desc:'自动填充根因、影响范围、建议操作',risk:null},
+    ],
+    aiContext:'当前告警：creator-service 接口失败率 8.3%（阈值 5%），持续 3min。诊断结论（置信度 88%）：MySQL 连接池耗尽（495/500），根因链路：JVM GC 停顿 → 连接未归还 → 连接池满 → 接口超时失败。'
+  },
+  card2: {
+    title:'GC 停顿诊断', elapsed:'距触发 2min 19s',
+    refDot:'var(--orange)', refName:'creator-service GC 停顿 > 500ms', refMeta:'P1 · pod-7d9f2-xk2p1 · 19:44:11',
+    footerLabel:'诊断完成', footerPreview:'根因：堆内存溢出 97%', isWarn:false,
+    bannerName:'GC 停顿 > 500ms (P1)', bannerSummary:'根因：堆内存溢出，老年代 97%', bannerDot:'var(--orange)',
+    state:'done', confidence:95,
+    conclusion:'堆内存溢出，老年代占用 97%，ImageUploadHandler 存在大对象泄漏',
+    chain:['ImageUploadHandler 泄漏','老年代 97%','Full GC 频繁','GC 停顿 780ms'],
+    metrics:[
+      {label:'老年代占用',value:'97',unit:'%',cls:'bad'},
+      {label:'Full GC 频率',value:'3',unit:'次/min',cls:'bad'},
+      {label:'GC 停顿时长',value:'780',unit:'ms',cls:'bad'},
+      {label:'内存增长速率',value:'+2.1',unit:'GB/h',cls:'warn'},
+    ],
+    timeline:[
+      {state:'done',title:'拉取 JVM 指标',desc:'老年代 97%，Eden 区 100%',time:'19:45:05'},
+      {state:'done',title:'分析内存分配',desc:'ImageUploadHandler byte[] 对象 1.2GB 未释放',time:'19:45:40'},
+      {state:'done',title:'关联接口失败',desc:'GC 停顿时序与失败率峰值完全吻合',time:'19:46:10'},
+      {state:'done',title:'生成诊断结论',desc:'置信度 95%，内存泄漏为根本原因',time:'19:46:30'},
+    ],
+    actions:[
+      {type:'primary',icon:'🔄',name:'滚动重启该 Pod',desc:'重启 pod-7d9f2-xk2p1，释放堆内存',risk:'med',riskLabel:'中风险'},
+      {type:'',icon:'🔍',name:'导出 Heap Dump',desc:'离线分析内存泄漏对象',risk:'low',riskLabel:'低风险'},
+      {type:'',icon:'📋',name:'创建故障单',desc:'关联 GC 停顿与接口失败率两条告警',risk:null},
+    ],
+    aiContext:'当前告警：creator-service GC 停顿 780ms（阈值 500ms）。诊断结论（置信度 95%）：堆内存溢出，老年代 97%，ImageUploadHandler 存在 1.2GB 大对象泄漏，GC 停顿时序与接口失败率峰值完全吻合。'
+  },
+  card4: {
+    title:'接口失败率诊断（低置信度）', elapsed:'距触发 刚刚',
+    refDot:'var(--yellow)', refName:'creator-service 接口失败率 > 5%', refMeta:'P0 · /api/publish · 19:47:05',
+    footerLabel:'诊断完成 · 低置信度', footerPreview:'可能根因：下游超时', isWarn:true,
+    bannerName:'接口失败率 > 5% (P0) 二次', bannerSummary:'⚠ 低置信度 · 可能：下游超时', bannerDot:'var(--yellow)',
+    state:'warn', confidence:62,
+    conclusion:'下游 redis-cluster 响应超时（可能），但数据尚不充分，建议人工复核',
+    chain:['redis-cluster 慢查询?','接口等待超时','失败率上升 11.2%'],
+    metrics:[
+      {label:'接口失败率',value:'11.2',unit:'%',cls:'bad'},
+      {label:'Redis P99 耗时',value:'380',unit:'ms',cls:'warn'},
+      {label:'失败增长速率',value:'+2.9',unit:'%/min',cls:'bad'},
+      {label:'采样数据量',value:'23',unit:'条（不足）',cls:'warn'},
+    ],
+    timeline:[
+      {state:'done',title:'采集异常 Trace',desc:'仅获取 23 条失败链路（样本不足）',time:'19:47:30'},
+      {state:'warn',title:'初步定位',desc:'Redis 调用耗时异常，但占比仅 38%',time:'19:48:10'},
+      {state:'warn',title:'生成诊断结论',desc:'置信度 62%，建议继续采集数据后重新分析',time:'19:48:55'},
+    ],
+    actions:[
+      {type:'',icon:'🔁',name:'等待更多数据后重新分析',desc:'约 2 分钟后自动触发二次诊断',risk:null},
+      {type:'',icon:'🔍',name:'手动查看 Redis 慢查询日志',desc:'前往 XRay 日志平台查看',risk:null},
+      {type:'',icon:'📋',name:'创建故障单',desc:'带低置信度标注，人工跟进',risk:null},
+    ],
+    aiContext:'当前告警：creator-service 接口失败率 11.2%，持续上升。诊断结论（置信度仅 62%，低）：可能根因为 redis-cluster 慢查询（P99 380ms），但样本仅 23 条，占比 38%，数据不足，尚不能确认。'
+  }
+};
+
+// ===== STATE =====
+let bannerItems=[], bannerVisible=false, bannerOpen=false;
+let currentCard=null, currentTab='diag';
+let chatHistory={}, isAiTyping=false;
+let toastTimers={};
+
+// ===== SIMULATE DONE =====
+function simulateDone(cardId, isWarn) {
+  const data = cardData[cardId];
+  if (!data) return;
+  const warnStyle = isWarn ? 'background:linear-gradient(90deg,rgba(247,201,72,0.05),transparent);' : '';
+  const dotColor = isWarn ? 'var(--yellow)' : 'var(--green)';
+  const labelColor = isWarn ? 'color:var(--yellow)' : 'color:var(--green)';
+  document.getElementById('footer-'+cardId).innerHTML = `
+    <div class="diag-done-footer" style="${warnStyle}" onclick="openPanel('${cardId}')">
+      <div class="done-pulse" style="background:${dotColor};"></div>
+      <span class="done-label" style="${labelColor}">${data.footerLabel}</span>
+      <span class="done-preview">${data.footerPreview}</span>
+      <span class="done-arrow">›</span>
+    </div>`;
+  bannerItems.push({id:cardId, name:data.bannerName, summary:data.bannerSummary, dot:data.bannerDot, isWarn, viewed:false});
+  updateBanner();
+  showToast(cardId, data, isWarn);
+}
+
+// ===== BANNER =====
+function updateBanner() {
+  const unviewed = bannerItems.filter(i=>!i.viewed).length;
+  document.getElementById('banner-count').textContent = unviewed+' 条未查看';
+  document.getElementById('banner-list-inner').innerHTML = bannerItems.map(item=>`
+    <div class="banner-item ${item.viewed?'viewed':''}" onclick="openPanelFromBanner('${item.id}')">
+      <div class="bi-dot" style="background:${item.dot};"></div>
+      <span class="bi-name">${item.name}</span>
+      <span class="bi-summary">${item.summary}</span>
+      <span class="bi-badge ${item.isWarn?'warn':'done'}">${item.isWarn?'低置信度':'完成'}</span>
+      ${!item.viewed?'<div class="bi-new"></div>':''}
+    </div>`).join('');
+  if (!bannerVisible) {
+    bannerVisible=true;
+    document.getElementById('diag-banner').classList.add('visible');
+    document.getElementById('chat-messages').style.paddingTop='38px';
+  }
+}
+function toggleBannerList() {
+  bannerOpen=!bannerOpen;
+  document.getElementById('banner-list').classList.toggle('open',bannerOpen);
+  document.getElementById('banner-toggle').classList.toggle('open',bannerOpen);
+  document.getElementById('chat-messages').style.paddingTop = bannerOpen?'170px':'38px';
+}
+function closeBanner() {
+  bannerVisible=false; bannerOpen=false;
+  document.getElementById('diag-banner').classList.remove('visible');
+  document.getElementById('banner-list').classList.remove('open');
+  document.getElementById('chat-messages').style.paddingTop='12px';
+}
+function openPanelFromBanner(cardId) {
+  const item=bannerItems.find(i=>i.id===cardId);
+  if(item) item.viewed=true;
+  const unviewed=bannerItems.filter(i=>!i.viewed).length;
+  document.getElementById('banner-count').textContent=unviewed+' 条未查看';
+  document.getElementById('banner-list-inner').querySelectorAll('.banner-item').forEach((el,i)=>{
+    if(bannerItems[i]&&bannerItems[i].viewed){el.classList.add('viewed');const d=el.querySelector('.bi-new');if(d)d.remove();}
+  });
+  if(bannerOpen) toggleBannerList();
+  openPanel(cardId);
+}
+
+// ===== TOAST =====
+function showToast(cardId, data, isWarn) {
+  const id='toast-'+cardId+'-'+Date.now();
+  const stack=document.getElementById('toast-stack');
+  const div=document.createElement('div');
+  div.id=id; div.className='toast'+(isWarn?' warn-toast':'');
+  div.innerHTML=`
+    <div class="toast-icon">${isWarn?'⚠️':'✅'}</div>
+    <div class="toast-body">
+      <div class="toast-title">${isWarn?'诊断完成（低置信度）':'诊断完成'}</div>
+      <div class="toast-desc">${data.bannerName}</div>
+      <div class="toast-sub">${data.bannerSummary}</div>
+    </div>
+    <div class="toast-action" onclick="openPanelFromToast('${cardId}','${id}')">查看 →</div>
+    <div class="toast-dismiss" onclick="dismissToast('${id}')">✕</div>`;
+  stack.appendChild(div);
+  requestAnimationFrame(()=>requestAnimationFrame(()=>div.classList.add('show')));
+  toastTimers[id]=setTimeout(()=>dismissToast(id),5000);
+}
+function dismissToast(id) {
+  clearTimeout(toastTimers[id]);
+  const el=document.getElementById(id);
+  if(!el)return;
+  el.classList.remove('show'); el.classList.add('hide');
+  setTimeout(()=>el.remove(),400);
+}
+function openPanelFromToast(cardId,toastId) {
+  dismissToast(toastId); openPanelFromBanner(cardId);
+}
+
+// ===== PANEL =====
+function openPanel(cardId) {
+  const data=cardData[cardId];
+  if(!data)return;
+  document.querySelectorAll('.alarm-card').forEach(c=>c.classList.remove('selected'));
+  const cardNum=cardId.replace('card','');
+  const cardEl=document.getElementById('card-'+cardNum);
+  if(cardEl)cardEl.classList.add('selected');
+  currentCard=cardId;
+  document.getElementById('sp-title').textContent=data.title;
+  document.getElementById('sp-elapsed').textContent=data.elapsed;
+  document.getElementById('sp-ref-dot').style.background=data.refDot;
+  document.getElementById('sp-ref-name').textContent=data.refName;
+  document.getElementById('sp-ref-meta').textContent=data.refMeta;
+  document.getElementById('sp-body').innerHTML=renderDiagBody(data);
+  // show chat badge
+  document.getElementById('chat-badge').style.display='inline-block';
+  // init chat history for this card
+  if(!chatHistory[cardId]) chatHistory[cardId]=[];
+  renderChatMessages(cardId);
+  switchTab(currentTab);
+  document.getElementById('side-panel').classList.add('open');
+}
+function closePanel() {
+  document.getElementById('side-panel').classList.remove('open');
+  document.querySelectorAll('.alarm-card').forEach(c=>c.classList.remove('selected'));
+  currentCard=null;
+}
+
+// ===== TABS =====
+function switchTab(tab) {
+  currentTab=tab;
+  document.getElementById('tab-diag').classList.toggle('active',tab==='diag');
+  document.getElementById('tab-chat').classList.toggle('active',tab==='chat');
+  document.getElementById('pane-diag').classList.toggle('active',tab==='diag');
+  document.getElementById('pane-chat').classList.toggle('active',tab==='chat');
+  if(tab==='chat') {
+    document.getElementById('chat-badge').style.display='none';
+    setTimeout(()=>{
+      const msgs=document.getElementById('ai-messages');
+      msgs.scrollTop=msgs.scrollHeight;
+    },50);
+  }
+}
+
+// ===== DIAG BODY =====
+function renderDiagBody(data) {
+  const isWarn=data.state==='warn', conf=data.confidence;
+  const chainHTML=data.chain.map((n,i)=>`${i===0?'':`<span class="chain-arrow">→</span>`}<span class="chain-node ${i===0?'root':''}">${n}</span>`).join('');
+  const metricsHTML=data.metrics.map(m=>`<div class="metric-cell"><div class="m-label">${m.label}</div><div class="m-value ${m.cls}">${m.value}</div><div class="m-unit">${m.unit}</div></div>`).join('');
+  const tlHTML=data.timeline.map(t=>`<div class="tl-item"><div class="tl-dot ${t.state}"></div><div class="tl-content"><div class="tl-title">${t.title}</div><div class="tl-desc">${t.desc}</div>${t.time?`<div class="tl-time">${t.time}</div>`:''}</div></div>`).join('');
+  const actHTML=data.actions.map(a=>`<div class="action-btn ${a.type}"><div class="action-icon">${a.icon}</div><div class="action-info"><div class="action-name">${a.name}</div><div class="action-desc">${a.desc}</div></div>${a.risk?`<span class="action-risk risk-${a.risk}">${a.riskLabel}</span>`:''}</div>`).join('');
+  const warnClass=isWarn?'warn-state':'', confWarnClass=conf<70?'conf-warn':'', confColor=conf<70?'var(--yellow)':'var(--text-muted)';
+  return `
+    <div class="conclusion-hero ${warnClass}">
+      <div class="conclusion-hero-header">
+        <span class="ch-label">${isWarn?'⚠ 低置信度结论':'根因结论'}</span>
+        <div class="ch-conf ${confWarnClass}">
+          <div class="conf-bar"><div class="conf-fill" style="width:${conf}%"></div></div>
+          <span style="font-size:10px;font-family:var(--mono);color:${confColor}">${conf}%</span>
+        </div>
+      </div>
+      <div class="conclusion-hero-body">
+        <div class="conclusion-text">${data.conclusion}</div>
+        <div class="conclusion-chain">${chainHTML}</div>
+      </div>
+    </div>
+    <div><div class="sp-section-title">关键指标</div><div class="metric-grid">${metricsHTML}</div></div>
+    <div><div class="sp-section-title">诊断过程</div><div class="timeline">${tlHTML}</div></div>
+    <div><div class="sp-section-title">建议操作</div><div class="action-group">${actHTML}</div></div>`;
+}
+
+// ===== CHAT =====
+function renderChatMessages(cardId) {
+  const msgs=chatHistory[cardId]||[];
+  const aiMsgs=document.getElementById('ai-messages');
+  // clear existing non-welcome
+  while(aiMsgs.children.length>1) aiMsgs.removeChild(aiMsgs.lastChild);
+  const welcome=document.getElementById('ai-welcome');
+  welcome.style.display=msgs.length===0?'':'none';
+  msgs.forEach(m=>{
+    aiMsgs.appendChild(createMsgEl(m.role,m.content,m.time));
+  });
+  aiMsgs.scrollTop=aiMsgs.scrollHeight;
+}
+
+function createMsgEl(role, content, time) {
+  const div=document.createElement('div');
+  div.className='ai-msg '+(role==='user'?'user':'bot');
+  const avatarContent=role==='user'?'我':'🤖';
+  const timeStr=time||new Date().toLocaleTimeString('zh-CN',{hour:'2-digit',minute:'2-digit'});
+  div.innerHTML=`
+    <div class="ai-msg-avatar">${avatarContent}</div>
+    <div>
+      <div class="ai-msg-bubble">${content}</div>
+      <div class="ai-msg-time">${timeStr}</div>
+    </div>`;
+  return div;
+}
+
+function sendQuick(text) {
+  document.getElementById('ai-welcome').style.display='none';
+  document.getElementById('ai-input').value=text;
+  sendMessage();
+}
+
+function sendMessage() {
+  if(isAiTyping||!currentCard)return;
+  const input=document.getElementById('ai-input');
+  const text=input.value.trim();
+  if(!text)return;
+  input.value=''; autoResize(input);
+
+  const time=new Date().toLocaleTimeString('zh-CN',{hour:'2-digit',minute:'2-digit'});
+  const aiMsgs=document.getElementById('ai-messages');
+  document.getElementById('ai-welcome').style.display='none';
+
+  // user msg
+  if(!chatHistory[currentCard]) chatHistory[currentCard]=[];
+  chatHistory[currentCard].push({role:'user',content:text,time});
+  aiMsgs.appendChild(createMsgEl('user',text,time));
+  aiMsgs.scrollTop=aiMsgs.scrollHeight;
+
+  // typing
+  isAiTyping=true;
+  document.getElementById('ai-send-btn').disabled=true;
+  const typingEl=document.createElement('div');
+  typingEl.className='ai-msg bot';
+  typingEl.id='ai-typing';
+  typingEl.innerHTML=`<div class="ai-msg-avatar">🤖</div><div><div class="ai-msg-bubble"><div class="typing-indicator"><div class="typing-dot"></div><div class="typing-dot"></div><div class="typing-dot"></div></div></div></div>`;
+  aiMsgs.appendChild(typingEl);
+  aiMsgs.scrollTop=aiMsgs.scrollHeight;
+
+  // simulate AI response
+  setTimeout(()=>{
+    typingEl.remove();
+    const resp=generateAiResponse(text, currentCard);
+    const aiTime=new Date().toLocaleTimeString('zh-CN',{hour:'2-digit',minute:'2-digit'});
+    chatHistory[currentCard].push({role:'bot',content:resp,time:aiTime});
+    aiMsgs.appendChild(createMsgEl('bot',resp,aiTime));
+    aiMsgs.scrollTop=aiMsgs.scrollHeight;
+    isAiTyping=false;
+    document.getElementById('ai-send-btn').disabled=false;
+  }, 1400+Math.random()*800);
+}
+
+function generateAiResponse(text, cardId) {
+  const data=cardData[cardId];
+  const t=text.toLowerCase();
+
+  if(t.includes('扩容')&&t.includes('根治')) return `扩容连接池可以临时缓解，<span class="warn-text">但不能根治</span>。\n\n<span class="highlight">根本原因</span>是 JVM GC 停顿导致连接无法及时归还，连接池被"借而不还"撑满。扩容只是加大了池子，下次 GC 停顿一样会填满。\n\n<span class="ok-text">真正的修复路径</span>：\n1. 解决内存泄漏（ImageUploadHandler byte[] 未释放）\n2. 降低 GC 压力（老年代 97% → 目标 < 70%）\n3. 连接池加 checkout timeout，避免线程无限等待\n\n建议先滚动重启高 GC 的 pod 释放内存，扩容作为临时兜底。`;
+
+  if(t.includes('gc')&&(t.includes('因果')||t.includes('关系')||t.includes('接口'))) return `<span class="highlight">因果链路</span>（已验证时序完全吻合）：\n\n<div class="code-block">JVM Full GC 停顿（780ms）\n  → 应用线程暂停，连接无法归还\n  → 连接池 495/500 耗尽\n  → 新请求获取连接等待 > 320ms\n  → 接口超时，失败率 8.3%↑</div>\n\n关键证据：GC 停顿事件时间戳与接口失败率尖峰<span class="ok-text">精确对齐</span>，误差 < 200ms，置信度 88%。`;
+
+  if(t.includes('历史')||t.includes('上次')) return `查询近 30 天历史告警记录：\n\n<div class="code-block">2026-03-21 · creator-service 接口失败率 P0\n  根因：MySQL 连接池耗尽（同类）\n  处理：扩容 maxPoolSize 500→600\n  恢复时间：12min\n\n2026-02-14 · creator-service GC 停顿 P1\n  根因：ImageUploadHandler 内存泄漏（同类）\n  处理：紧急发布修复版本\n  恢复时间：31min</div>\n\n<span class="warn-text">注意：本次与 3-21 根因相同，说明上次扩容后根因未根治</span>，建议本次同时修复内存泄漏。`;
+
+  if(t.includes('复盘')||t.includes('初稿')) return `<span class="highlight">故障复盘初稿</span>\n\n<div class="code-block">【故障标题】creator-service 接口失败率 P0 事件\n【影响时间】19:42 - 20:05（约 23min）\n【影响范围】/api/publish 接口失败率 8.3%\n【根因】MySQL 连接池耗尽\n  触发链路：JVM GC 停顿 → 连接未归还\n  → 连接池满（495/500）→ 接口超时\n【处置过程】\n  19:43 告警触发，AI 自动诊断启动\n  19:45 AI 完成诊断（置信度 88%）\n  19:47 扩容连接池至 800\n  20:05 失败率恢复正常\n【后续改进】\n  1. 修复 ImageUploadHandler 内存泄漏\n  2. 连接池加 checkout timeout 配置\n  3. 建立 GC 停顿与连接池的关联告警</div>\n\n可以点击「创建故障单」自动填充到 RCA 系统。`;
+
+  if(t.includes('redis')||t.includes('下游')) return `关于 Redis 超时的判断：当前样本量仅 23 条，置信度 62%，<span class="warn-text">还不能确认</span>。\n\n建议的验证方式：\n<div class="code-block">1. 查看 redis-cluster 慢查询日志\n   命令：SLOWLOG GET 100\n   关注：执行时间 > 100ms 的命令\n\n2. 检查 Redis 连接数是否接近上限\n   指标：connected_clients / maxclients\n\n3. 对比 Redis P99 耗时趋势\n   工具：XRay → Metrics → redis-cluster</div>\n\n等待约 2 分钟采集更多数据后，AI 会自动触发二次诊断，置信度预计可提升到 80% 以上。`;
+
+  // fallback
+  return `基于当前告警上下文（${data.refName}），我已分析了相关数据。\n\n<span class="highlight">${data.conclusion}</span>\n\n如需深入排查特定方向，可以告诉我你想关注的维度，例如：下游依赖、代码变更、历史趋势等。`;
+}
+
+function handleInputKey(e) {
+  if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();sendMessage();}
+}
+function autoResize(el) {
+  el.style.height='auto'; el.style.height=Math.min(el.scrollHeight,100)+'px';
+}
+
+// ===== RESET =====
+function resetDemo() {
+  bannerItems=[]; bannerVisible=false; bannerOpen=false;
+  closeBanner();
+  chatHistory={}; isAiTyping=false;
+  ['card1','card2','card4'].forEach((id,idx)=>{
+    const hints=[
+      {pct:'60%',hint:'已完成: 采集 Trace · 分析连接池 · <span class="step-active">正在: 生成结论</span>',eta:'~2min'},
+      {pct:'80%',hint:'已完成: 拉取 JVM 指标 · 分析内存 · <span class="step-active">正在: 关联接口失败</span>',eta:'~1min'},
+      {pct:'20%',hint:'<span class="step-active">正在: 采集异常 Trace</span>',eta:'~3min'},
+    ];
+    const h=hints[idx];
+    document.getElementById('footer-'+id).innerHTML=`
+      <div class="diag-analyzing-footer">
+        <div class="diag-analyzing-top">
+          <div style="width:6px;height:6px;border-radius:50%;background:var(--blue);animation:pulse 1.2s infinite;flex-shrink:0;"></div>
+          <span class="diag-analyzing-label">AI 诊断中</span><span class="diag-eta">预计 ${h.eta}</span>
+        </div>
+        <div class="diag-progress-bar"><div class="diag-progress-fill" style="width:${h.pct};"></div></div>
+        <div class="diag-step-hint">${h.hint}</div>
+      </div>`;
+  });
+  document.querySelectorAll('.alarm-card').forEach(c=>c.classList.remove('selected'));
+  document.getElementById('side-panel').classList.remove('open');
+  document.getElementById('toast-stack').innerHTML='';
+  document.getElementById('chat-messages').style.paddingTop='12px';
+  document.getElementById('chat-badge').style.display='none';
+  currentCard=null; currentTab='diag';
+  switchTab('diag');
+}
+</script>
+</body>
+</html>
