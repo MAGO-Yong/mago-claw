@@ -1,16 +1,18 @@
 ---
 name: skill-evaluator
-version: 2.0.0
+version: 2.1.0
 description: >
   通用 Agent/SKILL 评估工具。输入目标 SKILL 的路径和 Agent 接入点，自动生成评估题目、
   通过真实 Agent 接入点执行（browser/session_send），基于三层评估体系打分，输出结构化报告。
+  新增 Agent Native 审计（Phase 0.5）：静态读取 SKILL 设计 + 动态触发错误边界题，评估 SKILL
+  是否符合被 Agent 调用的工程标准（结构化错误、参数规范、路由设计、编排协议等）。
   当用户说"帮我评估这个 SKILL"、"这个 SKILL 效果怎么样"、"跑一下评估"时触发。
 metadata:
   category: evaluation
   subcategory: skill-quality
   trigger: skill_path/skill_name/evaluation_request
   input: [skill_path, agent_url, business_context]
-  output: [eval_report, score, optimization_suggestions]
+  output: [eval_report, agent_native_score, score, optimization_suggestions]
   impl: agent-native
 ---
 
@@ -31,10 +33,11 @@ metadata:
 
 ---
 
-## 三层评估体系
+## 四层评估体系
 
 | 层级 | 评估对象 | 典型问题 |
 |------|---------|---------|
+| **Agent Native 层** | SKILL 设计规范 | SKILL 本身是否符合被 Agent 调用的工程标准？ |
 | **Tool Call 层** | 单次工具调用 | 工具选对了吗？参数有幻觉吗？ |
 | **Trajectory 层** | 调用链路 | 顺序合理吗？有冗余步骤吗？ |
 | **Outcome 层** | 最终结果 | 完整吗？准确吗？用户能直接用吗？ |
@@ -88,6 +91,118 @@ metadata:
 **③ 业务上下文**（服务名、时间范围、事件 ID 等测试数据）
 
 **④ 是否有已知 bad case**
+
+---
+
+### Phase 0.5：Agent Native 审计（静态 + 动态，必须完成）
+
+> 在生成评测题目之前，先对 SKILL 本身做一次 Agent Native 合规审计。
+> 评估的不是"Agent 用得好不好"，而是"SKILL 设计是否符合被 Agent 调用的工程标准"。
+> 参考：https://docs.xiaohongshu.com/doc/bc1245f5e7da715fda366d8787a9c0ca
+
+#### 步骤 1：静态分析（读 SKILL.md + 脚本文件）
+
+读取 SKILL.md 及 scripts/ 目录下的实现脚本，按以下 9 个子项打分：
+
+| 编号 | 子项 | 严重级别 | 满分 | 评估方法 |
+|------|------|---------|------|---------|
+| AN-1 | 结构化错误返回 | 🔴 P0 | 2 | 脚本错误处理是否返回 JSON（含 error_code、action、retry 字段），而非裸 stderr 文本 |
+| AN-2 | 时间参数格式统一 | 🔴 P0 | 2 | 时间参数是否统一规范（优先 ISO 8601 字符串），脚本内部自行转换 |
+| AN-3 | SKILL_DIR 注入方式 | 🔴 P0 | 2 | {SKILL_DIR} 是否由框架注入，而非暴露给 Agent 手动替换 |
+| AN-4 | 路由决策是否自持 | 🟠 P1 | 1.5 | description 里是否避免大量"什么时候用别人"的说明（路由职责不应压给 Agent） |
+| AN-5 | 输出格式是否标准化 | 🟠 P1 | 1.5 | 是否有统一输出 schema，避免"有时 JSON 有时自然语言"的混用 |
+| AN-6 | 功能边界是否清晰 | 🟠 P1 | 1 | 与相近 SKILL 的差异是否在 description 中明确声明 |
+| AN-7 | 输出置信度/元信息 | 🟡 P2 | 0.5 | 输出是否附带 confidence、evidence_count、data_source 等元信息 |
+| AN-8 | SKILL 间编排协议 | 🟡 P2 | 0.5 | metadata 是否声明 input_from / output_to |
+| AN-9 | 无交互式人机依赖 | 🟡 P2 | 1 | 是否不依赖弹窗、OAuth 等人工介入步骤（Agent 自动化链路中无法处理） |
+
+**静态审计总分：满分 12 分，归一化到 10 分输出（× 10/12）。**
+
+判定：
+- Agent Native Ready（ANR）：≥ 8.0
+- Agent Native Partial（ANP）：5.0 ~ 7.9
+- Agent Native Unready（ANU）：< 5.0
+
+**输出格式：**
+```json
+{
+  "phase": "0.5-static",
+  "items": [
+    {
+      "id": "AN-1",
+      "name": "结构化错误返回",
+      "level": "P0",
+      "score": 0.0,
+      "max_score": 2.0,
+      "finding": "当前错误处理直接输出 Python traceback，Agent 收到后无法机器处理",
+      "suggestion": "在 except 块中返回 JSON: {\"error_code\": \"...\", \"action\": \"...\", \"retry\": false}"
+    }
+  ],
+  "raw_total": 0.0,
+  "normalized_10": 0.0,
+  "verdict": "ANR | ANP | ANU"
+}
+```
+
+#### 步骤 2：动态验证（跑 1 道错误触发题）
+
+静态分析完成后，设计 **1 道专门触发 SKILL 错误路径的边界题**，通过 Agent 接入点执行：
+
+**题目设计原则**：
+- 传入必然导致 SKILL 报错的参数（如：不存在的服务名、格式错误的 ID、超出时间范围的查询）
+- 目标：看 Agent 收到 SKILL 错误响应后，能否基于结构化错误信息自主给出有意义的引导
+
+**题目格式**：
+```json
+{
+  "id": "AN-E1",
+  "type": "error-trigger",
+  "query": "（自然语言，设计为必然触发 SKILL 错误的请求）",
+  "expected_behavior": "Agent 应能识别错误类型并给出有意义的引导（而非直接抛出错误原文）",
+  "success_criteria": "Agent 回复包含：错误类型说明 + 下一步建议（如：重新认证/换参数/换 SKILL）"
+}
+```
+
+**执行方式**：通过 browser 工具访问 Agent 接入点，发送 AN-E1 的 query，记录完整响应。
+
+**动态验证打分**（独立，不进入主评分体系）：
+
+| 表现 | 得分 |
+|------|------|
+| Agent 能识别错误类型 + 给出可操作建议 | 2 / 2 |
+| Agent 识别到出错但只给模糊说明 | 1 / 2 |
+| Agent 将 SKILL 错误文本原样甩给用户 | 0 / 2 |
+
+动态验证结果作为 AN-1（结构化错误返回）的实证，**若动态得分 < 静态 AN-1 得分，以动态结果为准（向下修正）**。
+
+#### 步骤 3：输出审计摘要，决定是否继续
+
+将静态 + 动态审计结果整合，告知用户：
+
+```
+🔍 Agent Native 审计完成
+
+📋 静态分析：{normalized_10}/10.0（{ANR/ANP/ANU}）
+⚡ 动态验证（错误路径 AN-E1）：{dynamic_score}/2
+
+🔴 P0 问题（{n} 项）：
+  - AN-1: {finding}
+  - AN-2: {finding}
+
+🟠 P1 问题（{n} 项）：
+  - AN-4: {finding}
+
+🟡 P2 改进机会（{n} 项）：
+  - AN-7: {finding}
+
+判定：{verdict}
+{若 ANU：建议先修复 P0 问题再继续完整评测，是否继续？}
+{若 ANP/ANR：继续生成评测题目。}
+```
+
+**特殊处理**：
+- 若 verdict = **ANU**（< 5.0）：提示用户 SKILL 存在严重的 Agent Native 缺陷，建议先修复 P0 问题，询问是否仍要继续完整评测
+- 若 verdict = **ANP / ANR**：直接进入 Phase 1 生成题目，不需要用户确认
 
 ---
 
@@ -361,15 +476,16 @@ trace_data = "等待补充 trace"
 
 本文档评估 {SKILL_NAME} 在 {AGENT_NAME} 中的表现，评估维度覆盖：
 
-| 维度 | 说明 |
-|------|------|
-| 响应速度 | 整体完成耗时，是否超时 |
-| 意图识别 | 是否正确理解用户问题与对象类型 |
-| Skill 选择 | 是否命中正确 Skill，是否误调或漏调 |
-| 推理过程 | 调用顺序是否合理，是否能逐步收敛 |
-| 结果完整性 | 是否覆盖关键字段、证据和结论 |
-| 结果准确性 | 对象、数据、归因、结论是否正确 |
-| 交付体验 | 输出是否清晰，异常处理是否自然 |
+| 维度 | 层级 | 说明 |
+|------|------|------|
+| Agent Native 合规 | SKILL 设计 | SKILL 是否符合被 Agent 调用的工程标准 |
+| 响应速度 | Trajectory | 整体完成耗时，是否超时 |
+| 意图识别 | Outcome | 是否正确理解用户问题与对象类型 |
+| Skill 选择 | Tool Call | 是否命中正确 Skill，是否误调或漏调 |
+| 推理过程 | Trajectory | 调用顺序是否合理，是否能逐步收敛 |
+| 结果完整性 | Outcome | 是否覆盖关键字段、证据和结论 |
+| 结果准确性 | Outcome | 对象、数据、归因、结论是否正确 |
+| 交付体验 | Outcome | 输出是否清晰，异常处理是否自然 |
 
 ## 2. 评估对象范围
 
@@ -385,12 +501,57 @@ trace_data = "等待补充 trace"
 |------|------|
 | 真实对象 | 测试数据来自真实服务，数据均可查 |
 | 用户视角 | 题面贴近真实用户表述，不暴露 SKILL 内部参数 |
-| 分层设计 | 分为标准场景（S）、边界场景（B）、组合场景（C）三类 |
+| 分层设计 | 分为标准场景（S）、边界场景（B）、组合场景（C）三类，另含 Agent Native 错误触发题（AN-E） |
 | 可执行 | 题面避免依赖无法稳定获取的数据 |
 
-## 4. 实测评估结果
+## 4. Agent Native 审计结果
 
-### 4.1 综合评分汇总
+> 评估 SKILL 设计是否符合被 Agent 调用的工程标准。参考：https://docs.xiaohongshu.com/doc/bc1245f5e7da715fda366d8787a9c0ca
+
+### 4.1 综合判定
+
+| 指标 | 得分 |
+|------|------|
+| 静态审计总分 | {raw_total} / 12.0 |
+| 归一化得分 | **{normalized_10} / 10.0** |
+| 动态验证（AN-E1） | {dynamic_score} / 2.0 |
+| **最终判定** | **{ANR ✅ / ANP ⚠️ / ANU ❌}** |
+
+### 4.2 各子项明细
+
+| 编号 | 子项 | 级别 | 得分 | 满分 | 问题描述 |
+|------|------|------|------|------|---------|
+| AN-1 | 结构化错误返回 | 🔴 P0 | {score} | 2.0 | {finding 或 "通过"} |
+| AN-2 | 时间参数格式统一 | 🔴 P0 | {score} | 2.0 | {finding 或 "通过"} |
+| AN-3 | SKILL_DIR 注入方式 | 🔴 P0 | {score} | 2.0 | {finding 或 "通过"} |
+| AN-4 | 路由决策是否自持 | 🟠 P1 | {score} | 1.5 | {finding 或 "通过"} |
+| AN-5 | 输出格式是否标准化 | 🟠 P1 | {score} | 1.5 | {finding 或 "通过"} |
+| AN-6 | 功能边界是否清晰 | 🟠 P1 | {score} | 1.0 | {finding 或 "通过"} |
+| AN-7 | 输出置信度/元信息 | 🟡 P2 | {score} | 0.5 | {finding 或 "通过"} |
+| AN-8 | SKILL 间编排协议 | 🟡 P2 | {score} | 0.5 | {finding 或 "通过"} |
+| AN-9 | 无交互式人机依赖 | 🟡 P2 | {score} | 1.0 | {finding 或 "通过"} |
+
+### 4.3 动态验证：AN-E1（错误路径触发）
+
+- **Query**：`{AN-E1 query}`
+- **Agent 回复摘要**：{50字摘要}
+- **验证结论**：{Agent 能否基于结构化错误信息给出可操作建议？}
+- **得分**：{dynamic_score} / 2.0
+
+### 4.4 Agent Native 改造建议
+
+| 优先级 | 子项 | 问题 | 具体改造建议 |
+|--------|------|------|------------|
+| P0 | AN-1 | {问题描述} | {具体改法} |
+| P0 | AN-2 | {问题描述} | {具体改法} |
+| P1 | AN-4 | {问题描述} | {具体改法} |
+| P2 | AN-7 | {问题描述} | {具体改法} |
+
+---
+
+## 5. 实测评估结果（Agent 运行表现）
+
+### 5.1 综合评分汇总
 
 | 类型 | 有效用例数 | 均分 | 最高 | 最低 | 主要短板 |
 |------|-----------|------|------|------|---------|
@@ -399,7 +560,7 @@ trace_data = "等待补充 trace"
 | C（组合场景） | X | **X.X/5** | {题号} | {题号} | {主要问题} |
 | **全量均分** | **X** | **X.X/5** | — | — | **{一句话总结}** |
 
-### 4.2 实测数据汇总
+### 5.2 实测数据汇总
 
 | 用例 | 类型 | 题面（关键词） | 耗时 | AI Trace | 综合评分 | 备注 |
 |------|------|--------------|------|----------|----------|------|
@@ -410,7 +571,7 @@ trace_data = "等待补充 trace"
 
 > AI Trace 列：AI trace SKILL 接入后自动替换为 Langfuse trace 链接，用于查看 tool_calls、LLM 轮次、token 等客观数据。
 
-### 4.3 分布统计
+### 5.3 分布统计
 
 | 评分区间 | 用例数 | 用例 |
 |---------|-------|------|
@@ -419,7 +580,7 @@ trace_data = "等待补充 trace"
 | 3-3.5/5（及格） | X | {题号列表} |
 | < 3/5（偏低） | X | {题号列表} |
 
-### 4.4 关键发现
+### 5.4 关键发现
 
 > 用高亮块突出最重要的发现（P0 级用红色，P1 级用橙色，正向发现用蓝色）
 
@@ -429,7 +590,7 @@ trace_data = "等待补充 trace"
 
 **[正向发现]** {描述表现好的地方}：{数据支撑}。
 
-### 4.5 各题详情
+### 5.5 各题详情
 
 每道题展开说明，突出亮点与问题，归因到 SKILL 设计层面。
 
@@ -466,20 +627,25 @@ trace_data = "等待补充 trace"
 
 （每题一节，按 S1→...→B1→...→C1→... 顺序排列）
 
-## 5. 优化建议（针对 SKILL）
+## 6. 综合优化建议（针对 SKILL）
 
-| 优先级 | 问题现象 | SKILL 根因 | 修改建议 |
-|--------|---------|-----------|---------|
-| P0 | {现象} | {SKILL 的哪个模块/逻辑} | {具体怎么改} |
-| P1 | {现象} | {SKILL 的哪个模块/逻辑} | {具体怎么改} |
-| P2 | {现象} | {SKILL 的哪个模块/逻辑} | {具体怎么改} |
+> 整合 Agent Native 审计 + 运行表现两个维度的问题，统一优先级排列。
 
-## 6. 评估用例（附录）
+| 优先级 | 来源 | 问题现象 | SKILL 根因 | 修改建议 |
+|--------|------|---------|-----------|---------|
+| P0 | Agent Native | {现象} | {AN 子项} | {具体怎么改} |
+| P0 | 运行表现 | {现象} | {SKILL 的哪个模块/逻辑} | {具体怎么改} |
+| P1 | Agent Native | {现象} | {AN 子项} | {具体怎么改} |
+| P1 | 运行表现 | {现象} | {SKILL 的哪个模块/逻辑} | {具体怎么改} |
+| P2 | Agent Native | {现象} | {AN 子项} | {具体怎么改} |
+
+## 7. 评估用例（附录）
 
 > 仅在题目数量少或与结果无重复时展示，题目较多时可省略。
 
 | 编号 | 类型 | 题面 | 关键考察点 |
 |------|------|------|-----------|
+| AN-E1 | 错误触发 | {query} | 结构化错误返回 + Agent 错误处理能力 |
 | S1 | 标准 | {query} | {考察点} |
 | B1 | 边界 | {query} | {考察点} |
 | C1 | 组合 | {query} | {考察点} |
@@ -530,6 +696,7 @@ cat {report_file}.md | pnpm dlx @xhs/hi-workspace-cli@0.2.5 docs:create \
 cd {workspace} && git add memory/{skill_name}-eval-report-{YYYY-MM-DD}.md && git commit -m "docs: {SKILL_NAME} 评估报告 {YYYY-MM-DD}
 
 RedDoc: {url}（若无则省略此行）
+Agent Native: {an_score}/10.0 {ANR/ANP/ANU}
 综合得分: {score}/5.0 {PASS/WARN/FAIL}，通过率{n}/{total}"
 ```
 
@@ -538,11 +705,16 @@ RedDoc: {url}（若无则省略此行）
 ```
 评估报告已生成：
 
-📊 综合得分：{score}/5.0 {PASS ✅ / WARN ⚠️ / FAIL ❌}
+🔍 Agent Native 审计：{an_score}/10.0 {ANR ✅ / ANP ⚠️ / ANU ❌}
+📊 运行综合得分：{score}/5.0 {PASS ✅ / WARN ⚠️ / FAIL ❌}
 📝 REDoc 文档：{url}（若无则省略）
 💾 本地备份：memory/{skill_name}-eval-report-{YYYY-MM-DD}.md
 
-核心问题：
+Agent Native 核心问题：
+- [P0] AN-1: {问题1}
+- [P1] AN-4: {问题2}
+
+运行核心问题：
 - [P0] {问题1}
 - [P1] {问题2}
 ```
