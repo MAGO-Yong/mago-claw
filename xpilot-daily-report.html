@@ -1,0 +1,619 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>XPILOT 每日告警日报</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'PingFang SC', 'Microsoft YaHei', sans-serif;
+    background: #e8eaf0;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* ===== Hi IM 群聊区（左侧） ===== */
+  .layout {
+    display: flex;
+    flex: 1;
+    height: 100vh;
+    overflow: hidden;
+  }
+
+  .chat-area {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    background: #f5f6f8;
+    min-width: 0;
+  }
+
+  .chat-header {
+    background: #fff;
+    border-bottom: 1px solid #e8e8e8;
+    padding: 12px 20px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-shrink: 0;
+  }
+  .group-avatar {
+    width: 36px; height: 36px;
+    border-radius: 10px;
+    background: linear-gradient(135deg, #ff4d4f, #ff7a45);
+    display: flex; align-items: center; justify-content: center;
+    color: #fff; font-size: 16px;
+  }
+  .group-info { flex: 1; }
+  .group-name { font-size: 14px; font-weight: 600; color: #1a1a1a; }
+  .group-sub { font-size: 11px; color: #8c8c8c; margin-top: 1px; }
+
+  .chat-body {
+    flex: 1;
+    overflow-y: auto;
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  .chat-time { text-align: center; font-size: 11px; color: #bfbfbf; }
+
+  .msg-row { display: flex; gap: 10px; align-items: flex-start; }
+  .msg-avatar {
+    width: 34px; height: 34px; border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 13px; font-weight: 700; flex-shrink: 0;
+    background: linear-gradient(135deg, #1677ff, #722ed1); color: #fff;
+  }
+  .msg-content { max-width: 85%; display: flex; flex-direction: column; gap: 4px; }
+  .msg-name { font-size: 11px; color: #bfbfbf; }
+
+  /* ===== 日报卡片（群聊气泡中） ===== */
+  .daily-report-card {
+    background: #fff;
+    border-radius: 10px;
+    overflow: hidden;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+    width: 360px;
+    cursor: pointer;
+    transition: box-shadow 0.2s;
+    border: 1px solid #e8e8e8;
+  }
+  .daily-report-card:hover { box-shadow: 0 4px 16px rgba(0,0,0,0.12); }
+
+  .card-top {
+    background: linear-gradient(135deg, #1677ff 0%, #722ed1 100%);
+    padding: 14px 16px;
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+  }
+  .card-top-left { }
+  .card-report-label {
+    font-size: 11px;
+    color: rgba(255,255,255,0.75);
+    margin-bottom: 4px;
+    display: flex; align-items: center; gap: 5px;
+  }
+  .card-report-title {
+    font-size: 15px;
+    font-weight: 700;
+    color: #fff;
+  }
+  .card-report-date { font-size: 11px; color: rgba(255,255,255,0.6); margin-top: 2px; }
+  .card-top-badge {
+    background: rgba(255,255,255,0.2);
+    border-radius: 6px;
+    padding: 4px 10px;
+    font-size: 11px;
+    color: #fff;
+    text-align: center;
+  }
+  .card-top-badge-num { font-size: 20px; font-weight: 700; display: block; line-height: 1.2; }
+
+  .card-stats {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    border-bottom: 1px solid #f0f0f0;
+  }
+  .stat-item {
+    padding: 10px 0;
+    text-align: center;
+    border-right: 1px solid #f0f0f0;
+  }
+  .stat-item:last-child { border-right: none; }
+  .stat-num { font-size: 18px; font-weight: 700; color: #1a1a1a; }
+  .stat-num.red { color: #ff4d4f; }
+  .stat-num.orange { color: #d46b08; }
+  .stat-num.green { color: #389e0d; }
+  .stat-label { font-size: 11px; color: #8c8c8c; margin-top: 2px; }
+
+  /* 根因 TOP */
+  .card-root-causes { padding: 10px 14px; border-bottom: 1px solid #f0f0f0; }
+  .card-section-title {
+    font-size: 11px;
+    color: #8c8c8c;
+    font-weight: 600;
+    margin-bottom: 7px;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+  }
+  .root-cause-bars { display: flex; flex-direction: column; gap: 5px; }
+  .rc-bar-row { display: flex; align-items: center; gap: 7px; font-size: 12px; }
+  .rc-bar-label { width: 90px; color: #595959; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .rc-bar-track { flex: 1; height: 6px; background: #f0f0f0; border-radius: 3px; overflow: hidden; }
+  .rc-bar-fill { height: 100%; border-radius: 3px; background: #1677ff; transition: width 0.6s ease; }
+  .rc-bar-fill.orange { background: #fa8c16; }
+  .rc-bar-fill.red { background: #ff4d4f; }
+  .rc-bar-pct { font-size: 11px; color: #8c8c8c; width: 28px; text-align: right; }
+
+  /* 规则建议 */
+  .card-suggestions { padding: 10px 14px; }
+  .suggestion-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 7px;
+    font-size: 12px;
+    color: #595959;
+    padding: 4px 0;
+    border-bottom: 1px solid #fafafa;
+  }
+  .suggestion-item:last-child { border-bottom: none; }
+  .sug-icon { font-size: 13px; flex-shrink: 0; margin-top: 1px; }
+  .sug-text { flex: 1; line-height: 1.5; }
+  .sug-action { font-size: 11px; color: #1677ff; cursor: pointer; white-space: nowrap; flex-shrink: 0; margin-top: 2px; }
+
+  .card-footer {
+    padding: 10px 14px;
+    background: #fafafa;
+    border-top: 1px solid #f0f0f0;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .card-footer-hint { font-size: 11px; color: #bfbfbf; }
+  .card-footer-btn {
+    font-size: 12px;
+    color: #1677ff;
+    background: #e6f4ff;
+    border: 1px solid #91caff;
+    border-radius: 4px;
+    padding: 4px 12px;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .card-footer-btn:hover { background: #1677ff; color: #fff; }
+
+  /* ===== 右侧详情页 ===== */
+  .detail-panel {
+    width: 480px;
+    background: #fff;
+    border-left: 1px solid #e8e8e8;
+    flex-shrink: 0;
+    overflow-y: auto;
+    display: none;
+    flex-direction: column;
+  }
+  .detail-panel.open { display: flex; }
+
+  .detail-header {
+    padding: 16px 20px;
+    border-bottom: 1px solid #f0f0f0;
+    background: linear-gradient(135deg, #1677ff, #722ed1);
+    color: #fff;
+    flex-shrink: 0;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+  }
+  .detail-header-top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px; }
+  .detail-close {
+    width: 28px; height: 28px; border-radius: 6px;
+    display: flex; align-items: center; justify-content: center;
+    background: rgba(255,255,255,0.2); color: #fff;
+    font-size: 16px; cursor: pointer;
+  }
+  .detail-close:hover { background: rgba(255,255,255,0.3); }
+  .detail-title { font-size: 16px; font-weight: 700; }
+  .detail-subtitle { font-size: 12px; opacity: 0.75; }
+
+  .detail-body { flex: 1; padding: 20px; display: flex; flex-direction: column; gap: 20px; }
+
+  /* 总览数字 */
+  .overview-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 10px;
+  }
+  .overview-item {
+    background: #fafafa;
+    border: 1px solid #f0f0f0;
+    border-radius: 8px;
+    padding: 10px 12px;
+    text-align: center;
+  }
+  .overview-num { font-size: 22px; font-weight: 700; color: #1a1a1a; }
+  .overview-num.red { color: #ff4d4f; }
+  .overview-num.orange { color: #d46b08; }
+  .overview-num.green { color: #389e0d; }
+  .overview-label { font-size: 11px; color: #8c8c8c; margin-top: 3px; }
+
+  /* Section */
+  .detail-section { }
+  .detail-section-title {
+    font-size: 13px;
+    font-weight: 600;
+    color: #1a1a1a;
+    margin-bottom: 10px;
+    padding-bottom: 6px;
+    border-bottom: 1px solid #f5f5f5;
+    display: flex; align-items: center; gap: 6px;
+  }
+
+  /* 告警时段热图（简化版横条） */
+  .heatmap { display: flex; gap: 3px; align-items: flex-end; height: 48px; }
+  .heatmap-col { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 3px; }
+  .heatmap-bar {
+    width: 100%; border-radius: 2px;
+    transition: opacity 0.2s;
+    cursor: default;
+  }
+  .heatmap-bar:hover { opacity: 0.75; }
+  .heatmap-label { font-size: 9px; color: #bfbfbf; }
+
+  /* 根因详情 */
+  .root-cause-list { display: flex; flex-direction: column; gap: 8px; }
+  .rc-item {
+    background: #fafafa;
+    border: 1px solid #f0f0f0;
+    border-radius: 6px;
+    padding: 10px 12px;
+  }
+  .rc-item-top { display: flex; align-items: center; gap: 8px; margin-bottom: 5px; }
+  .rc-rank {
+    width: 20px; height: 20px;
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 11px; font-weight: 700;
+    background: #1677ff; color: #fff;
+    flex-shrink: 0;
+  }
+  .rc-rank.orange { background: #fa8c16; }
+  .rc-rank.gray { background: #bfbfbf; }
+  .rc-name { font-size: 13px; font-weight: 600; color: #1a1a1a; flex: 1; }
+  .rc-count { font-size: 12px; color: #8c8c8c; }
+  .rc-bar-row2 { display: flex; align-items: center; gap: 7px; }
+  .rc-bar-track2 { flex: 1; height: 6px; background: #f0f0f0; border-radius: 3px; overflow: hidden; }
+  .rc-bar-fill2 { height: 100%; border-radius: 3px; background: #1677ff; }
+  .rc-bar-fill2.orange { background: #fa8c16; }
+  .rc-bar-fill2.gray { background: #bfbfbf; }
+  .rc-pct { font-size: 12px; color: #1677ff; font-weight: 600; min-width: 36px; text-align: right; }
+  .rc-services { font-size: 11px; color: #8c8c8c; margin-top: 5px; }
+
+  /* 规则优化建议 */
+  .rule-sug-list { display: flex; flex-direction: column; gap: 8px; }
+  .rule-sug-item {
+    border-radius: 6px;
+    padding: 10px 12px;
+    display: flex;
+    gap: 10px;
+    align-items: flex-start;
+    font-size: 12px;
+  }
+  .rule-sug-item.warn { background: #fff7e6; border: 1px solid #ffd591; }
+  .rule-sug-item.danger { background: #fff1f0; border: 1px solid #ffa39e; }
+  .rule-sug-item.info { background: #f0f5ff; border: 1px solid #d6e4ff; }
+  .rule-sug-item.success { background: #f6ffed; border: 1px solid #d9f7be; }
+  .rule-sug-icon { font-size: 14px; flex-shrink: 0; margin-top: 1px; }
+  .rule-sug-body { flex: 1; }
+  .rule-sug-title { font-weight: 600; color: #1a1a1a; margin-bottom: 3px; }
+  .rule-sug-desc { color: #595959; line-height: 1.6; }
+  .rule-sug-action {
+    display: inline-block;
+    margin-top: 5px;
+    font-size: 11px;
+    color: #1677ff;
+    cursor: pointer;
+    border: 1px solid #91caff;
+    background: #e6f4ff;
+    border-radius: 3px;
+    padding: 2px 8px;
+    transition: all 0.15s;
+  }
+  .rule-sug-action:hover { background: #1677ff; color: #fff; }
+
+  ::-webkit-scrollbar { width: 3px; }
+  ::-webkit-scrollbar-thumb { background: #e0e0e0; border-radius: 2px; }
+</style>
+</head>
+<body>
+<div class="layout">
+
+  <!-- 左侧群聊 -->
+  <div class="chat-area">
+    <div class="chat-header">
+      <div class="group-avatar">🚨</div>
+      <div class="group-info">
+        <div class="group-name">推荐稳定性值班群</div>
+        <div class="group-sub">42人 · XRay 告警助手</div>
+      </div>
+    </div>
+
+    <div class="chat-body">
+      <div class="chat-time">昨天 23:48</div>
+      <div class="msg-row">
+        <div class="msg-avatar" style="background:#595959;font-size:11px;">SRE</div>
+        <div class="msg-content">
+          <div class="msg-name">值班 SRE</div>
+          <div style="background:#fff;border-radius:8px;padding:9px 13px;font-size:13px;color:#595959;box-shadow:0 1px 3px rgba(0,0,0,0.06);">
+            creator-service 恢复正常，告警已解除 ✅
+          </div>
+        </div>
+      </div>
+
+      <div class="chat-time">今天 12:00</div>
+
+      <!-- 日报卡片 -->
+      <div class="msg-row">
+        <div class="msg-avatar">X</div>
+        <div class="msg-content">
+          <div class="msg-name">XRay 告警助手</div>
+          <div class="daily-report-card" onclick="openDetail()">
+            <div class="card-top">
+              <div class="card-top-left">
+                <div class="card-report-label">📊 每日告警分析报告</div>
+                <div class="card-report-title">推荐业务线 · 昨日告警汇总</div>
+                <div class="card-report-date">2026年4月7日（昨天）</div>
+              </div>
+              <div class="card-top-badge">
+                <span class="card-top-badge-num">38</span>
+                条告警
+              </div>
+            </div>
+
+            <div class="card-stats">
+              <div class="stat-item">
+                <div class="stat-num red">6</div>
+                <div class="stat-label">P1 紧急</div>
+              </div>
+              <div class="stat-item">
+                <div class="stat-num orange">18</div>
+                <div class="stat-label">P2 重要</div>
+              </div>
+              <div class="stat-item">
+                <div class="stat-num green">28</div>
+                <div class="stat-label">已诊断</div>
+              </div>
+            </div>
+
+            <div class="card-root-causes">
+              <div class="card-section-title">根因 TOP 3</div>
+              <div class="root-cause-bars">
+                <div class="rc-bar-row">
+                  <span class="rc-bar-label">连接池耗尽</span>
+                  <div class="rc-bar-track"><div class="rc-bar-fill" style="width:72%"></div></div>
+                  <span class="rc-bar-pct">35%</span>
+                </div>
+                <div class="rc-bar-row">
+                  <span class="rc-bar-label">下游依赖抖动</span>
+                  <div class="rc-bar-track"><div class="rc-bar-fill orange" style="width:54%"></div></div>
+                  <span class="rc-bar-pct">26%</span>
+                </div>
+                <div class="rc-bar-row">
+                  <span class="rc-bar-label">GC 停顿过长</span>
+                  <div class="rc-bar-track"><div class="rc-bar-fill red" style="width:33%"></div></div>
+                  <span class="rc-bar-pct">16%</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="card-suggestions">
+              <div class="card-section-title">规则优化建议</div>
+              <div class="suggestion-item">
+                <span class="sug-icon">⚠️</span>
+                <span class="sug-text">「推荐服务P99耗时」误报率 67%，建议调整阈值</span>
+                <span class="sug-action" onclick="event.stopPropagation()">去调整</span>
+              </div>
+              <div class="suggestion-item">
+                <span class="sug-icon">🔗</span>
+                <span class="sug-text">「接口失败率」与「超时」规则重叠，可合并</span>
+                <span class="sug-action" onclick="event.stopPropagation()">去合并</span>
+              </div>
+            </div>
+
+            <div class="card-footer">
+              <span class="card-footer-hint">点击查看完整分析报告</span>
+              <span class="card-footer-btn">查看详情 →</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 普通聊天 -->
+      <div class="msg-row">
+        <div class="msg-avatar" style="background:#fa8c16;font-size:12px;">王</div>
+        <div class="msg-content">
+          <div class="msg-name">王工</div>
+          <div style="background:#fff;border-radius:8px;padding:9px 13px;font-size:13px;color:#595959;box-shadow:0 1px 3px rgba(0,0,0,0.06);">
+            P99 耗时那条规则确实很吵，上周就说要调了 😅
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 右侧详情面板 -->
+  <div class="detail-panel" id="detailPanel">
+    <div class="detail-header">
+      <div class="detail-header-top">
+        <div>
+          <div class="detail-title">推荐业务线 · 昨日告警分析报告</div>
+          <div class="detail-subtitle">2026年4月7日 · 共 38 条告警事件</div>
+        </div>
+        <div class="detail-close" onclick="closeDetail()">×</div>
+      </div>
+    </div>
+
+    <div class="detail-body">
+
+      <!-- 总览 -->
+      <div class="detail-section">
+        <div class="detail-section-title">📊 总览</div>
+        <div class="overview-grid">
+          <div class="overview-item">
+            <div class="overview-num">38</div>
+            <div class="overview-label">告警总数</div>
+          </div>
+          <div class="overview-item">
+            <div class="overview-num red">6</div>
+            <div class="overview-label">P1 紧急</div>
+          </div>
+          <div class="overview-item">
+            <div class="overview-num orange">18</div>
+            <div class="overview-label">P2 重要</div>
+          </div>
+          <div class="overview-item">
+            <div class="overview-num green">28</div>
+            <div class="overview-label">AI 已诊断</div>
+          </div>
+        </div>
+        <div style="margin-top:10px;display:flex;gap:10px;">
+          <div style="flex:1;background:#f6ffed;border:1px solid #d9f7be;border-radius:6px;padding:8px 12px;text-align:center;">
+            <div style="font-size:16px;font-weight:700;color:#389e0d;">73.7%</div>
+            <div style="font-size:11px;color:#8c8c8c;margin-top:2px;">诊断覆盖率</div>
+          </div>
+          <div style="flex:1;background:#e6f4ff;border:1px solid #d6e4ff;border-radius:6px;padding:8px 12px;text-align:center;">
+            <div style="font-size:16px;font-weight:700;color:#1677ff;">8.2 min</div>
+            <div style="font-size:11px;color:#8c8c8c;margin-top:2px;">平均诊断时长</div>
+          </div>
+          <div style="flex:1;background:#fff7e6;border:1px solid #ffd591;border-radius:6px;padding:8px 12px;text-align:center;">
+            <div style="font-size:16px;font-weight:700;color:#d46b08;">34.2%</div>
+            <div style="font-size:11px;color:#8c8c8c;margin-top:2px;">误报率</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 时段分布 -->
+      <div class="detail-section">
+        <div class="detail-section-title">⏰ 告警时段分布</div>
+        <div class="heatmap" id="heatmap"></div>
+        <div style="display:flex;justify-content:space-between;margin-top:4px;font-size:10px;color:#bfbfbf;padding:0 1px;">
+          <span>00:00</span><span>06:00</span><span>12:00</span><span>18:00</span><span>24:00</span>
+        </div>
+        <div style="margin-top:8px;font-size:11px;color:#8c8c8c;">高峰时段：<strong style="color:#ff4d4f;">10:00–12:00</strong>（共 14 条），<strong style="color:#fa8c16;">20:00–22:00</strong>（共 9 条）</div>
+      </div>
+
+      <!-- 根因分析 -->
+      <div class="detail-section">
+        <div class="detail-section-title">🔍 根因聚类分析</div>
+        <div class="root-cause-list">
+          <div class="rc-item">
+            <div class="rc-item-top">
+              <div class="rc-rank">1</div>
+              <div class="rc-name">连接池耗尽</div>
+              <div class="rc-count">13 条告警</div>
+            </div>
+            <div class="rc-bar-row2">
+              <div class="rc-bar-track2"><div class="rc-bar-fill2" style="width:72%"></div></div>
+              <div class="rc-pct">35%</div>
+            </div>
+            <div class="rc-services">涉及服务：creator-service、feed-service、rec-service</div>
+          </div>
+          <div class="rc-item">
+            <div class="rc-item-top">
+              <div class="rc-rank orange">2</div>
+              <div class="rc-name">下游依赖抖动（自愈）</div>
+              <div class="rc-count">10 条告警</div>
+            </div>
+            <div class="rc-bar-row2">
+              <div class="rc-bar-track2"><div class="rc-bar-fill2 orange" style="width:54%"></div></div>
+              <div class="rc-pct" style="color:#fa8c16;">26%</div>
+            </div>
+            <div class="rc-services">涉及服务：search-service、recommend-service</div>
+          </div>
+          <div class="rc-item">
+            <div class="rc-item-top">
+              <div class="rc-rank gray">3</div>
+              <div class="rc-name">GC 停顿过长</div>
+              <div class="rc-count">6 条告警</div>
+            </div>
+            <div class="rc-bar-row2">
+              <div class="rc-bar-track2"><div class="rc-bar-fill2 gray" style="width:33%"></div></div>
+              <div class="rc-pct" style="color:#bfbfbf;">16%</div>
+            </div>
+            <div class="rc-services">涉及服务：recommend-service（单节点内存泄漏）</div>
+          </div>
+          <div style="font-size:12px;color:#8c8c8c;padding:6px 0;">其余 23% 告警：配置变更导致（4条）、未诊断/无 SKILL（6条）</div>
+        </div>
+      </div>
+
+      <!-- 规则优化建议 -->
+      <div class="detail-section">
+        <div class="detail-section-title">📋 告警规则优化建议</div>
+        <div class="rule-sug-list">
+          <div class="rule-sug-item danger">
+            <span class="rule-sug-icon">🔴</span>
+            <div class="rule-sug-body">
+              <div class="rule-sug-title">「推荐服务P99耗时超500ms」误报率过高</div>
+              <div class="rule-sug-desc">昨日触发 9 次，其中 6 次为下游抖动导致的短暂波动（&lt;2min 自愈），与真实性能问题无关。建议将持续触发时间阈值从 0 调整为 ≥3min，或提高阈值至 800ms。</div>
+              <span class="rule-sug-action">去调整规则 →</span>
+            </div>
+          </div>
+          <div class="rule-sug-item warn">
+            <span class="rule-sug-icon">🟡</span>
+            <div class="rule-sug-body">
+              <div class="rule-sug-title">「接口失败率」与「RequestTimeout」规则重叠</div>
+              <div class="rule-sug-desc">两条规则在 7 次告警中同时触发，产生重复通知。建议合并为单一规则，超时异常在失败率规则中通过异常类型过滤区分。</div>
+              <span class="rule-sug-action">去合并规则 →</span>
+            </div>
+          </div>
+          <div class="rule-sug-item info">
+            <span class="rule-sug-icon">🔵</span>
+            <div class="rule-sug-body">
+              <div class="rule-sug-title">「Redis 命中率下降」未绑定排障 SKILL</div>
+              <div class="rule-sug-desc">该规则昨日触发 3 次，但未关联任何排障 SKILL，均需人工介入。建议绑定「Redis 缓存异常排障」SKILL 以实现自动诊断。</div>
+              <span class="rule-sug-action">去绑定 SKILL →</span>
+            </div>
+          </div>
+          <div class="rule-sug-item success">
+            <span class="rule-sug-icon">🟢</span>
+            <div class="rule-sug-body">
+              <div class="rule-sug-title">「GC 停顿频率」规则表现良好</div>
+              <div class="rule-sug-desc">昨日触发 6 次，SKILL 诊断准确率 100%，平均 4.2min 完成根因定位，无误报，建议作为规则配置范例。</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+</div>
+
+<script>
+  // 生成热图数据
+  const hourData = [0,0,1,0,0,0,2,3,5,6,8,6,3,2,1,2,3,2,4,5,9,8,4,2];
+  const maxVal = Math.max(...hourData);
+  const colors = ['#1677ff','#fa8c16','#ff4d4f'];
+  const heatmap = document.getElementById('heatmap');
+  hourData.forEach((v, i) => {
+    const col = document.createElement('div');
+    col.className = 'heatmap-col';
+    const heightPx = v === 0 ? 2 : Math.round((v / maxVal) * 44);
+    const color = v >= 7 ? colors[2] : v >= 4 ? colors[1] : colors[0];
+    col.innerHTML = `<div class="heatmap-bar" style="height:${heightPx}px;background:${color};opacity:${v===0?0.15:0.8}" title="${i}:00 · ${v}条"></div>`;
+    heatmap.appendChild(col);
+  });
+
+  function openDetail() {
+    document.getElementById('detailPanel').classList.add('open');
+  }
+  function closeDetail() {
+    document.getElementById('detailPanel').classList.remove('open');
+  }
+</script>
+</body>
+</html>

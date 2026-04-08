@@ -1,0 +1,676 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>XRay Agent · 对话式告警规则绑定</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'PingFang SC', 'Microsoft YaHei', sans-serif;
+    background: #f5f6f8;
+    color: #1a1a2e;
+    height: 100vh;
+    display: flex;
+    overflow: hidden;
+  }
+
+  /* ===== 左侧导航 ===== */
+  .sidebar {
+    width: 220px;
+    background: #fff;
+    border-right: 1px solid #e8e8ee;
+    display: flex;
+    flex-direction: column;
+    flex-shrink: 0;
+  }
+  .sidebar-logo {
+    padding: 14px 16px;
+    font-size: 14px;
+    font-weight: 700;
+    color: #1677ff;
+    border-bottom: 1px solid #e8e8ee;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .sidebar-logo-icon {
+    width: 28px; height: 28px;
+    border-radius: 7px;
+    background: linear-gradient(135deg, #1677ff, #722ed1);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 13px; font-weight: 700; color: #fff;
+    flex-shrink: 0;
+  }
+  .sidebar-section {
+    padding: 14px 12px 4px;
+    font-size: 10px;
+    color: #bbb;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.6px;
+  }
+  .sidebar-item {
+    margin: 1px 6px;
+    padding: 8px 10px;
+    border-radius: 6px;
+    font-size: 13px;
+    color: #888;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    transition: all 0.15s;
+  }
+  .sidebar-item:hover { background: #f0f4ff; color: #1677ff; }
+  .sidebar-item.active { background: #e6f0ff; color: #1677ff; font-weight: 500; }
+  .sidebar-new-btn {
+    margin: 10px 8px 8px;
+    padding: 8px;
+    border-radius: 6px;
+    border: 1px dashed #d0d7e6;
+    text-align: center;
+    font-size: 12px;
+    color: #aaa;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .sidebar-new-btn:hover { border-color: #1677ff; color: #1677ff; }
+  .sidebar-history { flex: 1; overflow-y: auto; }
+  .sidebar-hist-item {
+    margin: 1px 6px;
+    padding: 7px 10px;
+    border-radius: 5px;
+    font-size: 12px;
+    color: #999;
+    cursor: pointer;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    transition: all 0.15s;
+  }
+  .sidebar-hist-item:hover { background: #f5f6f8; color: #555; }
+  .sidebar-hist-item.active { background: #e6f0ff; color: #1677ff; }
+
+  /* ===== 主对话区 ===== */
+  .main {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    background: #f5f6f8;
+  }
+
+  .chat-topbar {
+    height: 48px;
+    border-bottom: 1px solid #e8e8ee;
+    display: flex;
+    align-items: center;
+    padding: 0 20px;
+    gap: 10px;
+    flex-shrink: 0;
+    background: #fff;
+  }
+  .agent-avatar {
+    width: 28px; height: 28px;
+    border-radius: 7px;
+    background: linear-gradient(135deg, #1677ff, #722ed1);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 12px; font-weight: 700; color: #fff;
+    flex-shrink: 0;
+  }
+  .agent-name { font-size: 13px; font-weight: 600; color: #333; }
+  .agent-status { font-size: 11px; color: #52c41a; display: flex; align-items: center; gap: 4px; margin-left: 6px; }
+  .agent-status::before { content: ''; width: 6px; height: 6px; border-radius: 50%; background: #52c41a; }
+  .topbar-right { margin-left: auto; display: flex; gap: 8px; }
+  .topbar-btn {
+    font-size: 12px; padding: 4px 12px;
+    border-radius: 4px; cursor: pointer;
+    border: 1px solid #e0e4ef; background: #fff; color: #888;
+    transition: all 0.15s;
+  }
+  .topbar-btn:hover { border-color: #1677ff; color: #1677ff; }
+
+  /* 对话流 */
+  .chat-body {
+    flex: 1;
+    overflow-y: auto;
+    padding: 20px 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+  }
+
+  .msg-wrap {
+    padding: 6px 24px;
+    display: flex;
+    gap: 10px;
+    align-items: flex-start;
+  }
+  .msg-wrap.user { flex-direction: row-reverse; }
+
+  .msg-avatar {
+    width: 30px; height: 30px;
+    border-radius: 7px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 13px; font-weight: 700;
+    flex-shrink: 0; margin-top: 2px;
+  }
+  .msg-avatar.ai { background: linear-gradient(135deg, #1677ff, #722ed1); color: #fff; }
+  .msg-avatar.user { background: #e6f0ff; font-size: 14px; }
+
+  .msg-body { max-width: 78%; display: flex; flex-direction: column; gap: 4px; }
+  .msg-wrap.user .msg-body { align-items: flex-end; }
+
+  .msg-name { font-size: 11px; color: #bbb; margin-bottom: 2px; }
+
+  .msg-bubble {
+    font-size: 13px;
+    line-height: 1.65;
+    color: #333;
+    padding: 10px 14px;
+    border-radius: 8px;
+    background: #fff;
+    border: 1px solid #e8e8ee;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+  }
+  .msg-wrap.user .msg-bubble {
+    background: #1677ff;
+    border-color: #1677ff;
+    color: #fff;
+  }
+
+  /* 结构化卡片 */
+  .result-card {
+    background: #fff;
+    border: 1px solid #e8e8ee;
+    border-radius: 8px;
+    overflow: hidden;
+    font-size: 12px;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.05);
+  }
+  .result-card-header {
+    padding: 9px 14px;
+    background: #fafbff;
+    border-bottom: 1px solid #e8e8ee;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-size: 12px;
+  }
+  .result-card-title { font-weight: 600; color: #333; display: flex; align-items: center; gap: 6px; }
+  .result-card-meta { color: #bbb; font-size: 11px; }
+
+  .rule-rows { }
+  .rule-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 9px 14px;
+    border-bottom: 1px solid #f0f0f5;
+    cursor: pointer;
+    transition: background 0.12s;
+  }
+  .rule-row:last-child { border-bottom: none; }
+  .rule-row:hover { background: #f5f8ff; }
+  .rule-row.selected { background: #eef4ff; }
+  .rule-row.confirmed { background: #f0faf2; cursor: default; }
+
+  .r-idx {
+    width: 20px; height: 20px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 10px; font-weight: 700;
+    background: #f0f0f5; color: #bbb; flex-shrink: 0;
+    transition: all 0.15s;
+  }
+  .rule-row.selected .r-idx { background: #1677ff; color: #fff; }
+  .rule-row.confirmed .r-idx { background: #52c41a; color: #fff; }
+
+  .r-name { flex: 1; color: #444; font-weight: 500; font-size: 12px; }
+  .r-tags { display: flex; gap: 4px; }
+  .r-lv {
+    font-size: 10px; border-radius: 3px; padding: 1px 5px; font-weight: 600;
+  }
+  .r-lv.p1 { background: #fff1f0; color: #ff4d4f; border: 1px solid #ffccc7; }
+  .r-lv.p2 { background: #fff7e6; color: #fa8c16; border: 1px solid #ffd591; }
+  .r-biz { font-size: 10px; border-radius: 3px; padding: 1px 5px; background: #e6f0ff; color: #1677ff; border: 1px solid #bbd4ff; }
+  .r-done { font-size: 10px; border-radius: 3px; padding: 1px 5px; background: #f0faf2; color: #52c41a; border: 1px solid #b7eb8f; }
+
+  .card-action-row {
+    padding: 9px 14px;
+    border-top: 1px solid #e8e8ee;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: #fafbff;
+  }
+  .card-action-hint { font-size: 11px; color: #bbb; }
+  .card-action-hint strong { color: #1677ff; }
+  .card-action-btns { display: flex; gap: 6px; }
+  .ca-btn {
+    font-size: 12px; padding: 4px 14px; border-radius: 4px; cursor: pointer; transition: all 0.15s;
+  }
+  .ca-btn-ghost { border: 1px solid #e0e4ef; background: #fff; color: #888; }
+  .ca-btn-ghost:hover { border-color: #1677ff; color: #1677ff; }
+  .ca-btn-confirm { border: none; background: #1677ff; color: #fff; }
+  .ca-btn-confirm:hover { background: #0e6adb; }
+
+  /* 成功卡片 */
+  .success-card {
+    background: #f0faf2;
+    border: 1px solid #b7eb8f;
+    border-radius: 6px;
+    padding: 10px 12px;
+    font-size: 12px;
+  }
+  .success-card-title { color: #52c41a; font-weight: 600; margin-bottom: 7px; display: flex; align-items: center; gap: 5px; }
+  .success-rule-item { display: flex; align-items: center; gap: 6px; color: #555; padding: 3px 0; }
+  .success-dot { width: 3px; height: 3px; border-radius: 50%; background: #52c41a; flex-shrink: 0; }
+  .success-links { margin-top: 9px; display: flex; gap: 12px; }
+  .s-link { font-size: 11px; color: #1677ff; cursor: pointer; }
+  .s-link:hover { text-decoration: underline; }
+
+  /* chips */
+  .chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; }
+  .chip {
+    font-size: 12px; color: #666;
+    background: #fff; border: 1px solid #e0e4ef;
+    border-radius: 12px; padding: 4px 12px;
+    cursor: pointer; transition: all 0.15s;
+  }
+  .chip:hover { border-color: #1677ff; color: #1677ff; background: #f0f6ff; }
+
+  /* 打字动画 */
+  .typing { display: flex; gap: 4px; align-items: center; padding: 3px 0; }
+  .typing span {
+    width: 5px; height: 5px; border-radius: 50%; background: #ccc;
+    animation: bounce 1.2s infinite;
+  }
+  .typing span:nth-child(2) { animation-delay: 0.2s; }
+  .typing span:nth-child(3) { animation-delay: 0.4s; }
+  @keyframes bounce { 0%,60%,100%{transform:translateY(0)}30%{transform:translateY(-4px)} }
+
+  /* 输入区 */
+  .input-area {
+    padding: 12px 20px;
+    border-top: 1px solid #e8e8ee;
+    background: #fff;
+    flex-shrink: 0;
+  }
+  .input-box {
+    display: flex; align-items: flex-end; gap: 10px;
+    background: #f5f6f8; border: 1px solid #e0e4ef;
+    border-radius: 8px; padding: 9px 12px;
+    transition: border-color 0.2s;
+  }
+  .input-box:focus-within { border-color: #1677ff; background: #fff; }
+  .input-box textarea {
+    flex: 1; border: none; outline: none; background: transparent;
+    font-size: 13px; color: #333; resize: none;
+    min-height: 20px; max-height: 100px; line-height: 1.5; font-family: inherit;
+  }
+  .input-box textarea::placeholder { color: #bbb; }
+  .send-btn {
+    width: 30px; height: 30px; border-radius: 6px;
+    background: #1677ff; border: none; cursor: pointer;
+    display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+    transition: background 0.15s;
+  }
+  .send-btn:hover { background: #0e6adb; }
+  .input-hint { font-size: 11px; color: #ccc; margin-top: 7px; text-align: right; }
+
+  ::-webkit-scrollbar { width: 4px; }
+  ::-webkit-scrollbar-thumb { background: #e0e0e8; border-radius: 2px; }
+</style>
+</head>
+<body>
+
+<!-- 左侧导航 -->
+<div class="sidebar">
+  <div class="sidebar-logo">
+    <div class="sidebar-logo-icon">X</div>
+    XRay Agent
+  </div>
+  <div style="padding:10px 8px 4px;">
+    <div class="sidebar-new-btn">+ 新建对话</div>
+  </div>
+  <div class="sidebar-section">历史对话</div>
+  <div class="sidebar-history">
+    <div class="sidebar-hist-item active">帮我绑定推荐告警规则到新笔记...</div>
+    <div class="sidebar-hist-item">creator-service 连接池排障</div>
+    <div class="sidebar-hist-item">查询昨日 GC 告警事件</div>
+    <div class="sidebar-hist-item">recommend-service P99 耗时分析</div>
+    <div class="sidebar-hist-item">ark-feedx 新笔记下跌根因</div>
+    <div class="sidebar-hist-item">Redis 命中率下降排查</div>
+  </div>
+</div>
+
+<!-- 主对话区 -->
+<div class="main">
+  <div class="chat-topbar">
+    <div class="agent-avatar">X</div>
+    <div>
+      <div class="agent-name">XRay Agent</div>
+    </div>
+    <div class="agent-status">在线</div>
+    <div class="topbar-right">
+      <div class="topbar-btn">技能广场</div>
+      <div class="topbar-btn">执行记录</div>
+    </div>
+  </div>
+
+  <div class="chat-body" id="chatBody">
+
+    <!-- AI 欢迎 -->
+    <div class="msg-wrap">
+      <div class="msg-avatar ai">X</div>
+      <div class="msg-body">
+        <div class="msg-name">XRay Agent</div>
+        <div class="msg-bubble">
+          你好，我是 XRay Agent。<br>
+          可以帮你查询告警规则、配置 SKILL 绑定、分析排障数据。<br><br>
+          有什么需要帮忙的？
+        </div>
+        <div class="chips">
+          <span class="chip" onclick="fillInput(this)">帮我查询推荐相关告警规则</span>
+          <span class="chip" onclick="showAllBindings()">查看所有绑定配置</span>
+          <span class="chip" onclick="fillInput(this)">哪些 SKILL 还没绑定规则？</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- 用户 -->
+    <div class="msg-wrap user">
+      <div class="msg-avatar user">👤</div>
+      <div class="msg-body">
+        <div class="msg-name" style="text-align:right;">mahengyang</div>
+        <div class="msg-bubble">帮我查询推荐相关告警规则，然后把其中 1、3、5 绑定到新笔记下跌排障 SKILL</div>
+      </div>
+    </div>
+
+    <!-- AI 返回规则列表 -->
+    <div class="msg-wrap">
+      <div class="msg-avatar ai">X</div>
+      <div class="msg-body" style="max-width:86%;">
+        <div class="msg-name">XRay Agent</div>
+        <div class="msg-bubble" style="padding:0;overflow:hidden;">
+          <div style="padding:10px 14px 8px;font-size:13px;color:#333;border-bottom:1px solid #f0f0f5;">
+            查到推荐业务线共 <strong>7 条</strong>告警规则，已预选第 1、3、5 条，确认后执行绑定：
+          </div>
+          <div class="result-card" style="border:none;border-radius:0;box-shadow:none;">
+            <div class="result-card-header">
+              <div class="result-card-title">📋 推荐业务线告警规则</div>
+              <div class="result-card-meta">共 7 条</div>
+            </div>
+            <div class="rule-rows" id="ruleRows">
+              <div class="rule-row selected" data-idx="1" onclick="toggleRow(this)">
+                <div class="r-idx">1</div>
+                <div class="r-name">外流1h新笔记曝光占比周同比下跌超10%</div>
+                <div class="r-tags"><span class="r-lv p1">P1</span><span class="r-biz">推荐</span></div>
+              </div>
+              <div class="rule-row" data-idx="2" onclick="toggleRow(this)">
+                <div class="r-idx">2</div>
+                <div class="r-name">推荐服务 P99 耗时超 500ms</div>
+                <div class="r-tags"><span class="r-lv p1">P1</span><span class="r-biz">性能</span></div>
+              </div>
+              <div class="rule-row selected" data-idx="3" onclick="toggleRow(this)">
+                <div class="r-idx">3</div>
+                <div class="r-name">24h新笔记占比周同比下跌超20%</div>
+                <div class="r-tags"><span class="r-lv p1">P1</span><span class="r-biz">推荐</span></div>
+              </div>
+              <div class="rule-row" data-idx="4" onclick="toggleRow(this)">
+                <div class="r-idx">4</div>
+                <div class="r-name">新笔记召回率低于基线20%</div>
+                <div class="r-tags"><span class="r-lv p2">P2</span><span class="r-biz">召回</span></div>
+              </div>
+              <div class="rule-row selected" data-idx="5" onclick="toggleRow(this)">
+                <div class="r-idx">5</div>
+                <div class="r-name">内流新笔记曝光率环比下降超15%</div>
+                <div class="r-tags"><span class="r-lv p2">P2</span><span class="r-biz">内流</span></div>
+              </div>
+              <div class="rule-row" data-idx="6" onclick="toggleRow(this)">
+                <div class="r-idx">6</div>
+                <div class="r-name">笔记分发量日同比下跌超10%</div>
+                <div class="r-tags"><span class="r-lv p2">P2</span><span class="r-biz">分发</span></div>
+              </div>
+              <div class="rule-row" data-idx="7" onclick="toggleRow(this)">
+                <div class="r-idx">7</div>
+                <div class="r-name">推荐服务接口失败率超阈值</div>
+                <div class="r-tags"><span class="r-lv p1">P1</span><span class="r-biz">稳定性</span></div>
+              </div>
+            </div>
+            <div class="card-action-row" id="actionRow">
+              <div class="card-action-hint">已选中第 <strong id="selLabel">1、3、5</strong> 条，可点击调整</div>
+              <div class="card-action-btns">
+                <button class="ca-btn ca-btn-ghost" onclick="resetSel()">重选</button>
+                <button class="ca-btn ca-btn-confirm" onclick="confirmBind()">确认绑定 →</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 绑定成功（初始隐藏） -->
+    <div class="msg-wrap" id="successMsg" style="display:none;">
+      <div class="msg-avatar ai">X</div>
+      <div class="msg-body" style="max-width:86%;">
+        <div class="msg-name">XRay Agent</div>
+        <div class="msg-bubble" style="padding:0;overflow:hidden;">
+          <div style="padding:10px 14px 8px;font-size:13px;color:#333;border-bottom:1px solid #f0f0f5;">
+            ✅ 绑定完成，以下 3 条规则已关联到「新笔记下跌排障」SKILL：
+          </div>
+          <div style="padding:10px 14px;">
+            <div class="success-card">
+              <div class="success-card-title">🔗 新笔记下跌排障 · 已绑定 3 条规则</div>
+              <div class="success-rule-item"><span class="success-dot"></span>外流1h新笔记曝光占比周同比下跌超10%</div>
+              <div class="success-rule-item"><span class="success-dot"></span>24h新笔记占比周同比下跌超20%</div>
+              <div class="success-rule-item"><span class="success-dot"></span>内流新笔记曝光率环比下降超15%</div>
+              <div class="success-links">
+                <span class="s-link">前往技能广场查看 →</span>
+                <span class="s-link">查看全部绑定关系 →</span>
+              </div>
+            </div>
+          </div>
+          <div style="padding:0 14px 12px;">
+            <div class="chips">
+              <span class="chip" onclick="fillInput(this)">继续绑定其他规则</span>
+              <span class="chip" onclick="showAllBindings()">查看所有绑定配置</span>
+              <span class="chip" onclick="fillInput(this)">哪些 SKILL 还没绑定规则？</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- 输入区 -->
+  <div class="input-area">
+    <div class="input-box">
+      <textarea id="userInput" rows="1" placeholder="输入指令，如：帮我查推荐相关告警规则…"
+        onkeydown="handleKey(event)" oninput="autoResize(this)"></textarea>
+      <button class="send-btn" onclick="sendMsg()">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="#fff"><path d="M2 21l21-9L2 3v7l15 2-15 2v7z"/></svg>
+      </button>
+    </div>
+    <div class="input-hint">Enter 发送 · Shift+Enter 换行</div>
+  </div>
+</div>
+
+<script>
+  function toggleRow(el) {
+    if (el.classList.contains('confirmed')) return;
+    el.classList.toggle('selected');
+    updateSelLabel();
+  }
+
+  function updateSelLabel() {
+    const sel = [...document.querySelectorAll('.rule-row.selected')].map(el => el.dataset.idx);
+    document.getElementById('selLabel').textContent = sel.length ? sel.join('、') : '无';
+  }
+
+  function resetSel() {
+    document.querySelectorAll('.rule-row').forEach(el => el.classList.remove('selected'));
+    updateSelLabel();
+  }
+
+  function confirmBind() {
+    const selected = [...document.querySelectorAll('.rule-row.selected')];
+    selected.forEach(el => {
+      el.classList.remove('selected');
+      el.classList.add('confirmed');
+      const tag = document.createElement('span');
+      tag.className = 'r-done';
+      tag.textContent = '✓ 已绑定';
+      el.querySelector('.r-tags').appendChild(tag);
+    });
+    document.getElementById('actionRow').style.display = 'none';
+    setTimeout(() => {
+      document.getElementById('successMsg').style.display = 'flex';
+      document.getElementById('chatBody').scrollTop = 99999;
+    }, 350);
+  }
+
+  function showAllBindings() {
+    const body = document.getElementById('chatBody');
+    const userRow = document.createElement('div');
+    userRow.className = 'msg-wrap user';
+    userRow.innerHTML = `<div class="msg-avatar user">👤</div><div class="msg-body" style="align-items:flex-end;"><div class="msg-name" style="text-align:right;">mahengyang</div><div class="msg-bubble">查看所有绑定配置</div></div>`;
+    body.appendChild(userRow);
+    body.scrollTop = 99999;
+
+    const typing = document.createElement('div');
+    typing.className = 'msg-wrap';
+    typing.innerHTML = `<div class="msg-avatar ai">X</div><div class="msg-body"><div class="msg-name">XRay Agent</div><div class="msg-bubble"><div class="typing"><span></span><span></span><span></span></div></div></div>`;
+    body.appendChild(typing);
+    body.scrollTop = 99999;
+
+    setTimeout(() => {
+      typing.remove();
+      const aiRow = document.createElement('div');
+      aiRow.className = 'msg-wrap';
+      aiRow.innerHTML = `
+        <div class="msg-avatar ai">X</div>
+        <div class="msg-body" style="max-width:90%;">
+          <div class="msg-name">XRay Agent</div>
+          <div class="msg-bubble" style="padding:0;overflow:hidden;">
+            <div style="padding:10px 14px 8px;font-size:13px;color:#333;border-bottom:1px solid #f0f0f5;">
+              当前共有 <strong>6 个</strong> SKILL，<strong style="color:#52c41a;">3 个</strong>已绑定告警规则，<strong style="color:#fa8c16;">3 个</strong>未绑定：
+            </div>
+            <div style="padding:8px 0;">
+
+              <div style="padding:4px 14px 6px;font-size:11px;color:#bbb;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;">已绑定</div>
+
+              <div style="padding:8px 14px;border-bottom:1px solid #f0f0f5;">
+                <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">
+                  <span style="font-size:14px;">📉</span>
+                  <span style="font-size:13px;font-weight:600;color:#333;flex:1;">新笔记下跌排障</span>
+                  <span style="font-size:10px;background:#f0faf2;color:#52c41a;border:1px solid #b7eb8f;border-radius:10px;padding:2px 8px;">🔗 3 条规则</span>
+                </div>
+                <div style="display:flex;flex-direction:column;gap:3px;padding-left:22px;">
+                  <div style="font-size:11px;color:#888;display:flex;align-items:center;gap:5px;"><span style="width:3px;height:3px;border-radius:50%;background:#52c41a;flex-shrink:0;display:inline-block;"></span>外流1h新笔记曝光占比周同比下跌超10% <span style="margin-left:4px;font-size:10px;background:#fff1f0;color:#ff4d4f;border:1px solid #ffccc7;border-radius:3px;padding:1px 4px;">P1</span></div>
+                  <div style="font-size:11px;color:#888;display:flex;align-items:center;gap:5px;"><span style="width:3px;height:3px;border-radius:50%;background:#52c41a;flex-shrink:0;display:inline-block;"></span>24h新笔记占比周同比下跌超20% <span style="margin-left:4px;font-size:10px;background:#fff1f0;color:#ff4d4f;border:1px solid #ffccc7;border-radius:3px;padding:1px 4px;">P1</span></div>
+                  <div style="font-size:11px;color:#888;display:flex;align-items:center;gap:5px;"><span style="width:3px;height:3px;border-radius:50%;background:#52c41a;flex-shrink:0;display:inline-block;"></span>内流新笔记曝光率环比下降超15% <span style="margin-left:4px;font-size:10px;background:#fff7e6;color:#fa8c16;border:1px solid #ffd591;border-radius:3px;padding:1px 4px;">P2</span></div>
+                </div>
+              </div>
+
+              <div style="padding:8px 14px;border-bottom:1px solid #f0f0f5;">
+                <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">
+                  <span style="font-size:14px;">⚡</span>
+                  <span style="font-size:13px;font-weight:600;color:#333;flex:1;">GC 异常排障</span>
+                  <span style="font-size:10px;background:#f0faf2;color:#52c41a;border:1px solid #b7eb8f;border-radius:10px;padding:2px 8px;">🔗 1 条规则</span>
+                </div>
+                <div style="display:flex;flex-direction:column;gap:3px;padding-left:22px;">
+                  <div style="font-size:11px;color:#888;display:flex;align-items:center;gap:5px;"><span style="width:3px;height:3px;border-radius:50%;background:#52c41a;flex-shrink:0;display:inline-block;"></span>GC 停顿频率 &gt; 10次/min <span style="margin-left:4px;font-size:10px;background:#fff7e6;color:#fa8c16;border:1px solid #ffd591;border-radius:3px;padding:1px 4px;">P2</span></div>
+                </div>
+              </div>
+
+              <div style="padding:8px 14px;border-bottom:1px solid #f0f0f5;">
+                <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">
+                  <span style="font-size:14px;">🔌</span>
+                  <span style="font-size:13px;font-weight:600;color:#333;flex:1;">连接池耗尽排障</span>
+                  <span style="font-size:10px;background:#f0faf2;color:#52c41a;border:1px solid #b7eb8f;border-radius:10px;padding:2px 8px;">🔗 2 条规则</span>
+                </div>
+                <div style="display:flex;flex-direction:column;gap:3px;padding-left:22px;">
+                  <div style="font-size:11px;color:#888;display:flex;align-items:center;gap:5px;"><span style="width:3px;height:3px;border-radius:50%;background:#52c41a;flex-shrink:0;display:inline-block;"></span>接口失败率超阈值 <span style="margin-left:4px;font-size:10px;background:#fff1f0;color:#ff4d4f;border:1px solid #ffccc7;border-radius:3px;padding:1px 4px;">P1</span></div>
+                  <div style="font-size:11px;color:#888;display:flex;align-items:center;gap:5px;"><span style="width:3px;height:3px;border-radius:50%;background:#52c41a;flex-shrink:0;display:inline-block;"></span>RequestTimeoutException 持续报错 <span style="margin-left:4px;font-size:10px;background:#fff1f0;color:#ff4d4f;border:1px solid #ffccc7;border-radius:3px;padding:1px 4px;">P1</span></div>
+                </div>
+              </div>
+
+              <div style="padding:10px 14px 4px;font-size:11px;color:#bbb;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;">未绑定</div>
+              <div style="padding:7px 14px;display:flex;flex-direction:column;gap:6px;">
+                <div style="display:flex;align-items:center;gap:8px;font-size:12px;color:#999;">
+                  <span>🗄️</span><span style="flex:1;">Redis 缓存异常排障</span>
+                  <span style="font-size:11px;color:#1677ff;cursor:pointer;" onclick="fillInput2('帮我为 Redis 缓存异常排障绑定告警规则')">去绑定 →</span>
+                </div>
+                <div style="display:flex;align-items:center;gap:8px;font-size:12px;color:#999;">
+                  <span>📡</span><span style="flex:1;">RPC 调用链路排障</span>
+                  <span style="font-size:11px;color:#1677ff;cursor:pointer;" onclick="fillInput2('帮我为 RPC 调用链路排障绑定告警规则')">去绑定 →</span>
+                </div>
+                <div style="display:flex;align-items:center;gap:8px;font-size:12px;color:#999;">
+                  <span>📊</span><span style="flex:1;">流量突增排障</span>
+                  <span style="font-size:11px;color:#1677ff;cursor:pointer;" onclick="fillInput2('帮我为流量突增排障绑定告警规则')">去绑定 →</span>
+                </div>
+              </div>
+
+            </div>
+            <div style="padding:8px 14px 12px;border-top:1px solid #f0f0f5;">
+              <div class="chips">
+                <span class="chip" onclick="fillInput(this)">帮我给未绑定的 SKILL 批量绑定</span>
+                <span class="chip" onclick="fillInput(this)">修改新笔记下跌排障的绑定规则</span>
+              </div>
+            </div>
+          </div>
+        </div>`;
+      body.appendChild(aiRow);
+      body.scrollTop = 99999;
+    }, 1000);
+  }
+
+  function fillInput2(text) {
+    document.getElementById('userInput').value = text;
+    document.getElementById('userInput').focus();
+  }
+
+  function fillInput(el) {
+    document.getElementById('userInput').value = el.textContent;
+    document.getElementById('userInput').focus();
+  }
+
+  function autoResize(el) {
+    el.style.height = 'auto';
+    el.style.height = Math.min(el.scrollHeight, 100) + 'px';
+  }
+
+  function handleKey(e) {
+    if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMsg(); }
+  }
+
+  function sendMsg() {
+    const input = document.getElementById('userInput');
+    const text = input.value.trim();
+    if (!text) return;
+    input.value = ''; input.style.height = 'auto';
+    const body = document.getElementById('chatBody');
+    const row = document.createElement('div');
+    row.className = 'msg-wrap user';
+    row.innerHTML = `<div class="msg-avatar user">👤</div><div class="msg-body" style="align-items:flex-end;"><div class="msg-name" style="text-align:right;">mahengyang</div><div class="msg-bubble">${text}</div></div>`;
+    body.appendChild(row);
+    const typing = document.createElement('div');
+    typing.className = 'msg-wrap';
+    typing.innerHTML = `<div class="msg-avatar ai">X</div><div class="msg-body"><div class="msg-name">XRay Agent</div><div class="msg-bubble"><div class="typing"><span></span><span></span><span></span></div></div></div>`;
+    body.appendChild(typing);
+    body.scrollTop = 99999;
+    setTimeout(() => {
+      typing.remove();
+      const rep = document.createElement('div');
+      rep.className = 'msg-wrap';
+      rep.innerHTML = `<div class="msg-avatar ai">X</div><div class="msg-body"><div class="msg-name">XRay Agent</div><div class="msg-bubble">收到，正在处理「${text}」…</div></div>`;
+      body.appendChild(rep);
+      body.scrollTop = 99999;
+    }, 1200);
+  }
+</script>
+</body>
+</html>

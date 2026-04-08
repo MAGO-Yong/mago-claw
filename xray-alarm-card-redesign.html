@@ -1,0 +1,733 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>XRay 告警卡片改造 · 字段说明 + 新增清单</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'PingFang SC', 'Microsoft YaHei', sans-serif;
+    background: #f5f6f8;
+    color: #1a1a2e;
+    padding: 32px 0;
+  }
+  .page { max-width: 900px; margin: 0 auto; padding: 0 24px; display: flex; flex-direction: column; gap: 28px; }
+
+  h1 { font-size: 20px; font-weight: 700; color: #1a1a2e; }
+  h2 { font-size: 15px; font-weight: 700; color: #333; margin-bottom: 12px; display: flex; align-items: center; gap: 8px; }
+
+  /* 说明区块 */
+  .section { background: #fff; border: 1px solid #e8e8ee; border-radius: 10px; padding: 20px; }
+
+  /* 图例 */
+  .legend { display: flex; gap: 20px; flex-wrap: wrap; margin-bottom: 16px; }
+  .legend-item { display: flex; align-items: center; gap: 6px; font-size: 12px; color: #555; }
+  .dot { width: 10px; height: 10px; border-radius: 2px; flex-shrink: 0; }
+  .dot-existing { background: #e6f0ff; border: 1px solid #bbd4ff; }
+  .dot-new { background: #fff3cd; border: 1px solid #ffc107; }
+  .dot-optimized { background: #f0faf2; border: 1px solid #b7eb8f; }
+  .dot-removed { background: #fff1f0; border: 1px solid #ffccc7; }
+
+  /* 字段对照表 */
+  table { width: 100%; border-collapse: collapse; font-size: 12px; }
+  th { background: #fafbff; padding: 8px 12px; text-align: left; font-size: 11px; font-weight: 600; color: #888; border-bottom: 2px solid #e8e8ee; }
+  td { padding: 9px 12px; border-bottom: 1px solid #f0f0f5; vertical-align: top; line-height: 1.55; }
+  tr:last-child td { border-bottom: none; }
+  .tag {
+    display: inline-block; font-size: 10px; border-radius: 3px; padding: 1px 6px; font-weight: 600; white-space: nowrap;
+  }
+  .tag-existing { background: #e6f0ff; color: #1677ff; border: 1px solid #bbd4ff; }
+  .tag-new { background: #fff3cd; color: #b76e00; border: 1px solid #ffc107; }
+  .tag-optimized { background: #f0faf2; color: #389e0d; border: 1px solid #b7eb8f; }
+  .tag-removed { background: #fff1f0; color: #cf1322; border: 1px solid #ffccc7; }
+  .field-name { font-weight: 600; color: #333; }
+  .field-note { color: #999; font-size: 11px; margin-top: 2px; }
+
+  /* ===== 卡片预览 ===== */
+  .card-preview {
+    background: #fff;
+    border: 1px solid #e0e4ef;
+    border-radius: 10px;
+    overflow: hidden;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+    max-width: 520px;
+  }
+
+  /* 卡片头部 */
+  .card-head {
+    padding: 10px 14px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    border-bottom: 1px solid #f0f0f5;
+  }
+  .p3-badge {
+    font-size: 11px; font-weight: 700; padding: 2px 7px;
+    border-radius: 4px; background: #fff7e6; color: #fa8c16; border: 1px solid #ffd591;
+    flex-shrink: 0;
+  }
+  .alarm-type-badge {
+    font-size: 11px; padding: 2px 6px; border-radius: 4px;
+    background: #fff1f0; color: #ff4d4f; border: 1px solid #ffccc7;
+    flex-shrink: 0;
+  }
+  .card-title { font-size: 13px; font-weight: 600; color: #1a1a2e; flex: 1; line-height: 1.4; }
+
+  /* 卡片主体 */
+  .card-body { padding: 12px 14px; display: flex; flex-direction: column; gap: 10px; }
+
+  /* 字段行 */
+  .field-row { display: flex; gap: 6px; font-size: 12px; }
+  .field-label { color: #999; flex-shrink: 0; width: 62px; }
+  .field-val { color: #333; flex: 1; line-height: 1.5; }
+  .field-val strong { color: #1a1a2e; font-weight: 600; }
+
+  /* 触发规则内联展示 */
+  .trigger-rule {
+    background: #fafbff;
+    border: 1px solid #e8eaf5;
+    border-radius: 5px;
+    padding: 6px 10px;
+    font-size: 11px;
+    color: #555;
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+  }
+  .trigger-rule-row { display: flex; gap: 6px; }
+  .trigger-key { color: #999; width: 50px; flex-shrink: 0; }
+  .trigger-val { color: #444; }
+
+  /* 时间三行 */
+  .time-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 4px; }
+  .time-item { font-size: 11px; }
+  .time-key { color: #bbb; }
+  .time-val { color: #555; margin-top: 1px; font-size: 11px; }
+
+  /* 未认领提示 */
+  .claim-tip {
+    font-size: 12px; font-weight: 600; color: #ff4d4f;
+    display: flex; align-items: center; gap: 4px;
+  }
+
+  /* 静默 */
+  .mute-row { display: flex; align-items: center; gap: 6px; font-size: 12px; color: #999; }
+  .mute-options { display: flex; gap: 8px; }
+  .mute-opt { color: #1677ff; cursor: pointer; font-size: 12px; }
+  .mute-opt:hover { text-decoration: underline; }
+
+  /* 操作链接行 */
+  .action-row { display: flex; flex-wrap: wrap; gap: 6px; }
+  .action-link { color: #1677ff; font-size: 12px; cursor: pointer; }
+  .action-link:hover { text-decoration: underline; }
+
+  /* 分割线 */
+  .divider { border: none; border-top: 1px solid #f0f0f5; }
+
+  /* ===== 新增：诊断状态条 ===== */
+  .diag-bar-loading {
+    margin: 0 14px 12px;
+    background: #fafbff;
+    border: 1px solid #e8eaf5;
+    border-radius: 6px;
+    padding: 9px 12px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 12px;
+  }
+  .diag-bar-done {
+    margin: 0 14px 12px;
+    background: #f0faf2;
+    border: 1px solid #b7eb8f;
+    border-radius: 6px;
+    padding: 9px 12px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 12px;
+  }
+  .loading-dot { width: 7px; height: 7px; border-radius: 50%; background: #1677ff; animation: pulse 1.2s infinite; flex-shrink: 0; }
+  @keyframes pulse { 0%,100%{opacity:1}50%{opacity:0.3} }
+  .diag-text { flex: 1; color: #555; }
+  .diag-confidence { font-size: 11px; color: #52c41a; font-weight: 600; }
+  .chat-btn {
+    font-size: 11px; padding: 3px 10px; border-radius: 4px;
+    background: #1677ff; color: #fff; border: none; cursor: pointer;
+    flex-shrink: 0;
+  }
+
+  /* ===== 高亮标注 ===== */
+  .new-label {
+    display: inline-block;
+    font-size: 9px; font-weight: 700;
+    background: #fff3cd; color: #b76e00; border: 1px solid #ffc107;
+    border-radius: 3px; padding: 0 4px; margin-left: 4px;
+    vertical-align: middle;
+  }
+  .opt-label {
+    display: inline-block;
+    font-size: 9px; font-weight: 700;
+    background: #f0faf2; color: #389e0d; border: 1px solid #b7eb8f;
+    border-radius: 3px; padding: 0 4px; margin-left: 4px;
+    vertical-align: middle;
+  }
+
+  /* ===== Banner 预览 ===== */
+  .banner-preview {
+    background: #fffbe6;
+    border: 1px solid #ffe58f;
+    border-radius: 8px;
+    padding: 10px 14px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 13px;
+    max-width: 520px;
+  }
+  .banner-icon { font-size: 16px; flex-shrink: 0; }
+  .banner-text { flex: 1; color: #614700; line-height: 1.5; }
+  .banner-action { font-size: 12px; color: #1677ff; cursor: pointer; white-space: nowrap; }
+
+  /* ===== 侧边栏对话预览 ===== */
+  .sidebar-preview {
+    background: #fff;
+    border: 1px solid #e0e4ef;
+    border-radius: 10px;
+    overflow: hidden;
+    max-width: 360px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+  }
+  .sp-head {
+    padding: 10px 14px;
+    border-bottom: 1px solid #f0f0f5;
+    display: flex; align-items: center; gap: 8px;
+    background: #fafbff;
+  }
+  .sp-title { font-size: 13px; font-weight: 600; color: #333; flex: 1; }
+  .sp-close { font-size: 16px; color: #bbb; cursor: pointer; }
+  .sp-body { padding: 10px 14px; display: flex; flex-direction: column; gap: 8px; max-height: 360px; overflow-y: auto; }
+  .sp-msg { font-size: 12px; line-height: 1.6; }
+  .sp-ai-bubble {
+    background: #f5f6f8;
+    border: 1px solid #e8e8ee;
+    border-radius: 7px;
+    padding: 8px 12px;
+    font-size: 12px;
+    color: #444;
+  }
+  .sp-user-bubble {
+    background: #1677ff;
+    border-radius: 7px;
+    padding: 8px 12px;
+    font-size: 12px;
+    color: #fff;
+    align-self: flex-end;
+    max-width: 85%;
+  }
+  .sp-chips { display: flex; flex-wrap: wrap; gap: 5px; }
+  .sp-chip {
+    font-size: 11px; color: #1677ff;
+    background: #e6f0ff; border: 1px solid #bbd4ff;
+    border-radius: 10px; padding: 3px 10px; cursor: pointer;
+  }
+  .sp-input-area {
+    padding: 8px 14px;
+    border-top: 1px solid #f0f0f5;
+    display: flex; gap: 8px;
+  }
+  .sp-input {
+    flex: 1; border: 1px solid #e0e4ef; border-radius: 6px;
+    padding: 6px 10px; font-size: 12px; outline: none; background: #fafbff;
+    color: #333;
+  }
+  .sp-send {
+    width: 28px; height: 28px; border-radius: 6px;
+    background: #1677ff; border: none; cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+  }
+
+  /* 需求表格 */
+  .req-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+  .req-table th { background: #fafbff; padding: 8px 12px; text-align: left; font-size: 11px; font-weight: 600; color: #888; border-bottom: 2px solid #e8e8ee; }
+  .req-table td { padding: 8px 12px; border-bottom: 1px solid #f0f0f5; vertical-align: top; line-height: 1.6; color: #444; }
+  .req-table tr:last-child td { border-bottom: none; }
+  .complexity { font-size: 10px; font-weight: 700; border-radius: 3px; padding: 1px 6px; }
+  .c-low { background: #f0faf2; color: #389e0d; border: 1px solid #b7eb8f; }
+  .c-mid { background: #fff7e6; color: #d46b08; border: 1px solid #ffd591; }
+  .c-high { background: #fff1f0; color: #cf1322; border: 1px solid #ffccc7; }
+</style>
+</head>
+<body>
+<div class="page">
+
+  <div>
+    <h1>XRay 告警卡片改造 · 字段说明 & 新增清单</h1>
+    <p style="font-size:13px;color:#888;margin-top:6px;">用于研发评估实现可行性，标注了现有字段、优化展示、新增能力三类</p>
+  </div>
+
+  <!-- 图例 -->
+  <div class="section">
+    <div class="legend">
+      <div class="legend-item"><div class="dot dot-existing"></div>现有字段（已有，仅改排版）</div>
+      <div class="legend-item"><div class="dot dot-optimized"></div>优化展示（现有数据，改展示方式）</div>
+      <div class="legend-item"><div class="dot dot-new"></div>新增能力（需研发新增接口/逻辑）</div>
+      <div class="legend-item"><div class="dot dot-removed"></div>建议移除（原有但建议去掉，附理由）</div>
+    </div>
+  </div>
+
+  <!-- ===== Part 1: 卡片字段对照 ===== -->
+  <div class="section">
+    <h2>① 告警事件卡片 · 字段对照表</h2>
+    <table>
+      <tr>
+        <th style="width:100px;">字段</th>
+        <th style="width:80px;">类型</th>
+        <th>原始展示</th>
+        <th>新展示方式</th>
+        <th>备注</th>
+      </tr>
+      <tr>
+        <td><div class="field-name">级别（P3）</div></td>
+        <td><span class="tag tag-existing">现有</span></td>
+        <td>卡片左上角 "P3"</td>
+        <td>保留，Badge 样式优化（颜色区分 P1/P2/P3）</td>
+        <td></td>
+      </tr>
+      <tr>
+        <td><div class="field-name">类型（告警）</div></td>
+        <td><span class="tag tag-existing">现有</span></td>
+        <td>卡片左上角 "告警"</td>
+        <td>保留，独立 Badge</td>
+        <td></td>
+      </tr>
+      <tr>
+        <td><div class="field-name">标题</div></td>
+        <td><span class="tag tag-existing">现有</span></td>
+        <td>[Prod][海外][PromQL告警][[RedImageV3]图片处理错误]</td>
+        <td>保留，字体加大加粗，为主标题</td>
+        <td></td>
+      </tr>
+      <tr>
+        <td><div class="field-name">服务名</div></td>
+        <td><span class="tag tag-existing">现有</span></td>
+        <td>服务:redimageservice-service-default**(S1)**</td>
+        <td>「服务」标签 + 服务名，去掉 markdown 加粗语法</td>
+        <td>S1 保留</td>
+      </tr>
+      <tr>
+        <td><div class="field-name">告警名称</div></td>
+        <td><span class="tag tag-optimized">优化展示</span></td>
+        <td>JSON 中 "名称":"[RedImageV3]图片处理错误"</td>
+        <td>从 JSON 中提取，作为独立字段「告警规则」展示</td>
+        <td>原来在 JSON 详情里，可读性差</td>
+      </tr>
+      <tr>
+        <td><div class="field-name">当前值</div></td>
+        <td><span class="tag tag-optimized">优化展示</span></td>
+        <td>JSON 中 "当前值":"[18, 20]"</td>
+        <td>提取为「当前值」字段，标红高亮显示</td>
+        <td>原来在 JSON 里，不直观</td>
+      </tr>
+      <tr>
+        <td><div class="field-name">触发条件</div></td>
+        <td><span class="tag tag-optimized">优化展示</span></td>
+        <td>JSON 中 "触发规则":["表达式>=5.0,持续2次满足条件"]</td>
+        <td>提取为「触发条件」字段，inline 展示</td>
+        <td>原来在 JSON 里，不直观</td>
+      </tr>
+      <tr>
+        <td><div class="field-name">code / sd_xhs_com_service</div></td>
+        <td><span class="tag tag-removed">建议移除</span></td>
+        <td>JSON 中 label.code / label.sd_xhs_com_service</td>
+        <td>—</td>
+        <td>服务名已有，code 是内部标识无需展示，与服务名重复</td>
+      </tr>
+      <tr>
+        <td><div class="field-name">触发时间</div></td>
+        <td><span class="tag tag-existing">现有</span></td>
+        <td>触发时间:26-04-08 14:28:16</td>
+        <td>保留，时间三栏紧凑布局</td>
+        <td></td>
+      </tr>
+      <tr>
+        <td><div class="field-name">数据时间</div></td>
+        <td><span class="tag tag-existing">现有</span></td>
+        <td>数据时间:26-04-08 14:47:30</td>
+        <td>保留</td>
+        <td></td>
+      </tr>
+      <tr>
+        <td><div class="field-name">推送时间</div></td>
+        <td><span class="tag tag-existing">现有</span></td>
+        <td>推送时间:26-04-08 14:48:31</td>
+        <td>保留</td>
+        <td></td>
+      </tr>
+      <tr>
+        <td><div class="field-name">认领状态</div></td>
+        <td><span class="tag tag-existing">现有</span></td>
+        <td>「此告警未被认领，请尽快认领！」红色文字</td>
+        <td>保留，样式优化为 Badge 形式</td>
+        <td></td>
+      </tr>
+      <tr>
+        <td><div class="field-name">静默选项</div></td>
+        <td><span class="tag tag-existing">现有</span></td>
+        <td>静默: 1小时｜6小时｜12小时｜24小时</td>
+        <td>保留，按钮化</td>
+        <td></td>
+      </tr>
+      <tr>
+        <td><div class="field-name">操作链接</div></td>
+        <td><span class="tag tag-existing">现有</span></td>
+        <td>[查看事件][认领事件][静默][规则配置][指标详情][变更事件][个人告警详情]</td>
+        <td>保留全部，改为更清晰的链接行</td>
+        <td></td>
+      </tr>
+      <tr>
+        <td><div class="field-name">⭐ 诊断状态条</div></td>
+        <td><span class="tag tag-new">新增</span></td>
+        <td>无</td>
+        <td>卡片底部新增状态条：「诊断中…」/ 「已诊断：根因摘要 + 置信度 + 接着聊按钮」</td>
+        <td>需 XPILOT 诊断结果回调写入 Hi IM 消息，或轮询诊断状态接口</td>
+      </tr>
+    </table>
+  </div>
+
+  <!-- ===== 卡片预览 ===== -->
+  <div class="section">
+    <h2>② 重新设计的告警卡片样式预览</h2>
+    <p style="font-size:12px;color:#888;margin-bottom:16px;">黄色标注 = 新增，绿色标注 = 优化展示</p>
+
+    <div style="display:flex;gap:24px;flex-wrap:wrap;align-items:flex-start;">
+
+      <!-- 状态1：诊断中 -->
+      <div>
+        <p style="font-size:11px;color:#999;margin-bottom:8px;font-weight:600;">状态A · 诊断中</p>
+        <div class="card-preview">
+          <div class="card-head">
+            <span class="p3-badge">P3</span>
+            <span class="alarm-type-badge">告警</span>
+            <div class="card-title">[Prod][海外] RedImageV3 图片处理错误</div>
+          </div>
+          <div class="card-body">
+            <div class="field-row">
+              <span class="field-label">服务</span>
+              <span class="field-val"><strong>redimageservice-service-default</strong> · S1</span>
+            </div>
+            <div class="field-row">
+              <span class="field-label">告警规则 <span class="opt-label">优化</span></span>
+              <span class="field-val">[RedImageV3] 图片处理错误</span>
+            </div>
+            <div class="field-row">
+              <span class="field-label">触发条件 <span class="opt-label">优化</span></span>
+              <span class="field-val">
+                <div class="trigger-rule">
+                  <div class="trigger-rule-row"><span class="trigger-key">表达式</span><span class="trigger-val">value >= 5.0</span></div>
+                  <div class="trigger-rule-row"><span class="trigger-key">持续</span><span class="trigger-val">连续 2 次满足</span></div>
+                  <div class="trigger-rule-row"><span class="trigger-key">当前值</span><span class="trigger-val" style="color:#ff4d4f;font-weight:600;">18, 20</span></div>
+                </div>
+              </span>
+            </div>
+            <hr class="divider">
+            <div class="time-grid">
+              <div class="time-item"><div class="time-key">触发时间</div><div class="time-val">04-08 14:28:16</div></div>
+              <div class="time-item"><div class="time-key">数据时间</div><div class="time-val">04-08 14:47:30</div></div>
+              <div class="time-item"><div class="time-key">推送时间</div><div class="time-val">04-08 14:48:31</div></div>
+            </div>
+            <hr class="divider">
+            <div class="claim-tip">⚠️ 此告警未被认领，请尽快认领！</div>
+            <div class="mute-row">
+              静默
+              <div class="mute-options">
+                <span class="mute-opt">1小时</span>
+                <span class="mute-opt">6小时</span>
+                <span class="mute-opt">12小时</span>
+                <span class="mute-opt">24小时</span>
+              </div>
+            </div>
+            <div class="action-row">
+              <span class="action-link">[查看事件]</span>
+              <span class="action-link">[认领事件]</span>
+              <span class="action-link">[静默]</span>
+              <span class="action-link">[规则配置]</span>
+              <span class="action-link">[指标详情]</span>
+              <span class="action-link">[变更事件]</span>
+              <span class="action-link">[个人告警详情]</span>
+            </div>
+          </div>
+          <!-- 新增：诊断状态条（诊断中） -->
+          <div class="diag-bar-loading">
+            <div class="loading-dot"></div>
+            <div class="diag-text">AI 正在诊断中…</div>
+            <span class="new-label">NEW</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- 状态2：诊断完成 -->
+      <div>
+        <p style="font-size:11px;color:#999;margin-bottom:8px;font-weight:600;">状态B · 诊断完成</p>
+        <div class="card-preview">
+          <div class="card-head">
+            <span class="p3-badge">P3</span>
+            <span class="alarm-type-badge">告警</span>
+            <div class="card-title">[Prod][海外] RedImageV3 图片处理错误</div>
+          </div>
+          <div class="card-body">
+            <div class="field-row">
+              <span class="field-label">服务</span>
+              <span class="field-val"><strong>redimageservice-service-default</strong> · S1</span>
+            </div>
+            <div class="field-row">
+              <span class="field-label">告警规则 <span class="opt-label">优化</span></span>
+              <span class="field-val">[RedImageV3] 图片处理错误</span>
+            </div>
+            <div class="field-row">
+              <span class="field-label">触发条件 <span class="opt-label">优化</span></span>
+              <span class="field-val">
+                <div class="trigger-rule">
+                  <div class="trigger-rule-row"><span class="trigger-key">表达式</span><span class="trigger-val">value >= 5.0</span></div>
+                  <div class="trigger-rule-row"><span class="trigger-key">持续</span><span class="trigger-val">连续 2 次满足</span></div>
+                  <div class="trigger-rule-row"><span class="trigger-key">当前值</span><span class="trigger-val" style="color:#ff4d4f;font-weight:600;">18, 20</span></div>
+                </div>
+              </span>
+            </div>
+            <hr class="divider">
+            <div class="time-grid">
+              <div class="time-item"><div class="time-key">触发时间</div><div class="time-val">04-08 14:28:16</div></div>
+              <div class="time-item"><div class="time-key">数据时间</div><div class="time-val">04-08 14:47:30</div></div>
+              <div class="time-item"><div class="time-key">推送时间</div><div class="time-val">04-08 14:48:31</div></div>
+            </div>
+            <hr class="divider">
+            <div class="claim-tip">⚠️ 此告警未被认领，请尽快认领！</div>
+            <div class="mute-row">
+              静默
+              <div class="mute-options">
+                <span class="mute-opt">1小时</span>
+                <span class="mute-opt">6小时</span>
+                <span class="mute-opt">12小时</span>
+                <span class="mute-opt">24小时</span>
+              </div>
+            </div>
+            <div class="action-row">
+              <span class="action-link">[查看事件]</span>
+              <span class="action-link">[认领事件]</span>
+              <span class="action-link">[静默]</span>
+              <span class="action-link">[规则配置]</span>
+              <span class="action-link">[指标详情]</span>
+              <span class="action-link">[变更事件]</span>
+              <span class="action-link">[个人告警详情]</span>
+            </div>
+          </div>
+          <!-- 新增：诊断状态条（完成） -->
+          <div class="diag-bar-done">
+            <span style="font-size:14px;">✅</span>
+            <div class="diag-text">
+              <strong style="color:#389e0d;">已诊断</strong>：连接池耗尽（置信度 <span class="diag-confidence">87%</span>）
+            </div>
+            <button class="chat-btn">接着聊</button>
+            <span class="new-label">NEW</span>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ===== Banner ===== -->
+  <div class="section">
+    <h2>③ Banner 预览 <span class="new-label" style="font-size:11px;padding:1px 6px;">全部新增</span></h2>
+    <p style="font-size:12px;color:#888;margin-bottom:14px;">在群聊顶部固定展示，诊断完成后出现，点击可打开侧边栏</p>
+    <div class="banner-preview">
+      <div class="banner-icon">🔔</div>
+      <div class="banner-text">
+        <strong>AI 诊断完成</strong>：redimageservice 图片处理错误 · 根因：连接池耗尽（置信度 87%），疑似与昨日发布相关
+      </div>
+      <span class="banner-action">查看详情 →</span>
+    </div>
+
+    <div style="margin-top:14px;">
+      <table class="req-table">
+        <tr>
+          <th>字段/能力</th><th>类型</th><th>说明</th><th>实现复杂度</th>
+        </tr>
+        <tr>
+          <td>Banner 触发时机</td>
+          <td><span class="tag tag-new">新增</span></td>
+          <td>诊断完成后，Hi IM 机器人在群聊顶部推送 Banner 消息（置顶消息或公告类型）</td>
+          <td><span class="complexity c-high">高</span></td>
+        </tr>
+        <tr>
+          <td>根因摘要文本</td>
+          <td><span class="tag tag-new">新增</span></td>
+          <td>XPILOT 诊断结果的一句话摘要，需诊断引擎返回结构化字段</td>
+          <td><span class="complexity c-mid">中</span></td>
+        </tr>
+        <tr>
+          <td>置信度</td>
+          <td><span class="tag tag-new">新增</span></td>
+          <td>诊断引擎返回置信度分值（0-100%），展示在 Banner 中</td>
+          <td><span class="complexity c-mid">中</span></td>
+        </tr>
+        <tr>
+          <td>点击跳转侧边栏</td>
+          <td><span class="tag tag-new">新增</span></td>
+          <td>点击 Banner「查看详情」→ 打开 Hi IM 侧边栏（需 Hi IM 支持消息关联侧边栏 deeplink）</td>
+          <td><span class="complexity c-high">高</span></td>
+        </tr>
+      </table>
+    </div>
+  </div>
+
+  <!-- ===== 侧边栏 ===== -->
+  <div class="section">
+    <h2>④ 侧边栏（AI 对话）预览 <span class="new-label" style="font-size:11px;padding:1px 6px;">全部新增</span></h2>
+    <p style="font-size:12px;color:#888;margin-bottom:14px;">点击「接着聊」或 Banner 后展开，统一对话流，诊断信息作为第一条 AI 消息</p>
+
+    <div style="display:flex;gap:24px;flex-wrap:wrap;align-items:flex-start;">
+      <div class="sidebar-preview">
+        <div class="sp-head">
+          <div>
+            <div class="sp-title">AI 诊断对话</div>
+            <div style="font-size:11px;color:#999;">redimageservice · 图片处理错误</div>
+          </div>
+          <div class="sp-close">×</div>
+        </div>
+        <div class="sp-body">
+          <div class="sp-ai-bubble">
+            <div style="font-size:11px;color:#999;margin-bottom:5px;">XRay Agent · 诊断报告</div>
+            <div style="font-size:12px;color:#333;line-height:1.7;">
+              <strong>根因：连接池耗尽</strong>（置信度 87%）<br>
+              异常类型：RequestTimeoutException<br>
+              影响范围：P99 耗时 2800ms，失败率 12%<br>
+              关联变更：昨日 14:30 发布（creator-service v2.1.3）<br>
+              <span style="color:#fa8c16;">⚠ 疑似昨日发布引入</span>
+            </div>
+          </div>
+          <div class="sp-ai-bubble">
+            你想进一步排查哪个方向？
+            <div class="sp-chips" style="margin-top:8px;">
+              <span class="sp-chip">查看 Logview 链路</span>
+              <span class="sp-chip">分析 GC 情况</span>
+              <span class="sp-chip">回滚建议</span>
+            </div>
+          </div>
+          <div style="align-self:flex-end;">
+            <div class="sp-user-bubble">查看 Logview 链路</div>
+          </div>
+          <div class="sp-ai-bubble">
+            正在拉取最近失败请求的 Logview…
+          </div>
+        </div>
+        <div class="sp-input-area">
+          <input class="sp-input" placeholder="继续追问…" />
+          <button class="sp-send">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="#fff"><path d="M2 21l21-9L2 3v7l15 2-15 2v7z"/></svg>
+          </button>
+        </div>
+      </div>
+
+      <div style="flex:1;min-width:280px;">
+        <table class="req-table">
+          <tr>
+            <th>字段/能力</th><th>类型</th><th>说明</th><th>复杂度</th>
+          </tr>
+          <tr>
+            <td>侧边栏容器</td>
+            <td><span class="tag tag-new">新增</span></td>
+            <td>Hi IM 侧边栏（app_panel）能力，需确认 Hi IM 是否支持</td>
+            <td><span class="complexity c-high">高</span></td>
+          </tr>
+          <tr>
+            <td>诊断报告首条消息</td>
+            <td><span class="tag tag-new">新增</span></td>
+            <td>根因/置信度/异常类型/影响范围/关联变更，需 XPILOT 返回结构化字段</td>
+            <td><span class="complexity c-mid">中</span></td>
+          </tr>
+          <tr>
+            <td>快捷追问 chip</td>
+            <td><span class="tag tag-new">新增</span></td>
+            <td>根据诊断结论动态生成 2-3 个追问方向，由 Agent 推理给出</td>
+            <td><span class="complexity c-mid">中</span></td>
+          </tr>
+          <tr>
+            <td>对话输入框</td>
+            <td><span class="tag tag-new">新增</span></td>
+            <td>用户在侧边栏自由追问，消息发给 XRay Agent 处理</td>
+            <td><span class="complexity c-mid">中</span></td>
+          </tr>
+          <tr>
+            <td>会话持久化</td>
+            <td><span class="tag tag-new">新增</span></td>
+            <td>对话记录与告警事件绑定，关闭后重新打开能看到历史</td>
+            <td><span class="complexity c-high">高</span></td>
+          </tr>
+          <tr>
+            <td>关联变更</td>
+            <td><span class="tag tag-new">新增</span></td>
+            <td>诊断报告中展示关联的发布变更，需 XPILOT 对接变更平台</td>
+            <td><span class="complexity c-high">高</span></td>
+          </tr>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== 汇总 ===== -->
+  <div class="section">
+    <h2>⑤ 新增能力汇总（研发评估用）</h2>
+    <table class="req-table">
+      <tr>
+        <th>#</th><th>能力</th><th>涉及方</th><th>依赖</th><th>复杂度</th>
+      </tr>
+      <tr>
+        <td>1</td>
+        <td>告警卡片「诊断状态条」动态更新</td>
+        <td>Hi IM 机器人 + XPILOT</td>
+        <td>XPILOT 诊断完成后回调更新卡片消息；Hi IM 支持消息更新（edit message）</td>
+        <td><span class="complexity c-high">高</span></td>
+      </tr>
+      <tr>
+        <td>2</td>
+        <td>诊断结果结构化字段输出</td>
+        <td>XPILOT 诊断引擎</td>
+        <td>根因摘要、置信度、异常类型、影响范围、关联变更 5 个字段</td>
+        <td><span class="complexity c-mid">中</span></td>
+      </tr>
+      <tr>
+        <td>3</td>
+        <td>群聊 Banner 推送</td>
+        <td>Hi IM 机器人</td>
+        <td>Hi IM 是否支持置顶消息/公告类型推送</td>
+        <td><span class="complexity c-high">高</span></td>
+      </tr>
+      <tr>
+        <td>4</td>
+        <td>侧边栏（app_panel）</td>
+        <td>Hi IM 平台 + 前端</td>
+        <td>Hi IM 是否开放 app_panel API；需前端实现侧边栏 Web 应用</td>
+        <td><span class="complexity c-high">高</span></td>
+      </tr>
+      <tr>
+        <td>5</td>
+        <td>侧边栏 AI 对话接入</td>
+        <td>XRay Agent 后端</td>
+        <td>侧边栏 Web 应用与 XRay Agent 对话接口打通，携带告警事件上下文</td>
+        <td><span class="complexity c-mid">中</span></td>
+      </tr>
+      <tr>
+        <td>6</td>
+        <td>卡片 JSON 字段解析重排版</td>
+        <td>Hi IM 机器人</td>
+        <td>从现有推送数据中提取 名称/触发规则/当前值，改为结构化字段推送</td>
+        <td><span class="complexity c-low">低</span></td>
+      </tr>
+    </table>
+  </div>
+
+</div>
+</body>
+</html>

@@ -1,7 +1,7 @@
 ---
 name: hi-calendar
 version: 1.0.0
-description: 'hi 官方日历 Skill，支持查询会议室区域与预约情况、自动定位空闲会议室、创建/编辑普通日程和循环日程（按周重复）、取消日程，支持关联腾讯会议、添加参会人、文档自动赋权'
+description: 'hi 官方日历 Skill，支持查询会议室区域与预约情况、自动定位空闲会议室、创建/编辑普通日程和循环日程（按周重复）、取消日程、创建/编辑/取消专注时间，支持关联腾讯会议、添加参会人、文档自动赋权'
 metadata: { 'openclaw': { 'requires': { 'bins': ["bun"] } } }
 ---
 
@@ -10,10 +10,10 @@ metadata: { 'openclaw': { 'requires': { 'bins': ["bun"] } } }
 先读 CLI help，再用下面这些补充规则。
 
 ```bash
-bunx @xhs/hi-workspace-cli@0.2.9 calendar --help
+bunx @xhs/hi-workspace-cli@0.2.10 calendar --help
 
 # 查看具体命令的参数、示例和输出格式
-bunx @xhs/hi-workspace-cli@0.2.9 calendar:<method> --help
+bunx @xhs/hi-workspace-cli@0.2.10 calendar:<method> --help
 ```
 
 以下是 `--help` 中没有的约束和指引：
@@ -117,20 +117,14 @@ bunx @xhs/hi-workspace-cli@0.2.9 calendar:<method> --help
 
 专注时间（Focus Time）是一种特殊日程类型，用于屏蔽时间段以进行深度工作。
 
-**创建约束：**
+**通用约束：**
 
-- `create-focus-time` 默认创建循环专注时间（每周、周一到周五、持续 90 天），使用 `--no-repeat` 创建单次
 - **无需 operateCode**：与 `create`/`create-recurring` 不同，专注时间不使用幂等键
 - **无参会人和会议室**：专注时间是个人事项，无需参会人确认和会议室冲突检测
-- **日程冲突提示**：创建前应使用 `get-user-schedules` 检查用户自身日程冲突。专注时间目的是屏蔽时间，叠加在已有会议上可能是有意为之，需让用户确认
-- **创建后无 scheduleId 返回**：API 返回 void，需通过 `get-user-schedules` 查询确认并获取 scheduleId
-
-**取消约束：**
-
-- `cancel-focus-time` 取消专注时间，不能复用 `cancel-schedule`（后端走不同接口）
-- 单次/循环子实例：`--cancel-type occurrence`，传子日程 scheduleId
-- 整个循环系列：`--cancel-type series`，传主日程 scheduleId（`sequenceScheduleId`）
-- `--no-repeat` 创建的单次专注时间：使用 `--cancel-type occurrence` 取消
+- **日程冲突提示**：创建/编辑前应使用 `get-user-schedules` 检查用户自身日程冲突，叠加在已有会议上可能是有意为之，需让用户确认
+- **API 返回 void**：创建/编辑后需通过 `get-user-schedules` 查询确认并获取 scheduleId
+- 不能复用 `cancel-schedule` 取消专注时间，须使用 `cancel-focus-time`
+- 取消整个循环系列时，传主日程 scheduleId（即 `sequenceScheduleId`）
 
 ### 文档 URL 与 shortcutId
 

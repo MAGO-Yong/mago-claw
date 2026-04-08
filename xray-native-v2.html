@@ -1,0 +1,2127 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>XRay AI Native · 全链路交互原型</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'PingFang SC', 'Microsoft YaHei', sans-serif;
+    background: #f0f2f5;
+    min-height: 100vh;
+    display: flex;
+    gap: 0;
+  }
+
+  /* ===== 左侧场景导航 ===== */
+  .scene-nav {
+    width: 200px;
+    background: #fff;
+    border-right: 1px solid #e8e8ee;
+    display: flex;
+    flex-direction: column;
+    flex-shrink: 0;
+    padding: 16px 0;
+  }
+  .scene-nav-title {
+    font-size: 11px; font-weight: 600; color: #bbb;
+    text-transform: uppercase; letter-spacing: 0.5px;
+    padding: 0 14px 10px;
+  }
+  .scene-item {
+    padding: 10px 14px;
+    font-size: 13px; color: #888;
+    cursor: pointer; transition: all 0.15s;
+    border-left: 3px solid transparent;
+    line-height: 1.4;
+  }
+  .scene-item:hover { background: #f5f8ff; color: #1677ff; }
+  .scene-item.active { background: #f0f6ff; color: #1677ff; border-left-color: #1677ff; font-weight: 500; }
+  .scene-item-sub { font-size: 11px; color: #bbb; margin-top: 2px; }
+  .scene-item.active .scene-item-sub { color: #7fb3ff; }
+
+  /* ===== 主区域 ===== */
+  .main { flex: 1; display: flex; flex-direction: column; overflow: hidden; height: 100vh; }
+
+  .scene-panel { display: none; flex: 1; overflow: hidden; min-width: 0; }
+  .scene-panel.active { display: flex; flex-direction: column; }
+
+  /* ===== 通用：Hi IM 外壳 ===== */
+  .im-shell {
+    flex: 1; display: flex; flex-direction: column;
+    background: #fff; overflow: hidden; position: relative;
+  }
+  .group-topbar {
+    height: 50px; background: #fff; border-bottom: 1px solid #ebebeb;
+    display: flex; align-items: center; padding: 0 16px; gap: 10px; flex-shrink: 0;
+  }
+  .group-avatar {
+    width: 32px; height: 32px; border-radius: 8px;
+    background: linear-gradient(135deg, #1677ff, #722ed1);
+    display: flex; align-items: center; justify-content: center;
+    color: #fff; font-size: 13px; font-weight: 700; flex-shrink: 0;
+  }
+  .group-name { font-size: 14px; font-weight: 600; color: #1a1a2e; }
+  .group-sub { font-size: 11px; color: #bbb; }
+
+  .chat-body {
+    flex: 1; overflow-y: auto; padding: 16px;
+    display: flex; flex-direction: column; gap: 14px; background: #f5f6f8;
+  }
+  .time-sep { text-align: center; font-size: 11px; color: #bbb; }
+
+  .bot-row { display: flex; gap: 8px; align-items: flex-start; }
+  .bot-avatar {
+    width: 30px; height: 30px; border-radius: 8px;
+    background: linear-gradient(135deg, #1677ff, #722ed1);
+    display: flex; align-items: center; justify-content: center;
+    color: #fff; font-size: 11px; font-weight: 700; flex-shrink: 0; margin-top: 2px;
+  }
+  .bot-avatar.red { background: linear-gradient(135deg, #ff2442, #ff6b6b); }
+  .bot-name { font-size: 11px; color: #bbb; margin-bottom: 4px; }
+
+  .user-row { display: flex; gap: 8px; align-items: flex-start; flex-direction: row-reverse; }
+  .user-avatar { width: 30px; height: 30px; border-radius: 8px; background: #e6f0ff; display: flex; align-items: center; justify-content: center; font-size: 14px; flex-shrink: 0; margin-top: 2px; }
+  .user-bubble { background: #1677ff; color: #fff; border-radius: 8px; padding: 9px 12px; font-size: 13px; line-height: 1.6; max-width: 72%; }
+
+  /* 消息气泡 */
+  .ai-bubble {
+    background: #fff; border: 1px solid #e8e8ee;
+    border-radius: 8px; padding: 10px 14px;
+    font-size: 13px; line-height: 1.65; color: #333;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+    max-width: 520px;
+  }
+  .ai-bubble.wide { max-width: 620px; }
+
+  /* chips */
+  .chips { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 8px; }
+  .chip {
+    font-size: 12px; color: #1677ff;
+    background: #e6f0ff; border: 1px solid #bbd4ff;
+    border-radius: 10px; padding: 4px 12px; cursor: pointer; transition: all 0.12s;
+  }
+  .chip:hover { background: #d0e5ff; }
+  .chip.action {
+    background: #1677ff; color: #fff; border-color: #1677ff;
+  }
+  .chip.action:hover { background: #0e6adb; }
+
+  /* 推理过程展开区 */
+  .reasoning-toggle {
+    font-size: 11px; color: #bbb; cursor: pointer;
+    display: flex; align-items: center; gap: 4px; margin-top: 8px;
+    user-select: none;
+  }
+  .reasoning-toggle:hover { color: #888; }
+  .reasoning-toggle .arrow { transition: transform 0.2s; }
+  .reasoning-toggle.open .arrow { transform: rotate(90deg); }
+  .reasoning-body {
+    display: none; margin-top: 6px;
+    background: #fafbff; border: 1px solid #e8eaf5; border-radius: 6px;
+    padding: 10px 12px; font-size: 11px; color: #666; line-height: 1.8;
+  }
+  .reasoning-body.open { display: block; }
+  .reasoning-step { display: flex; gap: 8px; padding: 3px 0; }
+  .r-step-icon { color: #1677ff; flex-shrink: 0; width: 14px; }
+  .r-step-text { flex: 1; }
+  .r-step-result { color: #52c41a; font-weight: 500; }
+  .r-step-warn { color: #fa8c16; font-weight: 500; }
+
+  /* 诊断报告卡片 */
+  .diag-card {
+    background: #fff; border: 1px solid #e8e8ee; border-radius: 8px;
+    overflow: hidden; font-size: 12px; box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+  }
+  .diag-card-head {
+    background: #f0faf2; border-bottom: 1px solid #d9f0e0;
+    padding: 8px 12px; display: flex; align-items: center; gap: 6px;
+    font-size: 12px; font-weight: 600; color: #389e0d;
+  }
+  .diag-card-body { padding: 10px 12px; display: flex; flex-direction: column; gap: 6px; }
+  .dr-row { display: flex; gap: 6px; font-size: 12px; }
+  .dr-key { color: #999; width: 56px; flex-shrink: 0; line-height: 1.6; }
+  .dr-val { color: #333; flex: 1; line-height: 1.6; }
+  .conf-bar { height: 4px; border-radius: 2px; background: #f0f0f5; margin-top: 3px; overflow: hidden; }
+  .conf-fill { height: 100%; border-radius: 2px; background: linear-gradient(90deg, #52c41a, #73d13d); }
+
+  /* 文件链接卡片 */
+  .file-card {
+    background: #f0f6ff; border: 1px solid #bbd4ff; border-radius: 7px;
+    padding: 9px 12px; display: flex; align-items: center; gap: 10px; cursor: pointer;
+    transition: background 0.12s; margin-top: 8px;
+  }
+  .file-card:hover { background: #d8ecff; }
+  .file-card-info { flex: 1; min-width: 0; }
+  .file-card-name { font-size: 12px; font-weight: 600; color: #1677ff; }
+  .file-card-meta { font-size: 11px; color: #999; margin-top: 2px; }
+
+  /* 闭环确认卡片（节点2） */
+  .confirm-card {
+    background: #fff; border: 1px solid #e8e8ee; border-radius: 8px;
+    overflow: hidden; font-size: 12px; max-width: 480px;
+  }
+  .confirm-card-head {
+    background: #f0faf2; border-bottom: 1px solid #d9f0e0;
+    padding: 8px 12px; font-size: 12px; font-weight: 600; color: #389e0d;
+    display: flex; align-items: center; gap: 6px;
+  }
+  .confirm-card-body { padding: 10px 12px; display: flex; flex-direction: column; gap: 5px; }
+  .confirm-rule-row { display: flex; align-items: center; gap: 6px; font-size: 12px; color: #555; }
+  .c-dot { width: 4px; height: 4px; border-radius: 50%; background: #52c41a; flex-shrink: 0; }
+  .confirm-card-footer {
+    padding: 9px 12px; border-top: 1px solid #f0f0f5;
+    background: #fafbff; font-size: 12px; color: #666; line-height: 1.7;
+  }
+  .lv-tag {
+    font-size: 10px; border-radius: 3px; padding: 1px 5px; font-weight: 600;
+  }
+  .lv-p1 { background: #fff1f0; color: #ff4d4f; border: 1px solid #ffccc7; }
+  .lv-p2 { background: #fff7e6; color: #fa8c16; border: 1px solid #ffd591; }
+
+  /* 日报 Agent 卡片（节点4） */
+  .report-agent-card {
+    background: #fff; border: 1px solid #e8e8ee; border-radius: 8px;
+    overflow: hidden; max-width: 540px; box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+  }
+  .rac-head {
+    padding: 10px 14px; border-bottom: 1px solid #f0f0f5;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .rac-title { font-size: 13px; font-weight: 600; color: #1a1a2e; flex: 1; }
+  .rac-date { font-size: 11px; color: #bbb; }
+  .rac-body { padding: 10px 14px; display: flex; flex-direction: column; gap: 10px; }
+
+  .rac-insight {
+    background: #fffbe6; border: 1px solid #ffe58f; border-radius: 6px;
+    padding: 9px 12px; font-size: 12px; color: #614700; line-height: 1.7;
+  }
+  .rac-insight-title { font-weight: 600; margin-bottom: 4px; display: flex; align-items: center; gap: 5px; }
+  .rac-insight p { margin: 2px 0; }
+
+  .rac-actions { display: flex; flex-direction: column; gap: 6px; }
+  .rac-action-item {
+    background: #f5f6f8; border: 1px solid #e8e8ee; border-radius: 6px;
+    padding: 9px 12px; display: flex; align-items: flex-start; gap: 8px; font-size: 12px;
+  }
+  .rac-action-icon { font-size: 14px; flex-shrink: 0; margin-top: 1px; }
+  .rac-action-body { flex: 1; }
+  .rac-action-title { font-weight: 600; color: #333; margin-bottom: 3px; }
+  .rac-action-desc { color: #888; line-height: 1.6; }
+  .rac-action-btns { display: flex; gap: 6px; margin-top: 6px; }
+  .rac-btn {
+    font-size: 11px; padding: 3px 12px; border-radius: 4px; cursor: pointer; transition: all 0.15s;
+  }
+  .rac-btn-primary { background: #1677ff; color: #fff; border: none; }
+  .rac-btn-primary:hover { background: #0e6adb; }
+  .rac-btn-ghost { background: #fff; color: #888; border: 1px solid #e0e4ef; }
+  .rac-btn-ghost:hover { border-color: #1677ff; color: #1677ff; }
+
+  .rac-stats {
+    display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px;
+    padding-top: 6px; border-top: 1px solid #f0f0f5;
+  }
+  .rac-stat { text-align: center; }
+  .rac-stat-num { font-size: 18px; font-weight: 700; color: #1a1a2e; }
+  .rac-stat-label { font-size: 11px; color: #bbb; margin-top: 2px; }
+
+  /* 输入栏 */
+  .input-bar {
+    height: 50px; border-top: 1px solid #ebebeb; background: #fff;
+    display: flex; align-items: center; padding: 0 16px;
+    gap: 10px; font-size: 13px; color: #bbb; flex-shrink: 0;
+  }
+  .input-mock {
+    flex: 1; background: #f5f6f8; border: 1px solid #e0e4ef; border-radius: 6px;
+    padding: 6px 12px; font-size: 13px; color: #bbb;
+  }
+
+  /* 侧边栏 */
+  .sidebar-overlay {
+    position: fixed; inset: 0; background: rgba(0,0,0,0.2); z-index: 200;
+    display: none; justify-content: flex-end;
+  }
+  .sidebar-overlay.open { display: flex; }
+  .sidebar-panel {
+    width: 400px; max-width: 90vw; height: 100%; background: #fff;
+    display: flex; flex-direction: column; box-shadow: -4px 0 24px rgba(0,0,0,0.1);
+    animation: slideIn 0.25s ease;
+  }
+  @keyframes slideIn { from{transform:translateX(100%)} to{transform:translateX(0)} }
+  .sp-head {
+    padding: 12px 16px; border-bottom: 1px solid #f0f0f5;
+    display: flex; align-items: flex-start; gap: 10px; background: #fafbff; flex-shrink: 0;
+  }
+  .sp-avatar {
+    width: 30px; height: 30px; border-radius: 7px;
+    background: linear-gradient(135deg, #1677ff, #722ed1);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 12px; font-weight: 700; color: #fff; flex-shrink: 0;
+  }
+  .sp-head-info { flex: 1; }
+  .sp-title { font-size: 13px; font-weight: 600; color: #1a1a2e; }
+  .sp-subtitle { font-size: 11px; color: #bbb; margin-top: 2px; }
+  .sp-close { font-size: 18px; color: #bbb; cursor: pointer; }
+  .sp-close:hover { color: #555; }
+  .sp-body {
+    flex: 1; overflow-y: auto; padding: 12px 16px;
+    display: flex; flex-direction: column; gap: 10px; background: #f5f6f8;
+  }
+  .sp-msg-row { display: flex; gap: 8px; align-items: flex-start; }
+  .sp-msg-row.user { flex-direction: row-reverse; }
+  .sp-msg-avatar {
+    width: 26px; height: 26px; border-radius: 6px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 11px; font-weight: 700; flex-shrink: 0; margin-top: 2px;
+  }
+  .sp-msg-avatar.ai { background: linear-gradient(135deg, #1677ff, #722ed1); color: #fff; }
+  .sp-msg-avatar.user { background: #e6f0ff; font-size: 13px; }
+  .sp-bubble {
+    max-width: 88%; font-size: 12px; line-height: 1.65; border-radius: 8px; padding: 9px 12px;
+  }
+  .sp-bubble.ai { background: #fff; border: 1px solid #e8e8ee; color: #333; }
+  .sp-bubble.user { background: #1677ff; color: #fff; }
+  .sp-chips { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 8px; }
+  .sp-chip {
+    font-size: 11px; color: #1677ff; background: #e6f0ff; border: 1px solid #bbd4ff;
+    border-radius: 10px; padding: 3px 10px; cursor: pointer;
+  }
+  .sp-chip:hover { background: #d0e5ff; }
+  .sp-input-area {
+    padding: 10px 14px; border-top: 1px solid #f0f0f5;
+    display: flex; gap: 8px; background: #fff; flex-shrink: 0;
+  }
+  .sp-input {
+    flex: 1; border: 1px solid #e0e4ef; border-radius: 8px;
+    padding: 7px 10px; font-size: 12px; outline: none; background: #fafbff; color: #333;
+    font-family: inherit;
+  }
+  .sp-input:focus { border-color: #1677ff; background: #fff; }
+  .sp-send {
+    width: 32px; height: 32px; border-radius: 7px; background: #1677ff; border: none;
+    cursor: pointer; display: flex; align-items: center; justify-content: center;
+  }
+  .sp-send:hover { background: #0e6adb; }
+
+  /* loading dots */
+  .loading-dots { display: flex; gap: 3px; align-items: center; padding: 2px 0; }
+  .loading-dots span { width: 5px; height: 5px; border-radius: 50%; background: #ccc; animation: bounce 1.2s infinite; }
+  .loading-dots span:nth-child(2) { animation-delay: 0.2s; }
+  .loading-dots span:nth-child(3) { animation-delay: 0.4s; }
+  @keyframes bounce { 0%,60%,100%{transform:translateY(0)}30%{transform:translateY(-4px)} }
+
+  ::-webkit-scrollbar { width: 4px; }
+  ::-webkit-scrollbar-thumb { background: #e0e0e8; border-radius: 2px; }
+
+  /* ===== 诊断反馈 ===== */
+  .fb-btn { font-size:11px;padding:3px 10px;border-radius:10px;cursor:pointer;border:1px solid #d9d9d9;background:#fff;color:#555;transition:all 0.15s;user-select:none; }
+  .fb-btn:hover { border-color:#1677ff;color:#1677ff; }
+  .fb-btn.fb-yes:hover,.fb-btn.fb-yes.active { border-color:#52c41a;background:#f0faf2;color:#389e0d; }
+  .fb-btn.fb-no:hover,.fb-btn.fb-no.active { border-color:#ff4d4f;background:#fff1f0;color:#ff4d4f; }
+  .fb-tag { font-size:11px;padding:3px 9px;border-radius:10px;cursor:pointer;border:1px solid #e0e4ef;background:#fff;color:#888;transition:all 0.15s;user-select:none; }
+  .fb-tag:hover { border-color:#fa8c16;color:#fa8c16; }
+  .fb-tag.on { border-color:#fa8c16;background:#fff7e6;color:#fa8c16; }
+  .fb-submit { font-size:11px;padding:4px 12px;border-radius:4px;cursor:pointer;background:#1677ff;color:#fff;flex-shrink:0;transition:opacity 0.15s; }
+  .fb-submit:hover { opacity:0.85; }
+
+  /* ===== s2 页面绑定（内联技能广场 深色） ===== */
+  .xp-rule-row { display:flex;align-items:center;gap:8px;padding:8px 10px;border:1px solid #f0f0f5;border-radius:7px;margin-bottom:6px;background:#fff; }
+  .xp-rule-row:hover { border-color:#bbd4ff;background:#f5f8ff; }
+  .xps-card { background:#1c1d26;border:1px solid #2a2b38;border-radius:10px;padding:16px;display:flex;flex-direction:column;gap:8px;transition:border-color 0.2s,box-shadow 0.2s; }
+  .xps-card:hover { border-color:#3a3b52;box-shadow:0 4px 20px rgba(0,0,0,0.3); }
+  .xps-row1 { display:flex;align-items:center;gap:8px; }
+  .xps-icon { width:28px;height:28px;border-radius:7px;display:flex;align-items:center;justify-content:center;font-size:15px;flex-shrink:0; }
+  .xps-name { font-size:14px;font-weight:600;color:#e8e8f0; }
+  .xps-tag { font-size:11px;border-radius:3px;padding:2px 7px;background:#22232f;color:#7878a0;border:1px solid #2e2f3e; }
+  .xps-bind-cnt { margin-left:auto;flex-shrink:0;font-size:11px;border-radius:10px;padding:2px 9px;background:rgba(63,160,96,0.12);color:#52c41a;border:1px solid rgba(63,160,96,0.3);white-space:nowrap;cursor:pointer; }
+  .xps-bind-cnt:hover { background:rgba(63,160,96,0.22); }
+  .xps-desc { font-size:12px;color:#6868a0;line-height:1.55;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden; }
+  .xps-meta { font-size:11px;color:#555570;display:flex;align-items:center;gap:10px; }
+  .xps-footer { display:flex;gap:5px;border-top:1px solid #2a2b38;padding-top:10px;margin-top:2px; }
+  .xps-btn { flex:1;font-size:11px;padding:5px 0;border-radius:4px;text-align:center;cursor:pointer;transition:all 0.15s;white-space:nowrap; }
+  .xps-btn-use,.xps-btn-detail { border:1px solid #2e2f3e;background:transparent;color:#8888a0; }
+  .xps-btn-use:hover { border-color:#4d8fff;color:#4d8fff; }
+  .xps-btn-detail:hover { border-color:#9b6bff;color:#9b6bff; }
+  .xps-btn-bind { border:1px solid rgba(77,143,255,0.4);background:rgba(77,143,255,0.08);color:#4d8fff; }
+  .xps-btn-bind:hover { background:rgba(77,143,255,0.2);border-color:#4d8fff; }
+  .xps-btn-bind.has { border-color:rgba(63,160,96,0.4);background:rgba(63,160,96,0.08);color:#52c41a; }
+  .xps-btn-bind.has:hover { background:rgba(63,160,96,0.2); }
+  .xps-btn-log { border:1px solid rgba(250,140,22,0.4);background:rgba(250,140,22,0.08);color:#ffa940; }
+  .xps-btn-log:hover { background:rgba(250,140,22,0.2);border-color:#ffa940; }
+  .xps-overlay { position:absolute;inset:0;background:rgba(0,0,0,0.5);z-index:100;display:none;align-items:stretch;justify-content:flex-end; }
+  .xps-overlay.open { display:flex; }
+  .xps-drawer { width:480px;background:#1c1d26;display:flex;flex-direction:column;border-left:1px solid #2a2b38;animation:xpsSlide 0.22s ease; }
+  @keyframes xpsSlide { from{transform:translateX(100%)} to{transform:translateX(0)} }
+  .xps-drawer-hd { padding:16px 20px;border-bottom:1px solid #2a2b38;display:flex;align-items:center;gap:10px;flex-shrink:0; }
+  .xps-drawer-title { font-size:15px;font-weight:600;color:#e8e8f0;flex:1; }
+  .xps-drawer-badge { font-size:12px;background:rgba(77,143,255,0.15);color:#4d8fff;border:1px solid rgba(77,143,255,0.35);border-radius:4px;padding:2px 9px; }
+  .xps-drawer-close { width:28px;height:28px;border-radius:6px;display:flex;align-items:center;justify-content:center;color:#555570;font-size:18px;cursor:pointer;transition:all 0.15s; }
+  .xps-drawer-close:hover { background:#2a2b38;color:#e0e0e0; }
+  .xps-drawer-body { flex:1;overflow-y:auto;padding:16px 20px;display:flex;flex-direction:column;gap:14px; }
+  .xps-drawer-ft { padding:14px 20px;border-top:1px solid #2a2b38;display:flex;align-items:center;justify-content:space-between;flex-shrink:0; }
+  .xps-d-sec-title { font-size:13px;font-weight:600;color:#c0c0d0;margin-bottom:8px; }
+  .xps-bound-list { display:flex;flex-direction:column;gap:6px; }
+  .xps-bound-item { display:flex;align-items:center;gap:9px;padding:8px 12px;background:rgba(63,160,96,0.08);border:1px solid rgba(63,160,96,0.2);border-radius:6px;font-size:12px; }
+  .xps-bound-name { flex:1;color:#c0c0d0;font-weight:500; }
+  .xps-bound-meta { color:#555570;font-size:11px; }
+  .xps-bound-rm { color:#555570;cursor:pointer;font-size:16px;padding:2px;transition:color 0.15s; }
+  .xps-bound-rm:hover { color:#ff4d4f; }
+  .xps-rule-list { display:flex;flex-direction:column;gap:5px;max-height:260px;overflow-y:auto; }
+  .xps-rule-item { display:flex;align-items:center;gap:9px;padding:9px 12px;background:#22232f;border:1px solid #2e2f3e;border-radius:6px;font-size:12px;cursor:pointer;transition:all 0.15s; }
+  .xps-rule-item:hover:not(.already) { border-color:#4d8fff;background:rgba(77,143,255,0.08); }
+  .xps-rule-item.selected { border-color:#4d8fff;background:rgba(77,143,255,0.12); }
+  .xps-rule-item.already { border-color:rgba(63,160,96,0.3);background:rgba(63,160,96,0.06);cursor:default; }
+  .xps-rule-chk { width:16px;height:16px;border:1.5px solid #3a3b52;border-radius:3px;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:all 0.15s;font-size:10px;font-weight:700;color:transparent; }
+  .xps-rule-item.selected .xps-rule-chk { background:#4d8fff;border-color:#4d8fff;color:#fff; }
+  .xps-rule-item.already .xps-rule-chk { background:#3fa060;border-color:#3fa060;color:#fff; }
+  .xps-rule-info { flex:1;min-width:0; }
+  .xps-rule-name { color:#c0c0d0;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis; }
+  .xps-rule-meta { color:#555570;font-size:11px;margin-top:2px;display:flex;gap:8px; }
+  .xps-rlv { font-size:10px;border-radius:3px;padding:1px 5px;font-weight:600;flex-shrink:0; }
+  .xps-rlv.p1 { background:rgba(255,77,79,0.15);color:#ff6b6b;border:1px solid rgba(255,77,79,0.3); }
+  .xps-rlv.p2 { background:rgba(250,140,22,0.15);color:#ffa940;border:1px solid rgba(250,140,22,0.3); }
+  .xps-already-tag { font-size:10px;color:#52c41a;background:rgba(63,160,96,0.12);border:1px solid rgba(63,160,96,0.3);border-radius:3px;padding:1px 5px; }
+  .xps-d-btn { font-size:13px;padding:7px 18px;border-radius:5px;cursor:pointer;transition:all 0.15s; }
+  .xps-d-cancel { border:1px solid #2e2f3e;background:transparent;color:#8888a0; }
+  .xps-d-cancel:hover { border-color:#4d8fff;color:#4d8fff; }
+  .xps-d-confirm { border:none;background:#4d8fff;color:#fff; }
+  .xps-d-confirm:hover { background:#3a7aff; }
+  .xps-d-confirm:disabled { background:#2e2f3e;color:#555570;cursor:not-allowed; }
+
+  /* ===== s6: Claw 配置链路 ===== */
+  .s6-wrap { max-width: 860px; min-width: 680px; margin: 0 auto; }
+  .s6-compare-table { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 24px; }
+  .s6-compare-card { background: #fff; border: 1px solid #e8e8ee; border-radius: 10px; padding: 14px 18px; box-shadow: 0 1px 4px rgba(0,0,0,0.04); }
+  .s6-compare-card-title { font-size: 12px; font-weight: 600; color: #bbb; margin-bottom: 10px; display: flex; align-items: center; gap: 6px; }
+  .s6-compare-step { display: flex; align-items: flex-start; gap: 8px; font-size: 12px; color: #666; padding: 4px 0; line-height: 1.5; }
+  .s6-compare-step.bad .s6-csi { color: #ff4d4f; }
+  .s6-compare-step.good .s6-csi { color: #52c41a; }
+  .s6-section-label { display: flex; align-items: center; gap: 10px; margin-bottom: 14px; }
+  .s6-section-bar { width: 4px; height: 20px; border-radius: 2px; flex-shrink: 0; }
+  .s6-section-title { font-size: 14px; font-weight: 700; color: #1a1a2e; }
+  .s6-section-sub { font-size: 11px; color: #bbb; margin-left: auto; }
+  .s6-steps { display: flex; flex-direction: column; gap: 0; margin-bottom: 28px; }
+  .s6-step-row { display: flex; gap: 14px; align-items: stretch; }
+  .s6-step-left { display: flex; flex-direction: column; align-items: center; width: 36px; flex-shrink: 0; }
+  .s6-step-dot { width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 700; flex-shrink: 0; }
+  .s6-step-line { width: 2px; flex: 1; margin: 2px 0; }
+  .s6-step-card { flex: 1; background: #fff; border: 1px solid #e8e8ee; border-radius: 10px; padding: 12px 16px; margin-bottom: 10px; box-shadow: 0 1px 3px rgba(0,0,0,0.04); }
+  .s6-step-card-head { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
+  .s6-step-tag { font-size: 10px; padding: 2px 7px; border-radius: 3px; font-weight: 600; flex-shrink: 0; }
+  .s6-step-name { font-size: 13px; font-weight: 600; color: #1a1a2e; }
+  .s6-step-desc { font-size: 12px; color: #888; line-height: 1.6; }
+  .s6-step-note { margin-top: 8px; background: #fafbff; border: 1px solid #e8eaf5; border-radius: 5px; padding: 6px 10px; font-size: 11px; color: #666; line-height: 1.7; }
+  .s6-step-note b { color: #1677ff; }
+  .s6-dep-grid { display: grid; grid-template-columns: repeat(2,1fr); gap: 12px; margin-bottom: 24px; }
+  .s6-dep-item { background: #fff; border: 1px solid #e8e8ee; border-radius: 8px; padding: 10px 14px; font-size: 12px; }
+  .s6-dep-head { font-weight: 600; color: #333; margin-bottom: 4px; display: flex; align-items: center; gap: 6px; }
+  .s6-dep-body { color: #888; line-height: 1.6; }
+  .s6-tag-dep { font-size: 10px; background: #fff7e6; color: #fa8c16; border: 1px solid #ffd591; border-radius: 3px; padding: 1px 5px; font-weight: 600; }
+  .s6-tab-bar { background: #fff; border-bottom: 1px solid #e8e8ee; display: flex; align-items: center; padding: 0 16px; gap: 0; flex-shrink: 0; height: 40px; }
+  .s6-tab { padding: 0 14px; height: 40px; display: flex; align-items: center; font-size: 12px; color: #888; cursor: pointer; border-bottom: 2px solid transparent; transition: all 0.15s; }
+  .s6-tab:hover { color: #1677ff; }
+  .s6-tab.active { color: #1677ff; border-bottom-color: #1677ff; font-weight: 500; }
+  .s6-subpanel { display: none; flex: 1; overflow: hidden; flex-direction: column; }
+  .s6-subpanel.active { display: flex; }
+  .s6-flow-panel { overflow-y: auto; overflow-x: auto; padding: 24px 28px; background: #f5f6f8; flex: 1; }
+  .s6-chat-panel { flex-direction: row; background: #f5f6f8; }
+  .s6-claw-shell { width: 360px; min-width: 320px; flex-shrink: 0; background: #fff; border-right: 1px solid #e8e8ee; display: flex; flex-direction: column; height: 100%; }
+  .s6-claw-topbar { height: 46px; background: #fff; border-bottom: 1px solid #ebebeb; display: flex; align-items: center; padding: 0 12px; gap: 7px; flex-shrink: 0; }
+  .s6-claw-logo { width: 26px; height: 26px; border-radius: 6px; background: linear-gradient(135deg, #ff2442, #ff6b35); display: flex; align-items: center; justify-content: center; font-size: 13px; color: #fff; flex-shrink: 0; }
+  .s6-claw-name { font-size: 12px; font-weight: 600; color: #1a1a2e; }
+  .s6-claw-badge { font-size: 10px; background: #f0faf2; color: #52c41a; border: 1px solid #b7eb8f; border-radius: 3px; padding: 1px 5px; }
+  .s6-claw-body { flex: 1; overflow-y: auto; padding: 12px 10px; display: flex; flex-direction: column; gap: 10px; background: #f5f6f8; }
+  .s6-claw-time { text-align: center; font-size: 10px; color: #bbb; }
+  .s6-msg-row { display: flex; gap: 6px; align-items: flex-start; }
+  .s6-msg-row.user { flex-direction: row-reverse; }
+  .s6-avatar { width: 24px; height: 24px; border-radius: 6px; flex-shrink: 0; margin-top: 2px; display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: 700; }
+  .s6-avatar.ai { background: linear-gradient(135deg, #ff2442, #ff6b35); color: #fff; }
+  .s6-avatar.user { background: #e6f0ff; font-size: 12px; }
+  .s6-bubble { max-width: 88%; font-size: 12px; line-height: 1.65; border-radius: 8px; padding: 7px 10px; }
+  .s6-bubble.ai { background: #fff; border: 1px solid #e8e8ee; color: #333; box-shadow: 0 1px 2px rgba(0,0,0,0.04); }
+  .s6-bubble.user { background: #1677ff; color: #fff; }
+  .s6-rsc { background: #fff; border: 1px solid #e8e8ee; border-radius: 7px; overflow: hidden; font-size: 12px; margin-top: 6px; }
+  .s6-rsc-head { background: #fafbff; border-bottom: 1px solid #f0f0f5; padding: 6px 10px; font-size: 11px; font-weight: 600; color: #888; }
+  .s6-rsc-item { padding: 7px 10px; display: flex; align-items: center; gap: 7px; border-bottom: 1px solid #f5f5f5; cursor: pointer; transition: background 0.12s; }
+  .s6-rsc-item:last-child { border-bottom: none; }
+  .s6-rsc-item:hover { background: #f5f8ff; }
+  .s6-rsc-item.sel { background: #f0f6ff; }
+  .s6-rsc-chk { width: 13px; height: 13px; border-radius: 3px; border: 1.5px solid #d0daf5; flex-shrink: 0; display: flex; align-items: center; justify-content: center; }
+  .s6-rsc-chk.on { background: #1677ff; border-color: #1677ff; }
+  .s6-rsc-chk.on::after { content: '✓'; font-size: 8px; color: #fff; font-weight: 700; }
+  .s6-rsc-info { flex: 1; }
+  .s6-rsc-name { font-size: 12px; color: #333; }
+  .s6-rsc-meta { font-size: 10px; color: #bbb; margin-top: 1px; }
+  .s6-rsc-lv { font-size: 10px; padding: 1px 5px; border-radius: 3px; font-weight: 600; flex-shrink: 0; }
+  .s6-rsc-lv.p1 { background: #fff1f0; color: #ff4d4f; }
+  .s6-rsc-lv.p2 { background: #fff7e6; color: #fa8c16; }
+  .s6-rsc-footer { padding: 7px 10px; display: flex; gap: 5px; }
+  .s6-rsc-btn { font-size: 11px; padding: 3px 12px; border-radius: 4px; cursor: pointer; transition: all 0.15s; }
+  .s6-rsc-btn-p { background: #1677ff; color: #fff; border: none; }
+  .s6-rsc-btn-p:hover { background: #0e6adb; }
+  .s6-rsc-btn-g { background: #fff; color: #888; border: 1px solid #e0e4ef; }
+  .s6-confirm { background: #f0faf2; border: 1px solid #b7eb8f; border-radius: 7px; padding: 9px 11px; margin-top: 6px; font-size: 12px; color: #333; line-height: 1.7; }
+  .s6-confirm-title { font-weight: 600; color: #389e0d; margin-bottom: 4px; }
+  .s6-chips { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 7px; }
+  .s6-chip { font-size: 11px; color: #1677ff; background: #e6f0ff; border: 1px solid #bbd4ff; border-radius: 10px; padding: 3px 10px; cursor: pointer; transition: all 0.12s; }
+  .s6-chip:hover { background: #d0e5ff; }
+  .s6-claw-input-area { padding: 9px 10px; border-top: 1px solid #ebebeb; background: #fff; display: flex; gap: 6px; flex-shrink: 0; }
+  .s6-claw-input { flex: 1; border: 1px solid #e0e4ef; border-radius: 6px; padding: 6px 9px; font-size: 12px; outline: none; background: #fafbff; color: #333; font-family: inherit; }
+  .s6-claw-input:focus { border-color: #1677ff; }
+  .s6-claw-send { width: 28px; height: 28px; border-radius: 6px; background: #1677ff; border: none; cursor: pointer; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+  .s6-explain-panel { flex: 1; overflow-y: auto; padding: 20px 22px; background: #f5f6f8; }
+  .s6-explain-section { margin-bottom: 20px; }
+  .s6-explain-title { font-size: 13px; font-weight: 600; color: #1a1a2e; margin-bottom: 10px; display: flex; align-items: center; gap: 6px; }
+  .s6-explain-dot { width: 3px; height: 14px; border-radius: 2px; background: #1677ff; flex-shrink: 0; }
+  .s6-explain-item { background: #fff; border: 1px solid #e8e8ee; border-radius: 8px; padding: 10px 12px; margin-bottom: 7px; font-size: 12px; }
+  .s6-explain-head { font-weight: 600; color: #333; margin-bottom: 3px; display: flex; align-items: center; gap: 5px; }
+  .s6-explain-body { color: #888; line-height: 1.6; }
+  .s6-hl { color: #1677ff; font-weight: 500; }
+  .s6-tag-new { font-size: 10px; background: #f0faf2; color: #52c41a; border: 1px solid #b7eb8f; border-radius: 3px; padding: 1px 5px; font-weight: 600; }
+</style>
+</head>
+<body>
+
+<!-- 左侧场景导航 -->
+<div class="scene-nav">
+  <div class="scene-nav-title">场景切换</div>
+  <div class="scene-item active" onclick="switchScene('s5')">
+    <div>产品链路全貌</div>
+    <div class="scene-item-sub">A/B/C 完整链路总览</div>
+  </div>
+  <div class="scene-item" onclick="switchScene('s2')">
+    <div>节点2 · 绑定闭环</div>
+    <div class="scene-item-sub">绑定完成 → Agent 反馈</div>
+  </div>
+  <div class="scene-item" onclick="switchScene('s3')">
+    <div>节点3 · 诊断报告</div>
+    <div class="scene-item-sub">推理过程 + 动态 chip</div>
+  </div>
+  <div class="scene-item" onclick="switchScene('s4')">
+    <div>节点4 · 天级日报</div>
+    <div class="scene-item-sub">Agent 判断 + 行动发起</div>
+  </div>
+  <div class="scene-item" onclick="switchScene('s6')">
+    <div>Claw 配置链路</div>
+    <div class="scene-item-sub">Claw 作为 XPILOT 入口</div>
+  </div>
+</div>
+
+<div class="main">
+
+<!-- ===== 节点2：绑定闭环 ===== -->
+<div class="scene-panel" id="s2" style="flex-direction:column;">
+  <!-- s2 子 Tab -->
+  <div class="s6-tab-bar">
+    <div class="s6-tab active" onclick="s2SwitchTab('s2p1',this)">💬 对话绑定（XRay Agent）</div>
+    <div class="s6-tab" onclick="s2SwitchTab('s2p2',this)">🖥️ 页面绑定（XPILOT 手动）</div>
+  </div>
+
+  <!-- 子面板1：对话绑定（原有内容） -->
+  <div class="s6-subpanel active" id="s2p1" style="overflow:hidden;">
+  <div class="im-shell">
+    <div class="group-topbar">
+      <div class="group-avatar">X</div>
+      <div>
+        <div class="group-name">XRay Agent</div>
+        <div class="group-sub">告警规则绑定配置</div>
+      </div>
+    </div>
+    <div class="chat-body">
+      <div class="time-sep">今天 11:20</div>
+
+      <!-- 用户发起绑定 -->
+      <div class="user-row">
+        <div class="user-avatar">👤</div>
+        <div class="user-bubble">帮我把推荐相关的告警规则绑定到新笔记下跌排障 SKILL，第1、3、5条</div>
+      </div>
+
+      <!-- Agent 执行并确认 -->
+      <div class="bot-row">
+        <div class="bot-avatar">X</div>
+        <div style="flex:1;min-width:0;">
+          <div class="bot-name">XRay Agent</div>
+          <div class="confirm-card">
+            <div class="confirm-card-head">✅ 绑定完成 · 新笔记下跌排障</div>
+            <div class="confirm-card-body">
+              <div class="confirm-rule-row"><span class="c-dot"></span>外流1h新笔记曝光占比周同比下跌超10% <span class="lv-tag lv-p1">P1</span></div>
+              <div class="confirm-rule-row"><span class="c-dot"></span>24h新笔记占比周同比下跌超20% <span class="lv-tag lv-p1">P1</span></div>
+              <div class="confirm-rule-row"><span class="c-dot"></span>内流新笔记曝光率环比下降超15% <span class="lv-tag lv-p2">P2</span></div>
+            </div>
+            <div class="confirm-card-footer">
+              📣 下次以上任一告警触发时，<strong>新笔记下跌排障 SKILL</strong> 将自动执行，诊断结果将推送到
+              <strong style="color:#1677ff;">推荐业务告警群</strong>。<br><br>
+              💡 <span style="color:#888;">该 SKILL 历史平均诊断耗时 <strong style="color:#333;">3m 42s</strong>，成功率 <strong style="color:#52c41a;">89%</strong>。</span>
+            </div>
+          </div>
+          <div class="chips" style="margin-top:8px;">
+            <span class="chip" onclick="addUserMsg(this,'继续绑定其他 SKILL')">继续绑定其他 SKILL</span>
+            <span class="chip" onclick="addUserMsg(this,'查看所有绑定配置')">查看所有绑定配置</span>
+            <span class="chip action" onclick="showBindPreview()">模拟：告警触发后会怎样？</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- 模拟预览（点后出现） -->
+      <div id="bindPreview" style="display:none;">
+        <div class="bot-row">
+          <div class="bot-avatar">X</div>
+          <div>
+            <div class="bot-name">XRay Agent</div>
+            <div class="ai-bubble">
+              假设「外流1h新笔记曝光占比下跌超10%」触发：<br><br>
+              1. 告警卡片推送到群，卡片底部显示「AI 诊断中…」<br>
+              2. SKILL 自动执行（预计 3-4 分钟）<br>
+              3. 诊断完成后，卡片更新为根因摘要 + 置信度，群内出现诊断完成 Banner<br>
+              4. 点击卡片或 Banner → 右侧侧边栏展开完整诊断报告，可追问<br>
+              5. 如有相关 HTML 报告，直接在对话里附链接
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+    <div class="input-bar">
+      <div class="input-mock">输入消息…</div>
+    </div>
+  </div>
+  </div><!-- /s2p1 -->
+
+  <!-- 子面板2：页面绑定（内联技能广场） -->
+  <div class="s6-subpanel" id="s2p2" style="overflow:hidden;background:#13141a;flex-direction:column;position:relative;">
+    <!-- 顶部 Tab -->
+    <div style="height:48px;background:#1c1d26;border-bottom:1px solid #2a2b38;display:flex;align-items:center;padding:0 20px;gap:24px;flex-shrink:0;">
+      <div style="font-size:15px;font-weight:700;background:linear-gradient(135deg,#4d8fff,#9b6bff);-webkit-background-clip:text;-webkit-text-fill-color:transparent;margin-right:8px;">XPILOT</div>
+      <div style="font-size:13px;color:#8888a0;cursor:pointer;">工作台</div>
+      <div style="font-size:13px;color:#fff;border-bottom:2px solid #4d8fff;height:48px;display:flex;align-items:center;padding:0 2px;">技能广场</div>
+      <div style="font-size:13px;color:#8888a0;cursor:pointer;">对话</div>
+      <div style="font-size:13px;color:#8888a0;cursor:pointer;">日报</div>
+    </div>
+    <!-- 筛选栏 -->
+    <div style="padding:14px 20px;display:flex;align-items:center;gap:10px;border-bottom:1px solid #2a2b38;flex-shrink:0;">
+      <div style="display:flex;align-items:center;gap:7px;background:#22232f;border:1px solid #2e2f3e;border-radius:6px;padding:6px 12px;width:220px;">
+        <span style="color:#555570;font-size:13px;">🔍</span>
+        <input type="text" placeholder="搜索技能…" style="border:none;outline:none;font-size:13px;color:#e0e0e0;background:transparent;flex:1;" oninput="xpsFilterCards(this.value)">
+      </div>
+      <div style="display:flex;gap:6px;">
+        <div style="font-size:12px;padding:4px 12px;border-radius:12px;cursor:pointer;border:1px solid #2e2f3e;background:rgba(77,143,255,0.15);border-color:#4d8fff;color:#4d8fff;">全部</div>
+        <div style="font-size:12px;padding:4px 12px;border-radius:12px;cursor:pointer;border:1px solid #2e2f3e;background:#22232f;color:#8888a0;">告警排障</div>
+        <div style="font-size:12px;padding:4px 12px;border-radius:12px;cursor:pointer;border:1px solid #2e2f3e;background:#22232f;color:#8888a0;">指标分析</div>
+        <div style="font-size:12px;padding:4px 12px;border-radius:12px;cursor:pointer;border:1px solid #2e2f3e;background:#22232f;color:#8888a0;">日志查询</div>
+      </div>
+      <div style="margin-left:auto;"><button style="font-size:13px;padding:6px 14px;border-radius:6px;cursor:pointer;background:#4d8fff;border:none;color:#fff;">+ 新建技能</button></div>
+    </div>
+    <!-- 卡片网格 -->
+    <div id="xpsGrid" style="flex:1;overflow-y:auto;padding:16px 20px;display:grid;grid-template-columns:repeat(3,1fr);gap:12px;align-content:start;">
+
+      <!-- 卡片1：已绑定 3 条 -->
+      <div class="xps-card">
+        <div class="xps-row1">
+          <div class="xps-icon" style="background:rgba(255,77,79,0.12);">📉</div>
+          <span class="xps-name">新笔记下跌排障</span>
+          <span class="xps-tag">推荐</span>
+          <span class="xps-bind-cnt" onclick="xpsOpenDrawer('新笔记下跌排障',true)">🔗 已绑定 3 条</span>
+        </div>
+        <div class="xps-desc">诊断内/外流推荐新笔记曝光占比异常下跌，覆盖全链路排查分析</div>
+        <div class="xps-meta"><span>👤 mahengyang</span><span>🕐 2026-04-01</span></div>
+        <div class="xps-footer">
+          <div class="xps-btn xps-btn-use">获取</div>
+          <div class="xps-btn xps-btn-detail">详情</div>
+          <div class="xps-btn xps-btn-bind has" onclick="xpsOpenDrawer('新笔记下跌排障',true)">🔗 告警绑定</div>
+          <div class="xps-btn xps-btn-log" onclick="xpsOpenLog('新笔记下跌排障')">📋 执行记录</div>
+        </div>
+      </div>
+
+      <!-- 卡片2：已绑定 1 条 -->
+      <div class="xps-card">
+        <div class="xps-row1">
+          <div class="xps-icon" style="background:rgba(250,140,22,0.12);">⚡</div>
+          <span class="xps-name">GC 异常排障</span>
+          <span class="xps-tag">JVM</span>
+          <span class="xps-bind-cnt" onclick="xpsOpenDrawer('GC 异常排障',true)">🔗 已绑定 1 条</span>
+        </div>
+        <div class="xps-desc">分析 JVM GC 停顿、堆内存异常，定位内存泄漏与大对象分配问题</div>
+        <div class="xps-meta"><span>👤 zhangsan</span><span>🕐 2026-03-28</span></div>
+        <div class="xps-footer">
+          <div class="xps-btn xps-btn-use">获取</div>
+          <div class="xps-btn xps-btn-detail">详情</div>
+          <div class="xps-btn xps-btn-bind has" onclick="xpsOpenDrawer('GC 异常排障',true)">🔗 告警绑定</div>
+          <div class="xps-btn xps-btn-log" onclick="xpsOpenLog('GC 异常排障')">📋 执行记录</div>
+        </div>
+      </div>
+
+      <!-- 卡片3：未绑定 -->
+      <div class="xps-card">
+        <div class="xps-row1">
+          <div class="xps-icon" style="background:rgba(155,107,255,0.12);">🗄️</div>
+          <span class="xps-name">Redis 缓存异常排障</span>
+          <span class="xps-tag">Redis</span>
+        </div>
+        <div class="xps-desc">分析 Redis 命中率下降、连接超时、热 key 问题，关联流量变化排查</div>
+        <div class="xps-meta"><span>👤 lisi</span><span>🕐 2026-03-20</span></div>
+        <div class="xps-footer">
+          <div class="xps-btn xps-btn-use">获取</div>
+          <div class="xps-btn xps-btn-detail">详情</div>
+          <div class="xps-btn xps-btn-bind" onclick="xpsOpenDrawer('Redis 缓存异常排障',false)">🔗 告警绑定</div>
+          <div class="xps-btn xps-btn-log" onclick="xpsOpenLog('Redis 缓存异常排障')">📋 执行记录</div>
+        </div>
+      </div>
+
+      <!-- 卡片4 -->
+      <div class="xps-card">
+        <div class="xps-row1">
+          <div class="xps-icon" style="background:rgba(77,143,255,0.12);">🔌</div>
+          <span class="xps-name">连接池耗尽排障</span>
+          <span class="xps-tag">连接池</span>
+        </div>
+        <div class="xps-desc">诊断 DB/Redis/HTTP 连接池耗尽，关联超时与下游依赖分析</div>
+        <div class="xps-meta"><span>👤 wangwu</span><span>🕐 2026-03-15</span></div>
+        <div class="xps-footer">
+          <div class="xps-btn xps-btn-use">获取</div>
+          <div class="xps-btn xps-btn-detail">详情</div>
+          <div class="xps-btn xps-btn-bind" onclick="xpsOpenDrawer('连接池耗尽排障',false)">🔗 告警绑定</div>
+          <div class="xps-btn xps-btn-log" onclick="xpsOpenLog('连接池耗尽排障')">📋 执行记录</div>
+        </div>
+      </div>
+
+      <!-- 卡片5 -->
+      <div class="xps-card">
+        <div class="xps-row1">
+          <div class="xps-icon" style="background:rgba(63,160,96,0.12);">📡</div>
+          <span class="xps-name">RPC 调用链路排障</span>
+          <span class="xps-tag">RPC</span>
+        </div>
+        <div class="xps-desc">通过 Logview 分析 RPC 调用链路，定位下游服务异常与耗时瓶颈</div>
+        <div class="xps-meta"><span>👤 zhaoliu</span><span>🕐 2026-03-10</span></div>
+        <div class="xps-footer">
+          <div class="xps-btn xps-btn-use">获取</div>
+          <div class="xps-btn xps-btn-detail">详情</div>
+          <div class="xps-btn xps-btn-bind" onclick="xpsOpenDrawer('RPC 调用链路排障',false)">🔗 告警绑定</div>
+          <div class="xps-btn xps-btn-log" onclick="xpsOpenLog('RPC 调用链路排障')">📋 执行记录</div>
+        </div>
+      </div>
+
+      <!-- 卡片6 -->
+      <div class="xps-card">
+        <div class="xps-row1">
+          <div class="xps-icon" style="background:rgba(255,107,153,0.12);">📊</div>
+          <span class="xps-name">流量突增排障</span>
+          <span class="xps-tag">流量</span>
+        </div>
+        <div class="xps-desc">检测异常流量突增，分析来源分布、热点接口，评估容量风险</div>
+        <div class="xps-meta"><span>👤 mahengyang</span><span>🕐 2026-03-05</span></div>
+        <div class="xps-footer">
+          <div class="xps-btn xps-btn-use">获取</div>
+          <div class="xps-btn xps-btn-detail">详情</div>
+          <div class="xps-btn xps-btn-bind" onclick="xpsOpenDrawer('流量突增排障',false)">🔗 告警绑定</div>
+          <div class="xps-btn xps-btn-log" onclick="xpsOpenLog('流量突增排障')">📋 执行记录</div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- 绑定抽屉 -->
+    <div class="xps-overlay" id="xpsDrawerOverlay" onclick="if(event.target===this)xpsCloseDrawer()">
+      <div class="xps-drawer">
+        <div class="xps-drawer-hd">
+          <div class="xps-drawer-title">绑定告警规则</div>
+          <span class="xps-drawer-badge" id="xpsDrawerSkill">-</span>
+          <div class="xps-drawer-close" onclick="xpsCloseDrawer()">×</div>
+        </div>
+        <div class="xps-drawer-body">
+          <div class="xps-d-sec-title">已绑定规则 <span id="xpsBoundCount" style="font-size:12px;color:#555570;font-weight:400;">3 条</span></div>
+          <div id="xpsBoundList" class="xps-bound-list">
+            <div class="xps-bound-item"><span class="xps-rlv p1">P1</span><div class="xps-bound-name">外流1h新笔记曝光占比周同比下跌超10%</div><div class="xps-bound-meta">ark-feedx</div><span class="xps-bound-rm" onclick="xpsRemoveBound(this)">×</span></div>
+            <div class="xps-bound-item"><span class="xps-rlv p1">P1</span><div class="xps-bound-name">24h新笔记占比周同比下跌超20%</div><div class="xps-bound-meta">ark0</div><span class="xps-bound-rm" onclick="xpsRemoveBound(this)">×</span></div>
+            <div class="xps-bound-item"><span class="xps-rlv p2">P2</span><div class="xps-bound-name">内流新笔记曝光率环比下降超15%</div><div class="xps-bound-meta">ark0</div><span class="xps-bound-rm" onclick="xpsRemoveBound(this)">×</span></div>
+          </div>
+          <div class="xps-d-sec-title" style="margin-top:14px;">添加告警规则</div>
+          <div style="display:flex;align-items:center;gap:7px;background:#22232f;border:1px solid #2e2f3e;border-radius:6px;padding:8px 12px;margin-bottom:10px;">
+            <span style="color:#555570;">🔍</span>
+            <input type="text" placeholder="搜索规则名称…" style="border:none;outline:none;font-size:13px;color:#e0e0e0;background:transparent;flex:1;" oninput="xpsFilterRules(this.value)">
+          </div>
+          <div id="xpsRuleList" class="xps-rule-list">
+            <div class="xps-rule-item already"><div class="xps-rule-chk">✓</div><div class="xps-rule-info"><div class="xps-rule-name">外流1h新笔记曝光占比周同比下跌超10%</div><div class="xps-rule-meta"><span>ark-feedx</span><span>推荐·外流</span></div></div><span class="xps-rlv p1">P1</span><span class="xps-already-tag">已绑定</span></div>
+            <div class="xps-rule-item already"><div class="xps-rule-chk">✓</div><div class="xps-rule-info"><div class="xps-rule-name">24h新笔记占比周同比下跌超20%</div><div class="xps-rule-meta"><span>ark0</span><span>推荐·内流</span></div></div><span class="xps-rlv p1">P1</span><span class="xps-already-tag">已绑定</span></div>
+            <div class="xps-rule-item" onclick="xpsToggleRule(this)"><div class="xps-rule-chk"></div><div class="xps-rule-info"><div class="xps-rule-name">新笔记曝光量小时环比下跌超30%</div><div class="xps-rule-meta"><span>rec-service</span><span>推荐</span></div></div><span class="xps-rlv p2">P2</span></div>
+            <div class="xps-rule-item" onclick="xpsToggleRule(this)"><div class="xps-rule-chk"></div><div class="xps-rule-info"><div class="xps-rule-name">新笔记召回率低于基线20%</div><div class="xps-rule-meta"><span>recall-service</span><span>推荐·召回</span></div></div><span class="xps-rlv p2">P2</span></div>
+            <div class="xps-rule-item" onclick="xpsToggleRule(this)"><div class="xps-rule-chk"></div><div class="xps-rule-info"><div class="xps-rule-name">推荐服务 P99 耗时超500ms</div><div class="xps-rule-meta"><span>recommend-service</span><span>性能</span></div></div><span class="xps-rlv p1">P1</span></div>
+            <div class="xps-rule-item" onclick="xpsToggleRule(this)"><div class="xps-rule-chk"></div><div class="xps-rule-info"><div class="xps-rule-name">笔记分发量日同比下跌超10%</div><div class="xps-rule-meta"><span>distribution-service</span><span>分发</span></div></div><span class="xps-rlv p2">P2</span></div>
+          </div>
+        </div>
+        <div class="xps-drawer-ft">
+          <div style="font-size:12px;color:#555570;">已选 <strong id="xpsSelCount" style="color:#4d8fff;">0</strong> 条新规则</div>
+          <div style="display:flex;gap:8px;">
+            <button class="xps-d-btn xps-d-cancel" onclick="xpsCloseDrawer()">取消</button>
+            <button class="xps-d-btn xps-d-confirm" id="xpsConfirmBtn" onclick="xpsConfirmBind()" disabled>确认绑定</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 执行记录抽屉 -->
+    <div class="xps-overlay" id="xpsLogOverlay" onclick="if(event.target===this)xpsCloseLog()">
+      <div class="xps-drawer">
+        <div class="xps-drawer-hd">
+          <div class="xps-drawer-title">执行记录</div>
+          <span class="xps-drawer-badge" id="xpsLogSkill">-</span>
+          <div class="xps-drawer-close" onclick="xpsCloseLog()">×</div>
+        </div>
+        <div class="xps-drawer-body">
+          <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:14px;">
+            <div style="background:#22232f;border:1px solid #2e2f3e;border-radius:6px;padding:10px;text-align:center;"><div style="font-size:20px;font-weight:700;color:#e8e8f0;">47</div><div style="font-size:11px;color:#555570;margin-top:2px;">总触发</div></div>
+            <div style="background:rgba(63,160,96,0.08);border:1px solid rgba(63,160,96,0.25);border-radius:6px;padding:10px;text-align:center;"><div style="font-size:20px;font-weight:700;color:#52c41a;">41</div><div style="font-size:11px;color:#555570;margin-top:2px;">成功</div></div>
+            <div style="background:rgba(255,77,79,0.08);border:1px solid rgba(255,77,79,0.2);border-radius:6px;padding:10px;text-align:center;"><div style="font-size:20px;font-weight:700;color:#ff6b6b;">6</div><div style="font-size:11px;color:#555570;margin-top:2px;">失败</div></div>
+          </div>
+          <div class="xps-d-sec-title">最近执行明细</div>
+          <div style="display:flex;flex-direction:column;gap:5px;margin-top:8px;">
+            <div style="display:grid;grid-template-columns:90px 1fr 60px 60px;gap:8px;padding:8px 10px;background:#22232f;border:1px solid #2e2f3e;border-radius:5px;font-size:11px;align-items:center;"><span style="color:#555570;">04-08 10:32</span><span style="color:#9898b8;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">外流新笔记曝光占比下跌</span><span style="color:#52c41a;">✓ 成功</span><span style="color:#555570;">4m12s</span></div>
+            <div style="display:grid;grid-template-columns:90px 1fr 60px 60px;gap:8px;padding:8px 10px;background:#22232f;border:1px solid #2e2f3e;border-radius:5px;font-size:11px;align-items:center;"><span style="color:#555570;">04-08 08:15</span><span style="color:#9898b8;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">24h新笔记占比下跌</span><span style="color:#52c41a;">✓ 成功</span><span style="color:#555570;">3m48s</span></div>
+            <div style="display:grid;grid-template-columns:90px 1fr 60px 60px;gap:8px;padding:8px 10px;background:rgba(255,77,79,0.06);border:1px solid rgba(255,77,79,0.2);border-radius:5px;font-size:11px;align-items:center;"><span style="color:#555570;">04-07 22:41</span><span style="color:#9898b8;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">内流新笔记曝光率下降</span><span style="color:#ff6b6b;">✗ 失败</span><span style="color:#555570;">超时</span></div>
+            <div style="display:grid;grid-template-columns:90px 1fr 60px 60px;gap:8px;padding:8px 10px;background:#22232f;border:1px solid #2e2f3e;border-radius:5px;font-size:11px;align-items:center;"><span style="color:#555570;">04-07 14:08</span><span style="color:#9898b8;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">外流新笔记曝光占比下跌</span><span style="color:#52c41a;">✓ 成功</span><span style="color:#555570;">5m02s</span></div>
+            <div style="display:grid;grid-template-columns:90px 1fr 60px 60px;gap:8px;padding:8px 10px;background:rgba(255,77,79,0.06);border:1px solid rgba(255,77,79,0.2);border-radius:5px;font-size:11px;align-items:center;"><span style="color:#555570;">04-06 19:55</span><span style="color:#9898b8;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">外流新笔记曝光占比下跌</span><span style="color:#ff6b6b;">✗ 失败</span><span style="color:#555570;">数据源异常</span></div>
+          </div>
+        </div>
+        <div class="xps-drawer-ft" style="justify-content:flex-end;">
+          <button class="xps-d-btn xps-d-cancel" onclick="xpsCloseLog()">关闭</button>
+        </div>
+      </div>
+    </div>
+
+    <div id="xpsToast" style="position:absolute;top:60px;left:50%;transform:translateX(-50%) translateY(-16px);background:#1c2e1c;border:1px solid #3fa060;color:#52c41a;font-size:13px;padding:8px 20px;border-radius:6px;opacity:0;transition:all 0.3s;z-index:300;box-shadow:0 4px 16px rgba(0,0,0,0.4);">✅ 绑定成功，告警触发时将自动执行该 SKILL</div>
+  </div>
+
+</div><!-- /s2 -->
+
+<!-- ===== 节点3：诊断报告（侧边栏） ===== -->
+<div class="scene-panel" id="s3" style="flex-direction:column;overflow:hidden;">
+
+  <!-- Tab 导航 -->
+  <div style="background:#fff;border-bottom:1px solid #e8e8ee;padding:0 24px;display:flex;align-items:center;gap:0;flex-shrink:0;">
+    <div id="s3tab1" onclick="switchS3Tab(1)" style="padding:13px 20px;font-size:13px;font-weight:600;color:#1677ff;border-bottom:2px solid #1677ff;cursor:pointer;transition:all 0.15s;">终态方案 <span style="font-size:11px;font-weight:400;color:#52c41a;background:#f0faf2;border:1px solid #b7eb8f;border-radius:3px;padding:1px 6px;margin-left:4px;">需改造告警中心 ~1月</span></div>
+    <div id="s3tab2" onclick="switchS3Tab(2)" style="padding:13px 20px;font-size:13px;font-weight:600;color:#888;border-bottom:2px solid transparent;cursor:pointer;transition:all 0.15s;">短期方案 <span style="font-size:11px;font-weight:400;color:#fa8c16;background:#fff7e6;border:1px solid #ffd591;border-radius:3px;padding:1px 6px;margin-left:4px;">可快速落地，体验较差</span></div>
+  </div>
+
+  <!-- Tab1: 终态方案（现有内容） -->
+  <div id="s3panel1" style="flex:1;overflow:hidden;display:flex;flex-direction:column;">
+    <div class="im-shell">
+      <div class="group-topbar">
+        <div class="group-avatar">🔔</div>
+        <div>
+          <div class="group-name">推荐业务告警群</div>
+          <div class="group-sub">28人</div>
+        </div>
+      </div>
+      <div class="chat-body">
+        <div class="time-sep">今天 14:28</div>
+        <div class="bot-row">
+          <div class="bot-avatar red">🤖</div>
+          <div>
+            <div class="bot-name">XRay 告警机器人</div>
+            <!-- 卡片1：已诊断 -->
+            <div onclick="openSidebar3()" style="background:#fff;border:1px solid #a3c4ff;border-radius:10px;overflow:hidden;box-shadow:0 2px 10px rgba(22,119,255,0.1);max-width:460px;cursor:pointer;transition:box-shadow 0.15s;" onmouseover="this.style.boxShadow='0 4px 16px rgba(22,119,255,0.18)'" onmouseout="this.style.boxShadow='0 2px 10px rgba(22,119,255,0.1)'">
+              <div style="padding:10px 14px;display:flex;align-items:flex-start;gap:8px;border-bottom:1px solid #f0f0f5;">
+                <span style="font-size:11px;font-weight:700;padding:2px 7px;background:#fff7e6;color:#fa8c16;border:1px solid #ffd591;border-radius:4px;flex-shrink:0;margin-top:1px;">P3</span>
+                <span style="font-size:11px;padding:2px 6px;background:#f5f6f8;color:#888;border:1px solid #e0e4ef;border-radius:4px;flex-shrink:0;margin-top:1px;">告警</span>
+                <div style="font-size:13px;font-weight:600;color:#1a1a2e;flex:1;line-height:1.4;">[Prod][海外] RedImageV3 图片处理错误</div>
+              </div>
+              <div style="padding:10px 14px;display:flex;flex-direction:column;gap:8px;">
+                <div style="display:flex;gap:6px;font-size:12px;"><span style="color:#999;flex-shrink:0;width:58px;line-height:1.6;">服务</span><span style="color:#333;flex:1;line-height:1.6;"><strong>redimageservice-service-default</strong> · S1</span></div>
+                <div style="display:flex;gap:6px;font-size:12px;"><span style="color:#999;flex-shrink:0;width:58px;line-height:1.6;">告警规则</span><span style="color:#333;flex:1;line-height:1.6;">[RedImageV3] 图片处理错误</span></div>
+                <div style="display:flex;gap:6px;font-size:12px;"><span style="color:#999;flex-shrink:0;width:58px;line-height:1.6;">触发条件</span><span style="flex:1;"><div style="background:#fafbff;border:1px solid #e8eaf5;border-radius:5px;padding:6px 10px;font-size:11px;color:#555;display:flex;flex-direction:column;gap:3px;"><div style="display:flex;gap:6px;"><span style="color:#bbb;width:48px;flex-shrink:0;">表达式</span><span>value >= 5.0</span></div><div style="display:flex;gap:6px;"><span style="color:#bbb;width:48px;flex-shrink:0;">持续</span><span>连续 2 次满足</span></div><div style="display:flex;gap:6px;"><span style="color:#bbb;width:48px;flex-shrink:0;">当前值</span><span style="color:#ff4d4f;font-weight:600;">18, 20</span></div></div></span></div>
+                <hr style="border:none;border-top:1px solid #f0f0f5;">
+                <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:4px;">
+                  <div style="font-size:11px;"><div style="color:#bbb;">触发时间</div><div style="color:#555;margin-top:1px;">14:28:16</div></div>
+                  <div style="font-size:11px;"><div style="color:#bbb;">数据时间</div><div style="color:#555;margin-top:1px;">14:47:30</div></div>
+                  <div style="font-size:11px;"><div style="color:#bbb;">推送时间</div><div style="color:#555;margin-top:1px;">14:48:31</div></div>
+                </div>
+                <hr style="border:none;border-top:1px solid #f0f0f5;">
+                <div style="font-size:12px;font-weight:600;color:#ff4d4f;">⚠️ 此告警未被认领，请尽快认领！</div>
+                <div style="display:flex;align-items:center;gap:8px;font-size:12px;color:#999;flex-wrap:wrap;" onclick="event.stopPropagation()">静默：<span style="color:#1677ff;cursor:pointer;">1小时</span><span style="color:#1677ff;cursor:pointer;">6小时</span><span style="color:#1677ff;cursor:pointer;">12小时</span><span style="color:#1677ff;cursor:pointer;">24小时</span></div>
+                <div style="display:flex;flex-wrap:wrap;gap:4px 8px;font-size:12px;" onclick="event.stopPropagation()"><span style="color:#1677ff;cursor:pointer;">[查看事件]</span><span style="color:#1677ff;cursor:pointer;">[认领事件]</span><span style="color:#1677ff;cursor:pointer;">[静默]</span><span style="color:#1677ff;cursor:pointer;">[规则配置]</span><span style="color:#1677ff;cursor:pointer;">[指标详情]</span><span style="color:#1677ff;cursor:pointer;">[变更事件]</span></div>
+              </div>
+              <!-- 诊断状态条 + 反馈 -->
+              <div id="diagCard1" style="margin:0 14px 12px;background:#f0faf2;border:1px solid #b7eb8f;border-radius:6px;font-size:12px;overflow:hidden;" onclick="event.stopPropagation()">
+                <div style="padding:9px 12px;display:flex;align-items:center;gap:8px;">
+                  <span style="font-size:13px;">✅</span>
+                  <div style="flex:1;color:#333;"><strong style="color:#389e0d;">已诊断</strong>：连接池耗尽（置信度 <span style="color:#52c41a;font-weight:600;">87%</span>）</div>
+                  <span style="font-size:11px;color:#1677ff;flex-shrink:0;cursor:pointer;" onclick="openSidebar3()">点击查看 →</span>
+                </div>
+                <div id="fb1-ask" style="border-top:1px dashed #b7eb8f;padding:7px 12px;display:flex;align-items:center;gap:8px;background:#f7fcf5;">
+                  <span style="font-size:11px;color:#888;flex-shrink:0;">诊断是否准确？</span>
+                  <span class="fb-btn fb-yes" onclick="fbYes('fb1')">👍 准确</span>
+                  <span class="fb-btn fb-no" onclick="fbNo('fb1')">👎 不准确</span>
+                </div>
+                <div id="fb1-detail" style="display:none;border-top:1px dashed #ffd591;padding:8px 12px;background:#fffdf5;">
+                  <div style="font-size:11px;color:#888;margin-bottom:6px;">哪里不准确？（可多选）</div>
+                  <div style="display:flex;flex-wrap:wrap;gap:5px;margin-bottom:8px;"><span class="fb-tag" onclick="toggleFbTag(this)">误报，实际无问题</span><span class="fb-tag" onclick="toggleFbTag(this)">根因方向错误</span><span class="fb-tag" onclick="toggleFbTag(this)">遗漏关键信息</span><span class="fb-tag" onclick="toggleFbTag(this)">置信度虚高</span><span class="fb-tag" onclick="toggleFbTag(this)">其他</span></div>
+                  <div style="display:flex;gap:6px;"><input id="fb1-remark" type="text" placeholder="补充说明（选填）" style="flex:1;font-size:11px;border:1px solid #e0e4ef;border-radius:4px;padding:4px 8px;outline:none;color:#555;" onclick="event.stopPropagation()"><span class="fb-submit" onclick="fbSubmit('fb1')">提交</span></div>
+                </div>
+                <div id="fb1-done" style="display:none;border-top:1px dashed #b7eb8f;padding:7px 12px;background:#f7fcf5;font-size:11px;color:#52c41a;">✅ 已反馈，感谢！将用于 SKILL 持续优化</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="time-sep">今天 14:35</div>
+        <!-- 卡片2：诊断中 -->
+        <div class="bot-row">
+          <div class="bot-avatar red">🤖</div>
+          <div>
+            <div class="bot-name">XRay 告警机器人</div>
+            <div style="background:#fff;border:1px solid #e0e4ef;border-radius:10px;overflow:hidden;box-shadow:0 1px 4px rgba(0,0,0,0.06);max-width:460px;">
+              <div style="padding:10px 14px;display:flex;align-items:flex-start;gap:8px;border-bottom:1px solid #f0f0f5;"><span style="font-size:11px;font-weight:700;padding:2px 7px;background:#fff1f0;color:#ff4d4f;border:1px solid #ffccc7;border-radius:4px;flex-shrink:0;margin-top:1px;">P1</span><span style="font-size:11px;padding:2px 6px;background:#f5f6f8;color:#888;border:1px solid #e0e4ef;border-radius:4px;flex-shrink:0;margin-top:1px;">告警</span><div style="font-size:13px;font-weight:600;color:#1a1a2e;flex:1;line-height:1.4;">[Prod] creator-service DB 连接池耗尽</div></div>
+              <div style="padding:10px 14px;display:flex;flex-direction:column;gap:8px;">
+                <div style="display:flex;gap:6px;font-size:12px;"><span style="color:#999;flex-shrink:0;width:58px;">服务</span><span style="color:#333;flex:1;"><strong>creator-service</strong> · S2</span></div>
+                <div style="display:flex;gap:6px;font-size:12px;"><span style="color:#999;flex-shrink:0;width:58px;">告警规则</span><span style="color:#333;flex:1;">DB 连接池使用率 &gt; 90%</span></div>
+                <div style="display:flex;gap:6px;font-size:12px;"><span style="color:#999;flex-shrink:0;width:58px;">触发条件</span><span style="flex:1;"><div style="background:#fafbff;border:1px solid #e8eaf5;border-radius:5px;padding:6px 10px;font-size:11px;color:#555;display:flex;flex-direction:column;gap:3px;"><div style="display:flex;gap:6px;"><span style="color:#bbb;width:48px;flex-shrink:0;">表达式</span><span>value &gt;= 90</span></div><div style="display:flex;gap:6px;"><span style="color:#bbb;width:48px;flex-shrink:0;">持续</span><span>连续 2 次满足</span></div><div style="display:flex;gap:6px;"><span style="color:#bbb;width:48px;flex-shrink:0;">当前值</span><span style="color:#ff4d4f;font-weight:600;">94, 97</span></div></div></span></div>
+                <hr style="border:none;border-top:1px solid #f0f0f5;">
+                <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:4px;"><div style="font-size:11px;"><div style="color:#bbb;">触发时间</div><div style="color:#555;margin-top:1px;">14:35:02</div></div><div style="font-size:11px;"><div style="color:#bbb;">数据时间</div><div style="color:#555;margin-top:1px;">14:34:50</div></div><div style="font-size:11px;"><div style="color:#bbb;">推送时间</div><div style="color:#555;margin-top:1px;">14:35:18</div></div></div>
+                <hr style="border:none;border-top:1px solid #f0f0f5;">
+                <div style="font-size:12px;font-weight:600;color:#ff4d4f;">⚠️ 此告警未被认领，请尽快认领！</div>
+                <div style="display:flex;flex-wrap:wrap;gap:4px 8px;font-size:12px;color:#1677ff;"><span style="cursor:pointer;">[查看事件]</span><span style="cursor:pointer;">[认领事件]</span><span style="cursor:pointer;">[静默]</span><span style="cursor:pointer;">[规则配置]</span></div>
+              </div>
+              <div style="margin:0 14px 12px;background:#fafbff;border:1px solid #d0daf5;border-radius:6px;padding:9px 12px;display:flex;align-items:center;gap:8px;font-size:12px;"><div class="loading-dots" style="flex-shrink:0;"><span style="background:#1677ff;"></span><span style="background:#1677ff;"></span><span style="background:#1677ff;"></span></div><div style="flex:1;color:#666;">AI 诊断中，预计 <strong style="color:#1677ff;">3-4 分钟</strong>完成…</div></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="time-sep">今天 14:41</div>
+        <!-- 卡片3：未绑定 -->
+        <div class="bot-row">
+          <div class="bot-avatar red">🤖</div>
+          <div>
+            <div class="bot-name">XRay 告警机器人</div>
+            <div style="background:#fff;border:1px solid #e0e4ef;border-radius:10px;overflow:hidden;box-shadow:0 1px 4px rgba(0,0,0,0.06);max-width:460px;">
+              <div style="padding:10px 14px;display:flex;align-items:flex-start;gap:8px;border-bottom:1px solid #f0f0f5;"><span style="font-size:11px;font-weight:700;padding:2px 7px;background:#fff7e6;color:#fa8c16;border:1px solid #ffd591;border-radius:4px;flex-shrink:0;margin-top:1px;">P2</span><span style="font-size:11px;padding:2px 6px;background:#f5f6f8;color:#888;border:1px solid #e0e4ef;border-radius:4px;flex-shrink:0;margin-top:1px;">告警</span><div style="font-size:13px;font-weight:600;color:#1a1a2e;flex:1;line-height:1.4;">[Prod] ark0-service 内存使用率持续偏高</div></div>
+              <div style="padding:10px 14px;display:flex;flex-direction:column;gap:8px;">
+                <div style="display:flex;gap:6px;font-size:12px;"><span style="color:#999;flex-shrink:0;width:58px;">服务</span><span style="color:#333;flex:1;"><strong>ark0-service</strong> · S2</span></div>
+                <div style="display:flex;gap:6px;font-size:12px;"><span style="color:#999;flex-shrink:0;width:58px;">告警规则</span><span style="color:#333;flex:1;">内存使用率 &gt; 85%，连续 3 次</span></div>
+                <div style="display:flex;gap:6px;font-size:12px;"><span style="color:#999;flex-shrink:0;width:58px;">触发条件</span><span style="flex:1;"><div style="background:#fafbff;border:1px solid #e8eaf5;border-radius:5px;padding:6px 10px;font-size:11px;color:#555;display:flex;flex-direction:column;gap:3px;"><div style="display:flex;gap:6px;"><span style="color:#bbb;width:48px;flex-shrink:0;">表达式</span><span>mem_usage &gt;= 85</span></div><div style="display:flex;gap:6px;"><span style="color:#bbb;width:48px;flex-shrink:0;">持续</span><span>连续 3 次满足</span></div><div style="display:flex;gap:6px;"><span style="color:#bbb;width:48px;flex-shrink:0;">当前值</span><span style="color:#fa8c16;font-weight:600;">87, 89, 91</span></div></div></span></div>
+                <hr style="border:none;border-top:1px solid #f0f0f5;">
+                <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:4px;"><div style="font-size:11px;"><div style="color:#bbb;">触发时间</div><div style="color:#555;margin-top:1px;">14:41:30</div></div><div style="font-size:11px;"><div style="color:#bbb;">数据时间</div><div style="color:#555;margin-top:1px;">14:41:10</div></div><div style="font-size:11px;"><div style="color:#bbb;">推送时间</div><div style="color:#555;margin-top:1px;">14:41:45</div></div></div>
+                <hr style="border:none;border-top:1px solid #f0f0f5;">
+                <div style="display:flex;flex-wrap:wrap;gap:4px 8px;font-size:12px;color:#1677ff;"><span style="cursor:pointer;">[查看事件]</span><span style="cursor:pointer;">[认领事件]</span><span style="cursor:pointer;">[静默]</span><span style="cursor:pointer;">[规则配置]</span></div>
+              </div>
+              <div style="margin:0 14px 12px;background:#fafafa;border:1px solid #e0e4ef;border-radius:6px;padding:9px 12px;display:flex;align-items:center;gap:8px;font-size:12px;"><span>⚙️</span><div style="flex:1;color:#999;">该规则未绑定排障 SKILL，无法自动诊断</div><span style="font-size:11px;color:#1677ff;cursor:pointer;flex-shrink:0;">去绑定 →</span></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="time-sep">今天 14:52</div>
+        <!-- 卡片4：诊断失败 -->
+        <div class="bot-row">
+          <div class="bot-avatar red">🤖</div>
+          <div>
+            <div class="bot-name">XRay 告警机器人</div>
+            <div style="background:#fff;border:1px solid #e0e4ef;border-radius:10px;overflow:hidden;box-shadow:0 1px 4px rgba(0,0,0,0.06);max-width:460px;">
+              <div style="padding:10px 14px;display:flex;align-items:flex-start;gap:8px;border-bottom:1px solid #f0f0f5;"><span style="font-size:11px;font-weight:700;padding:2px 7px;background:#fff1f0;color:#ff4d4f;border:1px solid #ffccc7;border-radius:4px;flex-shrink:0;margin-top:1px;">P1</span><span style="font-size:11px;padding:2px 6px;background:#f5f6f8;color:#888;border:1px solid #e0e4ef;border-radius:4px;flex-shrink:0;margin-top:1px;">告警</span><div style="font-size:13px;font-weight:600;color:#1a1a2e;flex:1;line-height:1.4;">[Prod] arkfeedx-service 外流新笔记曝光下跌</div></div>
+              <div style="padding:10px 14px;display:flex;flex-direction:column;gap:8px;">
+                <div style="display:flex;gap:6px;font-size:12px;"><span style="color:#999;flex-shrink:0;width:58px;">服务</span><span style="color:#333;flex:1;"><strong>arkfeedx-service</strong> · S1</span></div>
+                <div style="display:flex;gap:6px;font-size:12px;"><span style="color:#999;flex-shrink:0;width:58px;">告警规则</span><span style="color:#333;flex:1;">外流1h新笔记曝光占比周同比下跌超10%</span></div>
+                <div style="display:flex;gap:6px;font-size:12px;"><span style="color:#999;flex-shrink:0;width:58px;">触发条件</span><span style="flex:1;"><div style="background:#fafbff;border:1px solid #e8eaf5;border-radius:5px;padding:6px 10px;font-size:11px;color:#555;display:flex;flex-direction:column;gap:3px;"><div style="display:flex;gap:6px;"><span style="color:#bbb;width:48px;flex-shrink:0;">表达式</span><span>ratio_wow &lt; -0.1</span></div><div style="display:flex;gap:6px;"><span style="color:#bbb;width:48px;flex-shrink:0;">持续</span><span>连续 2 次满足</span></div><div style="display:flex;gap:6px;"><span style="color:#bbb;width:48px;flex-shrink:0;">当前值</span><span style="color:#ff4d4f;font-weight:600;">-13.2%, -15.8%</span></div></div></span></div>
+                <hr style="border:none;border-top:1px solid #f0f0f5;">
+                <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:4px;"><div style="font-size:11px;"><div style="color:#bbb;">触发时间</div><div style="color:#555;margin-top:1px;">14:52:05</div></div><div style="font-size:11px;"><div style="color:#bbb;">数据时间</div><div style="color:#555;margin-top:1px;">14:51:40</div></div><div style="font-size:11px;"><div style="color:#bbb;">推送时间</div><div style="color:#555;margin-top:1px;">14:52:20</div></div></div>
+                <hr style="border:none;border-top:1px solid #f0f0f5;">
+                <div style="display:flex;flex-wrap:wrap;gap:4px 8px;font-size:12px;color:#1677ff;"><span style="cursor:pointer;">[查看事件]</span><span style="cursor:pointer;">[认领事件]</span><span style="cursor:pointer;">[静默]</span><span style="cursor:pointer;">[规则配置]</span></div>
+              </div>
+              <div style="margin:0 14px 12px;background:#fff2f0;border:1px solid #ffccc7;border-radius:6px;padding:9px 12px;display:flex;align-items:center;gap:8px;font-size:12px;"><span>❌</span><div style="flex:1;color:#ff4d4f;">诊断失败：数据源拉取超时，<span style="color:#333;">SKILL 执行中断</span></div><span style="font-size:11px;color:#1677ff;cursor:pointer;flex-shrink:0;">重试 →</span></div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+      <div class="input-bar"><div class="input-mock">输入消息…</div></div>
+    </div>
+  </div>
+
+  <!-- Tab2: 短期方案 -->
+  <div id="s3panel2" style="flex:1;overflow:hidden;display:none;flex-direction:column;">
+    <!-- 说明 banner -->
+    <div style="background:#fffbe6;border-bottom:1px solid #ffe58f;padding:9px 20px;display:flex;align-items:flex-start;gap:8px;font-size:12px;flex-shrink:0;">
+      <span style="font-size:14px;flex-shrink:0;">⚠️</span>
+      <div style="color:#7d4a00;line-height:1.6;">
+        <strong>短期方案说明：</strong>告警触发 → 推送「告警事件卡片」，诊断完成 → 再独立推送「AI 诊断卡片」。
+        <span style="color:#d48806;">两条消息独立，用户需人工匹配；群消息量翻倍。</span>
+        待告警中心完成数据结构改造（约 1 个月）后，切换至终态方案。
+      </div>
+    </div>
+    <div class="im-shell">
+      <div class="group-topbar">
+        <div class="group-avatar">🔔</div>
+        <div>
+          <div class="group-name">推荐业务告警群</div>
+          <div class="group-sub">28人</div>
+        </div>
+      </div>
+      <div class="chat-body">
+
+        <div class="time-sep">今天 14:28</div>
+        <!-- 消息1：告警事件卡片（原始推送） -->
+        <div class="bot-row">
+          <div class="bot-avatar red">🤖</div>
+          <div>
+            <div class="bot-name">XRay 告警机器人</div>
+            <div style="background:#fff;border:1px solid #e0e4ef;border-radius:10px;overflow:hidden;box-shadow:0 1px 4px rgba(0,0,0,0.06);max-width:460px;">
+              <div style="padding:10px 14px;display:flex;align-items:flex-start;gap:8px;border-bottom:1px solid #f0f0f5;">
+                <span style="font-size:11px;font-weight:700;padding:2px 7px;background:#fff1f0;color:#ff4d4f;border:1px solid #ffccc7;border-radius:4px;flex-shrink:0;margin-top:1px;">P1</span>
+                <span style="font-size:11px;padding:2px 6px;background:#f5f6f8;color:#888;border:1px solid #e0e4ef;border-radius:4px;flex-shrink:0;margin-top:1px;">告警事件</span>
+                <div style="font-size:13px;font-weight:600;color:#1a1a2e;flex:1;line-height:1.4;">[Prod] creator-service DB 连接池耗尽</div>
+              </div>
+              <div style="padding:10px 14px;display:flex;flex-direction:column;gap:7px;">
+                <div style="display:flex;gap:6px;font-size:12px;"><span style="color:#999;flex-shrink:0;width:58px;">服务</span><span style="color:#333;"><strong>creator-service</strong> · S2</span></div>
+                <div style="display:flex;gap:6px;font-size:12px;"><span style="color:#999;flex-shrink:0;width:58px;">告警规则</span><span style="color:#333;">DB 连接池使用率 &gt; 90%</span></div>
+                <div style="display:flex;gap:6px;font-size:12px;"><span style="color:#999;flex-shrink:0;width:58px;">当前值</span><span style="color:#ff4d4f;font-weight:600;">94%, 97%</span></div>
+                <div style="display:flex;gap:6px;font-size:12px;"><span style="color:#999;flex-shrink:0;width:58px;">触发时间</span><span style="color:#555;">14:28:02</span></div>
+                <hr style="border:none;border-top:1px solid #f0f0f5;">
+                <div style="font-size:12px;font-weight:600;color:#ff4d4f;">⚠️ 此告警未被认领，请尽快认领！</div>
+                <div style="display:flex;flex-wrap:wrap;gap:4px 8px;font-size:12px;color:#1677ff;"><span style="cursor:pointer;">[查看事件]</span><span style="cursor:pointer;">[认领事件]</span><span style="cursor:pointer;">[静默]</span><span style="cursor:pointer;">[规则配置]</span></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 其他群消息，模拟群热闹 -->
+        <div style="display:flex;gap:8px;padding:6px 0;align-items:flex-start;">
+          <div style="width:28px;height:28px;border-radius:50%;background:#e0e0e0;display:flex;align-items:center;justify-content:center;font-size:13px;flex-shrink:0;">👤</div>
+          <div>
+            <div style="font-size:11px;color:#bbb;margin-bottom:2px;">张三</div>
+            <div style="background:#f5f6f8;border-radius:8px;padding:8px 12px;font-size:12px;color:#555;max-width:300px;">这个连接池是 14:20 那波扩容后出的问题吗？</div>
+          </div>
+        </div>
+        <div style="display:flex;gap:8px;padding:6px 0;align-items:flex-start;">
+          <div style="width:28px;height:28px;border-radius:50%;background:#d0e4ff;display:flex;align-items:center;justify-content:center;font-size:13px;flex-shrink:0;">👤</div>
+          <div>
+            <div style="font-size:11px;color:#bbb;margin-bottom:2px;">李四</div>
+            <div style="background:#f5f6f8;border-radius:8px;padding:8px 12px;font-size:12px;color:#555;max-width:300px;">我去看看，先静默 1h</div>
+          </div>
+        </div>
+
+        <div class="time-sep">今天 14:32 <span style="font-size:10px;color:#aaa;margin-left:4px;">（诊断完成，约 4 分钟后推送）</span></div>
+
+        <!-- 消息2：独立诊断结果卡片 -->
+        <div class="bot-row">
+          <div class="bot-avatar red">🤖</div>
+          <div>
+            <div class="bot-name">XRay 告警机器人</div>
+            <!-- 诊断卡片与告警卡片无直接关联，需人工匹配 -->
+            <div onclick="openSidebar3()" style="background:#fff;border:1px solid #b7eb8f;border-radius:10px;overflow:hidden;box-shadow:0 2px 8px rgba(82,196,26,0.1);max-width:460px;cursor:pointer;transition:box-shadow 0.15s;" onmouseover="this.style.boxShadow='0 4px 16px rgba(82,196,26,0.22)'" onmouseout="this.style.boxShadow='0 2px 8px rgba(82,196,26,0.1)'">
+              <div style="padding:10px 14px;background:#f6ffed;border-bottom:1px solid #d9f7be;display:flex;align-items:center;gap:8px;">
+                <span style="font-size:14px;">🤖</span>
+                <div style="font-size:13px;font-weight:600;color:#389e0d;">AI 诊断结果</div>
+                <span style="font-size:11px;color:#999;margin-left:auto;">XPILOT · 连接池耗尽排障 SKILL</span>
+              </div>
+              <div style="padding:12px 14px;display:flex;flex-direction:column;gap:10px;">
+                <!-- 关联告警（需人工匹配，标注体验问题） -->
+                <div style="background:#fff7e6;border:1px solid #ffd591;border-radius:5px;padding:7px 10px;font-size:11px;display:flex;align-items:center;gap:6px;">
+                  <span style="color:#d48806;">⚠️ 体验问题</span>
+                  <span style="color:#888;">此诊断结果对应上方「<strong style="color:#555;">creator-service DB 连接池耗尽</strong>」告警，请人工匹配</span>
+                </div>
+                <!-- 根因 -->
+                <div>
+                  <div style="font-size:11px;color:#bbb;margin-bottom:4px;">根因分析</div>
+                  <div style="font-size:13px;font-weight:600;color:#1a1a2e;">DB 连接池耗尽（主因）</div>
+                  <div style="margin-top:4px;display:flex;align-items:center;gap:6px;">
+                    <div style="height:6px;border-radius:3px;background:#52c41a;flex:1;max-width:160px;"></div>
+                    <span style="font-size:12px;color:#52c41a;font-weight:600;">置信度 87%</span>
+                  </div>
+                </div>
+                <!-- 关键发现 -->
+                <div style="background:#fafbff;border:1px solid #e8eaf5;border-radius:6px;padding:10px 12px;font-size:12px;display:flex;flex-direction:column;gap:5px;">
+                  <div style="font-weight:600;color:#555;margin-bottom:3px;">关键发现</div>
+                  <div style="display:flex;gap:6px;color:#666;"><span style="color:#ff4d4f;flex-shrink:0;">●</span><span>昨日 14:30 发布 v2.1.3，maxPoolSize 从 20 降至 10</span></div>
+                  <div style="display:flex;gap:6px;color:#666;"><span style="color:#ff4d4f;flex-shrink:0;">●</span><span>db-writer 连接等待队列 48/10，已溢出</span></div>
+                  <div style="display:flex;gap:6px;color:#666;"><span style="color:#fa8c16;flex-shrink:0;">●</span><span>RequestTimeoutException 占比 89%，3 小时内累计 2,847 次</span></div>
+                </div>
+                <!-- 处置建议 -->
+                <div style="font-size:12px;color:#555;">
+                  <div style="font-weight:600;color:#1a1a2e;margin-bottom:5px;">处置建议</div>
+                  <div style="display:flex;flex-direction:column;gap:4px;">
+                    <div style="display:flex;gap:6px;"><span style="color:#1677ff;flex-shrink:0;">①</span><span>回滚 v2.1.3 的 maxPoolSize 配置至 20</span></div>
+                    <div style="display:flex;gap:6px;"><span style="color:#1677ff;flex-shrink:0;">②</span><span>临时扩容连接池（maxPoolSize 设为 30）缓解排队</span></div>
+                  </div>
+                </div>
+                <!-- 反馈 -->
+                <div style="border-top:1px solid #f0f0f5;padding-top:8px;display:flex;align-items:center;gap:8px;" onclick="event.stopPropagation()">
+                  <span style="font-size:11px;color:#888;">诊断准确吗？</span>
+                  <span class="fb-btn fb-yes" onclick="fbYes('fb-st1')">👍 准确</span>
+                  <span class="fb-btn fb-no" onclick="fbNo('fb-st1')">👎 不准确</span>
+                  <span style="font-size:11px;color:#1677ff;margin-left:auto;cursor:pointer;" onclick="openSidebar3()">接着聊 →</span>
+                </div>
+                <div id="fb-st1-ask" style="display:none;"></div>
+                <div id="fb-st1-detail" style="display:none;border-top:1px dashed #ffd591;padding-top:8px;">
+                  <div style="font-size:11px;color:#888;margin-bottom:5px;">哪里不准确？</div>
+                  <div style="display:flex;flex-wrap:wrap;gap:5px;margin-bottom:7px;"><span class="fb-tag" onclick="toggleFbTag(this)">误报</span><span class="fb-tag" onclick="toggleFbTag(this)">根因错误</span><span class="fb-tag" onclick="toggleFbTag(this)">遗漏信息</span><span class="fb-tag" onclick="toggleFbTag(this)">其他</span></div>
+                  <div style="display:flex;gap:6px;"><input type="text" placeholder="补充说明（选填）" style="flex:1;font-size:11px;border:1px solid #e0e4ef;border-radius:4px;padding:4px 8px;outline:none;" onclick="event.stopPropagation()"><span class="fb-submit" onclick="fbSubmit('fb-st1')">提交</span></div>
+                </div>
+                <div id="fb-st1-done" style="display:none;font-size:11px;color:#52c41a;border-top:1px solid #f0f0f5;padding-top:7px;">✅ 已反馈，感谢！将用于 SKILL 优化</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 群里继续讨论 -->
+        <div style="display:flex;gap:8px;padding:6px 0;align-items:flex-start;">
+          <div style="width:28px;height:28px;border-radius:50%;background:#e0e0e0;display:flex;align-items:center;justify-content:center;font-size:13px;flex-shrink:0;">👤</div>
+          <div>
+            <div style="font-size:11px;color:#bbb;margin-bottom:2px;">张三</div>
+            <div style="background:#f5f6f8;border-radius:8px;padding:8px 12px;font-size:12px;color:#555;max-width:300px;">这个诊断卡片是对应上面哪个告警的啊？🤔</div>
+          </div>
+        </div>
+        <div style="display:flex;gap:8px;padding:6px 0;align-items:flex-start;">
+          <div style="width:28px;height:28px;border-radius:50%;background:#d0e4ff;display:flex;align-items:center;justify-content:center;font-size:13px;flex-shrink:0;">👤</div>
+          <div>
+            <div style="font-size:11px;color:#bbb;margin-bottom:2px;">李四</div>
+            <div style="background:#f5f6f8;border-radius:8px;padding:8px 12px;font-size:12px;color:#555;max-width:300px;">应该是 14:28 那个连接池的，你对比一下服务名就行</div>
+          </div>
+        </div>
+
+      </div>
+      <div class="input-bar"><div class="input-mock">输入消息…</div></div>
+    </div>
+  </div>
+
+  <!-- 侧边栏（终态方案用） -->
+<!-- 侧边栏 -->
+  <div class="sidebar-overlay" id="sidebar3" onclick="closeSidebar3OnOverlay(event)">
+    <div class="sidebar-panel">
+      <div class="sp-head">
+        <div class="sp-avatar">X</div>
+        <div class="sp-head-info">
+          <div class="sp-title">AI 诊断对话</div>
+          <div class="sp-subtitle">redimageservice · 图片处理错误</div>
+        </div>
+        <div class="sp-close" onclick="closeSidebar3()">×</div>
+      </div>
+      <div class="sp-body" id="spBody3">
+
+        <!-- 推理过程 + 诊断结论 -->
+        <div class="sp-msg-row">
+          <div class="sp-msg-avatar ai">X</div>
+          <div style="flex:1;min-width:0;">
+            <div class="sp-bubble ai" style="max-width:100%;">
+
+              <!-- 推理过程（可折叠） -->
+              <div class="reasoning-toggle" id="rt3" onclick="toggleReasoning('r3','rt3')">
+                <span class="arrow">▶</span>
+                <span>查看推理过程（已执行 6 步）</span>
+              </div>
+              <div class="reasoning-body" id="r3">
+                <div class="reasoning-step"><span class="r-step-icon">①</span><span class="r-step-text">拉取 redimageservice 最近 1h 的错误日志 → <span class="r-step-result">发现 RequestTimeoutException 占比 89%</span></span></div>
+                <div class="reasoning-step"><span class="r-step-icon">②</span><span class="r-step-text">查询 JVM / GC 指标 → <span class="r-step-result">正常，排除内存问题</span></span></div>
+                <div class="reasoning-step"><span class="r-step-icon">③</span><span class="r-step-text">分析下游依赖 SLA → <span class="r-step-warn">db-writer-service 连接池等待队列 48/10，溢出</span></span></div>
+                <div class="reasoning-step"><span class="r-step-icon">④</span><span class="r-step-text">查询最近变更记录 → <span class="r-step-warn">昨日 14:30 发布 v2.1.3，maxPoolSize 20→10</span></span></div>
+                <div class="reasoning-step"><span class="r-step-icon">⑤</span><span class="r-step-text">检索历史相似故障 → <span class="r-step-result">匹配到 2 条，均为连接池配置变更引发</span></span></div>
+                <div class="reasoning-step"><span class="r-step-icon">⑥</span><span class="r-step-text">综合判断 → <span class="r-step-result">根因：连接池耗尽，置信度 87%，变更强相关</span></span></div>
+              </div>
+
+              <!-- 诊断结论 -->
+              <div class="diag-card" style="margin-top:10px;">
+                <div class="diag-card-head">✅ 诊断结论</div>
+                <div class="diag-card-body">
+                  <div class="dr-row"><span class="dr-key">根因</span><span class="dr-val"><strong>连接池耗尽</strong>（DB 连接池等待队列溢出，请求大规模超时）</span></div>
+                  <div class="dr-row"><span class="dr-key">置信度</span><span class="dr-val"><span style="color:#52c41a;font-weight:600;">87%</span><div class="conf-bar"><div class="conf-fill" style="width:87%"></div></div></span></div>
+                  <div class="dr-row"><span class="dr-key">失败率</span><span class="dr-val" style="color:#ff4d4f;font-weight:600;">12.3% <span style="color:#bbb;font-weight:400;">（基线 &lt;0.5%）</span></span></div>
+                  <div class="dr-row"><span class="dr-key">关联变更</span><span class="dr-val" style="color:#fa8c16;">⚠ v2.1.3 maxPoolSize 20→10，昨日 14:30</span></div>
+                  <div class="dr-row">
+                    <span class="dr-key">建议</span>
+                    <span class="dr-val">
+                      <span style="background:#fffbe6;border:1px solid #ffe58f;border-radius:4px;padding:4px 8px;display:block;line-height:1.7;">
+                        1. 紧急回滚 maxPoolSize → 20<br>
+                        2. 确认 v2.1.3 配置变更是否误改<br>
+                        3. 为该配置添加变更告警
+                      </span>
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              <!-- 动态 chip（根据根因生成） -->
+              <div style="font-size:11px;color:#bbb;margin-top:10px;margin-bottom:4px;">根据连接池根因，建议继续排查：</div>
+              <div class="sp-chips">
+                <span class="sp-chip" onclick="sp3Send(this,'拉取失败请求 Logview')">拉取失败请求 Logview</span>
+                <span class="sp-chip" onclick="sp3Send(this,'查看 db-writer 连接池趋势')">查看 db-writer 连接池趋势</span>
+                <span class="sp-chip" onclick="sp3Send(this,'生成回滚操作步骤')">生成回滚操作步骤</span>
+                <span class="sp-chip" onclick="sp3Send(this,'生成排障报告')">生成排障报告</span>
+              </div>
+
+              <!-- 报告链接 -->
+              <div class="file-card" onclick="alert('模拟：打开 redimageservice 排障报告')">
+                <span style="font-size:20px;">📄</span>
+                <div class="file-card-info">
+                  <div class="file-card-name">redimageservice 连接池耗尽排障报告</div>
+                  <div class="file-card-meta">由 SKILL 自动生成 · 14:52 · 含链路 / 指标趋势 / 变更对比</div>
+                </div>
+                <span style="font-size:12px;color:#1677ff;flex-shrink:0;">打开 →</span>
+              </div>
+
+            </div>
+          </div>
+        </div>
+
+      </div>
+      <div class="sp-input-area">
+        <input class="sp-input" id="spInput3" placeholder="继续追问…" onkeydown="if(event.key==='Enter')sp3SendInput()" />
+        <button class="sp-send" onclick="sp3SendInput()">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="#fff"><path d="M2 21l21-9L2 3v7l15 2-15 2v7z"/></svg>
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== 节点4：天级日报 ===== -->
+
+
+<div class="scene-panel" id="s4">
+  <div class="im-shell">
+    <div class="group-topbar">
+      <div class="group-avatar">🔔</div>
+      <div>
+        <div class="group-name">推荐业务告警群</div>
+        <div class="group-sub">28人</div>
+      </div>
+    </div>
+    <div class="chat-body">
+      <div class="time-sep">今天 09:00 · 每日诊断简报</div>
+
+      <div class="bot-row">
+        <div class="bot-avatar">X</div>
+        <div style="flex:1;min-width:0;">
+          <div class="bot-name">XRay Agent</div>
+          <div class="report-agent-card">
+            <div class="rac-head">
+              <div class="rac-title">📊 昨日告警诊断简报</div>
+              <div class="rac-date">2026-04-07</div>
+            </div>
+            <div class="rac-body">
+
+              <!-- Agent 洞察（核心） -->
+              <div class="rac-insight">
+                <div class="rac-insight-title">🤖 Agent 判断</div>
+                <p>昨日有 <strong>2 个问题值得关注</strong>，建议今天处理：</p>
+                <p>① <strong>连接池耗尽</strong>连续 3 天触发（creator-service），根治方案已生成但未执行</p>
+                <p>② <strong>内流新笔记规则</strong>诊断成功率仅 57%，疑似规则阈值偏松，建议调整</p>
+              </div>
+
+              <!-- 行动项 -->
+              <div class="rac-actions">
+                <div class="rac-action-item">
+                  <div class="rac-action-icon">🔥</div>
+                  <div class="rac-action-body">
+                    <div class="rac-action-title">creator-service 连接池连续 3 天触发，建议根治</div>
+                    <div class="rac-action-desc">已生成排障方案（回滚 + 配置修复），等待执行确认。如不处理，今日大概率再次触发。</div>
+                    <div class="rac-action-btns">
+                      <button class="rac-btn rac-btn-primary" onclick="s4Action(this,'查看根治方案')">查看根治方案</button>
+                      <button class="rac-btn rac-btn-ghost" onclick="s4Action(this,'暂时忽略')">暂时忽略</button>
+                    </div>
+                  </div>
+                </div>
+                <div class="rac-action-item">
+                  <div class="rac-action-icon">⚙️</div>
+                  <div class="rac-action-body">
+                    <div class="rac-action-title">内流新笔记规则诊断成功率 57%，建议调整阈值</div>
+                    <div class="rac-action-desc">该规则近 7 天触发 14 次，其中 6 次诊断结论为「无明显异常」，可能是阈值过于敏感。</div>
+                    <div class="rac-action-btns">
+                      <button class="rac-btn rac-btn-primary" onclick="s4Action(this,'帮我分析阈值建议')">帮我分析阈值建议</button>
+                      <button class="rac-btn rac-btn-ghost" onclick="s4Action(this,'查看规则详情')">查看规则详情</button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- 基础数据 + 查看完整报告入口 -->
+              <div style="display:flex;align-items:center;gap:10px;padding-top:6px;border-top:1px solid #f0f0f5;">
+                <div class="rac-stats" style="flex:1;border:none;padding:0;">
+                  <div class="rac-stat"><div class="rac-stat-num">23</div><div class="rac-stat-label">总告警</div></div>
+                  <div class="rac-stat"><div class="rac-stat-num" style="color:#52c41a;">19</div><div class="rac-stat-label">已诊断</div></div>
+                  <div class="rac-stat"><div class="rac-stat-num" style="color:#fa8c16;">82%</div><div class="rac-stat-label">成功率</div></div>
+                </div>
+                <button onclick="openReportPanel()" style="font-size:12px;padding:5px 14px;border-radius:5px;border:1px solid #1677ff;color:#1677ff;background:#fff;cursor:pointer;flex-shrink:0;white-space:nowrap;">查看完整报告 →</button>
+              </div>
+
+            </div>
+          </div>
+
+          <!-- Agent 行动回复区 -->
+          <div id="s4Reply" style="margin-top:10px;display:none;">
+            <div class="ai-bubble" id="s4ReplyContent"></div>
+          </div>
+
+        </div>
+      </div>
+
+    </div>
+    <div class="input-bar">
+      <div class="input-mock">输入消息…</div>
+    </div>
+  </div>
+
+  <!-- 完整报告侧边面板 -->
+  <div class="sidebar-overlay" id="reportPanel" onclick="closeReportOnOverlay(event)">
+    <div class="sidebar-panel" style="width:500px;">
+      <!-- 头部 -->
+      <div class="sp-head" style="background:#fff;">
+        <div class="sp-avatar" style="background:linear-gradient(135deg,#52c41a,#1677ff);">📊</div>
+        <div class="sp-head-info">
+          <div class="sp-title">AI 诊断对话</div>
+          <div class="sp-subtitle">2026-04-07 · 推荐业务 · 告警日报分析</div>
+        </div>
+        <div class="sp-close" onclick="closeReportPanel()">×</div>
+      </div>
+
+      <!-- 对话体 -->
+      <div class="sp-body" id="reportChatBody" style="gap:0;padding:0;overflow-y:auto;">
+
+        <!-- AI 第一条：日报摘要 -->
+        <div style="padding:14px 16px;">
+          <div class="sp-msg-row">
+            <div class="sp-msg-avatar ai">X</div>
+            <div style="flex:1;min-width:0;">
+              <div class="sp-bubble ai" style="max-width:100%;">
+                <div style="font-size:13px;font-weight:600;color:#1a1a2e;margin-bottom:10px;">📊 昨日告警日报（2026-04-07）</div>
+
+                <!-- 核心数据 -->
+                <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:12px;">
+                  <div style="background:#f5f6f8;border-radius:7px;padding:8px;text-align:center;">
+                    <div style="font-size:18px;font-weight:700;color:#ff4d4f;">23</div>
+                    <div style="font-size:10px;color:#999;margin-top:2px;">告警总量</div>
+                  </div>
+                  <div style="background:#f5f6f8;border-radius:7px;padding:8px;text-align:center;">
+                    <div style="font-size:18px;font-weight:700;color:#52c41a;">19</div>
+                    <div style="font-size:10px;color:#999;margin-top:2px;">已诊断</div>
+                  </div>
+                  <div style="background:#f5f6f8;border-radius:7px;padding:8px;text-align:center;">
+                    <div style="font-size:18px;font-weight:700;color:#fa8c16;">3</div>
+                    <div style="font-size:10px;color:#999;margin-top:2px;">P1 告警</div>
+                  </div>
+                  <div style="background:#f5f6f8;border-radius:7px;padding:8px;text-align:center;">
+                    <div style="font-size:18px;font-weight:700;color:#722ed1;">87%</div>
+                    <div style="font-size:10px;color:#999;margin-top:2px;">诊断覆盖率</div>
+                  </div>
+                </div>
+
+                <!-- 根因 TOP3 -->
+                <div style="margin-bottom:10px;">
+                  <div style="font-size:11px;font-weight:600;color:#888;margin-bottom:6px;">根因 TOP3</div>
+                  <div style="display:flex;flex-direction:column;gap:5px;">
+                    <div style="display:flex;align-items:center;gap:8px;font-size:12px;"><div style="width:80px;color:#333;flex-shrink:0;">连接池耗尽</div><div style="flex:1;background:#f0f0f5;border-radius:3px;height:5px;overflow:hidden;"><div style="width:78%;height:100%;background:#ff4d4f;border-radius:3px;"></div></div><span style="color:#ff4d4f;font-weight:600;font-size:11px;">8次·35%</span></div>
+                    <div style="display:flex;align-items:center;gap:8px;font-size:12px;"><div style="width:80px;color:#333;flex-shrink:0;">下游依赖超时</div><div style="flex:1;background:#f0f0f5;border-radius:3px;height:5px;overflow:hidden;"><div style="width:48%;height:100%;background:#fa8c16;border-radius:3px;"></div></div><span style="color:#fa8c16;font-weight:600;font-size:11px;">5次·22%</span></div>
+                    <div style="display:flex;align-items:center;gap:8px;font-size:12px;"><div style="width:80px;color:#333;flex-shrink:0;">配置变更引入</div><div style="flex:1;background:#f0f0f5;border-radius:3px;height:5px;overflow:hidden;"><div style="width:38%;height:100%;background:#1677ff;border-radius:3px;"></div></div><span style="color:#1677ff;font-weight:600;font-size:11px;">4次·17%</span></div>
+                  </div>
+                </div>
+
+                <!-- AI 判断 -->
+                <div style="background:#fff7e6;border:1px solid #ffd591;border-radius:7px;padding:10px 12px;margin-bottom:10px;">
+                  <div style="font-size:11px;font-weight:600;color:#d48806;margin-bottom:5px;">🤖 AI 关注点</div>
+                  <div style="font-size:12px;color:#7d4a00;line-height:1.65;">连接池耗尽连续 3 天 TOP1，占比升至 35%，建议本周排期根治。昨日 P1 告警 3 条，均发生在 14:00–16:00 时段，疑似与午后流量高峰叠加。</div>
+                </div>
+
+                <!-- 行动项 -->
+                <div style="font-size:11px;font-weight:600;color:#888;margin-bottom:6px;">建议行动</div>
+                <div style="display:flex;flex-direction:column;gap:5px;margin-bottom:10px;">
+                  <div style="display:flex;align-items:center;gap:8px;font-size:12px;background:#fff1f0;border:1px solid #ffccc7;border-radius:6px;padding:7px 10px;">
+                    <span style="color:#ff4d4f;flex-shrink:0;">🔴</span><span style="flex:1;color:#333;">连接池耗尽连续 3 天 TOP1，建议本周排期根治</span>
+                    <span id="r4act1done" style="display:none;font-size:11px;color:#52c41a;">✓ 已发起</span>
+                    <button onclick="r4Action(this,'fix_pool','r4act1done')" style="font-size:11px;padding:3px 10px;border-radius:4px;background:#ff4d4f;color:#fff;border:none;cursor:pointer;flex-shrink:0;">生成方案</button>
+                  </div>
+                  <div style="display:flex;align-items:center;gap:8px;font-size:12px;background:#fff7e6;border:1px solid #ffd591;border-radius:6px;padding:7px 10px;">
+                    <span style="color:#fa8c16;flex-shrink:0;">🟡</span><span style="flex:1;color:#333;">连接池告警阈值偏低（90%），建议调整为 95% 并拉长持续窗口</span>
+                    <span id="r4act2done" style="display:none;font-size:11px;color:#52c41a;">✓ 已发起</span>
+                    <button onclick="r4Action(this,'fix_threshold','r4act2done')" style="font-size:11px;padding:3px 10px;border-radius:4px;background:#fa8c16;color:#fff;border:none;cursor:pointer;flex-shrink:0;">调整阈值</button>
+                  </div>
+                  <div style="display:flex;align-items:center;gap:8px;font-size:12px;background:#f0f6ff;border:1px solid #bbd4ff;border-radius:6px;padding:7px 10px;">
+                    <span style="color:#1677ff;flex-shrink:0;">🔵</span><span style="flex:1;color:#333;">GC 问题暂无排障 SKILL，建议创建覆盖</span>
+                    <span id="r4act3done" style="display:none;font-size:11px;color:#52c41a;">✓ 已发起</span>
+                    <button onclick="r4Action(this,'gc_skill','r4act3done')" style="font-size:11px;padding:3px 10px;border-radius:4px;background:#1677ff;color:#fff;border:none;cursor:pointer;flex-shrink:0;">创建 SKILL</button>
+                  </div>
+                </div>
+
+                <!-- 快捷追问 -->
+                <div style="font-size:11px;color:#bbb;margin-bottom:5px;">可以继续问我：</div>
+                <div style="display:flex;flex-wrap:wrap;gap:5px;">
+                  <span class="sp-chip" onclick="r4Ask('连接池耗尽的根治方案是什么？')">连接池根治方案</span>
+                  <span class="sp-chip" onclick="r4Ask('哪个服务昨天告警最多？')">告警最多的服务</span>
+                  <span class="sp-chip" onclick="r4Ask('未诊断的4条告警是什么原因？')">未诊断原因</span>
+                  <span class="sp-chip" onclick="r4Ask('帮我对比上周的数据')">对比上周</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 动态追问对话区 -->
+        <div id="reportChatExtra" style="padding:0 16px;display:flex;flex-direction:column;gap:0;"></div>
+
+      </div>
+
+      <!-- 输入框 -->
+      <div style="padding:12px 16px;border-top:1px solid #e8e8ee;background:#fff;display:flex;align-items:center;gap:8px;flex-shrink:0;">
+        <input id="reportInput" type="text" placeholder="继续追问，例如：哪个服务昨天 P1 最多？" style="flex:1;border:1px solid #e0e4ef;border-radius:8px;padding:8px 12px;font-size:13px;outline:none;color:#333;" onkeydown="if(event.key==='Enter')r4Send()" onclick="event.stopPropagation()">
+        <button onclick="r4Send()" style="width:36px;height:36px;border-radius:8px;border:none;background:#1677ff;color:#fff;font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;">↑</button>
+      </div>
+
+    </div>
+  </div>
+
+</div>
+
+<!-- ===== 场景5：产品链路全貌 ===== -->
+<div class="scene-panel active" id="s5" style="background:#f0f2f5;overflow-y:auto;overflow-x:auto;padding:28px 32px;min-width:0;">
+<div style="max-width:1100px;min-width:860px;margin:0 auto;font-family:-apple-system,BlinkMacSystemFont,'PingFang SC','Microsoft YaHei',sans-serif;">
+
+  <!-- 标题 -->
+  <div style="margin-bottom:22px;">
+    <div style="font-size:20px;font-weight:700;color:#1a1a2e;">XPILOT 告警智能诊断 · 产品全链路</div>
+    <div style="font-size:13px;color:#888;margin-top:4px;">三大场景协同，从 SKILL 配置到日报闭环的完整 AI Native 链路</div>
+  </div>
+
+  <!-- 三场景标题栏 -->
+  <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;margin-bottom:16px;">
+    <div style="background:#eff6ff;border:1.5px solid #bdd7fe;border-radius:10px;padding:14px 16px;display:flex;align-items:center;gap:10px;">
+      <div style="width:34px;height:34px;border-radius:8px;background:#1677ff;display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0;">⚙️</div>
+      <div><div style="font-size:14px;font-weight:700;color:#1677ff;">场景 A · SKILL 绑定配置</div><div style="font-size:11px;color:#88a0cc;margin-top:2px;">告警规则 × 排障 SKILL 关联</div></div>
+    </div>
+    <div style="background:#fff2f0;border:1.5px solid #ffb8a8;border-radius:10px;padding:14px 16px;display:flex;align-items:center;gap:10px;">
+      <div style="width:34px;height:34px;border-radius:8px;background:#ff4d4f;display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0;">🔔</div>
+      <div><div style="font-size:14px;font-weight:700;color:#ff4d4f;">场景 B · 实时告警诊断</div><div style="font-size:11px;color:#cc8880;margin-top:2px;">告警触发 → AI 自动诊断 → Hi IM 推送</div></div>
+    </div>
+    <div style="background:#f0faf2;border:1.5px solid #a8e0b8;border-radius:10px;padding:14px 16px;display:flex;align-items:center;gap:10px;">
+      <div style="width:34px;height:34px;border-radius:8px;background:#52c41a;display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0;">📊</div>
+      <div><div style="font-size:14px;font-weight:700;color:#389e0d;">场景 C · 每日告警日报</div><div style="font-size:11px;color:#6aaa60;margin-top:2px;">每天 12:00 推送业务线告警分析</div></div>
+    </div>
+  </div>
+
+  <!-- 三列节点内容 -->
+  <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;margin-bottom:20px;align-items:start;">
+
+    <!-- ===== A列 ===== -->
+    <div style="display:flex;flex-direction:column;gap:12px;">
+
+      <!-- A1 -->
+      <div style="background:#fff;border:1px solid #e8e8ee;border-radius:10px;padding:16px;box-shadow:0 1px 3px rgba(0,0,0,0.04);">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;">
+          <span style="font-size:10px;font-weight:700;background:#1677ff;color:#fff;border-radius:4px;padding:2px 7px;flex-shrink:0;">A1</span>
+          <span style="font-size:13px;font-weight:600;color:#1a1a2e;">业务孵化排障 SKILL</span>
+        </div>
+        <div style="font-size:12px;color:#666;line-height:1.7;margin-bottom:12px;">业务侧针对高频告警场景，在技能广场创建排障 SKILL（如「新笔记下跌排障」「GC 异常排障」）</div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap;">
+          <span style="font-size:11px;background:#e6f0ff;color:#1677ff;border:1px solid #bbd4ff;border-radius:4px;padding:2px 8px;display:flex;align-items:center;gap:3px;">🖥️ 技能广场</span>
+          <span style="font-size:11px;background:#f5f0ff;color:#722ed1;border:1px solid #d3b8ff;border-radius:4px;padding:2px 8px;">xpilot/skill</span>
+        </div>
+      </div>
+
+      <!-- A2 -->
+      <div style="background:#fff;border:1px solid #e8e8ee;border-radius:10px;padding:16px;box-shadow:0 1px 3px rgba(0,0,0,0.04);">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;">
+          <span style="font-size:10px;font-weight:700;background:#1677ff;color:#fff;border-radius:4px;padding:2px 7px;flex-shrink:0;">A2</span>
+          <span style="font-size:13px;font-weight:600;color:#1a1a2e;">绑定告警规则</span>
+        </div>
+        <div style="font-size:12px;color:#666;line-height:1.7;margin-bottom:12px;">
+          两种方式完成绑定：<br>
+          <span style="color:#1677ff;">①</span> 技能广场页面：SKILL 卡片 → 绑定告警规则 → 搜索/筛选/批量选择<br>
+          <span style="color:#1677ff;">②</span> 对话配置：「帮我查推荐相关告警规则，把 1、3、5 绑定到新笔记下跌排障 SKILL」
+        </div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap;">
+          <span style="font-size:11px;background:#e6f0ff;color:#1677ff;border:1px solid #bbd4ff;border-radius:4px;padding:2px 8px;">页面配置</span>
+          <span style="font-size:11px;background:#fff3e0;color:#fa8c16;border:1px solid #ffd591;border-radius:4px;padding:2px 8px;">对话式配置</span>
+        </div>
+      </div>
+
+      <!-- A3 -->
+      <div style="background:#fff;border:1px solid #e8e8ee;border-radius:10px;padding:16px;box-shadow:0 1px 3px rgba(0,0,0,0.04);">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;">
+          <span style="font-size:10px;font-weight:700;background:#1677ff;color:#fff;border-radius:4px;padding:2px 7px;flex-shrink:0;">A3</span>
+          <span style="font-size:13px;font-weight:600;color:#1a1a2e;">配置生效 &amp; 验证</span>
+        </div>
+        <div style="font-size:12px;color:#666;line-height:1.7;margin-bottom:12px;">绑定完成后，对应告警触发时自动调用关联 SKILL 执行诊断。支持查看绑定关系、测试运行、版本管理</div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap;">
+          <span style="font-size:11px;background:#f0faf2;color:#52c41a;border:1px solid #b7eb8f;border-radius:4px;padding:2px 8px;">✓ 绑定关系管理</span>
+          <span style="font-size:11px;background:#fff7e6;color:#fa8c16;border:1px solid #ffd591;border-radius:4px;padding:2px 8px;">测试运行</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== B列 ===== -->
+    <div style="display:flex;flex-direction:column;gap:12px;">
+
+      <!-- B1 -->
+      <div style="background:#fff;border:1px solid #e8e8ee;border-radius:10px;padding:16px;box-shadow:0 1px 3px rgba(0,0,0,0.04);">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;">
+          <span style="font-size:10px;font-weight:700;background:#ff4d4f;color:#fff;border-radius:4px;padding:2px 7px;flex-shrink:0;">B1</span>
+          <span style="font-size:13px;font-weight:600;color:#1a1a2e;">告警规则触发</span>
+        </div>
+        <div style="font-size:12px;color:#666;line-height:1.7;margin-bottom:12px;">Xray 告警规则命中，生成告警事件，匹配已绑定的排障 SKILL</div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap;">
+          <span style="font-size:11px;background:#fff1f0;color:#ff4d4f;border:1px solid #ffccc7;border-radius:4px;padding:2px 8px;">🔔 告警触发</span>
+          <span style="font-size:11px;background:#f5f6f8;color:#666;border:1px solid #e0e4ef;border-radius:4px;padding:2px 8px;">Xray Rules Engine</span>
+        </div>
+      </div>
+
+      <!-- B2 -->
+      <div style="background:#fff;border:1px solid #e8e8ee;border-radius:10px;padding:16px;box-shadow:0 1px 3px rgba(0,0,0,0.04);">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;">
+          <span style="font-size:10px;font-weight:700;background:#ff4d4f;color:#fff;border-radius:4px;padding:2px 7px;flex-shrink:0;">B2</span>
+          <span style="font-size:13px;font-weight:600;color:#1a1a2e;">Hi IM 推送告警卡片</span>
+        </div>
+        <div style="font-size:12px;color:#666;line-height:1.7;margin-bottom:12px;">XRay 助手推送告警事件卡片到值班群，展示告警基础信息，底部显示「AI 诊断中…」状态</div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap;">
+          <span style="font-size:11px;background:#e6f0ff;color:#1677ff;border:1px solid #bbd4ff;border-radius:4px;padding:2px 8px;display:flex;align-items:center;gap:3px;">💬 Hi IM 卡片</span>
+          <span style="font-size:11px;background:#fff1f0;color:#ff4d4f;border:1px solid #ffccc7;border-radius:4px;padding:2px 8px;">值班群</span>
+        </div>
+      </div>
+
+      <!-- B3 -->
+      <div style="background:#fff;border:1px solid #e8e8ee;border-radius:10px;padding:16px;box-shadow:0 1px 3px rgba(0,0,0,0.04);">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;">
+          <span style="font-size:10px;font-weight:700;background:#ff4d4f;color:#fff;border-radius:4px;padding:2px 7px;flex-shrink:0;">B3</span>
+          <span style="font-size:13px;font-weight:600;color:#1a1a2e;">SKILL 自动执行诊断</span>
+        </div>
+        <div style="font-size:12px;color:#666;line-height:1.7;margin-bottom:12px;">后台调用绑定的排障 SKILL，拉取指标/日志/Logview/变更数据，完成根因分析。卡片底部更新为「诊断完成·根因 + 置信度」</div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap;">
+          <span style="font-size:11px;background:#fff7e6;color:#fa8c16;border:1px solid #ffd591;border-radius:4px;padding:2px 8px;">⚡ SKILL 执行</span>
+          <span style="font-size:11px;background:#f0faf2;color:#52c41a;border:1px solid #b7eb8f;border-radius:4px;padding:2px 8px;">根因 + 置信度</span>
+        </div>
+      </div>
+
+      <!-- B4 -->
+      <div style="background:#fff;border:1px solid #e8e8ee;border-radius:10px;padding:16px;box-shadow:0 1px 3px rgba(0,0,0,0.04);">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;">
+          <span style="font-size:10px;font-weight:700;background:#ff4d4f;color:#fff;border-radius:4px;padding:2px 7px;flex-shrink:0;">B4</span>
+          <span style="font-size:13px;font-weight:600;color:#1a1a2e;">用户深度排障</span>
+        </div>
+        <div style="font-size:12px;color:#666;line-height:1.7;margin-bottom:12px;">点击「接着聊」→ 右侧 AI 对话侧边栏展开，诊断信息作为上下文，用户可继续追问、生成复盘、触发处置动作</div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap;">
+          <span style="font-size:11px;background:#e6f0ff;color:#1677ff;border:1px solid #bbd4ff;border-radius:4px;padding:2px 8px;">💬 Hi IM 侧边栏</span>
+          <span style="font-size:11px;background:#f5f0ff;color:#722ed1;border:1px solid #d3b8ff;border-radius:4px;padding:2px 8px;">处置 &amp; 复盘</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== C列 ===== -->
+    <div style="display:flex;flex-direction:column;gap:12px;">
+
+      <!-- C1 -->
+      <div style="background:#fff;border:1px solid #e8e8ee;border-radius:10px;padding:16px;box-shadow:0 1px 3px rgba(0,0,0,0.04);">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;">
+          <span style="font-size:10px;font-weight:700;background:#52c41a;color:#fff;border-radius:4px;padding:2px 7px;flex-shrink:0;">C1</span>
+          <span style="font-size:13px;font-weight:600;color:#1a1a2e;">定时聚合昨日数据</span>
+        </div>
+        <div style="font-size:12px;color:#666;line-height:1.7;margin-bottom:12px;">每天 12:00，按业务线/产品线汇总昨日所有告警事件：总量、级别分布、时段热图、服务分布</div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap;">
+          <span style="font-size:11px;background:#fff1f0;color:#ff4d4f;border:1px solid #ffccc7;border-radius:4px;padding:2px 8px;display:flex;align-items:center;gap:3px;">⏰ 定时任务</span>
+          <span style="font-size:11px;background:#f0faf2;color:#52c41a;border:1px solid #b7eb8f;border-radius:4px;padding:2px 8px;">按业务线聚合</span>
+        </div>
+      </div>
+
+      <!-- C2 -->
+      <div style="background:#fff;border:1px solid #e8e8ee;border-radius:10px;padding:16px;box-shadow:0 1px 3px rgba(0,0,0,0.04);">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;">
+          <span style="font-size:10px;font-weight:700;background:#52c41a;color:#fff;border-radius:4px;padding:2px 7px;flex-shrink:0;">C2</span>
+          <span style="font-size:13px;font-weight:600;color:#1a1a2e;">AI 根因聚类分析</span>
+        </div>
+        <div style="font-size:12px;color:#666;line-height:1.7;margin-bottom:12px;">对所有诊断结果做聚类：TOP 根因分布、重复告警识别、未诊断告警标注、告警风暴检测</div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap;">
+          <span style="font-size:11px;background:#fff0f6;color:#c41d7f;border:1px solid #ffadd2;border-radius:4px;padding:2px 8px;">🤖 AI 聚类</span>
+          <span style="font-size:11px;background:#f5f6f8;color:#666;border:1px solid #e0e4ef;border-radius:4px;padding:2px 8px;">根因 TOP N</span>
+        </div>
+      </div>
+
+      <!-- C3 -->
+      <div style="background:#fff;border:1px solid #e8e8ee;border-radius:10px;padding:16px;box-shadow:0 1px 3px rgba(0,0,0,0.04);">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;">
+          <span style="font-size:10px;font-weight:700;background:#52c41a;color:#fff;border-radius:4px;padding:2px 7px;flex-shrink:0;">C3</span>
+          <span style="font-size:13px;font-weight:600;color:#1a1a2e;">规则优化建议</span>
+        </div>
+        <div style="font-size:12px;color:#666;line-height:1.7;margin-bottom:12px;">基于告警数据给出规则优化建议：误报率高的规则（可调阈值）、重复根因（可合并规则）、覆盖异常（建议新增规则）</div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap;">
+          <span style="font-size:11px;background:#f0faf2;color:#52c41a;border:1px solid #b7eb8f;border-radius:4px;padding:2px 8px;">优化建议</span>
+          <span style="font-size:11px;background:#fff1f0;color:#ff4d4f;border:1px solid #ffccc7;border-radius:4px;padding:2px 8px;">误报 / 漏报</span>
+        </div>
+      </div>
+
+      <!-- C4 -->
+      <div style="background:#fff;border:1px solid #e8e8ee;border-radius:10px;padding:16px;box-shadow:0 1px 3px rgba(0,0,0,0.04);">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;">
+          <span style="font-size:10px;font-weight:700;background:#52c41a;color:#fff;border-radius:4px;padding:2px 7px;flex-shrink:0;">C4</span>
+          <span style="font-size:13px;font-weight:600;color:#1a1a2e;">日报推送到业务群</span>
+        </div>
+        <div style="font-size:12px;color:#666;line-height:1.7;margin-bottom:12px;">以结构化卡片形式推送到各业务群，支持点击下钻查看详情，或在 XPILOT 继续追问分析</div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap;">
+          <span style="font-size:11px;background:#e6f0ff;color:#1677ff;border:1px solid #bbd4ff;border-radius:4px;padding:2px 8px;display:flex;align-items:center;gap:3px;">💬 Hi IM 推送</span>
+          <span style="font-size:11px;background:#fff7e6;color:#fa8c16;border:1px solid #ffd591;border-radius:4px;padding:2px 8px;">可交互卡片</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 共享能力底座 -->
+  <div style="background:#fff;border:1px solid #e8e8ee;border-radius:12px;padding:20px 24px;margin-bottom:16px;box-shadow:0 1px 4px rgba(0,0,0,0.04);">
+    <div style="text-align:center;font-size:12px;color:#bbb;margin-bottom:16px;letter-spacing:1px;">共享能力底座</div>
+    <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:16px;text-align:center;">
+      <div>
+        <div style="font-size:24px;margin-bottom:6px;">📦</div>
+        <div style="font-size:13px;font-weight:600;color:#1a1a2e;margin-bottom:3px;">SKILL 引擎</div>
+        <div style="font-size:11px;color:#999;">排障 SKILL 注册 / 调度 / 执行</div>
+      </div>
+      <div>
+        <div style="font-size:24px;margin-bottom:6px;">🔗</div>
+        <div style="font-size:13px;font-weight:600;color:#1a1a2e;margin-bottom:3px;">规则绑定层</div>
+        <div style="font-size:11px;color:#999;">告警规则 × SKILL 映射关系</div>
+      </div>
+      <div>
+        <div style="font-size:24px;margin-bottom:6px;">⚡</div>
+        <div style="font-size:13px;font-weight:600;color:#1a1a2e;margin-bottom:3px;">Xray 数据层</div>
+        <div style="font-size:11px;color:#999;">指标 / 日志 / Trace / 变更</div>
+      </div>
+      <div>
+        <div style="font-size:24px;margin-bottom:6px;">🧠</div>
+        <div style="font-size:13px;font-weight:600;color:#1a1a2e;margin-bottom:3px;">AI 推理层</div>
+        <div style="font-size:11px;color:#999;">根因分析 / 聚类 / 置信度</div>
+      </div>
+      <div>
+        <div style="font-size:24px;margin-bottom:6px;">💬</div>
+        <div style="font-size:13px;font-weight:600;color:#1a1a2e;margin-bottom:3px;">Hi IM 推送层</div>
+        <div style="font-size:11px;color:#999;">卡片消息 / 对话侧边栏 / 日报</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 场景关系 & 数据流向 -->
+  <div style="background:#fff;border:1px solid #e8e8ee;border-radius:12px;padding:20px 24px;box-shadow:0 1px 4px rgba(0,0,0,0.04);">
+    <div style="font-size:13px;font-weight:600;color:#888;margin-bottom:14px;letter-spacing:0.5px;">场景关系 &amp; 数据流向</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:20px;">
+      <div>
+        <div style="font-size:14px;font-weight:700;color:#1677ff;margin-bottom:6px;">A → B</div>
+        <div style="font-size:12px;color:#666;line-height:1.7;">配置完成是实时诊断的前提。SKILL 未绑定的告警规则，触发后无法自动诊断，仅推送基础告警卡片。</div>
+      </div>
+      <div>
+        <div style="font-size:14px;font-weight:700;color:#ff4d4f;margin-bottom:6px;">B → C</div>
+        <div style="font-size:12px;color:#666;line-height:1.7;">实时诊断产生的根因数据，是日报聚类分析的数据源。诊断覆盖率越高，日报分析越准确。</div>
+      </div>
+      <div>
+        <div style="font-size:14px;font-weight:700;color:#52c41a;margin-bottom:6px;">C → A</div>
+        <div style="font-size:12px;color:#666;line-height:1.7;">日报的规则优化建议，反哺 SKILL 绑定配置的调整（如高频误报规则解绑 SKILL，或为漏配规则补充绑定）。</div>
+      </div>
+    </div>
+  </div>
+
+</div>
+</div>
+
+
+<!-- ===== 场景6：Claw 配置链路 ===== -->
+<div class="scene-panel" id="s6" style="flex-direction:column;overflow:hidden;background:#f5f6f8;">
+  <!-- 内部 Tab -->
+  <div class="s6-tab-bar">
+    <div class="s6-tab active" onclick="s6SwitchTab('s6p1',this)">流程对比图</div>
+    <div class="s6-tab" onclick="s6SwitchTab('s6p2',this)">Claw 对话模拟</div>
+  </div>
+
+  <!-- 子面板1：流程图 -->
+  <div class="s6-subpanel active s6-flow-panel" id="s6p1">
+    <div class="s6-wrap">
+      <div style="margin-bottom:22px;">
+        <div style="font-size:18px;font-weight:700;color:#1a1a2e;">Claw 作为 XPILOT 配置入口</div>
+        <div style="font-size:13px;color:#888;margin-top:4px;line-height:1.6;">A 链路（上传 SKILL + 绑定规则）从 XPILOT 网页迁移到 Claw 对话，B/C 链路不变</div>
+      </div>
+
+      <div class="s6-compare-table">
+        <div class="s6-compare-card">
+          <div class="s6-compare-card-title"><span>😓</span> 现状：用户需要</div>
+          <div class="s6-compare-step bad"><span class="s6-csi">✗</span> 打开浏览器，进入 XPILOT 网站</div>
+          <div class="s6-compare-step bad"><span class="s6-csi">✗</span> 找到技能广场，手动上传 SKILL</div>
+          <div class="s6-compare-step bad"><span class="s6-csi">✗</span> 再找到绑定入口，搜索规则勾选</div>
+          <div class="s6-compare-step bad"><span class="s6-csi">✗</span> 不知道绑定后会发生什么</div>
+        </div>
+        <div class="s6-compare-card">
+          <div class="s6-compare-card-title"><span>✅</span> 新方案：用户只需要</div>
+          <div class="s6-compare-step good"><span class="s6-csi">✓</span> 在 Claw 安装「XPILOT 告警诊断」SKILL</div>
+          <div class="s6-compare-step good"><span class="s6-csi">✓</span> Claw 主动感知，引导完成上传</div>
+          <div class="s6-compare-step good"><span class="s6-csi">✓</span> 对话里选规则完成绑定</div>
+          <div class="s6-compare-step good"><span class="s6-csi">✓</span> Claw 告知后续链路预期，闭环</div>
+        </div>
+      </div>
+
+      <div class="s6-section-label">
+        <div class="s6-section-bar" style="background:linear-gradient(180deg,#ff2442,#1677ff);"></div>
+        <div class="s6-section-title">新 A 链路 · Claw 侧完成配置</div>
+        <div class="s6-section-sub">全程在 Claw 对话里完成，不需要打开 XPILOT</div>
+      </div>
+
+      <div class="s6-steps">
+        <div class="s6-step-row">
+          <div class="s6-step-left">
+            <div class="s6-step-dot" style="background:#fff3e0;color:#fa8c16;border:2px solid #ffd591;">A0</div>
+            <div class="s6-step-line" style="background:linear-gradient(180deg,#ffd591,#bbd4ff);"></div>
+          </div>
+          <div class="s6-step-card">
+            <div class="s6-step-card-head"><span class="s6-step-tag" style="background:#fff3e0;color:#fa8c16;border:1px solid #ffd591;">用户</span><span class="s6-step-name">安装「XPILOT 告警诊断」SKILL</span></div>
+            <div class="s6-step-desc">用户在 ClawHub 找到并安装 XPILOT 告警诊断 SKILL，触发 Claw 感知流程</div>
+            <div class="s6-step-note"><b>依赖</b>：ClawHub 上需发布「XPILOT 告警诊断」SKILL（包含告警规则拉取 + XPILOT 上传能力）</div>
+          </div>
+        </div>
+        <div class="s6-step-row">
+          <div class="s6-step-left">
+            <div class="s6-step-dot" style="background:#e6f0ff;color:#1677ff;border:2px solid #bbd4ff;">A1</div>
+            <div class="s6-step-line" style="background:linear-gradient(180deg,#bbd4ff,#b7eb8f);"></div>
+          </div>
+          <div class="s6-step-card">
+            <div class="s6-step-card-head"><span class="s6-step-tag" style="background:#e6f0ff;color:#1677ff;border:1px solid #bbd4ff;">Claw 主动</span><span class="s6-step-name">感知用户负责的服务 + 未绑定规则</span></div>
+            <div class="s6-step-desc">SKILL 安装后，Claw 拉取用户负责的服务列表，查询 Xray 中未绑定排障 SKILL 的告警规则，主动告知用户</div>
+            <div class="s6-step-note">💬 Claw 说：「检测到你负责的 <b>3 个服务</b> 有 <b>7 条告警规则</b> 未绑定排障 SKILL，要帮你配置吗？」</div>
+          </div>
+        </div>
+        <div class="s6-step-row">
+          <div class="s6-step-left">
+            <div class="s6-step-dot" style="background:#e6f0ff;color:#1677ff;border:2px solid #bbd4ff;">A2</div>
+            <div class="s6-step-line" style="background:linear-gradient(180deg,#bbd4ff,#b7eb8f);"></div>
+          </div>
+          <div class="s6-step-card">
+            <div class="s6-step-card-head"><span class="s6-step-tag" style="background:#e6f0ff;color:#1677ff;border:1px solid #bbd4ff;">Claw 引导</span><span class="s6-step-name">选择并上传排障 SKILL</span></div>
+            <div class="s6-step-desc">Claw 展示可用的排障 SKILL 列表，用户选择后 Claw 自动调用 XPILOT API 完成上传</div>
+            <div class="s6-step-note">若用户已有本地 SKILL，直接上传；若没有，Claw 根据服务特征推荐匹配的公共 SKILL 模板</div>
+          </div>
+        </div>
+        <div class="s6-step-row">
+          <div class="s6-step-left">
+            <div class="s6-step-dot" style="background:#e6f0ff;color:#1677ff;border:2px solid #bbd4ff;">A3</div>
+            <div class="s6-step-line" style="background:linear-gradient(180deg,#bbd4ff,#d9f0e0);"></div>
+          </div>
+          <div class="s6-step-card">
+            <div class="s6-step-card-head"><span class="s6-step-tag" style="background:#e6f0ff;color:#1677ff;border:1px solid #bbd4ff;">Claw 引导</span><span class="s6-step-name">选择告警规则完成绑定</span></div>
+            <div class="s6-step-desc">Claw 拉取 Xray 告警规则列表，按服务分组展示，用户勾选规则后 Claw 调用 XPILOT API 完成绑定</div>
+            <div class="s6-step-note">Claw 可根据规则名称和 SKILL 描述智能预选——如「连接池」规则自动匹配「连接池排障 SKILL」</div>
+          </div>
+        </div>
+        <div class="s6-step-row">
+          <div class="s6-step-left"><div class="s6-step-dot" style="background:#f0faf2;color:#52c41a;border:2px solid #b7eb8f;">A4</div></div>
+          <div class="s6-step-card" style="border-color:#b7eb8f;background:#f0faf2;">
+            <div class="s6-step-card-head"><span class="s6-step-tag" style="background:#f0faf2;color:#52c41a;border:1px solid #b7eb8f;">Claw 闭环</span><span class="s6-step-name">给出完整链路预期</span></div>
+            <div class="s6-step-desc">绑定完成后，Claw 告知用户后续会发生什么：触发告警 → 推送到哪个 Hi IM 群 → 诊断耗时 → 历史成功率</div>
+            <div class="s6-step-note" style="background:#fff;border-color:#d9f0e0;">💬 Claw 说：「配置完成！下次 <b>creator-service 连接池告警</b> 触发后，排障 SKILL 将自动执行（预计 3-4 分钟），诊断结果推送到 <b>推荐业务告警群</b>，历史成功率 <b>89%</b>」</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="s6-section-label">
+        <div class="s6-section-bar" style="background:#fa8c16;"></div>
+        <div class="s6-section-title">关键依赖</div>
+      </div>
+      <div class="s6-dep-grid">
+        <div class="s6-dep-item"><div class="s6-dep-head"><span class="s6-tag-dep">依赖1</span> ClawHub SKILL 发布</div><div class="s6-dep-body">需在 ClawHub 发布「XPILOT 告警诊断」SKILL，内置：拉取告警规则、上传 SKILL 到 XPILOT、绑定规则三个能力</div></div>
+        <div class="s6-dep-item"><div class="s6-dep-head"><span class="s6-tag-dep">依赖2</span> XPILOT 开放 API</div><div class="s6-dep-body">XPILOT 需提供：SKILL 上传 API、规则绑定 API、用户服务列表查询 API，供 Claw SKILL 调用</div></div>
+        <div class="s6-dep-item"><div class="s6-dep-head"><span class="s6-tag-dep">依赖3</span> Xray 告警规则查询</div><div class="s6-dep-body">现有 alarm-rule-search SKILL 已支持，可直接复用，需关联用户负责的服务范围</div></div>
+        <div class="s6-dep-item"><div class="s6-dep-head"><span class="s6-tag-dep">依赖4</span> 用户服务归属</div><div class="s6-dep-body">需要从服务树或 oncall 系统获取「用户负责哪些服务」，用于过滤告警规则范围</div></div>
+      </div>
+
+      <div style="background:#fff;border:1px solid #e8e8ee;border-radius:10px;padding:14px 18px;display:flex;align-items:flex-start;gap:12px;">
+        <div style="font-size:22px;flex-shrink:0;">🔗</div>
+        <div>
+          <div style="font-size:13px;font-weight:600;color:#1a1a2e;margin-bottom:5px;">B / C 链路完全不变</div>
+          <div style="font-size:12px;color:#888;line-height:1.7;">配置完成后，后续链路与现有方案一致：告警触发 → Hi IM 群推送告警卡片 → SKILL 自动执行诊断 → 用户点卡片进侧边栏追问。<br><span style="color:#1677ff;">Claw 只负责 A 链路（配置阶段），不接管告警推送和诊断交互。</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 子面板2：Claw 对话模拟 -->
+  <div class="s6-subpanel s6-chat-panel" id="s6p2">
+    <div class="s6-claw-shell">
+      <div class="s6-claw-topbar">
+        <div class="s6-claw-logo">🦞</div>
+        <div class="s6-claw-name">OpenClaw</div>
+        <div class="s6-claw-badge">XPILOT 告警诊断 已安装</div>
+      </div>
+      <div class="s6-claw-body" id="s6ClawBody">
+        <div class="s6-claw-time">今天 10:14 · SKILL 安装触发</div>
+        <div class="s6-msg-row">
+          <div class="s6-avatar ai">🦞</div>
+          <div>
+            <div class="s6-bubble ai">
+              检测到你刚安装了「XPILOT 告警诊断」SKILL 👋<br><br>
+              我查了一下，你负责的服务中有 <strong>3 个服务</strong> 的告警规则还没有绑定排障 SKILL：<br>
+              · creator-service（4条规则）<br>
+              · redimageservice（2条规则）<br>
+              · ark0-service（1条规则）<br><br>
+              要帮你配置吗？
+              <div class="s6-chips">
+                <span class="s6-chip" onclick="s6Step1(this)">好的，帮我配</span>
+                <span class="s6-chip" onclick="s6Skip(this)">先跳过</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="s6-claw-input-area">
+        <input class="s6-claw-input" id="s6Input" placeholder="输入消息…" onkeydown="if(event.key==='Enter')s6SendInput()" />
+        <button class="s6-claw-send" onclick="s6SendInput()"><svg width="11" height="11" viewBox="0 0 24 24" fill="#fff"><path d="M2 21l21-9L2 3v7l15 2-15 2v7z"/></svg></button>
+      </div>
+    </div>
+    <div class="s6-explain-panel">
+      <div class="s6-explain-section">
+        <div class="s6-explain-title"><div class="s6-explain-dot"></div>当前步骤说明</div>
+        <div id="s6StepExplain">
+          <div class="s6-explain-item">
+            <div class="s6-explain-head">🟡 A1 · Claw 主动感知</div>
+            <div class="s6-explain-body">SKILL 安装后自动触发，Claw 查询用户负责的服务范围，过滤出未绑定规则的告警，主动推送给用户。<br><br><span class="s6-hl">关键点</span>：用户不需要主动去找，是 Claw 主动来找用户。</div>
+          </div>
+        </div>
+      </div>
+      <div class="s6-explain-section">
+        <div class="s6-explain-title"><div class="s6-explain-dot"></div>完成后链路</div>
+        <div class="s6-explain-item">
+          <div class="s6-explain-head">📣 绑定完成后 → Hi IM 群</div>
+          <div class="s6-explain-body" style="line-height:1.9;"><span style="color:#1677ff;">告警触发</span> → Hi IM 推送卡片（含「AI 诊断中」状态）<br>→ SKILL 自动执行诊断（3-4 分钟）<br>→ 卡片更新为根因 + 置信度<br>→ 点击卡片 → 侧边栏追问</div>
+        </div>
+      </div>
+      <div class="s6-explain-section">
+        <div class="s6-explain-title"><div class="s6-explain-dot"></div>涉及能力</div>
+        <div class="s6-explain-item"><div class="s6-explain-head"><span class="s6-tag-new">已有</span> alarm-rule-search SKILL</div><div class="s6-explain-body">拉取 Xray 告警规则列表，按服务过滤，供 Claw 展示和选择</div></div>
+        <div class="s6-explain-item"><div class="s6-explain-head"><span class="s6-tag-dep">新增</span> XPILOT SKILL 上传 API</div><div class="s6-explain-body">XPILOT 需开放 SKILL 上传接口，Claw 调用完成自动上传</div></div>
+        <div class="s6-explain-item"><div class="s6-explain-head"><span class="s6-tag-dep">新增</span> XPILOT 规则绑定 API</div><div class="s6-explain-body">XPILOT 需开放规则绑定接口，Claw 调用完成 SKILL ↔ 规则关联</div></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+</div><!-- /main -->
+
+<script>
+  function switchScene(id) {
+    document.querySelectorAll('.scene-panel').forEach(p => p.classList.remove('active'));
+    document.querySelectorAll('.scene-item').forEach(i => i.classList.remove('active'));
+    document.getElementById(id).classList.add('active');
+    event.currentTarget.classList.add('active');
+  }
+  function switchSceneById(id) {
+    document.querySelectorAll('.scene-panel').forEach(p => p.classList.remove('active'));
+    document.querySelectorAll('.scene-item').forEach(i => i.classList.remove('active'));
+    document.getElementById(id).classList.add('active');
+    // 同步高亮左侧导航
+    const items = document.querySelectorAll('.scene-item');
+    const map = { s5: 0, s2: 1, s3: 2, s4: 3, s6: 4 };
+    if (map[id] !== undefined && items[map[id]]) items[map[id]].classList.add('active');
+  }
+
+  // 节点2
+  function showBindPreview() {
+    document.getElementById('bindPreview').style.display = 'block';
+    document.getElementById('bindPreview').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  }
+  function addUserMsg(el, text) {
+    el.style.opacity = '0.5'; el.style.pointerEvents = 'none';
+  }
+
+  // 节点3
+  function openSidebar3() { document.getElementById('sidebar3').classList.add('open'); }
+  function closeSidebar3() { document.getElementById('sidebar3').classList.remove('open'); }
+  function closeSidebar3OnOverlay(e) { if (e.target === document.getElementById('sidebar3')) closeSidebar3(); }
+  function toggleReasoning(bodyId, toggleId) {
+    document.getElementById(bodyId).classList.toggle('open');
+    document.getElementById(toggleId).classList.toggle('open');
+  }
+
+  let sp3Counter = 0;
+  function sp3Send(el, text) {
+    el.style.opacity = '0.5'; el.style.pointerEvents = 'none';
+    const body = document.getElementById('spBody3');
+    const userRow = document.createElement('div');
+    userRow.className = 'sp-msg-row user';
+    userRow.innerHTML = `<div class="sp-msg-avatar user">👤</div><div class="sp-bubble user">${text}</div>`;
+    body.appendChild(userRow);
+    const tid = 'sp3t' + (++sp3Counter);
+    const typing = document.createElement('div');
+    typing.className = 'sp-msg-row'; typing.id = tid;
+    typing.innerHTML = `<div class="sp-msg-avatar ai">X</div><div><div class="sp-bubble ai"><div class="loading-dots"><span></span><span></span><span></span></div></div></div>`;
+    body.appendChild(typing); body.scrollTop = 99999;
+    const replies = {
+      '拉取失败请求 Logview': '已拉取最近 3 次失败请求 Logview：\n\nMessageId: CAT-20260408-1842\n定位到 db-writer-service 连接获取超时（等待 3200ms），连接池剩余 0，队列积压 48 个请求。',
+      '查看 db-writer 连接池趋势': '近 1h 连接池使用趋势：\n\n14:10 maxPoolSize=10，使用率 60%\n14:20 使用率 85% ↑\n14:28 使用率 100%，队列溢出，告警触发\n\n峰值流量比平日高 23%，配置缩小后无缓冲空间。',
+      '生成回滚操作步骤': '回滚操作步骤已生成：\n\n1. 登录 ONES 发布平台，找到 creator-service v2.1.3\n2. 选择「回滚至 v2.1.2」\n3. 确认 DB 配置 maxPoolSize 恢复为 20\n4. 观察 5 分钟，确认失败率回落至 0.5% 以下',
+      '生成排障报告': '__REPORT__',
+    };
+    setTimeout(() => {
+      document.getElementById(tid)?.remove();
+      const r = replies[text] || `正在处理：${text}…`;
+      if (r === '__REPORT__') { appendSp3Report(); return; }
+      const rep = document.createElement('div');
+      rep.className = 'sp-msg-row';
+      rep.innerHTML = `<div class="sp-msg-avatar ai">X</div><div><div class="sp-bubble ai" style="white-space:pre-line;">${r}</div></div>`;
+      body.appendChild(rep); body.scrollTop = 99999;
+    }, 1100);
+  }
+  function appendSp3Report() {
+    const body = document.getElementById('spBody3');
+    const row = document.createElement('div');
+    row.className = 'sp-msg-row';
+    row.innerHTML = `<div class="sp-msg-avatar ai">X</div><div><div class="sp-bubble ai">排障报告已生成：<div class="file-card" style="margin-top:8px;" onclick="alert('打开报告')"><span style="font-size:20px;">📄</span><div class="file-card-info"><div class="file-card-name">redimageservice 连接池耗尽排障报告</div><div class="file-card-meta">含链路 / 指标趋势 / 变更对比 / 回滚建议</div></div><span style="font-size:12px;color:#1677ff;">打开 →</span></div></div></div>`;
+    body.appendChild(row); body.scrollTop = 99999;
+  }
+  function sp3SendInput() {
+    const input = document.getElementById('spInput3');
+    const text = input.value.trim(); if (!text) return;
+    input.value = '';
+    sp3Send({ style: {} }, text);
+  }
+
+  // 节点4 报告面板
+  function openReportPanel() { document.getElementById('reportPanel').classList.add('open'); }
+  function closeReportPanel() { document.getElementById('reportPanel').classList.remove('open'); }
+  function closeReportOnOverlay(e) { if (e.target === document.getElementById('reportPanel')) closeReportPanel(); }
+
+  // 节点4 日报侧边栏 AI 对话
+  const r4Replies = {
+    fix_pool: '已生成连接池根治方案：\n\n<strong>短期（今日）</strong>：回滚 v2.1.3，恢复 maxPoolSize=20\n<strong>中期（本周）</strong>：结合流量水位重新评估，建议设为 30\n<strong>长期</strong>：连接池配置变更后自动触发验证 SKILL\n\n需要帮你生成 ONES 工单吗？',
+    fix_threshold: '分析连接池告警规则近 7 天数据：\n\n触发 14 次，6 次诊断为无明显异常（43%），误触发集中在 0:00-6:00 流量低谷期。\n\n建议调整：\n· 阈值：90% → 95%\n· 持续条件：新增「连续 2 次满足」\n· 时段豁免：0:00-6:00 不触发\n\n预计可降低误报率约 40%，是否提交规则修改？',
+    gc_skill: '为你生成 GC 排障 SKILL 草稿结构：\n\n① 查询 Full GC / Young GC 频率趋势\n② 分析 Heap 使用率及对象分布\n③ 检查近期代码变更（是否引入大对象）\n④ 输出 JVM 调优建议\n\n已生成模板，是否跳转 XPILOT 创建？',
+    '连接池耗尽的根治方案是什么？': '连接池耗尽根治分三步：\n\n<strong>①立即止血</strong>：临时扩容 maxPoolSize 至 30，降低排队等待\n<strong>②变更回滚</strong>：回滚 v2.1.3（昨日 14:30 发布），该版本将 maxPoolSize 从 20 降至 10\n<strong>③长效防控</strong>：为连接池参数变更添加发布检验 SKILL，变更后自动回归验证\n\n建议本周提 ONES 任务排期，需要帮你生成工单描述吗？',
+    '哪个服务昨天告警最多？': '昨日告警按服务排名 TOP3：\n\n<strong>① creator-service</strong>：8 条（连接池耗尽为主）\n<strong>② arkfeedx-service</strong>：6 条（新笔记曝光下跌 × 3，下游超时 × 3）\n<strong>③ redimageservice</strong>：4 条（图片处理错误 × 4）\n\ncreator-service 连续 3 天排名第一，建议优先排期处理连接池问题。',
+    '未诊断的4条告警是什么原因？': '昨日 4 条未诊断告警原因：\n\n· <strong>2 条</strong>：未绑定排障 SKILL（ark0-service 内存类告警）\n· <strong>1 条</strong>：诊断 SKILL 执行超时（数据源拉取异常）\n· <strong>1 条</strong>：告警在夜间静默期内，SKILL 未触发\n\n建议：前两条尽快补绑 SKILL，超时问题已记录，下次触发会自动重试。',
+    '帮我对比上周的数据': '本周 vs 上周对比（截至昨日）：\n\n| 指标 | 上周同期 | 昨日 | 变化 |\n|------|--------|------|------|\n| 告警总量 | 18 | 23 | ↑28% |\n| P1 告警 | 1 | 3 | ↑200% |\n| 已诊断 | 13 | 19 | ↑46% |\n| 诊断覆盖率 | 72% | 87% | ↑15pp |\n\n告警量增加主要来自 creator-service 连接池类告警（+5条），诊断覆盖率有显著提升。',
+  };
+
+  function r4Action(btn, key, doneId) {
+    btn.disabled = true; btn.style.opacity = '0.5';
+    document.getElementById(doneId).style.display = 'inline';
+    r4AppendChat('user', { fix_pool:'帮我生成连接池根治方案', fix_threshold:'帮我调整连接池告警阈值', gc_skill:'帮我创建 GC 排障 SKILL' }[key]);
+    r4AppendChat('ai', r4Replies[key]);
+  }
+
+  function r4Ask(q) { r4AppendChat('user', q); r4AppendChat('ai', r4Replies[q] || '正在分析…稍等'); }
+
+  function r4Send() {
+    const inp = document.getElementById('reportInput');
+    const q = inp.value.trim();
+    if (!q) return;
+    inp.value = '';
+    r4AppendChat('user', q);
+    r4AppendChat('ai', r4Replies[q] || '正在查询相关数据，稍后回复…');
+  }
+
+  function r4AppendChat(role, text) {
+    const container = document.getElementById('reportChatExtra');
+    const wrap = document.createElement('div');
+    wrap.style.cssText = 'padding:0 16px 12px;';
+    if (role === 'user') {
+      wrap.innerHTML = `<div class="sp-msg-row" style="justify-content:flex-end;"><div class="sp-bubble user" style="max-width:80%;font-size:12px;line-height:1.7;white-space:pre-line;">${text}</div></div>`;
+    } else {
+      // typing first
+      wrap.innerHTML = `<div class="sp-msg-row"><div class="sp-msg-avatar ai">X</div><div style="flex:1;min-width:0;"><div class="sp-bubble ai" id="r4typing_${Date.now()}" style="max-width:90%;font-size:12px;line-height:1.7;"><div class="loading-dots"><span></span><span></span><span></span></div></div></div></div>`;
+      container.appendChild(wrap);
+      document.getElementById('reportChatBody').scrollTop = 99999;
+      const tid = wrap.querySelector('.sp-bubble').id;
+      setTimeout(() => {
+        const el = document.getElementById(tid);
+        if (el) el.innerHTML = `<div style="white-space:pre-line;">${text}</div>`;
+        document.getElementById('reportChatBody').scrollTop = 99999;
+      }, 1000);
+      return;
+    }
+    container.appendChild(wrap);
+    document.getElementById('reportChatBody').scrollTop = 99999;
+  }
+
+  // 节点4
+  const s4Replies = {
+    '查看根治方案': '已生成 creator-service 连接池根治方案：\n\n<strong>短期（今日）</strong>：回滚 v2.1.3，恢复 maxPoolSize=20\n<strong>中期（本周）</strong>：结合流量水位重新评估配置，建议设为 30\n<strong>长期</strong>：为连接池配置变更添加告警规则，变更后自动触发验证 SKILL\n\n需要我帮你生成 ONES 工单吗？',
+    '暂时忽略': '好的，已标记忽略。今日仍可能触发，届时诊断结果照常推送。',
+    '帮我分析阈值建议': '分析内流新笔记规则近 7 天数据：\n\n触发 14 次，其中 6 次诊断为「无明显异常」（占 43%）\n误触发集中在 0:00-6:00 流量低谷期\n\n建议：将阈值从「环比下降 15%」调整为「环比下降 20% 且持续超 2 次」，预计可降低误报率约 40%\n\n需要帮你提交规则修改吗？',
+    '查看规则详情': '内流新笔记曝光率环比下降超15%\n\n创建时间：2025-11-12\n绑定 SKILL：新笔记下跌排障（成功率 57%）\n近 7 天触发：14 次\n平均诊断耗时：4m 18s',
+  };
+  function s4Action(btn, action) {
+    btn.disabled = true; btn.style.opacity = '0.6';
+    const replyDiv = document.getElementById('s4Reply');
+    const content = document.getElementById('s4ReplyContent');
+    content.innerHTML = '<div class="loading-dots"><span></span><span></span><span></span></div>';
+    replyDiv.style.display = 'block';
+    setTimeout(() => {
+      content.innerHTML = `<div style="white-space:pre-line;font-size:13px;line-height:1.7;">${s4Replies[action] || '正在处理…'}</div>`;
+      replyDiv.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }, 1000);
+  }
+
+  // ===== 节点3 Tab 切换 =====
+  function switchS3Tab(n) {
+    document.getElementById('s3tab1').style.color = n===1 ? '#1677ff' : '#888';
+    document.getElementById('s3tab1').style.borderBottomColor = n===1 ? '#1677ff' : 'transparent';
+    document.getElementById('s3tab2').style.color = n===2 ? '#1677ff' : '#888';
+    document.getElementById('s3tab2').style.borderBottomColor = n===2 ? '#1677ff' : 'transparent';
+    document.getElementById('s3panel1').style.display = n===1 ? 'flex' : 'none';
+    document.getElementById('s3panel2').style.display = n===2 ? 'flex' : 'none';
+  }
+
+  // ===== 诊断反馈 =====
+  function fbYes(id) {
+    document.getElementById(id+'-ask').style.display='none';
+    document.getElementById(id+'-done').style.display='block';
+    document.getElementById(id+'-done').textContent='✅ 已反馈「准确」，感谢！将用于 SKILL 持续优化';
+  }
+  function fbNo(id) {
+    document.getElementById(id+'-ask').style.display='none';
+    document.getElementById(id+'-detail').style.display='block';
+  }
+  function toggleFbTag(el) { el.classList.toggle('on'); }
+  function fbSubmit(id) {
+    document.getElementById(id+'-detail').style.display='none';
+    document.getElementById(id+'-done').style.display='block';
+    document.getElementById(id+'-done').textContent='✅ 已反馈，感谢！将用于 SKILL 持续优化';
+  }
+
+  // ===== s2p2 内联技能广场 =====
+  let xpsSelCnt = 0;
+  function xpsOpenDrawer(name, hasBound) {
+    document.getElementById('xpsDrawerSkill').textContent = name;
+    document.getElementById('xpsDrawerOverlay').classList.add('open');
+    if (!hasBound) {
+      document.getElementById('xpsBoundList').innerHTML = '<div style="font-size:12px;color:#555570;text-align:center;padding:10px 0;">暂无已绑定规则</div>';
+      document.getElementById('xpsBoundCount').textContent = '0 条';
+    } else {
+      document.getElementById('xpsBoundCount').textContent = '3 条';
+    }
+    xpsSelCnt = 0; xpsUpdateCount();
+    document.querySelectorAll('.xps-rule-item:not(.already)').forEach(el => el.classList.remove('selected'));
+  }
+  function xpsCloseDrawer() { document.getElementById('xpsDrawerOverlay').classList.remove('open'); }
+  function xpsRemoveBound(btn) { const item=btn.closest('.xps-bound-item'); item.style.opacity='0';item.style.transition='opacity 0.2s'; setTimeout(()=>{ item.remove(); const c=document.querySelectorAll('#xpsBoundList .xps-bound-item').length; document.getElementById('xpsBoundCount').textContent=c+' 条'; },200); }
+  function xpsToggleRule(el) { const on=el.classList.toggle('selected'); xpsSelCnt+=on?1:-1; xpsUpdateCount(); }
+  function xpsUpdateCount() { document.getElementById('xpsSelCount').textContent=xpsSelCnt; document.getElementById('xpsConfirmBtn').disabled=xpsSelCnt===0; }
+  function xpsConfirmBind() { xpsCloseDrawer(); const t=document.getElementById('xpsToast'); t.style.opacity='1';t.style.transform='translateX(-50%) translateY(0)'; setTimeout(()=>{ t.style.opacity='0';t.style.transform='translateX(-50%) translateY(-16px)'; },3000); xpsSelCnt=0;xpsUpdateCount(); }
+  function xpsFilterRules(val) { document.querySelectorAll('.xps-rule-item').forEach(item=>{ const name=item.querySelector('.xps-rule-name')?.textContent||''; item.style.display=name.includes(val)?'':'none'; }); }
+  function xpsOpenLog(name) { document.getElementById('xpsLogSkill').textContent=name; document.getElementById('xpsLogOverlay').classList.add('open'); }
+  function xpsCloseLog() { document.getElementById('xpsLogOverlay').classList.remove('open'); }
+  function xpsFilterCards(val) { document.querySelectorAll('.xps-card').forEach(c=>{ const name=c.querySelector('.xps-name')?.textContent||''; c.style.display=name.includes(val)||!val?'':'none'; }); }
+
+  // ===== s2 子 Tab =====
+  function s2SwitchTab(id, el) {
+    document.querySelectorAll('#s2 .s6-subpanel').forEach(p => p.classList.remove('active'));
+    document.querySelectorAll('#s2 .s6-tab').forEach(t => t.classList.remove('active'));
+    document.getElementById(id).classList.add('active');
+    el.classList.add('active');
+  }
+  // XPILOT 页面绑定交互
+  function xpSelectSkill(n) {
+    [1,2,3].forEach(i => {
+      const card = document.getElementById('xpSkill'+i);
+      const detail = document.getElementById('xpDetail'+i);
+      if (i===n) {
+        card.style.border='1.5px solid #1677ff'; card.style.background='#f0f6ff';
+        if(detail) detail.style.display='block';
+      } else {
+        card.style.border='1px solid #e8e8ee'; card.style.background='#fff';
+        if(detail) detail.style.display='none';
+      }
+    });
+  }
+  function xpUnbind(btn) {
+    if(!confirm('确认解绑这条规则？')) return;
+    btn.closest('.xp-rule-row').remove();
+  }
+  function xpAddRule() { document.getElementById('xpDrawer').style.display='block'; }
+  function xpAddRule2() { document.getElementById('xpDrawer').style.display='block'; }
+  function xpAddRule3() { document.getElementById('xpDrawer').style.display='block'; }
+  function xpCloseDrawer() { document.getElementById('xpDrawer').style.display='none'; }
+  function xpToggleDrawerRule(el) {
+    const chk = el.querySelector('.dr-chk');
+    const isOn = chk.style.background==='rgb(22, 119, 255)';
+    chk.style.background = isOn ? '' : '#1677ff';
+    chk.style.borderColor = isOn ? '#d0daf5' : '#1677ff';
+    chk.innerHTML = isOn ? '' : '<span style="font-size:9px;color:#fff;font-weight:700;">✓</span>';
+    el.style.background = isOn ? '#fff' : '#f0f6ff';
+    el.style.borderColor = isOn ? '#f0f0f5' : '#bbd4ff';
+  }
+  function xpConfirmBind() {
+    const checked = document.querySelectorAll('#xpDrawer .dr-chk[style*="1677ff"]');
+    if(checked.length===0) { alert('请选择至少一条规则'); return; }
+    xpCloseDrawer();
+    // 给 skill2 追加规则行
+    const rulesWrap = document.getElementById('xpDetail2Rules');
+    rulesWrap.innerHTML = '';
+    checked.forEach(chk => {
+      const row = chk.closest('.xp-rule-row');
+      const name = row.querySelector('div > div:first-child').textContent;
+      const lv = row.querySelector('span').textContent;
+      const lvStyle = lv==='P1' ? 'background:#fff1f0;color:#ff4d4f' : 'background:#fff7e6;color:#fa8c16';
+      rulesWrap.insertAdjacentHTML('beforeend', `<div class="xp-rule-row"><div style="display:flex;align-items:center;gap:8px;flex:1;"><span style="font-size:10px;${lvStyle};border-radius:3px;padding:1px 5px;font-weight:600;">${lv}</span><div style="font-size:12px;color:#333;">${name}</div></div><button onclick="xpUnbind(this)" style="font-size:11px;padding:3px 10px;border-radius:4px;background:#fff;color:#ff4d4f;border:1px solid #ffccc7;cursor:pointer;">解绑</button></div>`);
+    });
+    document.querySelector('#xpSkill2 span:last-child').textContent = `🔗 ${checked.length}条规则`;
+    document.querySelector('#xpSkill2 span:last-child').style.color = '#52c41a';
+    document.querySelector('#xpDetail2 div:first-child div:last-child').textContent = `已绑定 ${checked.length} 条告警规则`;
+  }
+
+  // ===== s6 Claw 配置链路 =====
+  function s6SwitchTab(id, el) {
+    document.querySelectorAll('.s6-subpanel').forEach(p => p.classList.remove('active'));
+    document.querySelectorAll('.s6-tab').forEach(t => t.classList.remove('active'));
+    document.getElementById(id).classList.add('active');
+    el.classList.add('active');
+  }
+
+  function s6Step1(el) {
+    el.style.opacity='0.5'; el.style.pointerEvents='none';
+    s6AppendUser('好的，帮我配');
+    s6UpdateExplain('🔵 A2 · 选择并上传排障 SKILL', 'Claw 展示可用的排障 SKILL，用户选择后 Claw 自动调用 XPILOT API 完成上传。<br><br><span class="s6-hl">关键点</span>：用户不需要进入 XPILOT 网页，对话里选一下就好。');
+    const tid = s6AppendTyping();
+    setTimeout(() => {
+      s6RemoveTyping(tid);
+      const body = document.getElementById('s6ClawBody');
+      const row = document.createElement('div');
+      row.className = 's6-msg-row';
+      row.innerHTML = `<div class="s6-avatar ai">🦞</div><div style="flex:1;min-width:0;"><div class="s6-bubble ai">好，先选一下用哪个排障 SKILL：<div class="s6-rsc"><div class="s6-rsc-head">可用排障 SKILL</div><div class="s6-rsc-item sel" onclick="s6ToggleRsc(this)"><div class="s6-rsc-chk on"></div><div class="s6-rsc-info"><div class="s6-rsc-name">新笔记下跌排障</div><div class="s6-rsc-meta">适用：推荐链路 · 外流/内流新笔记异常</div></div></div><div class="s6-rsc-item" onclick="s6ToggleRsc(this)"><div class="s6-rsc-chk"></div><div class="s6-rsc-info"><div class="s6-rsc-name">连接池耗尽排障</div><div class="s6-rsc-meta">适用：DB 连接池超限、RPC 超时</div></div></div><div class="s6-rsc-item" onclick="s6ToggleRsc(this)"><div class="s6-rsc-chk"></div><div class="s6-rsc-info"><div class="s6-rsc-name">图片处理错误排障</div><div class="s6-rsc-meta">适用：redimageservice 异常</div></div></div><div class="s6-rsc-footer"><button class="s6-rsc-btn s6-rsc-btn-p" onclick="s6Step2(this)">上传选中 SKILL</button><button class="s6-rsc-btn s6-rsc-btn-g">取消</button></div></div></div></div>`;
+      body.appendChild(row); body.scrollTop=99999;
+    }, 1000);
+  }
+
+  function s6ToggleRsc(el) { el.querySelector('.s6-rsc-chk').classList.toggle('on'); el.classList.toggle('sel'); }
+
+  function s6Step2(btn) {
+    btn.disabled=true; btn.style.opacity='0.6';
+    s6UpdateExplain('🔵 A3 · 选择告警规则完成绑定', 'Claw 拉取 Xray 告警规则，按服务分组，根据 SKILL 描述智能预选，用户确认后调用 XPILOT API 完成绑定。<br><br><span class="s6-hl">关键点</span>：智能预选减少用户判断负担。');
+    const tid = s6AppendTyping();
+    setTimeout(() => {
+      s6RemoveTyping(tid);
+      const body = document.getElementById('s6ClawBody');
+      const row = document.createElement('div');
+      row.className = 's6-msg-row';
+      row.innerHTML = `<div class="s6-avatar ai">🦞</div><div style="flex:1;min-width:0;"><div class="s6-bubble ai">✅ 已上传到 XPILOT。现在选一下要绑定哪些告警规则（已根据 SKILL 智能预选）：<div class="s6-rsc"><div class="s6-rsc-head">告警规则 · creator-service</div><div class="s6-rsc-item sel" onclick="s6ToggleRsc(this)"><div class="s6-rsc-chk on"></div><div class="s6-rsc-info"><div class="s6-rsc-name">RPC 接口失败率 &gt; 5%</div><div class="s6-rsc-meta">连续 3 次满足</div></div><div class="s6-rsc-lv p1">P1</div></div><div class="s6-rsc-item sel" onclick="s6ToggleRsc(this)"><div class="s6-rsc-chk on"></div><div class="s6-rsc-info"><div class="s6-rsc-name">DB 连接池使用率 &gt; 90%</div><div class="s6-rsc-meta">连续 2 次满足</div></div><div class="s6-rsc-lv p2">P2</div></div><div class="s6-rsc-item" onclick="s6ToggleRsc(this)"><div class="s6-rsc-chk"></div><div class="s6-rsc-info"><div class="s6-rsc-name">P99 响应时间 &gt; 2000ms</div><div class="s6-rsc-meta">连续 2 次满足</div></div><div class="s6-rsc-lv p2">P2</div></div><div class="s6-rsc-footer"><button class="s6-rsc-btn s6-rsc-btn-p" onclick="s6Step3(this)">确认绑定</button><button class="s6-rsc-btn s6-rsc-btn-g">取消</button></div></div></div></div>`;
+      body.appendChild(row); body.scrollTop=99999;
+    }, 1000);
+  }
+
+  function s6Step3(btn) {
+    btn.disabled=true; btn.style.opacity='0.6';
+    s6UpdateExplain('✅ A4 · Claw 给出闭环预期', '绑定完成后，Claw 告知用户后续链路会发生什么，让用户对整个流程有清晰预期。<br><br><span class="s6-hl">关键点</span>：用户知道「我配了这个之后会怎样」，而不是配完就结束了。');
+    const tid = s6AppendTyping();
+    setTimeout(() => {
+      s6RemoveTyping(tid);
+      const body = document.getElementById('s6ClawBody');
+      const row = document.createElement('div');
+      row.className = 's6-msg-row';
+      row.innerHTML = `<div class="s6-avatar ai">🦞</div><div style="flex:1;min-width:0;"><div class="s6-bubble ai"><div class="s6-confirm"><div class="s6-confirm-title">✅ 配置完成</div>已绑定 2 条规则 → 连接池耗尽排障 SKILL<br><br><strong>下次告警触发后会发生什么：</strong><br>1. 告警卡片推送到 <strong>推荐业务告警群</strong>（含「AI 诊断中」状态）<br>2. SKILL 自动执行，预计 <strong>3-4 分钟</strong>完成诊断<br>3. 卡片更新为根因 + 置信度，可点击进入侧边栏追问<br><br>历史诊断成功率：<strong style="color:#52c41a;">89%</strong></div><div class="s6-chips"><span class="s6-chip" onclick="s6MoreConfig(this)">继续配置其他服务</span><span class="s6-chip" onclick="s6Done(this)">好的，先这样</span></div></div></div>`;
+      body.appendChild(row); body.scrollTop=99999;
+    }, 1000);
+  }
+
+  function s6Skip(el) { el.style.opacity='0.5'; el.style.pointerEvents='none'; s6AppendUser('先跳过'); const tid=s6AppendTyping(); setTimeout(()=>{ s6RemoveTyping(tid); s6AppendAI('没问题，需要配置的时候跟我说「帮我绑定告警规则」就行。'); },800); }
+  function s6MoreConfig(el) { el.style.opacity='0.5'; el.style.pointerEvents='none'; s6AppendUser('继续配置其他服务'); const tid=s6AppendTyping(); setTimeout(()=>{ s6RemoveTyping(tid); s6AppendAI('好的，下一个是 redimageservice，有 2 条规则未绑定。要继续吗？'); },800); }
+  function s6Done(el) { el.style.opacity='0.5'; el.style.pointerEvents='none'; s6AppendUser('好的，先这样'); const tid=s6AppendTyping(); setTimeout(()=>{ s6RemoveTyping(tid); s6AppendAI('好的！后续告警触发时我会通知你。redimageservice 和 ark0-service 的规则随时可以继续绑定。'); },800); }
+  function s6SendInput() { const input=document.getElementById('s6Input'); const text=input.value.trim(); if(!text)return; input.value=''; s6AppendUser(text); const tid=s6AppendTyping(); setTimeout(()=>{ s6RemoveTyping(tid); s6AppendAI(`收到「${text}」，正在处理…`); },900); }
+  function s6AppendUser(text) { const body=document.getElementById('s6ClawBody'); const row=document.createElement('div'); row.className='s6-msg-row user'; row.innerHTML=`<div class="s6-avatar user">👤</div><div class="s6-bubble user">${text}</div>`; body.appendChild(row); body.scrollTop=99999; }
+  function s6AppendAI(text) { const body=document.getElementById('s6ClawBody'); const row=document.createElement('div'); row.className='s6-msg-row'; row.innerHTML=`<div class="s6-avatar ai">🦞</div><div><div class="s6-bubble ai">${text}</div></div>`; body.appendChild(row); body.scrollTop=99999; }
+  let s6tc=0;
+  function s6AppendTyping() { const id='s6ty'+(++s6tc); const body=document.getElementById('s6ClawBody'); const row=document.createElement('div'); row.className='s6-msg-row'; row.id=id; row.innerHTML=`<div class="s6-avatar ai">🦞</div><div><div class="s6-bubble ai"><div class="loading-dots"><span></span><span></span><span></span></div></div></div>`; body.appendChild(row); body.scrollTop=99999; return id; }
+  function s6RemoveTyping(id) { document.getElementById(id)?.remove(); }
+  function s6UpdateExplain(title, desc) { document.getElementById('s6StepExplain').innerHTML=`<div class="s6-explain-item"><div class="s6-explain-head">${title}</div><div class="s6-explain-body">${desc}</div></div>`; }
+
+  // 页面初始化：强制激活 s5
+  document.addEventListener('DOMContentLoaded', function() {
+    document.querySelectorAll('.scene-panel').forEach(p => p.classList.remove('active'));
+    document.querySelectorAll('.scene-item').forEach(i => i.classList.remove('active'));
+    document.getElementById('s5').classList.add('active');
+    const items = document.querySelectorAll('.scene-item');
+    if (items[0]) items[0].classList.add('active');
+  });
+</script>
+</body>
+</html>

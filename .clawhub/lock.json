@@ -66,8 +66,8 @@
       "installedAt": 1775560947538
     },
     "hi-docs": {
-      "version": "1.0.4",
-      "installedAt": 1775560948025
+      "version": "1.0.5",
+      "installedAt": 1775658271479
     },
     "hi-im": {
       "version": "1.0.3",
@@ -82,8 +82,8 @@
       "installedAt": 1775560949488
     },
     "hi-calendar": {
-      "version": "1.0.3",
-      "installedAt": 1775560949973
+      "version": "1.0.4",
+      "installedAt": 1775654480800
     },
     "ones-assistant": {
       "version": "1.0.4",
@@ -108,6 +108,10 @@
     "xray-metrics-query": {
       "version": "1.0.1",
       "installedAt": 1775555141578
+    },
+    "hi-assistant-profile": {
+      "version": "1.0.1",
+      "installedAt": 1775659471466
     }
   }
 }

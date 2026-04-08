@@ -1,0 +1,445 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>XPILOT 告警智能诊断 · 产品链路全貌</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'PingFang SC', 'Microsoft YaHei', sans-serif;
+    background: #f0f2f7;
+    padding: 32px 24px 48px;
+    color: #1a1a1a;
+  }
+
+  /* 页头 */
+  .page-header {
+    text-align: center;
+    margin-bottom: 36px;
+  }
+  .page-title {
+    font-size: 20px;
+    font-weight: 700;
+    color: #1a1a1a;
+    margin-bottom: 6px;
+  }
+  .page-sub {
+    font-size: 13px;
+    color: #8c8c8c;
+  }
+
+  /* 三列布局 */
+  .columns {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 20px;
+    max-width: 1100px;
+    margin: 0 auto;
+  }
+
+  /* 列 */
+  .col {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+  .col-header {
+    border-radius: 8px;
+    padding: 12px 16px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 4px;
+  }
+  .col-header-icon {
+    width: 32px; height: 32px;
+    border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 16px;
+    flex-shrink: 0;
+  }
+  .col-header-text { flex: 1; }
+  .col-header-title { font-size: 14px; font-weight: 700; }
+  .col-header-sub { font-size: 11px; margin-top: 2px; opacity: 0.75; }
+
+  /* 场景 A：配置 */
+  .col-a .col-header { background: linear-gradient(135deg, #e6f4ff, #f0f5ff); border: 1px solid #91caff; }
+  .col-a .col-header-icon { background: #1677ff; }
+  .col-a .col-header-title { color: #0958d9; }
+  .col-a .col-header-sub { color: #4096ff; }
+
+  /* 场景 B：实时诊断 */
+  .col-b .col-header { background: linear-gradient(135deg, #fff2f0, #fff7e6); border: 1px solid #ffccc7; }
+  .col-b .col-header-icon { background: #ff4d4f; }
+  .col-b .col-header-title { color: #cf1322; }
+  .col-b .col-header-sub { color: #ff7875; }
+
+  /* 场景 C：日报 */
+  .col-c .col-header { background: linear-gradient(135deg, #f6ffed, #e6fffb); border: 1px solid #b7eb8f; }
+  .col-c .col-header-icon { background: #52c41a; }
+  .col-c .col-header-title { color: #389e0d; }
+  .col-c .col-header-sub { color: #73d13d; }
+
+  /* 步骤卡片 */
+  .step-card {
+    background: #fff;
+    border: 1px solid #e8e8e8;
+    border-radius: 8px;
+    padding: 12px 14px;
+    position: relative;
+  }
+  .step-card:not(:last-child)::after {
+    content: '';
+    position: absolute;
+    left: 50%;
+    bottom: -13px;
+    transform: translateX(-50%);
+    width: 1px;
+    height: 12px;
+    background: #d9d9d9;
+  }
+  .step-num {
+    font-size: 10px;
+    font-weight: 700;
+    color: #fff;
+    background: #bfbfbf;
+    border-radius: 3px;
+    padding: 1px 5px;
+    display: inline-block;
+    margin-bottom: 6px;
+  }
+  .col-a .step-num { background: #1677ff; }
+  .col-b .step-num { background: #ff4d4f; }
+  .col-c .step-num { background: #52c41a; }
+
+  .step-title {
+    font-size: 13px;
+    font-weight: 600;
+    color: #1a1a1a;
+    margin-bottom: 4px;
+  }
+  .step-desc {
+    font-size: 12px;
+    color: #595959;
+    line-height: 1.6;
+  }
+  .step-tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+    font-size: 11px;
+    border-radius: 3px;
+    padding: 2px 7px;
+    margin-top: 7px;
+    margin-right: 4px;
+  }
+  .tag-blue { background: #e6f4ff; color: #1677ff; border: 1px solid #91caff; }
+  .tag-purple { background: #f9f0ff; color: #722ed1; border: 1px solid #d3adf7; }
+  .tag-orange { background: #fff7e6; color: #d46b08; border: 1px solid #ffd591; }
+  .tag-green { background: #f6ffed; color: #389e0d; border: 1px solid #b7eb8f; }
+  .tag-red { background: #fff1f0; color: #cf1322; border: 1px solid #ffa39e; }
+  .tag-gray { background: #f5f5f5; color: #595959; border: 1px solid #d9d9d9; }
+
+  /* 分隔连接线 */
+  .arrow-row {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    color: #bfbfbf;
+    font-size: 11px;
+    padding: 2px 0;
+  }
+  .arrow-row .arrow { font-size: 14px; color: #d9d9d9; }
+
+  /* 底部：共享基础层 */
+  .base-layer {
+    max-width: 1100px;
+    margin: 32px auto 0;
+    background: #fff;
+    border: 1px solid #e8e8e8;
+    border-radius: 10px;
+    padding: 16px 20px;
+  }
+  .base-layer-title {
+    font-size: 12px;
+    font-weight: 600;
+    color: #8c8c8c;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 12px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .base-layer-title::before, .base-layer-title::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: #f0f0f0;
+  }
+  .base-modules {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 10px;
+  }
+  .base-module {
+    background: #fafafa;
+    border: 1px solid #f0f0f0;
+    border-radius: 6px;
+    padding: 10px 12px;
+    text-align: center;
+  }
+  .base-module-icon { font-size: 18px; margin-bottom: 5px; }
+  .base-module-name { font-size: 12px; font-weight: 600; color: #1a1a1a; }
+  .base-module-desc { font-size: 11px; color: #8c8c8c; margin-top: 2px; }
+
+  /* 顶部连接线（三列到基础层） */
+  .connector {
+    max-width: 1100px;
+    margin: 20px auto 0;
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+    gap: 0;
+    position: relative;
+    height: 32px;
+  }
+  .connector::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: calc(1100px * 0.167);
+    right: calc(1100px * 0.167);
+    height: 1px;
+    background: #d9d9d9;
+  }
+  .connector-dot {
+    width: calc(100% / 3);
+    display: flex;
+    justify-content: center;
+    position: relative;
+  }
+  .connector-dot::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 1px;
+    height: 32px;
+    background: #d9d9d9;
+  }
+
+  /* 场景标注 */
+  .scenario-label {
+    font-size: 11px;
+    color: #8c8c8c;
+    text-align: center;
+    margin-top: 6px;
+  }
+  .scenario-label strong {
+    color: #1a1a1a;
+  }
+</style>
+</head>
+<body>
+
+<div class="page-header">
+  <div class="page-title">XPILOT 告警智能诊断 · 产品链路全貌</div>
+  <div class="page-sub">三大使用场景 · 共享能力底座</div>
+</div>
+
+<div class="columns">
+
+  <!-- 场景 A：SKILL × 告警规则配置 -->
+  <div class="col col-a">
+    <div class="col-header">
+      <div class="col-header-icon">⚙️</div>
+      <div class="col-header-text">
+        <div class="col-header-title">场景 A · SKILL 绑定配置</div>
+        <div class="col-header-sub">告警规则 × 排障 SKILL 关联</div>
+      </div>
+    </div>
+
+    <div class="step-card">
+      <div class="step-num">A1</div>
+      <div class="step-title">业务孵化排障 SKILL</div>
+      <div class="step-desc">业务侧针对高频告警场景，在技能广场创建排障 SKILL（如「新笔记下跌排障」「GC 异常排障」）</div>
+      <span class="step-tag tag-blue">🏪 技能广场</span>
+      <span class="step-tag tag-purple">xpilot/skill</span>
+    </div>
+
+    <div class="step-card">
+      <div class="step-num">A2</div>
+      <div class="step-title">绑定告警规则</div>
+      <div class="step-desc">两种方式完成绑定：<br>① 技能广场页面：SKILL 卡片 → 绑定告警规则 → 搜索/筛选/批量选择<br>② 对话配置：「帮我查推荐相关告警规则，把 1、3、5 绑定到新笔记下跌排障 SKILL」</div>
+      <span class="step-tag tag-blue">页面配置</span>
+      <span class="step-tag tag-purple">对话式配置</span>
+    </div>
+
+    <div class="step-card">
+      <div class="step-num">A3</div>
+      <div class="step-title">配置生效 & 验证</div>
+      <div class="step-desc">绑定完成后，对应告警触发时自动调用关联 SKILL 执行诊断。支持查看绑定关系、测试运行、版本管理</div>
+      <span class="step-tag tag-green">✓ 绑定关系管理</span>
+      <span class="step-tag tag-orange">测试运行</span>
+    </div>
+  </div>
+
+  <!-- 场景 B：实时告警诊断 -->
+  <div class="col col-b">
+    <div class="col-header">
+      <div class="col-header-icon">🚨</div>
+      <div class="col-header-text">
+        <div class="col-header-title">场景 B · 实时告警诊断</div>
+        <div class="col-header-sub">告警触发 → AI 自动诊断 → Hi IM 推送</div>
+      </div>
+    </div>
+
+    <div class="step-card">
+      <div class="step-num">B1</div>
+      <div class="step-title">告警规则触发</div>
+      <div class="step-desc">Xray 告警规则命中，生成告警事件，匹配已绑定的排障 SKILL</div>
+      <span class="step-tag tag-red">🔔 告警触发</span>
+      <span class="step-tag tag-gray">Xray Rules Engine</span>
+    </div>
+
+    <div class="step-card">
+      <div class="step-num">B2</div>
+      <div class="step-title">Hi IM 推送告警卡片</div>
+      <div class="step-desc">XRay 助手推送告警事件卡片到值班群，展示告警基础信息，底部显示「AI 诊断中…」状态</div>
+      <span class="step-tag tag-blue">📨 Hi IM 卡片</span>
+      <span class="step-tag tag-orange">值班群</span>
+    </div>
+
+    <div class="step-card">
+      <div class="step-num">B3</div>
+      <div class="step-title">SKILL 自动执行诊断</div>
+      <div class="step-desc">后台调用绑定的排障 SKILL，拉取指标/日志/Logview/变更数据，完成根因分析。卡片底部更新为「诊断完成 · 根因 + 置信度」</div>
+      <span class="step-tag tag-purple">⚡ SKILL 执行</span>
+      <span class="step-tag tag-green">根因 + 置信度</span>
+    </div>
+
+    <div class="step-card">
+      <div class="step-num">B4</div>
+      <div class="step-title">用户深度排障</div>
+      <div class="step-desc">点击「接着聊」→ 右侧 AI 对话侧边栏展开，诊断信息作为上下文，用户可继续追问、生成复盘、触发处置动作</div>
+      <span class="step-tag tag-blue">💬 Hi IM 侧边栏</span>
+      <span class="step-tag tag-orange">处置 & 复盘</span>
+    </div>
+  </div>
+
+  <!-- 场景 C：每日告警日报 -->
+  <div class="col col-c">
+    <div class="col-header">
+      <div class="col-header-icon">📊</div>
+      <div class="col-header-text">
+        <div class="col-header-title">场景 C · 每日告警日报</div>
+        <div class="col-header-sub">每天 12:00 推送业务线告警分析</div>
+      </div>
+    </div>
+
+    <div class="step-card">
+      <div class="step-num">C1</div>
+      <div class="step-title">定时聚合昨日数据</div>
+      <div class="step-desc">每天 12:00，按业务线/产品线汇总昨日所有告警事件：总量、级别分布、时段热图、服务分布</div>
+      <span class="step-tag tag-green">⏰ 定时任务</span>
+      <span class="step-tag tag-gray">按业务线聚合</span>
+    </div>
+
+    <div class="step-card">
+      <div class="step-num">C2</div>
+      <div class="step-title">AI 根因聚类分析</div>
+      <div class="step-desc">对所有诊断结果做聚类：TOP 根因分布、重复告警识别、未诊断告警标注、告警风暴检测</div>
+      <span class="step-tag tag-purple">🧠 AI 聚类</span>
+      <span class="step-tag tag-orange">根因 TOP N</span>
+    </div>
+
+    <div class="step-card">
+      <div class="step-num">C3</div>
+      <div class="step-title">规则优化建议</div>
+      <div class="step-desc">基于告警数据给出规则优化建议：误报率高的规则（可调阈值）、重复根因（可合并规则）、未覆盖异常（建议新增规则）</div>
+      <span class="step-tag tag-orange">📋 优化建议</span>
+      <span class="step-tag tag-red">误报 / 漏报</span>
+    </div>
+
+    <div class="step-card">
+      <div class="step-num">C4</div>
+      <div class="step-title">日报推送到业务群</div>
+      <div class="step-desc">以结构化卡片形式推送到各业务群，支持点击下钻查看详情，或在 XPILOT 继续追问分析</div>
+      <span class="step-tag tag-blue">📨 Hi IM 推送</span>
+      <span class="step-tag tag-green">可交互卡片</span>
+    </div>
+  </div>
+
+</div>
+
+<!-- 连接线 -->
+<div style="max-width:1100px;margin:24px auto 0;display:flex;align-items:center;justify-content:center;gap:0;position:relative;">
+  <div style="position:absolute;left:16.7%;right:16.7%;top:0;height:1px;background:#d9d9d9;"></div>
+  <div style="width:33.3%;display:flex;justify-content:center;position:relative;">
+    <div style="width:1px;height:28px;background:#d9d9d9;"></div>
+  </div>
+  <div style="width:33.3%;display:flex;justify-content:center;position:relative;">
+    <div style="width:1px;height:28px;background:#d9d9d9;"></div>
+  </div>
+  <div style="width:33.3%;display:flex;justify-content:center;position:relative;">
+    <div style="width:1px;height:28px;background:#d9d9d9;"></div>
+  </div>
+</div>
+
+<!-- 共享能力底座 -->
+<div class="base-layer">
+  <div class="base-layer-title">共享能力底座</div>
+  <div class="base-modules">
+    <div class="base-module">
+      <div class="base-module-icon">📦</div>
+      <div class="base-module-name">SKILL 引擎</div>
+      <div class="base-module-desc">排障 SKILL 注册 / 调度 / 执行</div>
+    </div>
+    <div class="base-module">
+      <div class="base-module-icon">🔗</div>
+      <div class="base-module-name">规则绑定层</div>
+      <div class="base-module-desc">告警规则 × SKILL 映射关系</div>
+    </div>
+    <div class="base-module">
+      <div class="base-module-icon">🔭</div>
+      <div class="base-module-name">Xray 数据层</div>
+      <div class="base-module-desc">指标 / 日志 / Trace / 变更</div>
+    </div>
+    <div class="base-module">
+      <div class="base-module-icon">🧠</div>
+      <div class="base-module-name">AI 推理层</div>
+      <div class="base-module-desc">根因分析 / 聚类 / 置信度</div>
+    </div>
+    <div class="base-module">
+      <div class="base-module-icon">📨</div>
+      <div class="base-module-name">Hi IM 推送层</div>
+      <div class="base-module-desc">卡片消息 / 对话侧边栏 / 日报</div>
+    </div>
+  </div>
+</div>
+
+<!-- 场景关系说明 -->
+<div style="max-width:1100px;margin:20px auto 0;background:#fff;border:1px solid #e8e8e8;border-radius:10px;padding:14px 20px;">
+  <div style="font-size:12px;color:#8c8c8c;margin-bottom:10px;font-weight:600;">场景关系 & 数据流向</div>
+  <div style="display:flex;gap:24px;font-size:12px;color:#595959;line-height:1.8;">
+    <div style="flex:1;">
+      <div style="font-weight:600;color:#1a1a1a;margin-bottom:4px;">A → B</div>
+      配置完成是实时诊断的前提。SKILL 未绑定的告警规则，触发后无法自动诊断，仅推送基础告警卡片。
+    </div>
+    <div style="flex:1;">
+      <div style="font-weight:600;color:#1a1a1a;margin-bottom:4px;">B → C</div>
+      实时诊断产生的根因数据，是日报聚类分析的数据源。诊断覆盖率越高，日报分析越准确。
+    </div>
+    <div style="flex:1;">
+      <div style="font-weight:600;color:#1a1a1a;margin-bottom:4px;">C → A</div>
+      日报的规则优化建议，反哺 SKILL 绑定配置的调整（如为高频误报规则解绑 SKILL，或为漏配规则补充绑定）。
+    </div>
+  </div>
+</div>
+
+</body>
+</html>

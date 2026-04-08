@@ -1,0 +1,747 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Claw × XPILOT · 配置链路</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'PingFang SC', 'Microsoft YaHei', sans-serif;
+    background: #f0f2f5;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* ===== 顶部 Tab ===== */
+  .tab-bar {
+    background: #fff;
+    border-bottom: 1px solid #e8e8ee;
+    display: flex;
+    align-items: center;
+    padding: 0 24px;
+    gap: 0;
+    flex-shrink: 0;
+    height: 46px;
+  }
+  .tab {
+    padding: 0 18px;
+    height: 46px;
+    display: flex;
+    align-items: center;
+    font-size: 13px;
+    color: #888;
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+    transition: all 0.15s;
+    white-space: nowrap;
+  }
+  .tab:hover { color: #1677ff; }
+  .tab.active { color: #1677ff; border-bottom-color: #1677ff; font-weight: 500; }
+  .tab-title { font-size: 14px; font-weight: 700; color: #1a1a2e; margin-right: 20px; padding-right: 20px; border-right: 1px solid #e8e8ee; }
+
+  /* ===== 主区域 ===== */
+  .main { flex: 1; display: flex; overflow: hidden; height: calc(100vh - 46px); }
+  .panel { display: none; flex: 1; overflow: hidden; }
+  .panel.active { display: flex; }
+
+  /* ===== Tab1：流程图 ===== */
+  #tab1 { background: #f5f6f8; overflow-y: auto; overflow-x: auto; padding: 28px 36px; }
+
+  .flow-wrap { max-width: 860px; min-width: 680px; margin: 0 auto; }
+
+  .flow-header { margin-bottom: 28px; }
+  .flow-title { font-size: 20px; font-weight: 700; color: #1a1a2e; }
+  .flow-sub { font-size: 13px; color: #888; margin-top: 5px; line-height: 1.6; }
+
+  /* 对比表 */
+  .compare-table { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 28px; }
+  .compare-card {
+    background: #fff; border: 1px solid #e8e8ee; border-radius: 10px; padding: 14px 18px;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.04);
+  }
+  .compare-card-title { font-size: 12px; font-weight: 600; color: #bbb; margin-bottom: 10px; display: flex; align-items: center; gap: 6px; }
+  .compare-card-title span { font-size: 14px; }
+  .compare-step { display: flex; align-items: flex-start; gap: 8px; font-size: 12px; color: #666; padding: 4px 0; line-height: 1.5; }
+  .compare-step-icon { flex-shrink: 0; margin-top: 1px; }
+  .compare-step.bad .compare-step-icon { color: #ff4d4f; }
+  .compare-step.good .compare-step-icon { color: #52c41a; }
+
+  /* 流程步骤 */
+  .flow-section-label {
+    display: flex; align-items: center; gap: 10px; margin-bottom: 14px;
+  }
+  .flow-section-bar { width: 4px; height: 20px; border-radius: 2px; flex-shrink: 0; }
+  .flow-section-title { font-size: 14px; font-weight: 700; color: #1a1a2e; }
+  .flow-section-sub { font-size: 11px; color: #bbb; margin-left: auto; }
+
+  .flow-steps { display: flex; flex-direction: column; gap: 0; margin-bottom: 28px; }
+  .flow-step-row { display: flex; gap: 14px; align-items: stretch; }
+  .flow-step-left { display: flex; flex-direction: column; align-items: center; width: 36px; flex-shrink: 0; }
+  .flow-step-dot {
+    width: 32px; height: 32px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 13px; font-weight: 700; flex-shrink: 0;
+  }
+  .flow-step-line { width: 2px; flex: 1; margin: 2px 0; }
+
+  .flow-step-card {
+    flex: 1; background: #fff; border: 1px solid #e8e8ee; border-radius: 10px;
+    padding: 12px 16px; margin-bottom: 10px; box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+  }
+  .flow-step-card-head { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
+  .flow-step-tag { font-size: 10px; padding: 2px 7px; border-radius: 3px; font-weight: 600; flex-shrink: 0; }
+  .flow-step-name { font-size: 13px; font-weight: 600; color: #1a1a2e; }
+  .flow-step-desc { font-size: 12px; color: #888; line-height: 1.6; }
+  .flow-step-note {
+    margin-top: 8px; background: #fafbff; border: 1px solid #e8eaf5;
+    border-radius: 5px; padding: 6px 10px; font-size: 11px; color: #666; line-height: 1.7;
+  }
+  .flow-step-note b { color: #1677ff; }
+
+  /* 箭头连接 */
+  .flow-arrow { text-align: center; font-size: 11px; color: #bbb; padding: 2px 0; display: flex; align-items: center; gap: 8px; margin: -4px 0 6px 50px; }
+  .flow-arrow-line { flex: 1; border-top: 1px dashed #d0daf5; max-width: 200px; }
+
+  /* 价值总结 */
+  .value-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 12px; margin-top: 8px; }
+  .value-card {
+    background: #fff; border: 1px solid #e8e8ee; border-radius: 8px; padding: 12px 14px;
+    text-align: center; box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+  }
+  .value-card-icon { font-size: 22px; margin-bottom: 6px; }
+  .value-card-title { font-size: 12px; font-weight: 600; color: #1a1a2e; margin-bottom: 3px; }
+  .value-card-desc { font-size: 11px; color: #888; line-height: 1.5; }
+
+  /* ===== Tab2：Claw 对话模拟 ===== */
+  #tab2 {
+    flex-direction: row;
+    background: #f5f6f8;
+  }
+
+  /* Claw 外壳 */
+  .claw-shell {
+    width: 380px; min-width: 340px; flex-shrink: 0;
+    background: #fff; border-right: 1px solid #e8e8ee;
+    display: flex; flex-direction: column; height: 100%;
+  }
+  .claw-topbar {
+    height: 48px; background: #fff; border-bottom: 1px solid #ebebeb;
+    display: flex; align-items: center; padding: 0 14px; gap: 8px; flex-shrink: 0;
+  }
+  .claw-logo {
+    width: 28px; height: 28px; border-radius: 7px;
+    background: linear-gradient(135deg, #ff2442, #ff6b35);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 14px; color: #fff; flex-shrink: 0;
+  }
+  .claw-name { font-size: 13px; font-weight: 600; color: #1a1a2e; }
+  .claw-badge { font-size: 10px; background: #f0faf2; color: #52c41a; border: 1px solid #b7eb8f; border-radius: 3px; padding: 1px 5px; }
+
+  .claw-body {
+    flex: 1; overflow-y: auto; padding: 14px 12px;
+    display: flex; flex-direction: column; gap: 12px; background: #f5f6f8;
+  }
+
+  .claw-time { text-align: center; font-size: 10px; color: #bbb; }
+
+  .claw-msg-row { display: flex; gap: 7px; align-items: flex-start; }
+  .claw-msg-row.user { flex-direction: row-reverse; }
+  .claw-avatar {
+    width: 26px; height: 26px; border-radius: 7px; flex-shrink: 0; margin-top: 2px;
+    display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700;
+  }
+  .claw-avatar.ai { background: linear-gradient(135deg, #ff2442, #ff6b35); color: #fff; }
+  .claw-avatar.user { background: #e6f0ff; font-size: 13px; }
+  .claw-bubble {
+    max-width: 86%; font-size: 12px; line-height: 1.65; border-radius: 8px; padding: 8px 11px;
+  }
+  .claw-bubble.ai { background: #fff; border: 1px solid #e8e8ee; color: #333; box-shadow: 0 1px 2px rgba(0,0,0,0.04); }
+  .claw-bubble.user { background: #1677ff; color: #fff; }
+
+  /* 规则选择卡片 */
+  .rule-select-card {
+    background: #fff; border: 1px solid #e8e8ee; border-radius: 8px; overflow: hidden;
+    font-size: 12px; margin-top: 6px; box-shadow: 0 1px 2px rgba(0,0,0,0.04);
+  }
+  .rsc-head { background: #fafbff; border-bottom: 1px solid #f0f0f5; padding: 7px 11px; font-size: 11px; font-weight: 600; color: #888; }
+  .rsc-item { padding: 8px 11px; display: flex; align-items: center; gap: 8px; border-bottom: 1px solid #f5f5f5; cursor: pointer; transition: background 0.12s; }
+  .rsc-item:last-child { border-bottom: none; }
+  .rsc-item:hover { background: #f5f8ff; }
+  .rsc-item.selected { background: #f0f6ff; }
+  .rsc-check { width: 14px; height: 14px; border-radius: 3px; border: 1.5px solid #d0daf5; flex-shrink: 0; display: flex; align-items: center; justify-content: center; transition: all 0.12s; }
+  .rsc-check.on { background: #1677ff; border-color: #1677ff; }
+  .rsc-check.on::after { content: '✓'; font-size: 9px; color: #fff; font-weight: 700; }
+  .rsc-info { flex: 1; }
+  .rsc-name { font-size: 12px; color: #333; }
+  .rsc-meta { font-size: 10px; color: #bbb; margin-top: 1px; }
+  .rsc-lv { font-size: 10px; padding: 1px 5px; border-radius: 3px; font-weight: 600; flex-shrink: 0; }
+  .rsc-lv.p1 { background: #fff1f0; color: #ff4d4f; }
+  .rsc-lv.p2 { background: #fff7e6; color: #fa8c16; }
+  .rsc-footer { padding: 8px 11px; display: flex; gap: 6px; }
+  .rsc-btn { font-size: 11px; padding: 4px 14px; border-radius: 4px; cursor: pointer; transition: all 0.15s; }
+  .rsc-btn-primary { background: #1677ff; color: #fff; border: none; }
+  .rsc-btn-primary:hover { background: #0e6adb; }
+  .rsc-btn-ghost { background: #fff; color: #888; border: 1px solid #e0e4ef; }
+  .rsc-btn-ghost:hover { border-color: #1677ff; color: #1677ff; }
+
+  /* 确认卡片 */
+  .confirm-card {
+    background: #f0faf2; border: 1px solid #b7eb8f; border-radius: 8px;
+    padding: 10px 12px; margin-top: 6px; font-size: 12px; color: #333; line-height: 1.7;
+  }
+  .confirm-card-title { font-weight: 600; color: #389e0d; margin-bottom: 4px; display: flex; align-items: center; gap: 5px; }
+
+  .chips { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 8px; }
+  .chip { font-size: 11px; color: #1677ff; background: #e6f0ff; border: 1px solid #bbd4ff; border-radius: 10px; padding: 3px 10px; cursor: pointer; transition: all 0.12s; }
+  .chip:hover { background: #d0e5ff; }
+
+  .loading-dots { display: flex; gap: 3px; align-items: center; padding: 2px 0; }
+  .loading-dots span { width: 5px; height: 5px; border-radius: 50%; background: #ccc; animation: bounce 1.2s infinite; }
+  .loading-dots span:nth-child(2) { animation-delay: 0.2s; }
+  .loading-dots span:nth-child(3) { animation-delay: 0.4s; }
+  @keyframes bounce { 0%,60%,100%{transform:translateY(0)}30%{transform:translateY(-4px)} }
+
+  .claw-input-area {
+    padding: 10px 12px; border-top: 1px solid #ebebeb; background: #fff;
+    display: flex; gap: 7px; flex-shrink: 0;
+  }
+  .claw-input {
+    flex: 1; border: 1px solid #e0e4ef; border-radius: 7px; padding: 7px 10px;
+    font-size: 12px; outline: none; background: #fafbff; color: #333; font-family: inherit;
+  }
+  .claw-input:focus { border-color: #1677ff; background: #fff; }
+  .claw-send {
+    width: 30px; height: 30px; border-radius: 7px; background: #1677ff; border: none;
+    cursor: pointer; display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+  }
+  .claw-send:hover { background: #0e6adb; }
+
+  /* 右侧说明区 */
+  .explain-panel {
+    flex: 1; overflow-y: auto; padding: 24px 28px; background: #f5f6f8;
+  }
+  .explain-section { margin-bottom: 22px; }
+  .explain-title { font-size: 13px; font-weight: 600; color: #1a1a2e; margin-bottom: 10px; display: flex; align-items: center; gap: 7px; }
+  .explain-title-dot { width: 3px; height: 14px; border-radius: 2px; background: #1677ff; flex-shrink: 0; }
+  .explain-item { background: #fff; border: 1px solid #e8e8ee; border-radius: 8px; padding: 10px 14px; margin-bottom: 8px; font-size: 12px; }
+  .explain-item-head { font-weight: 600; color: #333; margin-bottom: 4px; display: flex; align-items: center; gap: 6px; }
+  .explain-item-body { color: #888; line-height: 1.6; }
+  .highlight { color: #1677ff; font-weight: 500; }
+  .tag-new { font-size: 10px; background: #f0faf2; color: #52c41a; border: 1px solid #b7eb8f; border-radius: 3px; padding: 1px 5px; font-weight: 600; }
+  .tag-dep { font-size: 10px; background: #fff7e6; color: #fa8c16; border: 1px solid #ffd591; border-radius: 3px; padding: 1px 5px; font-weight: 600; }
+
+  /* 演示控制 */
+  .demo-ctrl {
+    position: fixed; bottom: 14px; right: 14px;
+    background: #1677ff; color: #fff; border-radius: 20px; padding: 8px 16px;
+    font-size: 12px; cursor: pointer; box-shadow: 0 4px 12px rgba(22,119,255,0.35); z-index: 100;
+    display: flex; align-items: center; gap: 6px;
+  }
+  .demo-ctrl:hover { background: #0e6adb; }
+
+  ::-webkit-scrollbar { width: 4px; }
+  ::-webkit-scrollbar-thumb { background: #e0e0e8; border-radius: 2px; }
+</style>
+</head>
+<body>
+
+<!-- 顶部 Tab -->
+<div class="tab-bar">
+  <div class="tab-title">Claw × XPILOT · 配置链路</div>
+  <div class="tab active" onclick="switchTab('tab1', this)">流程对比图</div>
+  <div class="tab" onclick="switchTab('tab2', this)">Claw 对话模拟</div>
+</div>
+
+<div class="main">
+
+<!-- ===== Tab1：流程对比图 ===== -->
+<div class="panel active" id="tab1">
+<div class="flow-wrap">
+
+  <div class="flow-header">
+    <div class="flow-title">Claw 作为 XPILOT 配置入口</div>
+    <div class="flow-sub">A 链路（上传 SKILL + 绑定规则）从 XPILOT 网页迁移到 Claw 对话，B/C 链路不变</div>
+  </div>
+
+  <!-- 现状 vs 新方案对比 -->
+  <div class="compare-table" style="margin-bottom:24px;">
+    <div class="compare-card">
+      <div class="compare-card-title"><span>😓</span> 现状：用户需要</div>
+      <div class="compare-step bad"><span class="compare-step-icon">✗</span> 打开浏览器，进入 XPILOT 网站</div>
+      <div class="compare-step bad"><span class="compare-step-icon">✗</span> 找到技能广场，手动上传 SKILL</div>
+      <div class="compare-step bad"><span class="compare-step-icon">✗</span> 再找到绑定入口，搜索规则勾选</div>
+      <div class="compare-step bad"><span class="compare-step-icon">✗</span> 不知道绑定后会发生什么</div>
+    </div>
+    <div class="compare-card">
+      <div class="compare-card-title"><span>✅</span> 新方案：用户只需要</div>
+      <div class="compare-step good"><span class="compare-step-icon">✓</span> 在 Claw 安装「XPILOT 告警诊断」SKILL</div>
+      <div class="compare-step good"><span class="compare-step-icon">✓</span> Claw 主动感知，引导完成上传</div>
+      <div class="compare-step good"><span class="compare-step-icon">✓</span> 对话里选规则完成绑定</div>
+      <div class="compare-step good"><span class="compare-step-icon">✓</span> Claw 告知后续链路预期，闭环</div>
+    </div>
+  </div>
+
+  <!-- 新 A 链路步骤 -->
+  <div class="flow-section-label">
+    <div class="flow-section-bar" style="background:linear-gradient(180deg,#ff2442,#1677ff);"></div>
+    <div class="flow-section-title">新 A 链路 · Claw 侧完成配置</div>
+    <div class="flow-section-sub">全程在 Claw 对话里完成，不需要打开 XPILOT</div>
+  </div>
+
+  <div class="flow-steps">
+
+    <!-- A0 -->
+    <div class="flow-step-row">
+      <div class="flow-step-left">
+        <div class="flow-step-dot" style="background:#fff3e0;color:#fa8c16;border:2px solid #ffd591;">A0</div>
+        <div class="flow-step-line" style="background:linear-gradient(180deg,#ffd591,#bbd4ff);"></div>
+      </div>
+      <div class="flow-step-card">
+        <div class="flow-step-card-head">
+          <span class="flow-step-tag" style="background:#fff3e0;color:#fa8c16;border:1px solid #ffd591;">用户</span>
+          <span class="flow-step-name">安装「XPILOT 告警诊断」SKILL</span>
+        </div>
+        <div class="flow-step-desc">用户在 ClawHub 找到并安装 XPILOT 告警诊断 SKILL，触发 Claw 感知流程</div>
+        <div class="flow-step-note">
+          <b>依赖</b>：ClawHub 上需发布「XPILOT 告警诊断」SKILL（包含告警规则拉取 + XPILOT 上传能力）
+        </div>
+      </div>
+    </div>
+
+    <!-- A1 -->
+    <div class="flow-step-row">
+      <div class="flow-step-left">
+        <div class="flow-step-dot" style="background:#e6f0ff;color:#1677ff;border:2px solid #bbd4ff;">A1</div>
+        <div class="flow-step-line" style="background:linear-gradient(180deg,#bbd4ff,#b7eb8f);"></div>
+      </div>
+      <div class="flow-step-card">
+        <div class="flow-step-card-head">
+          <span class="flow-step-tag" style="background:#e6f0ff;color:#1677ff;border:1px solid #bbd4ff;">Claw 主动</span>
+          <span class="flow-step-name">感知用户负责的服务 + 未绑定规则</span>
+        </div>
+        <div class="flow-step-desc">SKILL 安装后，Claw 拉取用户负责的服务列表，查询 Xray 中未绑定排障 SKILL 的告警规则，主动告知用户</div>
+        <div class="flow-step-note">
+          💬 Claw 说：「检测到你负责的 <b>3 个服务</b> 有 <b>7 条告警规则</b> 未绑定排障 SKILL，要帮你配置吗？」
+        </div>
+      </div>
+    </div>
+
+    <!-- A2 -->
+    <div class="flow-step-row">
+      <div class="flow-step-left">
+        <div class="flow-step-dot" style="background:#e6f0ff;color:#1677ff;border:2px solid #bbd4ff;">A2</div>
+        <div class="flow-step-line" style="background:linear-gradient(180deg,#bbd4ff,#b7eb8f);"></div>
+      </div>
+      <div class="flow-step-card">
+        <div class="flow-step-card-head">
+          <span class="flow-step-tag" style="background:#e6f0ff;color:#1677ff;border:1px solid #bbd4ff;">Claw 引导</span>
+          <span class="flow-step-name">选择并上传排障 SKILL</span>
+        </div>
+        <div class="flow-step-desc">Claw 展示可用的排障 SKILL 列表（已有的 + 推荐新建的），用户选择后 Claw 自动调用 XPILOT API 完成上传</div>
+        <div class="flow-step-note">
+          若用户已有本地 SKILL 文件，直接上传；若没有，Claw 根据服务特征推荐匹配的公共 SKILL 模板
+        </div>
+      </div>
+    </div>
+
+    <!-- A3 -->
+    <div class="flow-step-row">
+      <div class="flow-step-left">
+        <div class="flow-step-dot" style="background:#e6f0ff;color:#1677ff;border:2px solid #bbd4ff;">A3</div>
+        <div class="flow-step-line" style="background:linear-gradient(180deg,#bbd4ff,#d9f0e0);"></div>
+      </div>
+      <div class="flow-step-card">
+        <div class="flow-step-card-head">
+          <span class="flow-step-tag" style="background:#e6f0ff;color:#1677ff;border:1px solid #bbd4ff;">Claw 引导</span>
+          <span class="flow-step-name">选择告警规则完成绑定</span>
+        </div>
+        <div class="flow-step-desc">Claw 拉取 Xray 告警规则列表，按服务分组展示，用户勾选规则后 Claw 调用 XPILOT API 完成绑定</div>
+        <div class="flow-step-note">
+          Claw 可根据规则名称和 SKILL 描述智能预选——如「连接池」规则自动匹配「连接池排障 SKILL」
+        </div>
+      </div>
+    </div>
+
+    <!-- A4 -->
+    <div class="flow-step-row">
+      <div class="flow-step-left">
+        <div class="flow-step-dot" style="background:#f0faf2;color:#52c41a;border:2px solid #b7eb8f;">A4</div>
+      </div>
+      <div class="flow-step-card" style="border-color:#b7eb8f;background:#f0faf2;">
+        <div class="flow-step-card-head">
+          <span class="flow-step-tag" style="background:#f0faf2;color:#52c41a;border:1px solid #b7eb8f;">Claw 闭环</span>
+          <span class="flow-step-name">给出完整链路预期</span>
+        </div>
+        <div class="flow-step-desc">绑定完成后，Claw 告知用户后续会发生什么：触发告警 → 推送到哪个 Hi IM 群 → 诊断耗时预估 → 历史成功率</div>
+        <div class="flow-step-note" style="background:#fff;border-color:#d9f0e0;">
+          💬 Claw 说：「配置完成！下次 <b>creator-service 连接池告警</b> 触发后，排障 SKILL 将自动执行（预计 3-4 分钟），诊断结果推送到 <b>推荐业务告警群</b>，历史成功率 <b>89%</b>」
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- 关键依赖 -->
+  <div class="flow-section-label" style="margin-top:4px;">
+    <div class="flow-section-bar" style="background:#fa8c16;"></div>
+    <div class="flow-section-title">关键依赖</div>
+  </div>
+  <div class="value-grid" style="grid-template-columns:repeat(2,1fr);margin-bottom:24px;">
+    <div class="explain-item">
+      <div class="explain-item-head"><span class="tag-dep">依赖1</span> ClawHub SKILL 发布</div>
+      <div class="explain-item-body">需在 ClawHub 发布「XPILOT 告警诊断」SKILL，内置：拉取告警规则、上传 SKILL 到 XPILOT、绑定规则三个能力</div>
+    </div>
+    <div class="explain-item">
+      <div class="explain-item-head"><span class="tag-dep">依赖2</span> XPILOT 开放 API</div>
+      <div class="explain-item-body">XPILOT 需提供：SKILL 上传 API、规则绑定 API、用户服务列表查询 API，供 Claw SKILL 调用</div>
+    </div>
+    <div class="explain-item">
+      <div class="explain-item-head"><span class="tag-dep">依赖3</span> Xray 告警规则查询</div>
+      <div class="explain-item-body">现有 alarm-rule-search SKILL 已支持，可直接复用。需要关联用户负责的服务范围</div>
+    </div>
+    <div class="explain-item">
+      <div class="explain-item-head"><span class="tag-dep">依赖4</span> 用户服务归属</div>
+      <div class="explain-item-body">需要从服务树或 oncall 系统获取「用户负责哪些服务」，用于过滤告警规则范围</div>
+    </div>
+  </div>
+
+  <!-- B/C 链路不变说明 -->
+  <div style="background:#fff;border:1px solid #e8e8ee;border-radius:10px;padding:14px 18px;display:flex;align-items:flex-start;gap:12px;">
+    <div style="font-size:22px;flex-shrink:0;">🔗</div>
+    <div>
+      <div style="font-size:13px;font-weight:600;color:#1a1a2e;margin-bottom:5px;">B / C 链路完全不变</div>
+      <div style="font-size:12px;color:#888;line-height:1.7;">
+        配置完成后，后续链路与现有方案一致：告警触发 → Hi IM 群推送告警卡片 → SKILL 自动执行诊断 → 用户点卡片进侧边栏追问。<br>
+        <span style="color:#1677ff;">Claw 只负责 A 链路（配置阶段），不接管告警推送和诊断交互。</span>
+      </div>
+    </div>
+  </div>
+
+</div>
+</div>
+
+<!-- ===== Tab2：Claw 对话模拟 ===== -->
+<div class="panel" id="tab2">
+
+  <!-- 左：Claw 对话 -->
+  <div class="claw-shell">
+    <div class="claw-topbar">
+      <div class="claw-logo">🦞</div>
+      <div class="claw-name">OpenClaw</div>
+      <div class="claw-badge">XPILOT 告警诊断 已安装</div>
+    </div>
+
+    <div class="claw-body" id="clawBody">
+      <div class="claw-time">今天 10:14 · SKILL 安装触发</div>
+
+      <!-- Claw 主动感知 -->
+      <div class="claw-msg-row">
+        <div class="claw-avatar ai">🦞</div>
+        <div>
+          <div class="claw-bubble ai">
+            检测到你刚安装了「XPILOT 告警诊断」SKILL 👋<br><br>
+            我查了一下，你负责的服务中有 <strong>3 个服务</strong> 的告警规则还没有绑定排障 SKILL：<br>
+            · creator-service（4条规则）<br>
+            · redimageservice（2条规则）<br>
+            · ark0-service（1条规则）<br><br>
+            要帮你配置吗？
+            <div class="chips">
+              <span class="chip" onclick="clawStep1(this)">好的，帮我配</span>
+              <span class="chip" onclick="clawSkip(this)">先跳过</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <div class="claw-input-area">
+      <input class="claw-input" id="clawInput" placeholder="输入消息…" onkeydown="if(event.key==='Enter')clawSendInput()" />
+      <button class="claw-send" onclick="clawSendInput()">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="#fff"><path d="M2 21l21-9L2 3v7l15 2-15 2v7z"/></svg>
+      </button>
+    </div>
+  </div>
+
+  <!-- 右：步骤说明 -->
+  <div class="explain-panel">
+
+    <div class="explain-section">
+      <div class="explain-title"><div class="explain-title-dot"></div>当前步骤说明</div>
+      <div id="stepExplain">
+        <div class="explain-item">
+          <div class="explain-item-head">🟡 A1 · Claw 主动感知</div>
+          <div class="explain-item-body">
+            SKILL 安装后自动触发，Claw 查询用户负责的服务范围，过滤出未绑定规则的告警，主动推送给用户。<br><br>
+            <span class="highlight">关键点</span>：用户不需要主动去找，是 Claw 主动来找用户。
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="explain-section">
+      <div class="explain-title"><div class="explain-title-dot"></div>完成后链路</div>
+      <div class="explain-item">
+        <div class="explain-item-head">📣 绑定完成后 → Hi IM 群</div>
+        <div class="explain-item-body" style="line-height:1.9;">
+          配置完成后，告警链路自动生效：<br>
+          <span style="color:#1677ff;">告警触发</span> → Hi IM 推送卡片（含「AI 诊断中」状态）<br>
+          → SKILL 自动执行诊断（3-4 分钟）<br>
+          → 卡片更新为根因 + 置信度<br>
+          → 点击卡片 → 侧边栏追问
+        </div>
+      </div>
+    </div>
+
+    <div class="explain-section">
+      <div class="explain-title"><div class="explain-title-dot"></div>涉及能力</div>
+      <div class="explain-item">
+        <div class="explain-item-head"><span class="tag-new">已有</span> alarm-rule-search SKILL</div>
+        <div class="explain-item-body">拉取 Xray 告警规则列表，按服务过滤，供 Claw 展示和选择</div>
+      </div>
+      <div class="explain-item">
+        <div class="explain-item-head"><span class="tag-dep">新增</span> XPILOT SKILL 上传 API</div>
+        <div class="explain-item-body">XPILOT 需开放 SKILL 上传接口，Claw 调用完成自动上传</div>
+      </div>
+      <div class="explain-item">
+        <div class="explain-item-head"><span class="tag-dep">新增</span> XPILOT 规则绑定 API</div>
+        <div class="explain-item-body">XPILOT 需开放规则绑定接口，Claw 调用完成 SKILL ↔ 规则关联</div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+</div><!-- /main -->
+
+<script>
+  function switchTab(id, el) {
+    document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+    document.getElementById(id).classList.add('active');
+    el.classList.add('active');
+  }
+
+  let clawStep = 0;
+
+  function clawStep1(el) {
+    el.style.opacity = '0.5'; el.style.pointerEvents = 'none';
+    appendClawUser('好的，帮我配');
+    updateExplain('A2', '🔵 A2 · 选择并上传排障 SKILL', 'Claw 展示可用的排障 SKILL，用户选择后 Claw 自动调用 XPILOT API 完成上传。<br><br><span class="highlight">关键点</span>：用户不需要进入 XPILOT 网页，对话里选一下就好。');
+    const tid = appendTyping();
+    setTimeout(() => {
+      removeTyping(tid);
+      const body = document.getElementById('clawBody');
+      const row = document.createElement('div');
+      row.className = 'claw-msg-row';
+      row.innerHTML = `
+        <div class="claw-avatar ai">🦞</div>
+        <div style="flex:1;min-width:0;">
+          <div class="claw-bubble ai">
+            好，先选一下用哪个排障 SKILL：
+            <div class="rule-select-card" style="margin-top:8px;">
+              <div class="rsc-head">可用排障 SKILL</div>
+              <div class="rsc-item selected" onclick="toggleRsc(this)">
+                <div class="rsc-check on"></div>
+                <div class="rsc-info">
+                  <div class="rsc-name">新笔记下跌排障</div>
+                  <div class="rsc-meta">适用：推荐链路 · 外流/内流新笔记异常</div>
+                </div>
+              </div>
+              <div class="rsc-item" onclick="toggleRsc(this)">
+                <div class="rsc-check"></div>
+                <div class="rsc-info">
+                  <div class="rsc-name">连接池耗尽排障</div>
+                  <div class="rsc-meta">适用：DB 连接池超限、RPC 超时</div>
+                </div>
+              </div>
+              <div class="rsc-item" onclick="toggleRsc(this)">
+                <div class="rsc-check"></div>
+                <div class="rsc-info">
+                  <div class="rsc-name">图片处理错误排障</div>
+                  <div class="rsc-meta">适用：redimageservice 异常</div>
+                </div>
+              </div>
+              <div class="rsc-footer">
+                <button class="rsc-btn rsc-btn-primary" onclick="clawStep2(this)">上传选中 SKILL</button>
+                <button class="rsc-btn rsc-btn-ghost">取消</button>
+              </div>
+            </div>
+          </div>
+        </div>`;
+      body.appendChild(row);
+      body.scrollTop = 99999;
+    }, 1000);
+  }
+
+  function toggleRsc(el) {
+    const check = el.querySelector('.rsc-check');
+    check.classList.toggle('on');
+    el.classList.toggle('selected');
+  }
+
+  function clawStep2(btn) {
+    btn.disabled = true; btn.style.opacity = '0.6';
+    updateExplain('A3', '🔵 A3 · 选择告警规则完成绑定', 'Claw 拉取 Xray 告警规则，按服务分组，根据 SKILL 描述智能预选，用户确认后调用 XPILOT API 完成绑定。<br><br><span class="highlight">关键点</span>：智能预选减少用户判断负担，不需要一条条手动查规则。');
+    const tid = appendTyping();
+    setTimeout(() => {
+      removeTyping(tid);
+      const body = document.getElementById('clawBody');
+      const row = document.createElement('div');
+      row.className = 'claw-msg-row';
+      row.innerHTML = `
+        <div class="claw-avatar ai">🦞</div>
+        <div style="flex:1;min-width:0;">
+          <div class="claw-bubble ai">
+            ✅ 已上传到 XPILOT。现在选一下要绑定哪些告警规则（已根据 SKILL 智能预选）：
+            <div class="rule-select-card" style="margin-top:8px;">
+              <div class="rsc-head">告警规则 · creator-service</div>
+              <div class="rsc-item selected" onclick="toggleRsc(this)">
+                <div class="rsc-check on"></div>
+                <div class="rsc-info">
+                  <div class="rsc-name">RPC 接口失败率 &gt; 5%</div>
+                  <div class="rsc-meta">连续 3 次满足</div>
+                </div>
+                <div class="rsc-lv p1">P1</div>
+              </div>
+              <div class="rsc-item selected" onclick="toggleRsc(this)">
+                <div class="rsc-check on"></div>
+                <div class="rsc-info">
+                  <div class="rsc-name">DB 连接池使用率 &gt; 90%</div>
+                  <div class="rsc-meta">连续 2 次满足</div>
+                </div>
+                <div class="rsc-lv p2">P2</div>
+              </div>
+              <div class="rsc-item" onclick="toggleRsc(this)">
+                <div class="rsc-check"></div>
+                <div class="rsc-info">
+                  <div class="rsc-name">P99 响应时间 &gt; 2000ms</div>
+                  <div class="rsc-meta">连续 2 次满足</div>
+                </div>
+                <div class="rsc-lv p2">P2</div>
+              </div>
+              <div class="rsc-footer">
+                <button class="rsc-btn rsc-btn-primary" onclick="clawStep3(this)">确认绑定</button>
+                <button class="rsc-btn rsc-btn-ghost">取消</button>
+              </div>
+            </div>
+          </div>
+        </div>`;
+      body.appendChild(row);
+      body.scrollTop = 99999;
+    }, 1000);
+  }
+
+  function clawStep3(btn) {
+    btn.disabled = true; btn.style.opacity = '0.6';
+    updateExplain('A4', '✅ A4 · Claw 给出闭环预期', '绑定完成后，Claw 告知用户后续链路会发生什么，让用户对整个流程有清晰预期。<br><br><span class="highlight">关键点</span>：用户知道「我配了这个之后会怎样」，而不是配完就结束了。');
+    const tid = appendTyping();
+    setTimeout(() => {
+      removeTyping(tid);
+      const body = document.getElementById('clawBody');
+      const row = document.createElement('div');
+      row.className = 'claw-msg-row';
+      row.innerHTML = `
+        <div class="claw-avatar ai">🦞</div>
+        <div style="flex:1;min-width:0;">
+          <div class="claw-bubble ai">
+            <div class="confirm-card">
+              <div class="confirm-card-title">✅ 配置完成</div>
+              已绑定 2 条规则 → 连接池耗尽排障 SKILL<br><br>
+              <strong>下次告警触发后会发生什么：</strong><br>
+              1. 告警卡片推送到 <strong>推荐业务告警群</strong>（含「AI 诊断中」状态）<br>
+              2. SKILL 自动执行，预计 <strong>3-4 分钟</strong>完成诊断<br>
+              3. 卡片更新为根因 + 置信度，可点击进入侧边栏追问<br><br>
+              历史诊断成功率：<strong style="color:#52c41a;">89%</strong>
+            </div>
+            <div class="chips" style="margin-top:8px;">
+              <span class="chip" onclick="clawMoreConfig(this)">继续配置其他服务</span>
+              <span class="chip" onclick="clawDone(this)">好的，先这样</span>
+            </div>
+          </div>
+        </div>`;
+      body.appendChild(row);
+      body.scrollTop = 99999;
+    }, 1000);
+  }
+
+  function clawSkip(el) {
+    el.style.opacity = '0.5'; el.style.pointerEvents = 'none';
+    appendClawUser('先跳过');
+    const tid = appendTyping();
+    setTimeout(() => {
+      removeTyping(tid);
+      appendClawAI('没问题，需要配置的时候跟我说「帮我绑定告警规则」就行。');
+    }, 800);
+  }
+
+  function clawMoreConfig(el) {
+    el.style.opacity = '0.5'; el.style.pointerEvents = 'none';
+    appendClawUser('继续配置其他服务');
+    const tid = appendTyping();
+    setTimeout(() => {
+      removeTyping(tid);
+      appendClawAI('好的，下一个是 redimageservice，有 2 条规则未绑定。要继续吗？');
+    }, 800);
+  }
+
+  function clawDone(el) {
+    el.style.opacity = '0.5'; el.style.pointerEvents = 'none';
+    appendClawUser('好的，先这样');
+    const tid = appendTyping();
+    setTimeout(() => {
+      removeTyping(tid);
+      appendClawAI('好的！后续告警触发时我会通知你。redimageservice 和 ark0-service 的规则随时可以继续绑定。');
+    }, 800);
+  }
+
+  function clawSendInput() {
+    const input = document.getElementById('clawInput');
+    const text = input.value.trim(); if (!text) return;
+    input.value = '';
+    appendClawUser(text);
+    const tid = appendTyping();
+    setTimeout(() => { removeTyping(tid); appendClawAI(`收到「${text}」，正在处理…`); }, 900);
+  }
+
+  function appendClawUser(text) {
+    const body = document.getElementById('clawBody');
+    const row = document.createElement('div');
+    row.className = 'claw-msg-row user';
+    row.innerHTML = `<div class="claw-avatar user">👤</div><div class="claw-bubble user">${text}</div>`;
+    body.appendChild(row); body.scrollTop = 99999;
+  }
+
+  function appendClawAI(text) {
+    const body = document.getElementById('clawBody');
+    const row = document.createElement('div');
+    row.className = 'claw-msg-row';
+    row.innerHTML = `<div class="claw-avatar ai">🦞</div><div><div class="claw-bubble ai">${text}</div></div>`;
+    body.appendChild(row); body.scrollTop = 99999;
+  }
+
+  let typingCount = 0;
+  function appendTyping() {
+    const id = 'ty' + (++typingCount);
+    const body = document.getElementById('clawBody');
+    const row = document.createElement('div');
+    row.className = 'claw-msg-row'; row.id = id;
+    row.innerHTML = `<div class="claw-avatar ai">🦞</div><div><div class="claw-bubble ai"><div class="loading-dots"><span></span><span></span><span></span></div></div></div>`;
+    body.appendChild(row); body.scrollTop = 99999;
+    return id;
+  }
+  function removeTyping(id) { document.getElementById(id)?.remove(); }
+
+  function updateExplain(step, title, desc) {
+    const icons = { A1: '🔵', A2: '🔵', A3: '🔵', A4: '✅' };
+    document.getElementById('stepExplain').innerHTML = `
+      <div class="explain-item">
+        <div class="explain-item-head">${title}</div>
+        <div class="explain-item-body">${desc}</div>
+      </div>`;
+  }
+</script>
+</body>
+</html>

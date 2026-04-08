@@ -1,7 +1,7 @@
 ---
 name: redoc
 version: 1.0.0
-description: hi 官方 REDoc 文档 Skill。支持创建 REDoc 文档，支持通过 markdown 语法，修改 REDoc 的内容，支持查看文档评论，回复文档评论，添加划词评论
+description: hi 官方 REDoc 文档 Skill。支持创建 REDoc 文档，支持通过 markdown 语法，修改 REDoc 的内容，支持查看文档评论，回复文档评论，添加划词评论，创建文档副本
 metadata: { 'openclaw': { 'requires': { 'bins': ["bun"] } } }
 ---
 
@@ -10,7 +10,7 @@ metadata: { 'openclaw': { 'requires': { 'bins': ["bun"] } } }
 技能核心能力通过 CLI 提供，在执行 CLI 命令时，必须查看运行命令的参数,**禁止**猜测命令用法：
 
 ```bash
-bunx @xhs/hi-workspace-cli@0.2.9 docs --help              # 所有命令概览
+bunx @xhs/hi-workspace-cli@0.2.10 docs --help              # 所有命令概览
 ```
 
 # 文档 shortcutId

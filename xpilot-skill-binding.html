@@ -1,0 +1,866 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>XPILOT · 技能广场</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'PingFang SC', 'Microsoft YaHei', sans-serif;
+    background: #13141a;
+    color: #e0e0e0;
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  /* ===== 顶部 Tab 栏 ===== */
+  .topbar {
+    height: 48px;
+    background: #1c1d26;
+    border-bottom: 1px solid #2a2b38;
+    display: flex;
+    align-items: center;
+    padding: 0 20px;
+    gap: 24px;
+    flex-shrink: 0;
+  }
+  .topbar-logo {
+    font-size: 15px;
+    font-weight: 700;
+    background: linear-gradient(135deg, #4d8fff, #9b6bff);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    margin-right: 8px;
+  }
+  .tab-item {
+    font-size: 13px;
+    color: #8888a0;
+    cursor: pointer;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    border-bottom: 2px solid transparent;
+    transition: all 0.15s;
+    padding: 0 2px;
+  }
+  .tab-item:hover { color: #c0c0d0; }
+  .tab-item.active { color: #fff; border-bottom-color: #4d8fff; font-weight: 500; }
+
+  /* ===== 内容区 ===== */
+  .content {
+    flex: 1;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* 筛选/搜索栏 */
+  .filter-bar {
+    padding: 14px 20px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    border-bottom: 1px solid #2a2b38;
+    flex-shrink: 0;
+  }
+  .search-box {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    background: #22232f;
+    border: 1px solid #2e2f3e;
+    border-radius: 6px;
+    padding: 6px 12px;
+    width: 220px;
+    transition: border-color 0.2s;
+  }
+  .search-box:focus-within { border-color: #4d8fff; }
+  .search-box input { border: none; outline: none; font-size: 13px; color: #e0e0e0; background: transparent; flex: 1; }
+  .search-box input::placeholder { color: #555570; }
+  .filter-chips { display: flex; gap: 6px; }
+  .f-chip {
+    font-size: 12px; padding: 4px 12px;
+    border-radius: 12px; cursor: pointer;
+    border: 1px solid #2e2f3e; background: #22232f; color: #8888a0;
+    transition: all 0.15s;
+  }
+  .f-chip:hover { border-color: #4d8fff; color: #a0b8ff; }
+  .f-chip.active { background: rgba(77,143,255,0.15); border-color: #4d8fff; color: #4d8fff; }
+  .ml-auto { margin-left: auto; }
+  .btn-new {
+    font-size: 13px; padding: 6px 14px;
+    border-radius: 6px; cursor: pointer;
+    background: #4d8fff; border: none; color: #fff;
+    display: flex; align-items: center; gap: 5px;
+    transition: background 0.15s;
+  }
+  .btn-new:hover { background: #3a7aff; }
+
+  /* 卡片网格 */
+  .skill-grid {
+    flex: 1;
+    overflow-y: auto;
+    padding: 16px 20px;
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 12px;
+    align-content: start;
+  }
+
+  /* ===== SKILL 卡片 ===== */
+  .skill-card {
+    background: #1c1d26;
+    border: 1px solid #2a2b38;
+    border-radius: 10px;
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    transition: border-color 0.2s, box-shadow 0.2s;
+    cursor: default;
+  }
+  .skill-card:hover {
+    border-color: #3a3b52;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+  }
+
+  /* 第一行：图标 + 名称 + 标签 + 绑定数 */
+  .card-row1 {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .skill-icon {
+    width: 28px; height: 28px;
+    border-radius: 7px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 15px;
+    flex-shrink: 0;
+  }
+  .skill-name { font-size: 14px; font-weight: 600; color: #e8e8f0; }
+  .skill-tags { display: flex; flex-wrap: wrap; gap: 4px; }
+  .s-tag {
+    font-size: 11px; border-radius: 3px; padding: 2px 7px;
+    background: #22232f; color: #7878a0; border: 1px solid #2e2f3e;
+  }
+  /* 绑定数标签（靠右） */
+  .binding-count-tag {
+    margin-left: auto;
+    flex-shrink: 0;
+    font-size: 11px; border-radius: 10px; padding: 2px 9px;
+    background: rgba(63,160,96,0.12); color: #52c41a;
+    border: 1px solid rgba(63,160,96,0.3);
+    white-space: nowrap;
+    cursor: pointer;
+  }
+  .binding-count-tag:hover { background: rgba(63,160,96,0.22); }
+
+  /* 第二行：描述 */
+  .skill-desc { font-size: 12px; color: #6868a0; line-height: 1.55; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+
+  /* 第三行：元信息 */
+  .card-meta { font-size: 11px; color: #555570; display: flex; align-items: center; gap: 10px; }
+  .card-meta-item { display: flex; align-items: center; gap: 4px; }
+
+  /* 底部操作区 */
+  .card-footer {
+    display: flex;
+    gap: 5px;
+    border-top: 1px solid #2a2b38;
+    padding-top: 10px;
+    margin-top: 2px;
+  }
+  .fc-btn {
+    flex: 1;
+    font-size: 11px;
+    padding: 5px 0;
+    border-radius: 4px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.15s;
+    white-space: nowrap;
+  }
+  .fc-use { border: 1px solid #2e2f3e; background: transparent; color: #8888a0; }
+  .fc-use:hover { border-color: #4d8fff; color: #4d8fff; }
+  .fc-detail { border: 1px solid #2e2f3e; background: transparent; color: #8888a0; }
+  .fc-detail:hover { border-color: #9b6bff; color: #9b6bff; }
+  .fc-del { border: 1px solid #2e2f3e; background: transparent; color: #8888a0; }
+  .fc-del:hover { border-color: #ff4d4f; color: #ff4d4f; }
+  /* 告警绑定按钮 */
+  .fc-bind {
+    border: 1px solid rgba(77,143,255,0.4);
+    background: rgba(77,143,255,0.08);
+    color: #4d8fff;
+  }
+  .fc-bind:hover { background: rgba(77,143,255,0.2); border-color: #4d8fff; }
+  .fc-bind.has {
+    border-color: rgba(63,160,96,0.4);
+    background: rgba(63,160,96,0.08);
+    color: #52c41a;
+  }
+  .fc-bind.has:hover { background: rgba(63,160,96,0.2); }
+  /* 执行记录按钮 */
+  .fc-log { border: 1px solid rgba(250,140,22,0.4); background: rgba(250,140,22,0.08); color: #ffa940; }
+  .fc-log:hover { background: rgba(250,140,22,0.2); border-color: #ffa940; }
+
+  /* ===== 绑定配置抽屉 ===== */
+  .drawer-overlay {
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,0.5);
+    z-index: 100;
+    display: none;
+    align-items: stretch;
+    justify-content: flex-end;
+  }
+  .drawer-overlay.open { display: flex; }
+
+  .drawer {
+    width: 520px;
+    background: #1c1d26;
+    display: flex;
+    flex-direction: column;
+    border-left: 1px solid #2a2b38;
+    animation: slideIn 0.22s ease;
+  }
+  @keyframes slideIn { from { transform: translateX(100%); } to { transform: translateX(0); } }
+
+  .drawer-header {
+    padding: 16px 20px;
+    border-bottom: 1px solid #2a2b38;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-shrink: 0;
+  }
+  .drawer-title { font-size: 15px; font-weight: 600; color: #e8e8f0; flex: 1; }
+  .drawer-skill-badge {
+    font-size: 12px;
+    background: rgba(77,143,255,0.15);
+    color: #4d8fff;
+    border: 1px solid rgba(77,143,255,0.35);
+    border-radius: 4px;
+    padding: 2px 9px;
+  }
+  .drawer-close {
+    width: 28px; height: 28px;
+    border-radius: 6px;
+    display: flex; align-items: center; justify-content: center;
+    color: #555570; font-size: 18px; cursor: pointer;
+    transition: all 0.15s;
+  }
+  .drawer-close:hover { background: #2a2b38; color: #e0e0e0; }
+
+  .drawer-body {
+    flex: 1;
+    overflow-y: auto;
+    padding: 16px 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  .d-section-title {
+    font-size: 13px;
+    font-weight: 600;
+    color: #c0c0d0;
+    margin-bottom: 10px;
+    display: flex; align-items: center; justify-content: space-between;
+  }
+  .d-section-sub { font-size: 12px; color: #555570; font-weight: 400; }
+
+  /* 已绑定列表 */
+  .bound-list { display: flex; flex-direction: column; gap: 6px; }
+  .bound-item {
+    display: flex; align-items: center; gap: 9px;
+    padding: 8px 12px;
+    background: rgba(63,160,96,0.08);
+    border: 1px solid rgba(63,160,96,0.2);
+    border-radius: 6px;
+    font-size: 12px;
+  }
+  .bound-item-name { flex: 1; color: #c0c0d0; font-weight: 500; }
+  .bound-item-meta { color: #555570; font-size: 11px; }
+  .bound-remove {
+    color: #555570; cursor: pointer; font-size: 16px; padding: 2px;
+    transition: color 0.15s;
+  }
+  .bound-remove:hover { color: #ff4d4f; }
+  .bound-empty { font-size: 12px; color: #555570; text-align: center; padding: 10px 0; }
+
+  /* 搜索添加 */
+  .drawer-search {
+    display: flex; align-items: center; gap: 7px;
+    background: #22232f; border: 1px solid #2e2f3e;
+    border-radius: 6px; padding: 8px 12px; margin-bottom: 10px;
+    transition: border-color 0.2s;
+  }
+  .drawer-search:focus-within { border-color: #4d8fff; }
+  .drawer-search input { border: none; outline: none; font-size: 13px; color: #e0e0e0; background: transparent; flex: 1; }
+  .drawer-search input::placeholder { color: #555570; }
+
+  .rule-filter-row { display: flex; gap: 6px; margin-bottom: 10px; flex-wrap: wrap; }
+  .r-chip {
+    font-size: 11px; padding: 3px 10px;
+    border-radius: 10px; cursor: pointer;
+    border: 1px solid #2e2f3e; background: #22232f; color: #6868a0;
+    transition: all 0.15s;
+  }
+  .r-chip:hover { border-color: #4d8fff; color: #a0b8ff; }
+  .r-chip.active { background: rgba(77,143,255,0.15); border-color: #4d8fff; color: #4d8fff; }
+
+  .rule-list { display: flex; flex-direction: column; gap: 5px; max-height: 280px; overflow-y: auto; }
+  .rule-item {
+    display: flex; align-items: center; gap: 9px;
+    padding: 9px 12px;
+    background: #22232f; border: 1px solid #2e2f3e;
+    border-radius: 6px; font-size: 12px; cursor: pointer;
+    transition: all 0.15s;
+  }
+  .rule-item:hover { border-color: #4d8fff; background: rgba(77,143,255,0.08); }
+  .rule-item.selected { border-color: #4d8fff; background: rgba(77,143,255,0.12); }
+  .rule-item.already { border-color: rgba(63,160,96,0.3); background: rgba(63,160,96,0.06); cursor: default; }
+  .rule-check {
+    width: 16px; height: 16px; border: 1.5px solid #3a3b52;
+    border-radius: 3px; display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0; transition: all 0.15s; font-size: 10px; font-weight: 700;
+  }
+  .rule-item.selected .rule-check { background: #4d8fff; border-color: #4d8fff; color: #fff; }
+  .rule-item.already .rule-check { background: #3fa060; border-color: #3fa060; color: #fff; }
+  .rule-item-info { flex: 1; min-width: 0; }
+  .rule-item-name { color: #c0c0d0; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .rule-item-meta { color: #555570; font-size: 11px; margin-top: 2px; display: flex; gap: 8px; }
+  .r-level { font-size: 10px; border-radius: 3px; padding: 1px 5px; font-weight: 600; flex-shrink: 0; }
+  .r-level.p1 { background: rgba(255,77,79,0.15); color: #ff6b6b; border: 1px solid rgba(255,77,79,0.3); }
+  .r-level.p2 { background: rgba(250,140,22,0.15); color: #ffa940; border: 1px solid rgba(250,140,22,0.3); }
+  .already-tag { font-size: 10px; color: #52c41a; background: rgba(63,160,96,0.12); border: 1px solid rgba(63,160,96,0.3); border-radius: 3px; padding: 1px 5px; }
+
+  .drawer-footer {
+    padding: 14px 20px;
+    border-top: 1px solid #2a2b38;
+    display: flex; align-items: center; justify-content: space-between;
+    flex-shrink: 0;
+  }
+  .drawer-hint { font-size: 12px; color: #555570; }
+  .drawer-hint strong { color: #4d8fff; }
+  .drawer-actions { display: flex; gap: 8px; }
+  .d-btn {
+    font-size: 13px; padding: 7px 18px;
+    border-radius: 5px; cursor: pointer; transition: all 0.15s;
+  }
+  .d-btn-cancel { border: 1px solid #2e2f3e; background: transparent; color: #8888a0; }
+  .d-btn-cancel:hover { border-color: #4d8fff; color: #4d8fff; }
+  .d-btn-confirm { border: none; background: #4d8fff; color: #fff; }
+  .d-btn-confirm:hover { background: #3a7aff; }
+  .d-btn-confirm:disabled { background: #2e2f3e; color: #555570; cursor: not-allowed; }
+
+  /* Toast */
+  .toast {
+    position: fixed; top: 60px; left: 50%;
+    transform: translateX(-50%) translateY(-16px);
+    background: #1c2e1c; border: 1px solid #3fa060;
+    color: #52c41a; font-size: 13px;
+    padding: 8px 20px; border-radius: 6px;
+    display: flex; align-items: center; gap: 7px;
+    opacity: 0; transition: all 0.3s; z-index: 200;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.4);
+  }
+  .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+  ::-webkit-scrollbar { width: 3px; }
+  ::-webkit-scrollbar-thumb { background: #2e2f3e; border-radius: 2px; }
+</style>
+</head>
+<body>
+
+<!-- 顶部 Tab -->
+<div class="topbar">
+  <div class="topbar-logo">XPILOT</div>
+  <div class="tab-item">工作台</div>
+  <div class="tab-item active">技能广场</div>
+  <div class="tab-item">对话</div>
+  <div class="tab-item">日报</div>
+</div>
+
+<!-- 筛选栏 -->
+<div class="content">
+  <div class="filter-bar">
+    <div class="search-box">
+      <span style="color:#555570;font-size:13px;">🔍</span>
+      <input type="text" placeholder="搜索技能…">
+    </div>
+    <div class="filter-chips">
+      <div class="f-chip active">全部</div>
+      <div class="f-chip">告警排障</div>
+      <div class="f-chip">指标分析</div>
+      <div class="f-chip">日志查询</div>
+      <div class="f-chip">发布部署</div>
+    </div>
+    <div class="ml-auto">
+      <button class="btn-new">+ 新建技能</button>
+    </div>
+  </div>
+
+  <!-- 卡片网格 -->
+  <div class="skill-grid">
+
+    <!-- 卡片1：已绑定 3 条 -->
+    <div class="skill-card">
+      <div class="card-row1">
+        <div class="skill-icon" style="background:rgba(255,77,79,0.12);">📉</div>
+        <span class="skill-name">新笔记下跌排障</span>
+        <span class="s-tag">XRay</span>
+        <span class="s-tag">推荐</span>
+        <span class="binding-count-tag" onclick="openDrawer('新笔记下跌排障',true)">🔗 已绑定 3 条规则</span>
+      </div>
+      <div class="skill-desc">诊断内/外流推荐新笔记曝光占比异常下跌，覆盖全链路排查分析</div>
+      <div class="card-meta">
+        <span class="card-meta-item">👤 mahengyang</span>
+        <span class="card-meta-item">🕐 2026-04-01</span>
+      </div>
+      <div class="card-footer">
+        <div class="fc-btn fc-use">获取</div>
+        <div class="fc-btn fc-detail">详情</div>
+        <div class="fc-btn fc-bind has" onclick="openDrawer('新笔记下跌排障',true)">🔗 告警绑定</div>
+        <div class="fc-btn fc-log" onclick="openLog('新笔记下跌排障')">📋 执行记录</div>
+        <div class="fc-btn fc-del">删除</div>
+      </div>
+    </div>
+
+    <!-- 卡片2：已绑定 1 条 -->
+    <div class="skill-card">
+      <div class="card-row1">
+        <div class="skill-icon" style="background:rgba(250,140,22,0.12);">⚡</div>
+        <span class="skill-name">GC 异常排障</span>
+        <span class="s-tag">XRay</span>
+        <span class="s-tag">JVM</span>
+        <span class="binding-count-tag" onclick="openDrawer('GC 异常排障',true)">🔗 已绑定 1 条规则</span>
+      </div>
+      <div class="skill-desc">分析 JVM GC 停顿、堆内存异常，定位内存泄漏与大对象分配问题</div>
+      <div class="card-meta">
+        <span class="card-meta-item">👤 zhangsan</span>
+        <span class="card-meta-item">🕐 2026-03-28</span>
+      </div>
+      <div class="card-footer">
+        <div class="fc-btn fc-use">获取</div>
+        <div class="fc-btn fc-detail">详情</div>
+        <div class="fc-btn fc-bind has" onclick="openDrawer('GC 异常排障',true)">🔗 告警绑定</div>
+        <div class="fc-btn fc-log" onclick="openLog('GC 异常排障')">📋 执行记录</div>
+        <div class="fc-btn fc-del">删除</div>
+      </div>
+    </div>
+
+    <!-- 卡片3：未绑定 -->
+    <div class="skill-card">
+      <div class="card-row1">
+        <div class="skill-icon" style="background:rgba(155,107,255,0.12);">🗄️</div>
+        <span class="skill-name">Redis 缓存异常排障</span>
+        <span class="s-tag">XRay</span>
+        <span class="s-tag">Redis</span>
+      </div>
+      <div class="skill-desc">分析 Redis 命中率下降、连接超时、热 key 问题，关联流量变化排查</div>
+      <div class="card-meta">
+        <span class="card-meta-item">👤 lisi</span>
+        <span class="card-meta-item">🕐 2026-03-20</span>
+      </div>
+      <div class="card-footer">
+        <div class="fc-btn fc-use">获取</div>
+        <div class="fc-btn fc-detail">详情</div>
+        <div class="fc-btn fc-bind" onclick="openDrawer('Redis 缓存异常排障',false)">🔗 告警绑定</div>
+        <div class="fc-btn fc-log" onclick="openLog('Redis 缓存异常排障')">📋 执行记录</div>
+        <div class="fc-btn fc-del">删除</div>
+      </div>
+    </div>
+
+    <!-- 卡片4：未绑定 -->
+    <div class="skill-card">
+      <div class="card-row1">
+        <div class="skill-icon" style="background:rgba(77,143,255,0.12);">🔌</div>
+        <span class="skill-name">连接池耗尽排障</span>
+        <span class="s-tag">XRay</span>
+        <span class="s-tag">连接池</span>
+      </div>
+      <div class="skill-desc">诊断 DB/Redis/HTTP 连接池耗尽，关联超时与下游依赖分析</div>
+      <div class="card-meta">
+        <span class="card-meta-item">👤 wangwu</span>
+        <span class="card-meta-item">🕐 2026-03-15</span>
+      </div>
+      <div class="card-footer">
+        <div class="fc-btn fc-use">获取</div>
+        <div class="fc-btn fc-detail">详情</div>
+        <div class="fc-btn fc-bind" onclick="openDrawer('连接池耗尽排障',false)">🔗 告警绑定</div>
+        <div class="fc-btn fc-log" onclick="openLog('连接池耗尽排障')">📋 执行记录</div>
+        <div class="fc-btn fc-del">删除</div>
+      </div>
+    </div>
+
+    <!-- 卡片5：未绑定 -->
+    <div class="skill-card">
+      <div class="card-row1">
+        <div class="skill-icon" style="background:rgba(63,160,96,0.12);">📡</div>
+        <span class="skill-name">RPC 调用链路排障</span>
+        <span class="s-tag">XRay</span>
+        <span class="s-tag">RPC</span>
+      </div>
+      <div class="skill-desc">通过 Logview 分析 RPC 调用链路，定位下游服务异常与耗时瓶颈</div>
+      <div class="card-meta">
+        <span class="card-meta-item">👤 zhaoliu</span>
+        <span class="card-meta-item">🕐 2026-03-10</span>
+      </div>
+      <div class="card-footer">
+        <div class="fc-btn fc-use">获取</div>
+        <div class="fc-btn fc-detail">详情</div>
+        <div class="fc-btn fc-bind" onclick="openDrawer('RPC 调用链路排障',false)">🔗 告警绑定</div>
+        <div class="fc-btn fc-log" onclick="openLog('RPC 调用链路排障')">📋 执行记录</div>
+        <div class="fc-btn fc-del">删除</div>
+      </div>
+    </div>
+
+    <!-- 卡片6：未绑定 -->
+    <div class="skill-card">
+      <div class="card-row1">
+        <div class="skill-icon" style="background:rgba(255,107,153,0.12);">📊</div>
+        <span class="skill-name">流量突增排障</span>
+        <span class="s-tag">XRay</span>
+        <span class="s-tag">流量</span>
+      </div>
+      <div class="skill-desc">检测异常流量突增，分析来源分布、热点接口，评估容量风险</div>
+      <div class="card-meta">
+        <span class="card-meta-item">👤 mahengyang</span>
+        <span class="card-meta-item">🕐 2026-03-05</span>
+      </div>
+      <div class="card-footer">
+        <div class="fc-btn fc-use">获取</div>
+        <div class="fc-btn fc-detail">详情</div>
+        <div class="fc-btn fc-bind" onclick="openDrawer('流量突增排障',false)">🔗 告警绑定</div>
+        <div class="fc-btn fc-log" onclick="openLog('流量突增排障')">📋 执行记录</div>
+        <div class="fc-btn fc-del">删除</div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- 绑定配置抽屉 -->
+<div class="drawer-overlay" id="drawerOverlay" onclick="closeOnOverlay(event)">
+  <div class="drawer">
+    <div class="drawer-header">
+      <div class="drawer-title">绑定告警规则</div>
+      <span class="drawer-skill-badge" id="drawerSkillName">-</span>
+      <div class="drawer-close" onclick="closeDrawer()">×</div>
+    </div>
+
+    <div class="drawer-body">
+      <!-- 已绑定 -->
+      <div id="boundSection">
+        <div class="d-section-title">
+          已绑定规则
+          <span class="d-section-sub" id="boundCount">3 条</span>
+        </div>
+        <div class="bound-list" id="boundList">
+          <div class="bound-item">
+            <span class="r-level p1">P1</span>
+            <div class="bound-item-name">外流1h新笔记曝光占比周同比下跌超10%</div>
+            <div class="bound-item-meta">ark-feedx · 推荐</div>
+            <span class="bound-remove" onclick="removeBound(this)">×</span>
+          </div>
+          <div class="bound-item">
+            <span class="r-level p1">P1</span>
+            <div class="bound-item-name">24h新笔记占比周同比下跌超20%</div>
+            <div class="bound-item-meta">ark0 · 内流</div>
+            <span class="bound-remove" onclick="removeBound(this)">×</span>
+          </div>
+          <div class="bound-item">
+            <span class="r-level p2">P2</span>
+            <div class="bound-item-name">内流新笔记曝光率环比下降超15%</div>
+            <div class="bound-item-meta">ark0 · 内流推荐</div>
+            <span class="bound-remove" onclick="removeBound(this)">×</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- 添加规则 -->
+      <div>
+        <div class="d-section-title">添加告警规则</div>
+        <div class="drawer-search">
+          <span style="color:#555570;">🔍</span>
+          <input type="text" placeholder="搜索规则名称、服务名…" oninput="filterRules(this.value)">
+        </div>
+        <div class="rule-filter-row">
+          <div class="r-chip active">全部</div>
+          <div class="r-chip">推荐</div>
+          <div class="r-chip">基础设施</div>
+          <div class="r-chip">P1</div>
+          <div class="r-chip">P2</div>
+        </div>
+        <div class="rule-list" id="ruleList">
+          <div class="rule-item already">
+            <div class="rule-check">✓</div>
+            <div class="rule-item-info">
+              <div class="rule-item-name">外流1h新笔记曝光占比周同比下跌超10%</div>
+              <div class="rule-item-meta"><span>ark-feedx</span><span>推荐 · 外流</span></div>
+            </div>
+            <span class="r-level p1">P1</span>
+            <span class="already-tag">已绑定</span>
+          </div>
+          <div class="rule-item already">
+            <div class="rule-check">✓</div>
+            <div class="rule-item-info">
+              <div class="rule-item-name">24h新笔记占比周同比下跌超20%</div>
+              <div class="rule-item-meta"><span>ark0</span><span>推荐 · 内流</span></div>
+            </div>
+            <span class="r-level p1">P1</span>
+            <span class="already-tag">已绑定</span>
+          </div>
+          <div class="rule-item" onclick="toggleRule(this)">
+            <div class="rule-check"></div>
+            <div class="rule-item-info">
+              <div class="rule-item-name">新笔记曝光量小时环比下跌超30%</div>
+              <div class="rule-item-meta"><span>rec-service</span><span>推荐 · 全链路</span></div>
+            </div>
+            <span class="r-level p2">P2</span>
+          </div>
+          <div class="rule-item" onclick="toggleRule(this)">
+            <div class="rule-check"></div>
+            <div class="rule-item-info">
+              <div class="rule-item-name">新笔记召回率低于基线20%</div>
+              <div class="rule-item-meta"><span>recall-service</span><span>推荐 · 召回</span></div>
+            </div>
+            <span class="r-level p2">P2</span>
+          </div>
+          <div class="rule-item" onclick="toggleRule(this)">
+            <div class="rule-check"></div>
+            <div class="rule-item-info">
+              <div class="rule-item-name">推荐服务 P99 耗时超 500ms</div>
+              <div class="rule-item-meta"><span>recommend-service</span><span>性能</span></div>
+            </div>
+            <span class="r-level p1">P1</span>
+          </div>
+          <div class="rule-item" onclick="toggleRule(this)">
+            <div class="rule-check"></div>
+            <div class="rule-item-info">
+              <div class="rule-item-name">笔记分发量日同比下跌超10%</div>
+              <div class="rule-item-meta"><span>distribution-service</span><span>分发</span></div>
+            </div>
+            <span class="r-level p2">P2</span>
+          </div>
+          <div class="rule-item" onclick="toggleRule(this)">
+            <div class="rule-check"></div>
+            <div class="rule-item-info">
+              <div class="rule-item-name">推荐服务接口失败率超阈值</div>
+              <div class="rule-item-meta"><span>recommend-service</span><span>稳定性</span></div>
+            </div>
+            <span class="r-level p1">P1</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="drawer-footer">
+      <div class="drawer-hint">已选 <strong id="selCount">0</strong> 条新规则</div>
+      <div class="drawer-actions">
+        <button class="d-btn d-btn-cancel" onclick="closeDrawer()">取消</button>
+        <button class="d-btn d-btn-confirm" id="confirmBtn" onclick="confirmBind()" disabled>确认绑定</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- 执行记录抽屉 -->
+<div class="drawer-overlay" id="logOverlay" onclick="closeLogOnOverlay(event)">
+  <div class="drawer">
+    <div class="drawer-header">
+      <div class="drawer-title">执行记录</div>
+      <span class="drawer-skill-badge" id="logSkillName">-</span>
+      <div class="drawer-close" onclick="closeLog()">×</div>
+    </div>
+    <div class="drawer-body">
+
+      <!-- 汇总 -->
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:4px;">
+        <div style="background:#22232f;border:1px solid #2e2f3e;border-radius:6px;padding:10px;text-align:center;">
+          <div style="font-size:20px;font-weight:700;color:#e8e8f0;">47</div>
+          <div style="font-size:11px;color:#555570;margin-top:2px;">总触发次数</div>
+        </div>
+        <div style="background:rgba(63,160,96,0.08);border:1px solid rgba(63,160,96,0.25);border-radius:6px;padding:10px;text-align:center;">
+          <div style="font-size:20px;font-weight:700;color:#52c41a;">41</div>
+          <div style="font-size:11px;color:#555570;margin-top:2px;">成功</div>
+        </div>
+        <div style="background:rgba(255,77,79,0.08);border:1px solid rgba(255,77,79,0.2);border-radius:6px;padding:10px;text-align:center;">
+          <div style="font-size:20px;font-weight:700;color:#ff6b6b;">6</div>
+          <div style="font-size:11px;color:#555570;margin-top:2px;">失败</div>
+        </div>
+      </div>
+
+      <!-- 按触发规则聚合 -->
+      <div>
+        <div class="d-section-title" style="margin-bottom:10px;">按告警规则聚合</div>
+        <div style="display:flex;flex-direction:column;gap:6px;margin-bottom:14px;">
+          <div style="background:#22232f;border:1px solid #2e2f3e;border-radius:6px;padding:10px 12px;font-size:12px;">
+            <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">
+              <span style="color:#c0c0d0;font-weight:500;flex:1;">外流1h新笔记曝光占比周同比下跌超10%</span>
+              <span style="font-size:10px;background:rgba(255,77,79,0.15);color:#ff6b6b;border:1px solid rgba(255,77,79,0.3);border-radius:3px;padding:1px 5px;">P1</span>
+            </div>
+            <div style="display:flex;gap:16px;font-size:11px;color:#555570;">
+              <span>触发 <strong style="color:#e8e8f0;">28</strong> 次</span>
+              <span>成功 <strong style="color:#52c41a;">25</strong></span>
+              <span>失败 <strong style="color:#ff6b6b;">3</strong></span>
+              <span>成功率 <strong style="color:#52c41a;">89.3%</strong></span>
+            </div>
+          </div>
+          <div style="background:#22232f;border:1px solid #2e2f3e;border-radius:6px;padding:10px 12px;font-size:12px;">
+            <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">
+              <span style="color:#c0c0d0;font-weight:500;flex:1;">24h新笔记占比周同比下跌超20%</span>
+              <span style="font-size:10px;background:rgba(255,77,79,0.15);color:#ff6b6b;border:1px solid rgba(255,77,79,0.3);border-radius:3px;padding:1px 5px;">P1</span>
+            </div>
+            <div style="display:flex;gap:16px;font-size:11px;color:#555570;">
+              <span>触发 <strong style="color:#e8e8f0;">12</strong> 次</span>
+              <span>成功 <strong style="color:#52c41a;">12</strong></span>
+              <span>失败 <strong style="color:#ff6b6b;">0</strong></span>
+              <span>成功率 <strong style="color:#52c41a;">100%</strong></span>
+            </div>
+          </div>
+          <div style="background:#22232f;border:1px solid #2e2f3e;border-radius:6px;padding:10px 12px;font-size:12px;">
+            <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">
+              <span style="color:#c0c0d0;font-weight:500;flex:1;">内流新笔记曝光率环比下降超15%</span>
+              <span style="font-size:10px;background:rgba(250,140,22,0.15);color:#ffa940;border:1px solid rgba(250,140,22,0.3);border-radius:3px;padding:1px 5px;">P2</span>
+            </div>
+            <div style="display:flex;gap:16px;font-size:11px;color:#555570;">
+              <span>触发 <strong style="color:#e8e8f0;">7</strong> 次</span>
+              <span>成功 <strong style="color:#52c41a;">4</strong></span>
+              <span>失败 <strong style="color:#ff6b6b;">3</strong></span>
+              <span>成功率 <strong style="color:#ffa940;">57.1%</strong></span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 最近执行明细 -->
+      <div>
+        <div class="d-section-title" style="margin-bottom:10px;">
+          最近执行明细
+          <span class="d-section-sub">最近 30 天</span>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:5px;">
+
+          <div style="display:grid;grid-template-columns:90px 1fr 60px 70px;gap:8px;padding:8px 10px;background:#22232f;border:1px solid #2e2f3e;border-radius:5px;font-size:11px;align-items:center;">
+            <span style="color:#555570;">04-08 10:32</span>
+            <span style="color:#9898b8;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">外流1h新笔记曝光占比下跌</span>
+            <span style="color:#52c41a;font-weight:500;">✓ 成功</span>
+            <span style="color:#555570;">4m 12s</span>
+          </div>
+          <div style="display:grid;grid-template-columns:90px 1fr 60px 70px;gap:8px;padding:8px 10px;background:#22232f;border:1px solid #2e2f3e;border-radius:5px;font-size:11px;align-items:center;">
+            <span style="color:#555570;">04-08 08:15</span>
+            <span style="color:#9898b8;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">24h新笔记占比下跌</span>
+            <span style="color:#52c41a;font-weight:500;">✓ 成功</span>
+            <span style="color:#555570;">3m 48s</span>
+          </div>
+          <div style="display:grid;grid-template-columns:90px 1fr 60px 70px;gap:8px;padding:8px 10px;background:rgba(255,77,79,0.06);border:1px solid rgba(255,77,79,0.2);border-radius:5px;font-size:11px;align-items:center;">
+            <span style="color:#555570;">04-07 22:41</span>
+            <span style="color:#9898b8;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">内流新笔记曝光率下降</span>
+            <span style="color:#ff6b6b;font-weight:500;">✗ 失败</span>
+            <span style="color:#555570;">超时</span>
+          </div>
+          <div style="display:grid;grid-template-columns:90px 1fr 60px 70px;gap:8px;padding:8px 10px;background:#22232f;border:1px solid #2e2f3e;border-radius:5px;font-size:11px;align-items:center;">
+            <span style="color:#555570;">04-07 14:08</span>
+            <span style="color:#9898b8;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">外流1h新笔记曝光占比下跌</span>
+            <span style="color:#52c41a;font-weight:500;">✓ 成功</span>
+            <span style="color:#555570;">5m 02s</span>
+          </div>
+          <div style="display:grid;grid-template-columns:90px 1fr 60px 70px;gap:8px;padding:8px 10px;background:rgba(255,77,79,0.06);border:1px solid rgba(255,77,79,0.2);border-radius:5px;font-size:11px;align-items:center;">
+            <span style="color:#555570;">04-06 19:55</span>
+            <span style="color:#9898b8;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">外流1h新笔记曝光占比下跌</span>
+            <span style="color:#ff6b6b;font-weight:500;">✗ 失败</span>
+            <span style="color:#555570;">数据源异常</span>
+          </div>
+          <div style="display:grid;grid-template-columns:90px 1fr 60px 70px;gap:8px;padding:8px 10px;background:#22232f;border:1px solid #2e2f3e;border-radius:5px;font-size:11px;align-items:center;">
+            <span style="color:#555570;">04-06 11:20</span>
+            <span style="color:#9898b8;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">24h新笔记占比下跌</span>
+            <span style="color:#52c41a;font-weight:500;">✓ 成功</span>
+            <span style="color:#555570;">3m 31s</span>
+          </div>
+
+          <div style="text-align:center;margin-top:4px;">
+            <span style="font-size:12px;color:#4d8fff;cursor:pointer;">查看更多记录 →</span>
+          </div>
+        </div>
+      </div>
+
+    </div>
+    <div class="drawer-footer" style="justify-content:flex-end;">
+      <div class="drawer-actions">
+        <button class="d-btn d-btn-cancel" onclick="closeLog()">关闭</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast">✅ 绑定成功，告警触发时将自动执行该 SKILL</div>
+
+<script>
+  let selCount = 0;
+
+  function openDrawer(skillName, hasBound) {
+    document.getElementById('drawerSkillName').textContent = skillName;
+    document.getElementById('drawerOverlay').classList.add('open');
+    if (!hasBound) {
+      document.getElementById('boundList').innerHTML = '<div class="bound-empty">暂无已绑定规则</div>';
+      document.getElementById('boundCount').textContent = '0 条';
+    } else {
+      document.getElementById('boundCount').textContent = '3 条';
+    }
+    selCount = 0;
+    updateCount();
+    document.querySelectorAll('.rule-item:not(.already)').forEach(el => el.classList.remove('selected'));
+  }
+
+  function closeDrawer() { document.getElementById('drawerOverlay').classList.remove('open'); }
+  function closeOnOverlay(e) { if (e.target === document.getElementById('drawerOverlay')) closeDrawer(); }
+
+  function removeBound(btn) {
+    const item = btn.closest('.bound-item');
+    item.style.opacity = '0'; item.style.transition = 'opacity 0.2s';
+    setTimeout(() => {
+      item.remove();
+      const c = document.querySelectorAll('.bound-item').length;
+      document.getElementById('boundCount').textContent = c + ' 条';
+    }, 200);
+  }
+
+  function toggleRule(el) {
+    const on = el.classList.toggle('selected');
+    selCount += on ? 1 : -1;
+    updateCount();
+  }
+
+  function updateCount() {
+    document.getElementById('selCount').textContent = selCount;
+    document.getElementById('confirmBtn').disabled = selCount === 0;
+  }
+
+  function confirmBind() {
+    closeDrawer();
+    const t = document.getElementById('toast');
+    t.classList.add('show');
+    setTimeout(() => t.classList.remove('show'), 3000);
+    selCount = 0; updateCount();
+  }
+
+  function filterRules(val) {
+    document.querySelectorAll('.rule-item').forEach(item => {
+      const name = item.querySelector('.rule-item-name')?.textContent || '';
+      item.style.display = name.includes(val) ? '' : 'none';
+    });
+  }
+
+  function openLog(skillName) {
+    document.getElementById('logSkillName').textContent = skillName;
+    document.getElementById('logOverlay').classList.add('open');
+  }
+  function closeLog() { document.getElementById('logOverlay').classList.remove('open'); }
+  function closeLogOnOverlay(e) { if (e.target === document.getElementById('logOverlay')) closeLog(); }
+</script>
+</body>
+</html>

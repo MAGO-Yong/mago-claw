@@ -1,0 +1,641 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>XRay AI 诊断 · Hi IM 侧边栏</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'PingFang SC', 'Microsoft YaHei', sans-serif;
+    background: #f0f2f5;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+  }
+
+  /* 模拟 Hi IM 整体窗口背景 */
+  .im-shell {
+    width: 820px;
+    height: 640px;
+    background: #fff;
+    border-radius: 12px;
+    box-shadow: 0 8px 40px rgba(0,0,0,0.14);
+    display: flex;
+    overflow: hidden;
+  }
+
+  /* 左侧：Hi IM 聊天列表（仅氛围，不交互） */
+  .im-left {
+    width: 220px;
+    background: #f7f8fa;
+    border-right: 1px solid #ebebeb;
+    display: flex;
+    flex-direction: column;
+    flex-shrink: 0;
+  }
+  .im-left-header {
+    padding: 16px 14px 10px;
+    font-size: 13px;
+    font-weight: 600;
+    color: #1a1a1a;
+  }
+  .im-session {
+    padding: 10px 14px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    cursor: pointer;
+    border-radius: 6px;
+    margin: 0 6px;
+  }
+  .im-session.active { background: #e8f0fe; }
+  .im-session:hover:not(.active) { background: #f0f0f0; }
+  .im-session-avatar {
+    width: 34px; height: 34px; border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 16px; flex-shrink: 0;
+  }
+  .im-session-avatar.bot { background: linear-gradient(135deg, #1677ff, #722ed1); color: #fff; font-size: 14px; }
+  .im-session-avatar.group { background: #e8f4fe; }
+  .im-session-info { flex: 1; min-width: 0; }
+  .im-session-name { font-size: 13px; color: #1a1a1a; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .im-session-preview { font-size: 11px; color: #999; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-top: 2px; }
+  .im-session-badge { background: #ff4d4f; color: #fff; font-size: 10px; border-radius: 8px; padding: 1px 5px; flex-shrink: 0; }
+
+  /* 中间：Hi IM 聊天主体 */
+  .im-main {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    border-right: 1px solid #ebebeb;
+    min-width: 0;
+  }
+  .im-main-header {
+    padding: 12px 16px;
+    border-bottom: 1px solid #ebebeb;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .im-main-header-title { font-size: 14px; font-weight: 600; color: #1a1a1a; }
+  .im-main-header-sub { font-size: 11px; color: #999; margin-top: 1px; }
+  .im-chat-body {
+    flex: 1;
+    padding: 16px;
+    overflow-y: auto;
+    background: #f7f8fa;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+  }
+
+  /* 时间戳 */
+  .chat-time {
+    text-align: center;
+    font-size: 11px;
+    color: #bfbfbf;
+  }
+
+  /* 机器人消息行 */
+  .chat-row { display: flex; gap: 8px; align-items: flex-start; }
+  .chat-avatar {
+    width: 32px; height: 32px; border-radius: 8px;
+    background: linear-gradient(135deg, #1677ff, #722ed1);
+    display: flex; align-items: center; justify-content: center;
+    color: #fff; font-size: 13px; font-weight: 700; flex-shrink: 0;
+  }
+  .chat-content { flex: 1; min-width: 0; }
+  .chat-sender { font-size: 11px; color: #999; margin-bottom: 4px; }
+
+  /* XRay 诊断卡片（机器人发送的卡片消息） */
+  .alarm-card {
+    background: #fff;
+    border: 1px solid #e8e8e8;
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+    max-width: 360px;
+  }
+  .alarm-card-header {
+    background: #fff2f0;
+    border-bottom: 1px solid #ffccc7;
+    padding: 10px 14px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .alarm-card-icon { font-size: 15px; }
+  .alarm-card-title-wrap { flex: 1; min-width: 0; }
+  .alarm-card-title { font-size: 13px; font-weight: 600; color: #cf1322; }
+  .alarm-card-sub { font-size: 11px; color: #ff7875; margin-top: 1px; }
+  .alarm-card-body { padding: 10px 14px; }
+  .alarm-card-row {
+    display: flex;
+    font-size: 12px;
+    line-height: 1.8;
+    gap: 4px;
+  }
+  .alarm-card-label { color: #8c8c8c; width: 56px; flex-shrink: 0; }
+  .alarm-card-val { color: #1a1a1a; flex: 1; }
+  .alarm-card-val.red { color: #ff4d4f; font-weight: 500; }
+  .alarm-card-val.orange { color: #fa8c16; }
+
+  /* 诊断结论区 */
+  .alarm-card-divider { height: 1px; background: #f5f5f5; margin: 8px 0; }
+  .alarm-card-conclusion { font-size: 12px; }
+  .conclusion-label { color: #8c8c8c; margin-bottom: 4px; }
+  .conclusion-tags { display: flex; flex-wrap: wrap; gap: 4px; margin-bottom: 6px; }
+  .ctag {
+    font-size: 11px; border-radius: 3px; padding: 1px 6px;
+  }
+  .ctag.root { background: #fff1f0; color: #ff4d4f; border: 1px solid #ffccc7; }
+  .ctag.related { background: #e6f4ff; color: #1677ff; border: 1px solid #91caff; }
+  .ctag.change { background: #fff7e6; color: #fa8c16; border: 1px solid #ffd591; }
+  .conf-row { display: flex; align-items: center; gap: 6px; }
+  .conf-label { font-size: 11px; color: #8c8c8c; }
+  .conf-track { flex: 1; height: 3px; background: #f0f0f0; border-radius: 2px; }
+  .conf-fill { height: 100%; border-radius: 2px; background: #52c41a; }
+  .conf-pct { font-size: 11px; color: #52c41a; font-weight: 600; }
+
+  /* 卡片底部操作按钮 */
+  .alarm-card-actions {
+    border-top: 1px solid #f0f0f0;
+    padding: 8px 14px;
+    display: flex;
+    gap: 8px;
+  }
+  .card-btn {
+    flex: 1; font-size: 12px; padding: 5px 0;
+    border-radius: 4px; border: 1px solid #d9d9d9;
+    background: #fff; color: #595959;
+    cursor: pointer; text-align: center;
+    transition: all 0.15s;
+  }
+  .card-btn.primary {
+    background: #1677ff; border-color: #1677ff; color: #fff;
+  }
+  .card-btn:hover:not(.primary) { border-color: #1677ff; color: #1677ff; }
+  .card-btn.primary:hover { background: #0958d9; }
+
+  /* 右侧：AI 对话侧边栏 */
+  .im-sidebar {
+    width: 310px;
+    display: flex;
+    flex-direction: column;
+    background: #fff;
+    flex-shrink: 0;
+  }
+  .sidebar-header {
+    padding: 12px 14px;
+    border-bottom: 1px solid #ebebeb;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .sidebar-header-icon {
+    width: 28px; height: 28px; border-radius: 6px;
+    background: linear-gradient(135deg, #1677ff, #722ed1);
+    display: flex; align-items: center; justify-content: center;
+    color: #fff; font-size: 13px;
+  }
+  .sidebar-header-title { font-size: 13px; font-weight: 600; color: #1a1a1a; flex: 1; }
+  .sidebar-header-close { color: #bfbfbf; cursor: pointer; font-size: 16px; line-height: 1; }
+  .sidebar-header-close:hover { color: #595959; }
+
+  /* 侧边栏聊天区 */
+  .sidebar-chat {
+    flex: 1;
+    overflow-y: auto;
+    padding: 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    background: #f7f8fa;
+  }
+
+  /* 诊断摘要卡（置顶，可折叠） */
+  .diag-summary {
+    background: #fff;
+    border: 1px solid #e8e8e8;
+    border-radius: 8px;
+    overflow: hidden;
+    font-size: 12px;
+  }
+  .diag-summary-header {
+    padding: 8px 12px;
+    background: #fafafa;
+    border-bottom: 1px solid #f0f0f0;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    cursor: pointer;
+    user-select: none;
+  }
+  .diag-summary-title {
+    display: flex; align-items: center; gap: 6px;
+    font-size: 12px; font-weight: 600; color: #1a1a1a;
+  }
+  .diag-dot { width: 6px; height: 6px; border-radius: 50%; background: #52c41a; }
+  .diag-toggle { font-size: 11px; color: #1677ff; }
+  .diag-summary-body { padding: 10px 12px; }
+  .diag-row { display: flex; font-size: 12px; line-height: 1.7; }
+  .diag-lbl { color: #8c8c8c; width: 52px; flex-shrink: 0; }
+  .diag-val { color: #1a1a1a; flex: 1; }
+  .diag-val.red { color: #ff4d4f; font-weight: 500; }
+  .diag-val.orange { color: #fa8c16; }
+  .diag-sep { height: 1px; background: #f0f0f0; margin: 8px 0; }
+  .diag-tags { display: flex; flex-wrap: wrap; gap: 4px; margin-bottom: 6px; }
+  .dtag { font-size: 11px; border-radius: 3px; padding: 1px 6px; }
+  .dtag.root { background: #fff1f0; color: #ff4d4f; border: 1px solid #ffccc7; }
+  .dtag.rel { background: #e6f4ff; color: #1677ff; border: 1px solid #91caff; }
+  .dtag.chg { background: #fff7e6; color: #fa8c16; border: 1px solid #ffd591; }
+  .diag-conf { display: flex; align-items: center; gap: 6px; }
+  .diag-conf-lbl { font-size: 11px; color: #8c8c8c; }
+  .diag-conf-track { flex: 1; height: 3px; background: #f0f0f0; border-radius: 2px; }
+  .diag-conf-fill { height: 100%; background: #52c41a; border-radius: 2px; }
+  .diag-conf-pct { font-size: 11px; color: #52c41a; font-weight: 600; }
+
+  /* 建议问题 chips */
+  .chips-wrap { display: flex; flex-wrap: wrap; gap: 5px; padding: 8px 12px; border-top: 1px dashed #f0f0f0; }
+  .chip {
+    font-size: 11px; color: #1677ff; background: #f0f5ff;
+    border: 1px solid #d6e4ff; border-radius: 10px;
+    padding: 2px 8px; cursor: pointer; transition: all 0.15s;
+    white-space: nowrap;
+  }
+  .chip:hover { background: #1677ff; color: #fff; border-color: #1677ff; }
+
+  /* AI 消息气泡（侧边栏内） */
+  .sb-msg-row { display: flex; gap: 6px; align-items: flex-start; }
+  .sb-msg-row.user { flex-direction: row-reverse; }
+  .sb-avatar {
+    width: 24px; height: 24px; border-radius: 6px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 11px; flex-shrink: 0;
+    background: linear-gradient(135deg, #1677ff, #722ed1); color: #fff; font-weight: 700;
+  }
+  .sb-msg-row.user .sb-avatar { background: #e8e8e8; font-size: 12px; }
+  .sb-bubble {
+    max-width: 82%;
+    background: #fff;
+    border-radius: 6px;
+    padding: 7px 10px;
+    font-size: 12px;
+    line-height: 1.6;
+    color: #1a1a1a;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+  }
+  .sb-msg-row.user .sb-bubble { background: #1677ff; color: #fff; }
+  .sb-bubble code {
+    background: #f5f5f5; padding: 1px 3px; border-radius: 2px;
+    font-size: 11px; color: #c7254e; font-family: monospace;
+  }
+  .sb-msg-row.user .sb-bubble code { background: rgba(255,255,255,0.2); color: #fff; }
+  .sb-bubble ul { margin: 4px 0 0 14px; }
+  .sb-bubble li { margin-bottom: 2px; }
+  .sb-name { font-size: 10px; color: #bfbfbf; margin-bottom: 2px; }
+  .sb-msg-row.user .sb-name { text-align: right; }
+
+  /* 打字动画 */
+  .typing-dots { display: flex; gap: 3px; align-items: center; padding: 2px 0; }
+  .typing-dots span {
+    width: 5px; height: 5px; border-radius: 50%; background: #bfbfbf;
+    animation: bounce 1.2s infinite;
+  }
+  .typing-dots span:nth-child(2) { animation-delay: 0.2s; }
+  .typing-dots span:nth-child(3) { animation-delay: 0.4s; }
+  @keyframes bounce {
+    0%,60%,100% { transform: translateY(0); }
+    30% { transform: translateY(-4px); }
+  }
+
+  /* 输入区 */
+  .sidebar-input {
+    border-top: 1px solid #ebebeb;
+    padding: 10px 12px;
+    background: #fff;
+  }
+  .sidebar-input-box {
+    display: flex;
+    align-items: flex-end;
+    gap: 8px;
+    background: #f5f6f8;
+    border: 1px solid #e8e8e8;
+    border-radius: 6px;
+    padding: 6px 10px;
+    transition: border-color 0.2s;
+  }
+  .sidebar-input-box:focus-within { border-color: #1677ff; }
+  .sidebar-input-box textarea {
+    flex: 1; border: none; background: transparent; outline: none;
+    font-size: 12px; color: #1a1a1a; resize: none;
+    min-height: 18px; max-height: 80px; line-height: 1.5;
+    font-family: inherit;
+  }
+  .sidebar-input-box textarea::placeholder { color: #bfbfbf; }
+  .sb-send-btn {
+    width: 26px; height: 26px; border-radius: 5px;
+    background: #1677ff; border: none; cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    transition: background 0.15s; flex-shrink: 0;
+  }
+  .sb-send-btn:hover { background: #0958d9; }
+  .sb-send-btn svg { fill: #fff; }
+  .input-hint { font-size: 10px; color: #d9d9d9; margin-top: 5px; text-align: right; }
+
+  ::-webkit-scrollbar { width: 3px; }
+  ::-webkit-scrollbar-thumb { background: #e0e0e0; border-radius: 2px; }
+</style>
+</head>
+<body>
+
+<div class="im-shell">
+
+  <!-- 左侧会话列表 -->
+  <div class="im-left">
+    <div class="im-left-header">消息</div>
+    <div class="im-session active">
+      <div class="im-session-avatar bot">X</div>
+      <div class="im-session-info">
+        <div class="im-session-name">XRay 告警助手</div>
+        <div class="im-session-preview">接口失败率 > 5%，已完成诊断</div>
+      </div>
+      <span class="im-session-badge">1</span>
+    </div>
+    <div class="im-session">
+      <div class="im-session-avatar group">👥</div>
+      <div class="im-session-info">
+        <div class="im-session-name">稳定性值班群</div>
+        <div class="im-session-preview">@你 有个 P1 需要确认</div>
+      </div>
+    </div>
+    <div class="im-session">
+      <div class="im-session-avatar group">🔔</div>
+      <div class="im-session-info">
+        <div class="im-session-name">告警通知</div>
+        <div class="im-session-preview">recommend-service P99 > 2s</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 中间聊天区 -->
+  <div class="im-main">
+    <div class="im-main-header">
+      <div>
+        <div class="im-main-header-title">XRay 告警助手</div>
+        <div class="im-main-header-sub">Bot · 自动推送告警诊断</div>
+      </div>
+    </div>
+    <div class="im-chat-body">
+      <div class="chat-time">今天 10:32</div>
+
+      <!-- 机器人推送诊断卡片 -->
+      <div class="chat-row">
+        <div class="chat-avatar">X</div>
+        <div class="chat-content">
+          <div class="chat-sender">XRay 告警助手</div>
+          <div class="alarm-card">
+            <div class="alarm-card-header">
+              <span class="alarm-card-icon">🚨</span>
+              <div class="alarm-card-title-wrap">
+                <div class="alarm-card-title">接口失败率超阈值 · P1</div>
+                <div class="alarm-card-sub">creator-service · 触发于 10:32</div>
+              </div>
+            </div>
+            <div class="alarm-card-body">
+              <div class="alarm-card-row">
+                <span class="alarm-card-label">失败率</span>
+                <span class="alarm-card-val red">8.3%（阈值 5%）</span>
+              </div>
+              <div class="alarm-card-row">
+                <span class="alarm-card-label">异常类型</span>
+                <span class="alarm-card-val red">RequestTimeoutException</span>
+              </div>
+              <div class="alarm-card-row">
+                <span class="alarm-card-label">影响范围</span>
+                <span class="alarm-card-val">机房 qcsh4 · 节点 10.65.108.144</span>
+              </div>
+              <div class="alarm-card-row">
+                <span class="alarm-card-label">最近变更</span>
+                <span class="alarm-card-val orange">昨日 21:00 发布</span>
+              </div>
+              <div class="alarm-card-divider"></div>
+              <div class="alarm-card-conclusion">
+                <div class="conclusion-label" style="color:#8c8c8c;margin-bottom:4px;">AI 诊断结论</div>
+                <div class="conclusion-tags">
+                  <span class="ctag root">⚠ 根因：连接池耗尽</span>
+                  <span class="ctag related">GC 停顿 → 超时</span>
+                  <span class="ctag change">疑似变更引入</span>
+                </div>
+                <div class="conf-row">
+                  <span class="conf-label">置信度</span>
+                  <div class="conf-track"><div class="conf-fill" style="width:87%"></div></div>
+                  <span class="conf-pct">87%</span>
+                </div>
+              </div>
+            </div>
+            <div class="alarm-card-actions">
+              <button class="card-btn" onclick="openDetail()">查看详情</button>
+              <button class="card-btn primary" onclick="openSidebar()">接着聊 →</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- 右侧 AI 对话侧边栏 -->
+  <div class="im-sidebar" id="sidebar">
+    <div class="sidebar-header">
+      <div class="sidebar-header-icon">X</div>
+      <div class="sidebar-header-title">XRay AI 深度排障</div>
+      <span class="sidebar-header-close" onclick="closeSidebar()">×</span>
+    </div>
+
+    <div class="sidebar-chat" id="sidebarChat">
+
+      <!-- 诊断摘要卡（置顶，折叠） -->
+      <div class="diag-summary">
+        <div class="diag-summary-header" onclick="toggleDiag(this)">
+          <div class="diag-summary-title">
+            <span class="diag-dot"></span>
+            诊断上下文已加载
+          </div>
+          <span class="diag-toggle">收起 ▲</span>
+        </div>
+        <div class="diag-summary-body" id="diagBody">
+          <div class="diag-row"><span class="diag-lbl">服务</span><span class="diag-val">creator-service-default</span></div>
+          <div class="diag-row"><span class="diag-lbl">失败率</span><span class="diag-val red">8.3%（正常 &lt; 0.5%）</span></div>
+          <div class="diag-row"><span class="diag-lbl">异常</span><span class="diag-val red">RequestTimeoutException</span></div>
+          <div class="diag-row"><span class="diag-lbl">变更</span><span class="diag-val orange">昨日 21:00 发布</span></div>
+          <div class="diag-sep"></div>
+          <div class="diag-tags">
+            <span class="dtag root">⚠ 根因：连接池耗尽</span>
+            <span class="dtag rel">GC 停顿 → 超时</span>
+            <span class="dtag chg">疑似变更引入</span>
+          </div>
+          <div class="diag-conf">
+            <span class="diag-conf-lbl">置信度</span>
+            <div class="diag-conf-track"><div class="diag-conf-fill" style="width:87%"></div></div>
+            <span class="diag-conf-pct">87%</span>
+          </div>
+        </div>
+        <div class="chips-wrap">
+          <span class="chip" onclick="sendChip(this)">为什么连接池耗尽？</span>
+          <span class="chip" onclick="sendChip(this)">GC 停顿原因？</span>
+          <span class="chip" onclick="sendChip(this)">扩容能解决吗？</span>
+          <span class="chip" onclick="sendChip(this)">生成复盘初稿</span>
+        </div>
+      </div>
+
+      <!-- AI 首条消息 -->
+      <div class="sb-msg-row">
+        <div class="sb-avatar">X</div>
+        <div>
+          <div class="sb-name">XRay AI</div>
+          <div class="sb-bubble">
+            已加载 <code>creator-service</code> 的诊断上下文。<br>
+            根因指向<strong>连接池耗尽</strong>，与昨晚发布有时间关联，你想从哪个方向深入？
+          </div>
+        </div>
+      </div>
+
+      <!-- 示例对话 -->
+      <div class="sb-msg-row user">
+        <div class="sb-avatar">👤</div>
+        <div>
+          <div class="sb-name">mahengyang</div>
+          <div class="sb-bubble">为什么连接池会耗尽？</div>
+        </div>
+      </div>
+
+      <div class="sb-msg-row">
+        <div class="sb-avatar">X</div>
+        <div>
+          <div class="sb-name">XRay AI</div>
+          <div class="sb-bubble">
+            链路是这样的：
+            <ul>
+              <li>Full GC 停顿约 800ms，线程积压</li>
+              <li>下游 <code>NodeProcessService</code> P99 > 3s</li>
+              <li>超时连接不释放 → 连接池耗尽</li>
+            </ul>
+            <br>堆内存在 10:28 已达 92%，GC 是导火索。要查是什么触发了 Full GC 吗？
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <div class="sidebar-input">
+      <div class="sidebar-input-box">
+        <textarea id="sbInput" placeholder="继续追问…" rows="1"
+          onkeydown="handleKey(event)" oninput="autoResize(this)"></textarea>
+        <button class="sb-send-btn" onclick="sendMsg()">
+          <svg width="12" height="12" viewBox="0 0 24 24"><path d="M2 21l21-9L2 3v7l15 2-15 2v7z"/></svg>
+        </button>
+      </div>
+      <div class="input-hint">Enter 发送 · Shift+Enter 换行</div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+  function toggleDiag(header) {
+    const body = document.getElementById('diagBody');
+    const toggle = header.querySelector('.diag-toggle');
+    if (body.style.display === 'none') {
+      body.style.display = '';
+      toggle.textContent = '收起 ▲';
+    } else {
+      body.style.display = 'none';
+      toggle.textContent = '展开 ▼';
+    }
+  }
+
+  function openSidebar() {
+    document.getElementById('sidebar').style.display = 'flex';
+  }
+
+  function closeSidebar() {
+    document.getElementById('sidebar').style.display = 'none';
+  }
+
+  function openDetail() {
+    alert('跳转到 XRay 告警详情页（demo）');
+  }
+
+  function autoResize(el) {
+    el.style.height = 'auto';
+    el.style.height = Math.min(el.scrollHeight, 80) + 'px';
+  }
+
+  function handleKey(e) {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      sendMsg();
+    }
+  }
+
+  function sendChip(chip) {
+    document.getElementById('sbInput').value = chip.textContent;
+    sendMsg();
+  }
+
+  function sendMsg() {
+    const input = document.getElementById('sbInput');
+    const text = input.value.trim();
+    if (!text) return;
+    appendMsg(text, 'user');
+    input.value = '';
+    input.style.height = 'auto';
+    setTimeout(() => {
+      appendTyping();
+      setTimeout(() => {
+        removeTyping();
+        appendMsg('正在查询 Logview 数据，请稍候……', 'ai');
+      }, 1200);
+    }, 300);
+  }
+
+  function appendMsg(text, role) {
+    const chat = document.getElementById('sidebarChat');
+    const row = document.createElement('div');
+    row.className = 'sb-msg-row' + (role === 'user' ? ' user' : '');
+    row.innerHTML = `
+      <div class="sb-avatar">${role === 'user' ? '👤' : 'X'}</div>
+      <div>
+        <div class="sb-name">${role === 'user' ? 'mahengyang' : 'XRay AI'}</div>
+        <div class="sb-bubble">${text}</div>
+      </div>
+    `;
+    chat.appendChild(row);
+    chat.scrollTop = chat.scrollHeight;
+  }
+
+  function appendTyping() {
+    const chat = document.getElementById('sidebarChat');
+    const row = document.createElement('div');
+    row.className = 'sb-msg-row';
+    row.id = 'typingRow';
+    row.innerHTML = `
+      <div class="sb-avatar">X</div>
+      <div class="sb-bubble">
+        <div class="typing-dots"><span></span><span></span><span></span></div>
+      </div>
+    `;
+    chat.appendChild(row);
+    chat.scrollTop = chat.scrollHeight;
+  }
+
+  function removeTyping() {
+    const t = document.getElementById('typingRow');
+    if (t) t.remove();
+  }
+</script>
+</body>
+</html>
