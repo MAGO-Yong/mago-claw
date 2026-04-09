@@ -1,0 +1,647 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AgentDev × AgentOps 全生命周期联动</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'PingFang SC', 'Helvetica Neue', sans-serif;
+    background: #f5f7fa;
+    padding: 32px;
+    color: #1a1a2e;
+  }
+
+  .page-title {
+    text-align: center;
+    margin-bottom: 40px;
+  }
+  .page-title h1 {
+    font-size: 22px;
+    font-weight: 700;
+    color: #0f1d40;
+    margin-bottom: 6px;
+  }
+  .page-title p {
+    font-size: 13px;
+    color: #888;
+  }
+
+  /* 阶段容器 */
+  .stage {
+    background: #fff;
+    border-radius: 16px;
+    padding: 24px 28px;
+    margin-bottom: 24px;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+    position: relative;
+  }
+
+  .stage-header {
+    display: flex;
+    align-items: center;
+    margin-bottom: 20px;
+    gap: 12px;
+  }
+  .stage-num {
+    width: 32px; height: 32px;
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 14px; font-weight: 700; color: #fff;
+    flex-shrink: 0;
+  }
+  .stage-title {
+    font-size: 15px;
+    font-weight: 700;
+    color: #0f1d40;
+  }
+  .stage-subtitle {
+    font-size: 12px;
+    color: #888;
+    margin-top: 2px;
+  }
+  .stage-badge {
+    margin-left: auto;
+    font-size: 11px;
+    padding: 3px 10px;
+    border-radius: 20px;
+    font-weight: 600;
+  }
+
+  /* 双列布局 */
+  .flow-row {
+    display: grid;
+    grid-template-columns: 1fr 32px 1fr;
+    gap: 0;
+    align-items: start;
+  }
+
+  /* 列标签 */
+  .col-label {
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+    padding: 4px 10px;
+    border-radius: 6px;
+    margin-bottom: 12px;
+    display: inline-block;
+  }
+  .col-dev .col-label { background: #ede9fe; color: #6d28d9; }
+  .col-ops .col-label { background: #dbeafe; color: #1d4ed8; }
+
+  /* 卡片 */
+  .card {
+    border-radius: 10px;
+    padding: 12px 14px;
+    margin-bottom: 8px;
+    position: relative;
+  }
+  .card-title {
+    font-size: 13px;
+    font-weight: 600;
+    margin-bottom: 6px;
+  }
+  .card-items {
+    list-style: none;
+  }
+  .card-items li {
+    font-size: 12px;
+    color: #444;
+    padding: 2px 0 2px 14px;
+    position: relative;
+    line-height: 1.5;
+  }
+  .card-items li::before {
+    content: '';
+    width: 5px; height: 5px;
+    border-radius: 50%;
+    position: absolute;
+    left: 2px; top: 7px;
+  }
+
+  /* AgentDev 侧 */
+  .col-dev .card { background: #faf5ff; border: 1px solid #e9d5ff; }
+  .col-dev .card-title { color: #6d28d9; }
+  .col-dev .card-items li::before { background: #a78bfa; }
+
+  /* AgentOps 侧 */
+  .col-ops .card { background: #eff6ff; border: 1px solid #bfdbfe; }
+  .col-ops .card-title { color: #1d4ed8; }
+  .col-ops .card-items li::before { background: #60a5fa; }
+
+  /* 事件卡片 */
+  .event-card {
+    border-radius: 8px;
+    padding: 8px 12px;
+    margin-bottom: 6px;
+    font-size: 11px;
+    display: flex;
+    align-items: flex-start;
+    gap: 6px;
+    line-height: 1.4;
+  }
+  .event-arrow { font-size: 13px; flex-shrink: 0; margin-top: 1px; }
+  .event-name { font-weight: 600; }
+  .event-desc { color: #666; }
+
+  .event-to-ops { background: #f0fdf4; border: 1px solid #bbf7d0; }
+  .event-to-ops .event-arrow { color: #16a34a; }
+  .event-to-ops .event-name { color: #15803d; }
+
+  .event-to-dev { background: #fff7ed; border: 1px solid #fed7aa; }
+  .event-to-dev .event-arrow { color: #ea580c; }
+  .event-to-dev .event-name { color: #c2410c; }
+
+  /* 中间连接线列 */
+  .col-mid {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding-top: 36px;
+    gap: 0;
+  }
+  .arrow-line {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    margin: 4px 0;
+  }
+  .arrow-dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    background: #cbd5e1;
+  }
+  .arrow-body {
+    width: 2px;
+    height: 20px;
+    background: linear-gradient(to bottom, #cbd5e1, #94a3b8);
+  }
+  .arrow-tip {
+    width: 0; height: 0;
+    border-left: 5px solid transparent;
+    border-right: 5px solid transparent;
+  }
+
+  /* 阶段颜色主题 */
+  .stage-1 .stage-num { background: linear-gradient(135deg, #7c3aed, #6d28d9); }
+  .stage-1 .stage-badge { background: #ede9fe; color: #6d28d9; }
+  .stage-2 .stage-num { background: linear-gradient(135deg, #2563eb, #1d4ed8); }
+  .stage-2 .stage-badge { background: #dbeafe; color: #1d4ed8; }
+  .stage-3 .stage-num { background: linear-gradient(135deg, #0891b2, #0e7490); }
+  .stage-3 .stage-badge { background: #cffafe; color: #0e7490; }
+  .stage-4 .stage-num { background: linear-gradient(135deg, #059669, #047857); }
+  .stage-4 .stage-badge { background: #d1fae5; color: #047857; }
+  .stage-5 .stage-num { background: linear-gradient(135deg, #dc2626, #b91c1c); }
+  .stage-5 .stage-badge { background: #fee2e2; color: #b91c1c; }
+
+  /* 高亮文字 */
+  .highlight { color: #1d4ed8; font-weight: 600; }
+  .highlight-warn { color: #d97706; font-weight: 600; }
+  .highlight-green { color: #059669; font-weight: 600; }
+
+  /* 代码块 */
+  .code-block {
+    background: #1e293b;
+    color: #e2e8f0;
+    border-radius: 8px;
+    padding: 10px 14px;
+    font-family: 'SF Mono', Monaco, monospace;
+    font-size: 11px;
+    line-height: 1.6;
+    margin-top: 8px;
+  }
+  .code-key { color: #93c5fd; }
+  .code-val { color: #86efac; }
+  .code-str { color: #fca5a5; }
+
+  /* 事件总线区域 */
+  .event-bus {
+    background: #f8fafc;
+    border: 1px dashed #cbd5e1;
+    border-radius: 10px;
+    padding: 12px 14px;
+    margin-top: 12px;
+  }
+  .event-bus-title {
+    font-size: 11px;
+    font-weight: 700;
+    color: #64748b;
+    letter-spacing: 0.5px;
+    margin-bottom: 8px;
+  }
+
+  /* 底部说明 */
+  .footer-note {
+    text-align: center;
+    margin-top: 32px;
+    padding: 16px;
+    background: linear-gradient(135deg, #ede9fe, #dbeafe);
+    border-radius: 12px;
+  }
+  .footer-note p {
+    font-size: 13px;
+    color: #1e3a8a;
+    font-weight: 600;
+    line-height: 1.8;
+  }
+
+  /* 响应式 */
+  @media (max-width: 800px) {
+    .flow-row { grid-template-columns: 1fr; }
+    .col-mid { display: none; }
+    body { padding: 16px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="page-title">
+  <h1>AgentDev × AgentOps 全生命周期联动</h1>
+  <p>ALLIN/Darwin（创建侧）× 发布平台/XRay（治理侧）</p>
+</div>
+
+<!-- Step 1: 创建期 -->
+<div class="stage stage-1">
+  <div class="stage-header">
+    <div class="stage-num">1</div>
+    <div>
+      <div class="stage-title">创建期 · 注册即治理</div>
+      <div class="stage-subtitle">Agent 创建的同时，AgentOps 完成注册、埋点配置、SLO 定义</div>
+    </div>
+    <div class="stage-badge">Phase 1</div>
+  </div>
+
+  <div class="flow-row">
+    <div class="col-dev">
+      <span class="col-label">AgentDev（ALLIN）</span>
+      <div class="card">
+        <div class="card-title">创建 Workflow</div>
+        <ul class="card-items">
+          <li>定义 Agent 节点结构（DAG）</li>
+          <li>选择开发框架（ARKAI / ALLIN / Darwin）</li>
+          <li>配置工具列表（Tools）</li>
+          <li>选择模型（模型名 + 版本）</li>
+        </ul>
+      </div>
+      <div class="card">
+        <div class="card-title">触发注册事件</div>
+        <ul class="card-items">
+          <li>发送 <span class="highlight">workflow.created</span> 事件</li>
+          <li>携带 agent_id、owner、intent、工具列表</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="col-mid">
+      <div class="arrow-line">
+        <div class="arrow-dot"></div>
+        <div class="arrow-body"></div>
+        <div class="arrow-tip" style="border-top: 7px solid #94a3b8;"></div>
+      </div>
+    </div>
+
+    <div class="col-ops">
+      <span class="col-label">AgentOps（发布平台 + XRay）</span>
+      <div class="card">
+        <div class="card-title">自动注册 Agent 元数据</div>
+        <ul class="card-items">
+          <li>写入 <span class="highlight">Agent 元数据中心</span></li>
+          <li>记录 agent_id、owner、intent、capability_boundary</li>
+          <li>初始化 health 状态</li>
+        </ul>
+      </div>
+      <div class="card">
+        <div class="card-title">配置观测埋点</div>
+        <ul class="card-items">
+          <li>下发 AgentOps SDK 初始化参数</li>
+          <li>指定 XRay App ID（上报目标）</li>
+          <li>设置采样率：开发期 <span class="highlight-green">100%</span>，生产期 10%</li>
+          <li>标注关键节点必须打 Span</li>
+        </ul>
+      </div>
+      <div class="card">
+        <div class="card-title">引导定义 SLO</div>
+        <ul class="card-items">
+          <li>task_success_rate 目标值</li>
+          <li>hallucination_rate 上限</li>
+          <li>p99_latency 阈值</li>
+          <li>写入元数据中心，作为后续评估基准</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Step 2: 开发/测试期 -->
+<div class="stage stage-2">
+  <div class="stage-header">
+    <div class="stage-num">2</div>
+    <div>
+      <div class="stage-title">开发期 · 基线先行</div>
+      <div class="stage-subtitle">开发期 Trace 即上报，评估基线在上线前建立</div>
+    </div>
+    <div class="stage-badge">Phase 1</div>
+  </div>
+
+  <div class="flow-row">
+    <div class="col-dev">
+      <span class="col-label">AgentDev（ALLIN）</span>
+      <div class="card">
+        <div class="card-title">迭代 Workflow</div>
+        <ul class="card-items">
+          <li>本地 / 测试环境调试</li>
+          <li>修改 Prompt、调整节点逻辑</li>
+          <li>工具参数联调</li>
+        </ul>
+      </div>
+      <div class="card">
+        <div class="card-title">触发更新事件</div>
+        <ul class="card-items">
+          <li>发送 <span class="highlight">workflow.updated</span> 事件</li>
+          <li>携带变更 diff（修改了哪个节点）</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="col-mid">
+      <div class="arrow-line">
+        <div class="arrow-dot"></div>
+        <div class="arrow-body"></div>
+        <div class="arrow-tip" style="border-top: 7px solid #94a3b8;"></div>
+      </div>
+    </div>
+
+    <div class="col-ops">
+      <span class="col-label">AgentOps（XRay + 评估）</span>
+      <div class="card">
+        <div class="card-title">开发态 Trace 实时上报</div>
+        <ul class="card-items">
+          <li><span class="highlight">创建即采集</span>，不等上线</li>
+          <li>开发期与生产期 Trace 同构，天然可对比</li>
+          <li>Tool 调用链、RAG 命中情况全部可查</li>
+        </ul>
+      </div>
+      <div class="card">
+        <div class="card-title">建立评估基线</div>
+        <ul class="card-items">
+          <li>用测试数据集跑离线 Eval</li>
+          <li>记录当前版本的质量分（基线快照）</li>
+          <li>更新元数据：<span class="highlight">baseline_eval_score</span></li>
+          <li>上线后对比用，判断是变好还是变差</li>
+        </ul>
+      </div>
+      <div class="card">
+        <div class="card-title">语义快照更新</div>
+        <ul class="card-items">
+          <li>接收 workflow.updated 事件</li>
+          <li>更新元数据中 prompt_hash、flow_diff</li>
+          <li>触发基线重建（如变更幅度大）</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Step 3: 发布期 -->
+<div class="stage stage-3">
+  <div class="stage-header">
+    <div class="stage-num">3</div>
+    <div>
+      <div class="stage-title">发布期 · 评估门禁</div>
+      <div class="stage-subtitle">评估结果作为硬性发布卡点，不达标不放行</div>
+    </div>
+    <div class="stage-badge">Phase 2</div>
+  </div>
+
+  <div class="flow-row">
+    <div class="col-dev">
+      <span class="col-label">AgentDev（ALLIN）</span>
+      <div class="card">
+        <div class="card-title">发起发布申请</div>
+        <ul class="card-items">
+          <li>调发布平台接口，创建发布单</li>
+          <li>携带 <span class="highlight">agent_meta</span> 字段（AI 语义包）</li>
+        </ul>
+        <div class="code-block">
+          <span class="code-key">agent_meta</span>: {<br>
+          &nbsp;&nbsp;<span class="code-key">workflow_version</span>: <span class="code-str">"v2.3.1"</span>,<br>
+          &nbsp;&nbsp;<span class="code-key">prompt_hash</span>: <span class="code-str">"a3f9cd..."</span>,<br>
+          &nbsp;&nbsp;<span class="code-key">model</span>: <span class="code-str">"gpt-4o"</span>,<br>
+          &nbsp;&nbsp;<span class="code-key">tools</span>: [<span class="code-str">"search"</span>, <span class="code-str">"db_query"</span>],<br>
+          &nbsp;&nbsp;<span class="code-key">flow_diff</span>: { <span class="code-val">新增节点 B</span> }<br>
+          }
+        </div>
+      </div>
+    </div>
+
+    <div class="col-mid">
+      <div class="arrow-line">
+        <div class="arrow-dot"></div>
+        <div class="arrow-body" style="height:40px;"></div>
+        <div class="arrow-tip" style="border-top: 7px solid #94a3b8;"></div>
+      </div>
+    </div>
+
+    <div class="col-ops">
+      <span class="col-label">AgentOps（发布平台）</span>
+      <div class="card">
+        <div class="card-title">写入变更语义记录</div>
+        <ul class="card-items">
+          <li>发布单绑定 agent_meta（AI 语义包）</li>
+          <li>记录：改了什么 Prompt、换了什么模型、增减了哪些工具</li>
+          <li>更新元数据中心：current_version、change_diff</li>
+        </ul>
+      </div>
+      <div class="card">
+        <div class="card-title">触发 Eval Gate（评估门禁）</div>
+        <ul class="card-items">
+          <li>用历史数据集自动回放新版本</li>
+          <li>评估指标对比基线</li>
+          <li>task_success_rate <span class="highlight-green">≥ 85%</span> → <span class="highlight-green">放行</span></li>
+          <li>task_success_rate <span class="highlight-warn">&lt; 85%</span> → <span class="highlight-warn">驳回 + 附评估报告</span></li>
+        </ul>
+      </div>
+      <div class="card">
+        <div class="card-title">灰度流量管理</div>
+        <ul class="card-items">
+          <li>默认灰度 1% 流量先上</li>
+          <li>异常率监控，正常后扩量</li>
+          <li>高危工具（如 exec_shell）强制人工审批</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <!-- 事件回流 -->
+  <div class="event-bus" style="margin-top: 16px;">
+    <div class="event-bus-title">↕ 发布期双向事件</div>
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
+      <div class="event-card event-to-ops">
+        <span class="event-arrow">→</span>
+        <div><span class="event-name">deploy.requested</span><br><span class="event-desc">ALLIN 发起 → AgentOps 触发 Eval Gate</span></div>
+      </div>
+      <div class="event-card event-to-dev">
+        <span class="event-arrow">←</span>
+        <div><span class="event-name">eval.gate.passed / failed</span><br><span class="event-desc">AgentOps → ALLIN 回传评估结果，passed 放行 / failed 驳回</span></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Step 4: 运行期 -->
+<div class="stage stage-4">
+  <div class="stage-header">
+    <div class="stage-num">4</div>
+    <div>
+      <div class="stage-title">运行期 · 持续治理</div>
+      <div class="stage-subtitle">持续评估采样，质量下滑自动关联变更并回流 AgentDev</div>
+    </div>
+    <div class="stage-badge">Phase 2 → 3</div>
+  </div>
+
+  <div class="flow-row">
+    <div class="col-dev">
+      <span class="col-label">AgentDev（ALLIN）</span>
+      <div class="card">
+        <div class="card-title">接收质量反馈</div>
+        <ul class="card-items">
+          <li>查看 AgentOps 推送的质量告警</li>
+          <li>查看异常归因（关联到哪次变更）</li>
+          <li>响应回滚建议（人工审批后执行）</li>
+        </ul>
+      </div>
+      <div class="card">
+        <div class="card-title">问题 Workflow 版本标记</div>
+        <ul class="card-items">
+          <li>AgentOps 回写：该版本 <span class="highlight-warn">⚠ 线上质量异常</span></li>
+          <li>开发者在 ALLIN 侧可见质量状态</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="col-mid">
+      <div class="arrow-line">
+        <div class="arrow-dot"></div>
+        <div class="arrow-body" style="height: 60px;"></div>
+        <div class="arrow-tip" style="border-top: 7px solid #94a3b8;"></div>
+      </div>
+    </div>
+
+    <div class="col-ops">
+      <span class="col-label">AgentOps（XRay + 评估）</span>
+      <div class="card">
+        <div class="card-title">持续 Eval 采样</div>
+        <ul class="card-items">
+          <li>生产流量实时打分（LLM-as-Judge）</li>
+          <li>质量指标持续对比 SLO 基线</li>
+          <li>发现漂移：task_success_rate 91% → 76%</li>
+        </ul>
+      </div>
+      <div class="card">
+        <div class="card-title">异常自动关联变更</div>
+        <ul class="card-items">
+          <li>质量下滑 → 检索最近变更记录</li>
+          <li>定位：下滑发生在 <span class="highlight">v2.3.1 发布后 30min</span></li>
+          <li>AI Trace × 基础设施异常联合分析</li>
+        </ul>
+      </div>
+      <div class="card">
+        <div class="card-title">分级处置</div>
+        <ul class="card-items">
+          <li><span class="highlight-green">轻</span>：在 ALLIN 打标 ⚠ 质量异常</li>
+          <li><span class="highlight-warn">中</span>：推送回滚建议单，等待人工审批</li>
+          <li style="color:#dc2626;">重</span>：P0 自动触发回滚（需提前授权）</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <!-- 事件总线 -->
+  <div class="event-bus" style="margin-top: 16px;">
+    <div class="event-bus-title">↕ 运行期双向事件</div>
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
+      <div class="event-card event-to-ops">
+        <span class="event-arrow">→</span>
+        <div><span class="event-name">workflow.deprecated</span><br><span class="event-desc">ALLIN 下线 → AgentOps 归档元数据</span></div>
+      </div>
+      <div class="event-card event-to-dev">
+        <span class="event-arrow">←</span>
+        <div><span class="event-name">quality.degraded</span><br><span class="event-desc">AgentOps → ALLIN 质量下滑告警 + 关联变更版本</span></div>
+      </div>
+      <div class="event-card event-to-dev">
+        <span class="event-arrow">←</span>
+        <div><span class="event-name">rollback.suggested</span><br><span class="event-desc">AgentOps → ALLIN 推送回滚建议（人工审批）</span></div>
+      </div>
+      <div class="event-card event-to-dev">
+        <span class="event-arrow">←</span>
+        <div><span class="event-name">slo.violated</span><br><span class="event-desc">AgentOps → ALLIN SLO 违规告警</span></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Step 5: 退役期 -->
+<div class="stage stage-5">
+  <div class="stage-header">
+    <div class="stage-num">5</div>
+    <div>
+      <div class="stage-title">退役期 · 沉淀知识</div>
+      <div class="stage-subtitle">历史数据归档，沉淀为下一个 Agent 的参考案例</div>
+    </div>
+    <div class="stage-badge">Phase 3</div>
+  </div>
+
+  <div class="flow-row">
+    <div class="col-dev">
+      <span class="col-label">AgentDev（ALLIN）</span>
+      <div class="card">
+        <div class="card-title">下线 Workflow</div>
+        <ul class="card-items">
+          <li>发送 <span class="highlight">workflow.deprecated</span> 事件</li>
+          <li>标记该 Agent 生命周期结束</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="col-mid">
+      <div class="arrow-line">
+        <div class="arrow-dot"></div>
+        <div class="arrow-body"></div>
+        <div class="arrow-tip" style="border-top: 7px solid #94a3b8;"></div>
+      </div>
+    </div>
+
+    <div class="col-ops">
+      <span class="col-label">AgentOps</span>
+      <div class="card">
+        <div class="card-title">元数据归档</div>
+        <ul class="card-items">
+          <li>Profile 标记为 deprecated</li>
+          <li>保留完整历史：版本记录、评估分、异常记录</li>
+        </ul>
+      </div>
+      <div class="card">
+        <div class="card-title">沉淀为参考案例</div>
+        <ul class="card-items">
+          <li>哪些 Prompt 版本效果好</li>
+          <li>哪些变更类型容易引发质量下滑</li>
+          <li>供下一个同类 Agent 创建时参考</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- 底部总结 -->
+<div class="footer-note">
+  <p>
+    传感器（持续评估）&nbsp;+&nbsp;执行器（发布卡点 / 护栏 / 回滚）&nbsp;=&nbsp;负反馈闭环<br>
+    <span style="font-weight:400; font-size:12px; color:#3b5bdb;">
+      AgentDev 负责"定义 Agent 是什么"，AgentOps 负责"治理 Agent 怎么跑"——两平台共同维护 Agent 全生命周期状态
+    </span>
+  </p>
+</div>
+
+</body>
+</html>

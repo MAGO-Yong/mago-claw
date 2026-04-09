@@ -1,0 +1,7 @@
+{
+  "version": 1,
+  "registry": "http://codewiz.devops.xiaohongshu.com/agent-manage/clawhub",
+  "slug": "mysql_cluster_analyze",
+  "installedVersion": "1.0.3",
+  "installedAt": 1775702631585
+}

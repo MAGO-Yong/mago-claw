@@ -1,0 +1,1352 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AgentOps Platform — Design Mockup</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=DM+Mono:wght@400;500&display=swap');
+
+:root {
+  --bg: #f4f6fa;
+  --bg2: #ffffff;
+  --bg3: #f0f2f7;
+  --border: rgba(0,0,0,0.07);
+  --border2: rgba(0,0,0,0.12);
+  --text: #1a1d2e;
+  --text2: #5a607a;
+  --text3: #9399b0;
+  --blue: #2563eb;
+  --blue-dim: rgba(37,99,235,0.08);
+  --purple: #7c3aed;
+  --purple-dim: rgba(124,58,237,0.08);
+  --green: #059669;
+  --green-dim: rgba(5,150,105,0.08);
+  --yellow: #d97706;
+  --yellow-dim: rgba(217,119,6,0.08);
+  --red: #dc2626;
+  --red-dim: rgba(220,38,38,0.08);
+  --cyan: #0891b2;
+  --cyan-dim: rgba(8,145,178,0.08);
+  --sidebar-w: 220px;
+}
+* { margin:0; padding:0; box-sizing:border-box; }
+body { font-family:'DM Sans',sans-serif; background:var(--bg); color:var(--text); min-height:100vh; overflow-x:hidden; }
+
+/* ── LAYOUT ── */
+.shell { display:flex; height:100vh; overflow:hidden; }
+
+/* ── SIDEBAR ── */
+.sidebar { width:var(--sidebar-w); background:var(--bg2); border-right:1px solid var(--border); display:flex; flex-direction:column; flex-shrink:0; }
+.logo { padding:20px 18px 16px; border-bottom:1px solid var(--border); }
+.logo-mark { display:flex; align-items:center; gap:8px; }
+.logo-icon { width:28px; height:28px; background:linear-gradient(135deg,var(--blue),var(--purple)); border-radius:7px; display:flex; align-items:center; justify-content:center; font-size:13px; }
+.logo-text { font-size:14px; font-weight:600; letter-spacing:-0.2px; }
+.logo-sub { font-size:10px; color:var(--text3); margin-top:1px; letter-spacing:0.5px; text-transform:uppercase; }
+.nav { padding:10px; flex:1; overflow-y:auto; }
+.nav-section { margin-bottom:20px; }
+.nav-label { font-size:10px; font-weight:600; letter-spacing:1px; color:var(--text3); text-transform:uppercase; padding:0 8px; margin-bottom:4px; }
+.nav-item { display:flex; align-items:center; gap:8px; padding:7px 8px; border-radius:7px; font-size:13px; color:var(--text2); cursor:pointer; transition:all 0.15s; margin-bottom:1px; user-select:none; }
+.nav-item:hover { background:var(--border); color:var(--text); }
+.nav-item.active { background:var(--blue-dim); color:var(--blue); }
+.nav-item .icon { width:15px; text-align:center; font-size:13px; }
+.nav-badge { margin-left:auto; font-size:10px; font-weight:600; background:var(--red-dim); color:var(--red); padding:1px 5px; border-radius:10px; }
+.sidebar-footer { padding:12px; border-top:1px solid var(--border); }
+.agent-selector { background:var(--bg3); border:1px solid var(--border); border-radius:8px; padding:8px 10px; display:flex; align-items:center; gap:8px; cursor:pointer; }
+.agent-dot { width:7px; height:7px; border-radius:50%; background:var(--green); flex-shrink:0; animation:pulse 2s infinite; }
+@keyframes pulse { 0%,100%{opacity:1;} 50%{opacity:0.4;} }
+.agent-name { font-size:12px; font-weight:500; flex:1; }
+.agent-count { font-size:10px; color:var(--text3); }
+
+/* ── MAIN ── */
+.main { flex:1; overflow:hidden; display:flex; flex-direction:column; }
+.topbar { padding:14px 28px; border-bottom:1px solid var(--border); display:flex; align-items:center; gap:16px; background:var(--bg2); position:sticky; top:0; z-index:10; flex-shrink:0; }
+.topbar-title { font-size:15px; font-weight:600; }
+.topbar-sub { font-size:12px; color:var(--text3); margin-left:4px; }
+.topbar-right { margin-left:auto; display:flex; align-items:center; gap:10px; }
+.tab-bar { display:flex; gap:2px; }
+.tab { padding:5px 12px; border-radius:6px; font-size:12px; font-weight:500; cursor:pointer; color:var(--text2); transition:all 0.15s; }
+.tab.active { background:var(--blue-dim); color:var(--blue); }
+.tab:hover:not(.active) { color:var(--text); }
+.btn { padding:6px 14px; border-radius:7px; font-size:12px; font-weight:600; cursor:pointer; border:none; font-family:inherit; transition:all 0.15s; }
+.btn-primary { background:var(--blue); color:#fff; }
+.btn-primary:hover { background:#2563eb; }
+.btn-ghost { background:rgba(255,255,255,0.05); color:var(--text2); }
+.btn-ghost:hover { background:var(--border2); color:var(--text); }
+.content { padding:24px 28px; flex:1; overflow-y:auto; }
+
+/* ── PAGES ── */
+.page { display:none; }
+.page.active { display:block; }
+
+/* ── COMMON COMPONENTS ── */
+.stat-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:14px; margin-bottom:24px; }
+.stat-card { background:var(--bg2); border:1px solid var(--border); border-radius:12px; padding:16px 18px; position:relative; overflow:hidden; }
+.stat-card::before { content:''; position:absolute; top:0; left:0; right:0; height:2px; }
+.stat-card.blue::before { background:linear-gradient(90deg,var(--blue),var(--purple)); }
+.stat-card.green::before { background:linear-gradient(90deg,var(--green),var(--cyan)); }
+.stat-card.yellow::before { background:linear-gradient(90deg,var(--yellow),#f97316); }
+.stat-card.red::before { background:linear-gradient(90deg,var(--red),#f97316); }
+.stat-card.purple::before { background:linear-gradient(90deg,var(--purple),#ec4899); }
+.stat-card.cyan::before { background:linear-gradient(90deg,var(--cyan),var(--blue)); }
+.stat-label { font-size:11px; color:var(--text3); text-transform:uppercase; letter-spacing:0.5px; margin-bottom:10px; }
+.stat-value { font-size:26px; font-weight:700; letter-spacing:-1px; line-height:1; margin-bottom:8px; }
+.stat-card.blue .stat-value { color:var(--blue); }
+.stat-card.green .stat-value { color:var(--green); }
+.stat-card.yellow .stat-value { color:var(--yellow); }
+.stat-card.red .stat-value { color:var(--red); }
+.stat-card.purple .stat-value { color:var(--purple); }
+.stat-card.cyan .stat-value { color:var(--cyan); }
+.stat-trend { font-size:11px; color:var(--text3); }
+.stat-trend .up { color:var(--green); }
+.stat-trend .down { color:var(--red); }
+
+.section-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:14px; }
+.section-title { font-size:13px; font-weight:600; color:var(--text2); }
+
+.panel { background:var(--bg2); border:1px solid var(--border); border-radius:12px; overflow:hidden; }
+.panel-head { padding:14px 18px; border-bottom:1px solid var(--border); display:flex; align-items:center; justify-content:space-between; }
+.panel-title { font-size:13px; font-weight:600; }
+.panel-body { padding:18px; }
+
+.health-badge { display:inline-flex; align-items:center; gap:5px; padding:3px 8px; border-radius:20px; font-size:11px; font-weight:600; }
+.health-badge.normal { background:var(--green-dim); color:var(--green); }
+.health-badge.degraded { background:var(--yellow-dim); color:var(--yellow); }
+.health-badge.critical { background:var(--red-dim); color:var(--red); }
+.health-badge .dot { width:5px; height:5px; border-radius:50%; background:currentColor; }
+
+.score-bar { display:flex; align-items:center; gap:8px; }
+.score-track { flex:1; height:4px; background:var(--bg3); border-radius:2px; }
+.score-fill { height:100%; border-radius:2px; }
+.score-fill.high { background:var(--green); }
+.score-fill.mid { background:var(--yellow); }
+.score-fill.low { background:var(--red); }
+.score-num { font-size:12px; font-weight:600; font-family:'DM Mono',monospace; width:36px; text-align:right; }
+
+.action-btn { display:inline-flex; align-items:center; gap:4px; padding:4px 10px; border-radius:6px; font-size:11px; font-weight:600; cursor:pointer; border:1px solid var(--border2); background:transparent; color:var(--text2); font-family:inherit; transition:all 0.15s; }
+.action-btn:hover { background:var(--border); color:var(--text); }
+.action-btn.danger { border-color:rgba(239,68,68,0.3); color:var(--red); }
+.action-btn.danger:hover { background:var(--red-dim); }
+.action-btn.success { border-color:rgba(16,185,129,0.3); color:var(--green); }
+.action-btn.success:hover { background:var(--green-dim); }
+
+.tag { font-size:10px; font-weight:700; padding:2px 7px; border-radius:4px; text-transform:uppercase; letter-spacing:0.4px; }
+.tag.blue { background:var(--blue-dim); color:var(--blue); }
+.tag.green { background:var(--green-dim); color:var(--green); }
+.tag.yellow { background:var(--yellow-dim); color:var(--yellow); }
+.tag.red { background:var(--red-dim); color:var(--red); }
+.tag.purple { background:var(--purple-dim); color:var(--purple); }
+.tag.cyan { background:var(--cyan-dim); color:var(--cyan); }
+
+::-webkit-scrollbar { width:5px; }
+::-webkit-scrollbar-track { background:transparent; }
+::-webkit-scrollbar-thumb { background:var(--border2); border-radius:3px; }
+
+/* ══════════════════════════════
+   PAGE: 总览
+══════════════════════════════ */
+.phase-banner { display:grid; grid-template-columns:repeat(3,1fr); gap:12px; margin-bottom:24px; }
+.phase-card { background:var(--bg2); border:1px solid var(--border); border-radius:12px; padding:16px; position:relative; overflow:hidden; }
+.phase-card.active { border-color:rgba(59,130,246,0.3); }
+.phase-label { font-size:10px; font-weight:700; letter-spacing:1px; text-transform:uppercase; color:var(--text3); margin-bottom:6px; }
+.phase-name { font-size:14px; font-weight:700; margin-bottom:4px; }
+.phase-desc { font-size:11px; color:var(--text3); line-height:1.5; margin-bottom:12px; }
+.phase-progress { height:3px; background:var(--bg3); border-radius:2px; }
+.phase-progress-fill { height:100%; border-radius:2px; }
+.phase-pct { font-size:10px; color:var(--text3); margin-top:4px; }
+.phase-active-dot { position:absolute; top:14px; right:14px; width:7px; height:7px; border-radius:50%; background:var(--blue); box-shadow:0 0 8px var(--blue); animation:pulse 2s infinite; }
+
+.agent-table { background:var(--bg2); border:1px solid var(--border); border-radius:12px; overflow:hidden; margin-bottom:24px; }
+.table-head { display:grid; grid-template-columns:2fr 1fr 1fr 1fr 1fr 120px; padding:10px 18px; background:var(--bg3); border-bottom:1px solid var(--border); font-size:11px; color:var(--text3); font-weight:600; text-transform:uppercase; letter-spacing:0.5px; }
+.table-row { display:grid; grid-template-columns:2fr 1fr 1fr 1fr 1fr 120px; padding:14px 18px; border-bottom:1px solid var(--border); align-items:center; transition:background 0.1s; cursor:pointer; }
+.table-row:last-child { border-bottom:none; }
+.table-row:hover { background:var(--bg3); }
+.agent-info { display:flex; align-items:center; gap:10px; }
+.agent-avatar { width:30px; height:30px; border-radius:8px; display:flex; align-items:center; justify-content:center; font-size:13px; flex-shrink:0; }
+.agent-avatar.ops { background:var(--blue-dim); }
+.agent-avatar.warn { background:var(--yellow-dim); }
+.agent-avatar.err { background:var(--red-dim); }
+.agent-name-cell { font-size:13px; font-weight:500; }
+.agent-version { font-size:11px; color:var(--text3); font-family:'DM Mono',monospace; margin-top:1px; }
+
+.detail-grid { display:grid; grid-template-columns:1fr 340px; gap:16px; }
+
+.deploy-flow { display:flex; flex-direction:column; }
+.deploy-step { display:flex; gap:12px; padding:12px 0; position:relative; }
+.deploy-step:not(:last-child)::after { content:''; position:absolute; left:13px; top:36px; bottom:0; width:1px; background:var(--border2); }
+.step-icon { width:28px; height:28px; border-radius:50%; flex-shrink:0; display:flex; align-items:center; justify-content:center; font-size:12px; border:1px solid var(--border2); position:relative; z-index:1; }
+.step-icon.done { background:var(--green-dim); border-color:rgba(16,185,129,0.3); color:var(--green); }
+.step-icon.active { background:var(--blue-dim); border-color:rgba(59,130,246,0.3); color:var(--blue); }
+.step-icon.wait { background:var(--bg3); color:var(--text3); }
+.step-icon.fail { background:var(--red-dim); border-color:rgba(239,68,68,0.3); color:var(--red); }
+.step-info { flex:1; padding-top:4px; }
+.step-name { font-size:12px; font-weight:600; margin-bottom:2px; }
+.step-detail { font-size:11px; color:var(--text3); line-height:1.5; }
+.step-time { font-size:11px; color:var(--text3); font-family:'DM Mono',monospace; margin-top:2px; }
+
+.change-card { background:var(--bg3); border:1px solid var(--border); border-radius:10px; padding:14px; margin-bottom:12px; }
+.change-header { display:flex; align-items:center; gap:8px; margin-bottom:10px; }
+.change-ts { font-size:10px; color:var(--text3); margin-left:auto; }
+.change-diff { display:flex; flex-direction:column; gap:4px; }
+.diff-line { font-size:11px; font-family:'DM Mono',monospace; padding:2px 6px; border-radius:4px; line-height:1.5; }
+.diff-line.add { background:rgba(16,185,129,0.1); color:var(--green); }
+.diff-line.remove { background:rgba(239,68,68,0.1); color:var(--red); }
+
+.alert-stream { display:flex; flex-direction:column; gap:8px; }
+.alert-item { display:flex; align-items:flex-start; gap:10px; background:var(--bg3); border:1px solid var(--border); border-radius:8px; padding:10px 12px; }
+.alert-icon { font-size:14px; margin-top:1px; flex-shrink:0; }
+.alert-content { flex:1; }
+.alert-title { font-size:12px; font-weight:600; margin-bottom:2px; }
+.alert-desc { font-size:11px; color:var(--text3); line-height:1.4; }
+.alert-time { font-size:10px; color:var(--text3); font-family:'DM Mono',monospace; margin-top:4px; }
+.alert-action { padding:3px 8px; border-radius:5px; font-size:10px; font-weight:600; border:none; cursor:pointer; font-family:inherit; white-space:nowrap; align-self:center; }
+.alert-action.warn-btn { background:var(--yellow-dim); color:var(--yellow); }
+.alert-action.red-btn { background:var(--red-dim); color:var(--red); }
+.alert-action.green-btn { background:var(--green-dim); color:var(--green); }
+
+.slo-list { display:flex; flex-direction:column; gap:14px; }
+.slo-item {}
+.slo-row { display:flex; align-items:center; justify-content:space-between; margin-bottom:5px; }
+.slo-name { font-size:12px; color:var(--text2); }
+.slo-values { display:flex; align-items:center; gap:6px; font-size:12px; font-family:'DM Mono',monospace; }
+.slo-current { font-weight:600; }
+.slo-target { color:var(--text3); }
+.slo-track { height:5px; background:var(--bg3); border-radius:3px; }
+.slo-fill { height:100%; border-radius:3px; }
+
+.mini-chart { height:50px; display:flex; align-items:flex-end; gap:3px; margin-top:6px; }
+.bar-col { flex:1; border-radius:3px 3px 0 0; min-height:4px; }
+
+/* ══════════════════════════════
+   PAGE: Trace 链路
+══════════════════════════════ */
+.trace-layout { display:grid; grid-template-columns:380px 1fr; gap:16px; height:calc(100vh - 120px); }
+.trace-list-panel { display:flex; flex-direction:column; overflow:hidden; }
+.trace-list-scroll { overflow-y:auto; flex:1; }
+.trace-item { padding:12px 16px; border-bottom:1px solid var(--border); cursor:pointer; transition:background 0.1s; }
+.trace-item:hover, .trace-item.selected { background:var(--bg3); }
+.trace-item.selected { border-left:2px solid var(--blue); }
+.trace-item-top { display:flex; align-items:center; gap:8px; margin-bottom:5px; }
+.trace-id { font-family:'DM Mono',monospace; font-size:11px; color:var(--text3); }
+.trace-status { font-size:10px; font-weight:700; padding:1px 6px; border-radius:4px; }
+.trace-status.ok { background:var(--green-dim); color:var(--green); }
+.trace-status.slow { background:var(--yellow-dim); color:var(--yellow); }
+.trace-status.err { background:var(--red-dim); color:var(--red); }
+.trace-agent { font-size:12px; font-weight:600; flex:1; }
+.trace-meta { display:flex; gap:12px; }
+.trace-meta-item { font-size:11px; color:var(--text3); }
+.trace-meta-item span { color:var(--text2); font-weight:500; }
+.trace-latency { font-family:'DM Mono',monospace; font-size:11px; margin-left:auto; }
+
+.trace-detail-panel { overflow-y:auto; display:flex; flex-direction:column; gap:12px; }
+.waterfall-panel { background:var(--bg2); border:1px solid var(--border); border-radius:12px; overflow:hidden; }
+.waterfall-head { padding:12px 16px; border-bottom:1px solid var(--border); display:flex; align-items:center; gap:12px; }
+.waterfall-title { font-size:13px; font-weight:600; }
+.waterfall-body { padding:12px; }
+
+.span-row { display:flex; align-items:center; gap:0; padding:4px 0; }
+.span-indent { flex-shrink:0; }
+.span-dot { width:8px; height:8px; border-radius:50%; flex-shrink:0; margin-right:6px; }
+.span-name { font-size:12px; font-weight:500; min-width:180px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.span-type { font-size:10px; font-weight:600; padding:1px 5px; border-radius:3px; margin-right:8px; flex-shrink:0; }
+.span-type.llm { background:var(--purple-dim); color:var(--purple); }
+.span-type.tool { background:var(--cyan-dim); color:var(--cyan); }
+.span-type.rag { background:var(--yellow-dim); color:var(--yellow); }
+.span-type.agent { background:var(--blue-dim); color:var(--blue); }
+.span-type.mem { background:var(--green-dim); color:var(--green); }
+
+.waterfall-track { flex:1; position:relative; height:20px; }
+.waterfall-bar { position:absolute; height:12px; top:4px; border-radius:3px; min-width:4px; }
+.waterfall-label { position:absolute; right:0; top:50%; transform:translateY(-50%); font-size:10px; font-family:'DM Mono',monospace; color:var(--text3); white-space:nowrap; padding-left:6px; }
+
+.span-detail-box { background:var(--bg3); border:1px solid var(--border); border-radius:10px; padding:14px; }
+.span-detail-title { font-size:12px; font-weight:600; margin-bottom:10px; color:var(--text2); }
+.kv-list { display:flex; flex-direction:column; gap:6px; }
+.kv-row { display:flex; gap:8px; font-size:11px; }
+.kv-key { color:var(--text3); min-width:100px; flex-shrink:0; }
+.kv-val { color:var(--text); font-family:'DM Mono',monospace; word-break:break-all; }
+.kv-val.green { color:var(--green); }
+.kv-val.red { color:var(--red); }
+.kv-val.yellow { color:var(--yellow); }
+
+.llm-io-box { background:var(--bg3); border:1px solid var(--border); border-radius:10px; overflow:hidden; }
+.llm-io-tab { display:flex; border-bottom:1px solid var(--border); }
+.llm-io-tab-item { padding:8px 14px; font-size:11px; font-weight:600; color:var(--text3); cursor:pointer; border-bottom:2px solid transparent; margin-bottom:-1px; }
+.llm-io-tab-item.active { color:var(--blue); border-bottom-color:var(--blue); }
+.llm-io-content { padding:12px 14px; font-size:11px; line-height:1.6; font-family:'DM Mono',monospace; color:var(--text2); max-height:120px; overflow-y:auto; }
+.llm-io-content .role { color:var(--purple); font-weight:600; }
+.llm-io-content .content-text { color:var(--text); }
+
+/* ══════════════════════════════
+   PAGE: 评估实验
+══════════════════════════════ */
+.eval-layout { display:grid; grid-template-columns:1fr 380px; gap:16px; }
+.eval-run-list { display:flex; flex-direction:column; gap:10px; margin-bottom:16px; }
+.eval-run-card { background:var(--bg2); border:1px solid var(--border); border-radius:10px; padding:14px 16px; cursor:pointer; transition:all 0.15s; }
+.eval-run-card:hover, .eval-run-card.selected { border-color:rgba(59,130,246,0.3); background:var(--bg3); }
+.eval-run-header { display:flex; align-items:center; gap:10px; margin-bottom:8px; }
+.eval-run-name { font-size:13px; font-weight:600; flex:1; }
+.eval-run-score-big { font-size:20px; font-weight:700; font-family:'DM Mono',monospace; letter-spacing:-0.5px; }
+.eval-run-score-big.pass { color:var(--green); }
+.eval-run-score-big.fail { color:var(--red); }
+.eval-run-score-big.warn { color:var(--yellow); }
+.eval-metrics-row { display:flex; gap:16px; }
+.eval-metric { }
+.eval-metric-label { font-size:10px; color:var(--text3); margin-bottom:2px; }
+.eval-metric-val { font-size:12px; font-weight:600; font-family:'DM Mono',monospace; }
+
+.eval-detail-panel { display:flex; flex-direction:column; gap:12px; }
+.sample-list { display:flex; flex-direction:column; gap:6px; max-height:300px; overflow-y:auto; }
+.sample-item { background:var(--bg3); border:1px solid var(--border); border-radius:8px; padding:10px 12px; }
+.sample-header { display:flex; align-items:center; gap:8px; margin-bottom:6px; }
+.sample-idx { font-size:10px; color:var(--text3); font-family:'DM Mono',monospace; }
+.sample-verdict { font-size:10px; font-weight:700; padding:1px 6px; border-radius:4px; }
+.sample-verdict.pass { background:var(--green-dim); color:var(--green); }
+.sample-verdict.fail { background:var(--red-dim); color:var(--red); }
+.sample-verdict.partial { background:var(--yellow-dim); color:var(--yellow); }
+.sample-score-num { font-size:12px; font-weight:600; font-family:'DM Mono',monospace; margin-left:auto; }
+.sample-q { font-size:11px; color:var(--text2); margin-bottom:4px; line-height:1.4; }
+.sample-a-row { display:grid; grid-template-columns:1fr 1fr; gap:8px; }
+.sample-a { font-size:10px; color:var(--text3); line-height:1.4; }
+.sample-a strong { color:var(--text2); display:block; margin-bottom:2px; }
+.sample-reason { font-size:10px; color:var(--text3); margin-top:5px; padding-top:5px; border-top:1px solid var(--border); line-height:1.4; }
+
+.gate-panel { background:var(--bg2); border:1px solid var(--border); border-radius:12px; overflow:hidden; }
+.gate-banner { padding:14px 16px; display:flex; align-items:center; gap:12px; }
+.gate-banner.pass { background:rgba(16,185,129,0.07); border-bottom:1px solid rgba(16,185,129,0.2); }
+.gate-banner.fail { background:rgba(239,68,68,0.07); border-bottom:1px solid rgba(239,68,68,0.2); }
+.gate-icon { font-size:22px; }
+.gate-title { font-size:14px; font-weight:700; }
+.gate-desc { font-size:11px; color:var(--text3); margin-top:1px; }
+.gate-score { font-size:24px; font-weight:700; font-family:'DM Mono',monospace; margin-left:auto; letter-spacing:-1px; }
+.gate-score.pass { color:var(--green); }
+.gate-score.fail { color:var(--red); }
+.gate-body { padding:14px 16px; }
+.gate-metrics { display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:12px; }
+.gate-metric-card { background:var(--bg3); border-radius:8px; padding:10px; }
+.gate-metric-name { font-size:11px; color:var(--text3); margin-bottom:4px; }
+.gate-metric-row { display:flex; align-items:center; justify-content:space-between; margin-bottom:5px; }
+.gate-metric-val { font-size:15px; font-weight:700; font-family:'DM Mono',monospace; }
+.gate-metric-threshold { font-size:10px; color:var(--text3); }
+.gate-track { height:4px; background:var(--bg3); border-radius:2px; }
+.gate-fill { height:100%; border-radius:2px; }
+
+/* ══════════════════════════════
+   PAGE: 成本分析
+══════════════════════════════ */
+.cost-layout { display:grid; grid-template-columns:1fr 320px; gap:16px; }
+.cost-bar-chart { background:var(--bg2); border:1px solid var(--border); border-radius:12px; padding:18px; margin-bottom:16px; }
+.cost-bar-chart-title { font-size:13px; font-weight:600; margin-bottom:16px; }
+.cost-bars { display:flex; align-items:flex-end; gap:10px; height:140px; }
+.cost-bar-group { flex:1; display:flex; flex-direction:column; align-items:center; gap:4px; height:100%; justify-content:flex-end; }
+.cost-bar-stacked { width:100%; border-radius:4px 4px 0 0; min-height:4px; position:relative; overflow:visible; }
+.cost-bar-val { font-size:10px; font-family:'DM Mono',monospace; color:var(--text3); }
+.cost-bar-day { font-size:10px; color:var(--text3); }
+.cost-bar-wrap { width:100%; display:flex; flex-direction:column; justify-content:flex-end; position:relative; }
+
+.cost-table { background:var(--bg2); border:1px solid var(--border); border-radius:12px; overflow:hidden; }
+.cost-table-head { display:grid; grid-template-columns:2fr 1fr 1fr 1fr 1fr; padding:10px 18px; background:var(--bg3); border-bottom:1px solid var(--border); font-size:11px; color:var(--text3); font-weight:600; text-transform:uppercase; letter-spacing:0.5px; }
+.cost-table-row { display:grid; grid-template-columns:2fr 1fr 1fr 1fr 1fr; padding:12px 18px; border-bottom:1px solid var(--border); align-items:center; font-size:12px; }
+.cost-table-row:last-child { border-bottom:none; }
+.cost-table-row:hover { background:var(--bg3); }
+
+.cost-breakdown-panel { display:flex; flex-direction:column; gap:12px; }
+.donut-wrap { display:flex; justify-content:center; padding:10px 0; }
+.donut { position:relative; width:130px; height:130px; }
+.donut svg { transform:rotate(-90deg); }
+.donut-center { position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center; }
+.donut-total { font-size:18px; font-weight:700; font-family:'DM Mono',monospace; color:var(--text); }
+.donut-label { font-size:10px; color:var(--text3); }
+.legend-list { display:flex; flex-direction:column; gap:8px; }
+.legend-item { display:flex; align-items:center; gap:8px; }
+.legend-dot { width:8px; height:8px; border-radius:50%; flex-shrink:0; }
+.legend-name { font-size:12px; flex:1; }
+.legend-val { font-size:12px; font-family:'DM Mono',monospace; font-weight:600; }
+.legend-pct { font-size:10px; color:var(--text3); width:30px; text-align:right; }
+
+.budget-alert { background:var(--yellow-dim); border:1px solid rgba(245,158,11,0.3); border-radius:10px; padding:12px 14px; }
+.budget-alert-title { font-size:12px; font-weight:600; color:var(--yellow); margin-bottom:4px; }
+.budget-alert-desc { font-size:11px; color:var(--text3); line-height:1.4; }
+.budget-track { height:6px; background:var(--bg3); border-radius:3px; margin-top:8px; }
+.budget-fill { height:100%; border-radius:3px; }
+</style>
+</head>
+<body>
+<div class="shell">
+
+<!-- ── SIDEBAR ── -->
+<aside class="sidebar">
+  <div class="logo">
+    <div class="logo-mark">
+      <div class="logo-icon">⚙</div>
+      <div>
+        <div class="logo-text">AgentOps</div>
+        <div class="logo-sub">小红书 基础技术</div>
+      </div>
+    </div>
+  </div>
+  <nav class="nav">
+    <div class="nav-section">
+      <div class="nav-label">概览</div>
+      <div class="nav-item active" onclick="switchPage('overview',this)"><span class="icon">◈</span> Agent 总览</div>
+      <div class="nav-item" onclick="switchPage('overview',this)"><span class="icon">⚡</span> 告警中心 <span class="nav-badge">3</span></div>
+    </div>
+    <div class="nav-section">
+      <div class="nav-label">发布变更</div>
+      <div class="nav-item" onclick="switchPage('overview',this)"><span class="icon">🚀</span> 发布流水线</div>
+      <div class="nav-item" onclick="switchPage('overview',this)"><span class="icon">📋</span> 变更记录</div>
+      <div class="nav-item" onclick="switchPage('overview',this)"><span class="icon">↩</span> 回滚中心</div>
+    </div>
+    <div class="nav-section">
+      <div class="nav-label">可观测</div>
+      <div class="nav-item" onclick="switchPage('trace',this)"><span class="icon">🔍</span> Trace 链路</div>
+      <div class="nav-item" onclick="switchPage('overview',this)"><span class="icon">📊</span> 指标大盘</div>
+      <div class="nav-item" onclick="switchPage('cost',this)"><span class="icon">💰</span> 成本分析</div>
+    </div>
+    <div class="nav-section">
+      <div class="nav-label">评估</div>
+      <div class="nav-item" onclick="switchPage('eval',this)"><span class="icon">✓</span> 评估实验</div>
+      <div class="nav-item" onclick="switchPage('eval',this)"><span class="icon">📁</span> 数据集管理</div>
+      <div class="nav-item" onclick="switchPage('eval',this)"><span class="icon">🎯</span> SLO 配置</div>
+    </div>
+    <div class="nav-section">
+      <div class="nav-label">治理</div>
+      <div class="nav-item" onclick="switchPage('overview',this)"><span class="icon">🛡</span> 风险护栏</div>
+      <div class="nav-item" onclick="switchPage('overview',this)"><span class="icon">🔐</span> 权限审计</div>
+    </div>
+  </nav>
+  <div class="sidebar-footer">
+    <div class="agent-selector">
+      <div class="agent-dot"></div>
+      <div><div class="agent-name">全部 Agent</div><div class="agent-count">24 个运行中</div></div>
+      <span style="color:var(--text3);font-size:11px;">▾</span>
+    </div>
+  </div>
+</aside>
+
+<!-- ── MAIN ── -->
+<main class="main">
+
+<!-- ════════════════════════════
+     PAGE: 总览
+════════════════════════════ -->
+<div id="page-overview" class="page active">
+  <div class="topbar">
+    <div><span class="topbar-title">Agent 总览</span><span class="topbar-sub">/ 生产环境</span></div>
+    <div class="tab-bar">
+      <div class="tab active">所有 Agent</div>
+      <div class="tab">健康异常</div>
+      <div class="tab">待发布</div>
+    </div>
+    <div class="topbar-right">
+      <button class="btn btn-ghost">导出报告</button>
+      <button class="btn btn-primary">+ 新建 Agent</button>
+    </div>
+  </div>
+  <div class="content">
+    <div class="phase-banner">
+      <div class="phase-card active">
+        <div class="phase-active-dot"></div>
+        <div class="phase-label">Phase 1 · 进行中</div>
+        <div class="phase-name">数据层打通</div>
+        <div class="phase-desc">变更语义感知 + Agent 元数据中心 + 观测埋点前置</div>
+        <div class="phase-progress"><div class="phase-progress-fill" style="background:var(--blue);width:65%"></div></div>
+        <div class="phase-pct">65% 完成</div>
+      </div>
+      <div class="phase-card">
+        <div class="phase-label">Phase 2 · 规划中</div>
+        <div class="phase-name">评估层接入</div>
+        <div class="phase-desc">Eval Gate 发布门禁 + SLO 持续监控 + 在线评估</div>
+        <div class="phase-progress"><div class="phase-progress-fill" style="background:var(--purple);width:20%"></div></div>
+        <div class="phase-pct">20% 完成</div>
+      </div>
+      <div class="phase-card">
+        <div class="phase-label">Phase 3 · 待启动</div>
+        <div class="phase-name">治理闭环</div>
+        <div class="phase-desc">双向事件总线 + 自动回滚 + 安全护栏 + 成本熔断</div>
+        <div class="phase-progress"><div class="phase-progress-fill" style="background:var(--text3);width:0%"></div></div>
+        <div class="phase-pct">待启动</div>
+      </div>
+    </div>
+
+    <div class="stat-grid">
+      <div class="stat-card blue"><div class="stat-label">运行中 Agent</div><div class="stat-value">24</div><div class="stat-trend"><span class="up">↑ 4</span> 较上周</div></div>
+      <div class="stat-card green"><div class="stat-label">平均评估分</div><div class="stat-value">87<span style="font-size:14px">.3%</span></div><div class="stat-trend"><span class="up">↑ 2.1%</span> 较上周</div></div>
+      <div class="stat-card yellow"><div class="stat-label">待处理告警</div><div class="stat-value">3</div><div class="stat-trend"><span class="down">↑ 2</span> 较昨日</div></div>
+      <div class="stat-card red"><div class="stat-label">健康异常</div><div class="stat-value">2</div><div class="stat-trend">需立即处理</div></div>
+    </div>
+
+    <div class="section-header">
+      <div class="section-title">Agent 列表</div>
+      <div style="display:flex;gap:8px;"><button class="btn btn-ghost" style="font-size:11px;padding:4px 10px;">筛选</button><button class="btn btn-ghost" style="font-size:11px;padding:4px 10px;">排序</button></div>
+    </div>
+    <div class="agent-table" style="margin-bottom:24px;">
+      <div class="table-head"><div>Agent 信息</div><div>健康状态</div><div>评估分</div><div>SLO 达成</div><div>今日成本</div><div>操作</div></div>
+      <div class="table-row">
+        <div class="agent-info"><div class="agent-avatar ops">🤖</div><div><div class="agent-name-cell">XPilot 告警诊断</div><div class="agent-version">v2.4.1 · ALLIN Workflow</div></div></div>
+        <div><span class="health-badge normal"><span class="dot"></span>正常</span></div>
+        <div><div class="score-bar"><div class="score-track"><div class="score-fill high" style="width:91%"></div></div><div class="score-num" style="color:var(--green)">91%</div></div></div>
+        <div style="font-size:12px;color:var(--green)">✓ 达成</div>
+        <div style="font-size:12px;font-family:'DM Mono',monospace">¥ 142</div>
+        <div style="display:flex;gap:6px;"><button class="action-btn" onclick="switchPage('trace',null)">Trace</button><button class="action-btn" onclick="switchPage('eval',null)">评估</button></div>
+      </div>
+      <div class="table-row" style="background:rgba(245,158,11,0.03)">
+        <div class="agent-info"><div class="agent-avatar warn">⚠️</div><div><div class="agent-name-cell">客服退款助手</div><div class="agent-version">v1.8.3 · Darwin</div></div></div>
+        <div><span class="health-badge degraded"><span class="dot"></span>降级</span></div>
+        <div><div class="score-bar"><div class="score-track"><div class="score-fill mid" style="width:73%"></div></div><div class="score-num" style="color:var(--yellow)">73%</div></div></div>
+        <div style="font-size:12px;color:var(--yellow)">⚠ 偏低</div>
+        <div style="font-size:12px;font-family:'DM Mono',monospace">¥ 318</div>
+        <div style="display:flex;gap:6px;"><button class="action-btn" onclick="switchPage('trace',null)">Trace</button><button class="action-btn danger">回滚</button></div>
+      </div>
+      <div class="table-row" style="background:rgba(239,68,68,0.03)">
+        <div class="agent-info"><div class="agent-avatar err">🔴</div><div><div class="agent-name-cell">BI 数据分析 Agent</div><div class="agent-version">v3.1.0 · ARKAI</div></div></div>
+        <div><span class="health-badge critical"><span class="dot"></span>异常</span></div>
+        <div><div class="score-bar"><div class="score-track"><div class="score-fill low" style="width:54%"></div></div><div class="score-num" style="color:var(--red)">54%</div></div></div>
+        <div style="font-size:12px;color:var(--red)">✗ 未达</div>
+        <div style="font-size:12px;font-family:'DM Mono',monospace">¥ 89</div>
+        <div style="display:flex;gap:6px;"><button class="action-btn">Trace</button><button class="action-btn danger">回滚</button></div>
+      </div>
+      <div class="table-row">
+        <div class="agent-info"><div class="agent-avatar ops">📝</div><div><div class="agent-name-cell">内容审核 Agent</div><div class="agent-version">v1.2.0 · ALLIN Workflow</div></div></div>
+        <div><span class="health-badge normal"><span class="dot"></span>正常</span></div>
+        <div><div class="score-bar"><div class="score-track"><div class="score-fill high" style="width:95%"></div></div><div class="score-num" style="color:var(--green)">95%</div></div></div>
+        <div style="font-size:12px;color:var(--green)">✓ 达成</div>
+        <div style="font-size:12px;font-family:'DM Mono',monospace">¥ 221</div>
+        <div style="display:flex;gap:6px;"><button class="action-btn">Trace</button><button class="action-btn">评估</button></div>
+      </div>
+    </div>
+
+    <div class="detail-grid">
+      <div style="display:flex;flex-direction:column;gap:16px;">
+        <div class="panel">
+          <div class="panel-head"><div class="panel-title">发布流水线 · 客服退款助手 v1.9.0</div><span class="tag yellow">进行中</span></div>
+          <div class="panel-body">
+            <div class="deploy-flow">
+              <div class="deploy-step"><div class="step-icon done">✓</div><div class="step-info"><div class="step-name">变更语义解析</div><div class="step-detail">Prompt v1.8.3→v1.9.0 · 修改退款判断逻辑 · 模型 gpt-4o 不变</div><div class="step-time">14:02:31</div></div></div>
+              <div class="deploy-step"><div class="step-icon done">✓</div><div class="step-info"><div class="step-name">Eval Gate 评估</div><div class="step-detail">数据集 248 条回放 · 评估分 88.4% ≥ 85% 阈值 · 通过</div><div class="step-time">14:06:18 · 耗时 3m47s</div></div></div>
+              <div class="deploy-step"><div class="step-icon active">▶</div><div class="step-info"><div class="step-name">灰度发布 1%</div><div class="step-detail">流量切入中 · 监控异常率 · 预计 15min 后扩量至 10%</div><div class="step-time">14:08:44 · 进行中...</div></div></div>
+              <div class="deploy-step"><div class="step-icon wait">○</div><div class="step-info"><div class="step-name">扩量至 100%</div><div class="step-detail">等待灰度期无异常后自动执行</div><div class="step-time">待执行</div></div></div>
+            </div>
+          </div>
+        </div>
+        <div class="panel">
+          <div class="panel-head"><div class="panel-title">最近变更记录</div><button class="action-btn" style="font-size:10px;">查看全部</button></div>
+          <div class="panel-body">
+            <div class="change-card">
+              <div class="change-header"><span class="tag purple">Prompt</span><span style="font-size:11px;font-family:'DM Mono',monospace;color:var(--text2)">v1.8.3 → v1.9.0</span><span class="change-ts">14:02 今天</span></div>
+              <div class="change-diff"><div class="diff-line remove">- 当用户申请退款时，默认同意金额 ≤ 200 元的请求</div><div class="diff-line add">+ 当用户申请退款时，先核查订单状态，确认符合条件后同意</div></div>
+            </div>
+            <div class="change-card">
+              <div class="change-header"><span class="tag blue">Model</span><span style="font-size:11px;font-family:'DM Mono',monospace;color:var(--text2)">gpt-3.5 → gpt-4o</span><span class="change-ts">09:15 昨天</span></div>
+              <div class="change-diff"><div class="diff-line add">+ 模型升级：推理能力提升，预计 Eval 分 +8%</div></div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:16px;">
+        <div class="panel">
+          <div class="panel-head"><div class="panel-title">告警中心</div><span style="font-size:10px;color:var(--red);font-weight:700;">3 待处理</span></div>
+          <div class="panel-body" style="padding:14px;">
+            <div class="alert-stream">
+              <div class="alert-item" style="border-color:rgba(239,68,68,0.25)"><div class="alert-icon">🔴</div><div class="alert-content"><div class="alert-title">BI 数据分析 Agent · 评估分骤降</div><div class="alert-desc">task_success_rate 91%→54%，关联变更 v3.1.0（10分钟前上线）</div><div class="alert-time">13:58 · 自动关联变更记录</div></div><button class="alert-action red-btn">回滚</button></div>
+              <div class="alert-item" style="border-color:rgba(245,158,11,0.25)"><div class="alert-icon">⚠️</div><div class="alert-content"><div class="alert-title">客服退款助手 · SLO 偏低</div><div class="alert-desc">连续 3 小时低于 85% 基线，建议检查 Prompt 逻辑</div><div class="alert-time">12:30 · 持续中</div></div><button class="alert-action warn-btn">查看</button></div>
+              <div class="alert-item" style="border-color:rgba(245,158,11,0.2)"><div class="alert-icon">💰</div><div class="alert-content"><div class="alert-title">客服退款助手 · Token 成本异常</div><div class="alert-desc">今日成本 ¥318，超出基线 140%，疑似 context 过长</div><div class="alert-time">11:02 · 今日</div></div><button class="alert-action warn-btn">分析</button></div>
+            </div>
+          </div>
+        </div>
+        <div class="panel">
+          <div class="panel-head"><div class="panel-title">SLO 达成 · XPilot 告警诊断</div></div>
+          <div class="panel-body">
+            <div class="slo-list">
+              <div class="slo-item"><div class="slo-row"><div class="slo-name">任务完成率</div><div class="slo-values"><span class="slo-current" style="color:var(--green)">91%</span><span class="slo-target">/ ≥85%</span></div></div><div class="slo-track"><div class="slo-fill" style="width:91%;background:var(--green)"></div></div></div>
+              <div class="slo-item"><div class="slo-row"><div class="slo-name">幻觉率</div><div class="slo-values"><span class="slo-current" style="color:var(--green)">3.2%</span><span class="slo-target">/ ≤5%</span></div></div><div class="slo-track"><div class="slo-fill" style="width:36%;background:var(--green)"></div></div></div>
+              <div class="slo-item"><div class="slo-row"><div class="slo-name">P99 延迟</div><div class="slo-values"><span class="slo-current" style="color:var(--yellow)">2.8s</span><span class="slo-target">/ ≤3s</span></div></div><div class="slo-track"><div class="slo-fill" style="width:93%;background:var(--yellow)"></div></div></div>
+              <div class="slo-item"><div class="slo-row"><div class="slo-name">高危操作拒识率</div><div class="slo-values"><span class="slo-current" style="color:var(--green)">99.8%</span><span class="slo-target">/ ≥99%</span></div></div><div class="slo-track"><div class="slo-fill" style="width:99%;background:var(--green)"></div></div></div>
+            </div>
+            <div style="margin-top:16px;border-top:1px solid var(--border);padding-top:14px;">
+              <div style="font-size:11px;color:var(--text3);margin-bottom:6px;">近 14 天评估趋势</div>
+              <div class="mini-chart">
+                <div class="bar-col" style="height:65%;background:rgba(59,130,246,0.3)"></div><div class="bar-col" style="height:72%;background:rgba(59,130,246,0.35)"></div><div class="bar-col" style="height:68%;background:rgba(59,130,246,0.35)"></div><div class="bar-col" style="height:80%;background:rgba(59,130,246,0.4)"></div><div class="bar-col" style="height:76%;background:rgba(59,130,246,0.4)"></div><div class="bar-col" style="height:83%;background:rgba(59,130,246,0.5)"></div><div class="bar-col" style="height:79%;background:rgba(59,130,246,0.5)"></div><div class="bar-col" style="height:85%;background:rgba(59,130,246,0.6)"></div><div class="bar-col" style="height:88%;background:rgba(59,130,246,0.65)"></div><div class="bar-col" style="height:84%;background:rgba(59,130,246,0.65)"></div><div class="bar-col" style="height:87%;background:rgba(59,130,246,0.7)"></div><div class="bar-col" style="height:90%;background:rgba(59,130,246,0.8)"></div><div class="bar-col" style="height:89%;background:rgba(59,130,246,0.85)"></div><div class="bar-col" style="height:91%;background:var(--blue)"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════════════
+     PAGE: Trace 链路
+════════════════════════════ -->
+<div id="page-trace" class="page">
+  <div class="topbar">
+    <div><span class="topbar-title">Trace 链路</span><span class="topbar-sub">/ AI 全链路追踪</span></div>
+    <div class="tab-bar">
+      <div class="tab active">全部</div>
+      <div class="tab">失败</div>
+      <div class="tab">慢请求 &gt;3s</div>
+    </div>
+    <div class="topbar-right">
+      <div style="background:var(--bg3);border:1px solid var(--border);border-radius:7px;padding:5px 12px;font-size:12px;color:var(--text2)">🔍 搜索 Trace ID / Agent</div>
+      <button class="btn btn-ghost">时间范围: 最近 1h</button>
+    </div>
+  </div>
+  <div class="content" style="padding:0;">
+    <div class="trace-layout" style="height:calc(100vh - 57px);">
+
+      <!-- 左侧 Trace 列表 -->
+      <div class="trace-list-panel" style="border-right:1px solid var(--border);">
+        <div style="padding:10px 14px;border-bottom:1px solid var(--border);background:var(--bg3);">
+          <div style="font-size:11px;color:var(--text3);">共 <span style="color:var(--text);font-weight:600;">1,284</span> 条 · 实时刷新</div>
+        </div>
+        <div class="trace-list-scroll">
+
+          <!-- trace 1: selected -->
+          <div class="trace-item selected">
+            <div class="trace-item-top">
+              <span class="trace-status err">ERROR</span>
+              <span class="trace-agent">XPilot 告警诊断</span>
+              <span class="trace-latency" style="color:var(--red)">5.83s</span>
+            </div>
+            <div class="trace-meta">
+              <span class="trace-meta-item">工具调用 <span>7次</span></span>
+              <span class="trace-meta-item">Tokens <span>3,847</span></span>
+              <span class="trace-meta-item">¥<span>0.12</span></span>
+            </div>
+            <div class="trace-id" style="margin-top:4px">trace_a3f9cd8e2b1 · 14:22:38</div>
+          </div>
+
+          <!-- trace 2 -->
+          <div class="trace-item">
+            <div class="trace-item-top">
+              <span class="trace-status ok">OK</span>
+              <span class="trace-agent">内容审核 Agent</span>
+              <span class="trace-latency" style="color:var(--green)">1.24s</span>
+            </div>
+            <div class="trace-meta">
+              <span class="trace-meta-item">工具调用 <span>2次</span></span>
+              <span class="trace-meta-item">Tokens <span>892</span></span>
+              <span class="trace-meta-item">¥<span>0.03</span></span>
+            </div>
+            <div class="trace-id" style="margin-top:4px">trace_b7e21ca4f9d · 14:22:35</div>
+          </div>
+
+          <!-- trace 3 slow -->
+          <div class="trace-item">
+            <div class="trace-item-top">
+              <span class="trace-status slow">SLOW</span>
+              <span class="trace-agent">客服退款助手</span>
+              <span class="trace-latency" style="color:var(--yellow)">4.12s</span>
+            </div>
+            <div class="trace-meta">
+              <span class="trace-meta-item">工具调用 <span>5次</span></span>
+              <span class="trace-meta-item">Tokens <span>5,214</span></span>
+              <span class="trace-meta-item">¥<span>0.18</span></span>
+            </div>
+            <div class="trace-id" style="margin-top:4px">trace_c5f83ab1d72 · 14:22:29</div>
+          </div>
+
+          <!-- trace 4 -->
+          <div class="trace-item">
+            <div class="trace-item-top">
+              <span class="trace-status ok">OK</span>
+              <span class="trace-agent">XPilot 告警诊断</span>
+              <span class="trace-latency" style="color:var(--green)">2.08s</span>
+            </div>
+            <div class="trace-meta">
+              <span class="trace-meta-item">工具调用 <span>3次</span></span>
+              <span class="trace-meta-item">Tokens <span>1,620</span></span>
+              <span class="trace-meta-item">¥<span>0.05</span></span>
+            </div>
+            <div class="trace-id" style="margin-top:4px">trace_d9a12fe5c38 · 14:22:21</div>
+          </div>
+
+          <!-- trace 5 -->
+          <div class="trace-item">
+            <div class="trace-item-top">
+              <span class="trace-status ok">OK</span>
+              <span class="trace-agent">BI 数据分析 Agent</span>
+              <span class="trace-latency" style="color:var(--text2)">1.97s</span>
+            </div>
+            <div class="trace-meta">
+              <span class="trace-meta-item">工具调用 <span>4次</span></span>
+              <span class="trace-meta-item">Tokens <span>2,103</span></span>
+              <span class="trace-meta-item">¥<span>0.07</span></span>
+            </div>
+            <div class="trace-id" style="margin-top:4px">trace_e3c7d90b421 · 14:22:14</div>
+          </div>
+
+          <!-- trace 6 -->
+          <div class="trace-item">
+            <div class="trace-item-top">
+              <span class="trace-status err">ERROR</span>
+              <span class="trace-agent">BI 数据分析 Agent</span>
+              <span class="trace-latency" style="color:var(--red)">0.31s</span>
+            </div>
+            <div class="trace-meta">
+              <span class="trace-meta-item">工具调用 <span>1次</span></span>
+              <span class="trace-meta-item">Tokens <span>441</span></span>
+              <span class="trace-meta-item">¥<span>0.01</span></span>
+            </div>
+            <div class="trace-id" style="margin-top:4px">trace_f1b84cd27e5 · 14:22:07</div>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- 右侧 Trace 详情 -->
+      <div class="trace-detail-panel" style="padding:16px;">
+
+        <!-- 基本信息 -->
+        <div class="panel">
+          <div class="panel-head">
+            <div style="display:flex;align-items:center;gap:10px;">
+              <span class="trace-status err" style="font-size:11px;padding:2px 8px;">ERROR</span>
+              <div class="panel-title">XPilot 告警诊断 · trace_a3f9cd8e2b1</div>
+            </div>
+            <div style="display:flex;gap:8px;">
+              <button class="action-btn">复制 ID</button>
+              <button class="action-btn">关联变更</button>
+            </div>
+          </div>
+          <div class="panel-body" style="padding:12px 16px;">
+            <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:10px;">
+              <div><div class="stat-label" style="margin-bottom:4px;">总耗时</div><div style="font-size:16px;font-weight:700;font-family:'DM Mono',monospace;color:var(--red)">5.83s</div></div>
+              <div><div class="stat-label" style="margin-bottom:4px;">LLM 调用</div><div style="font-size:16px;font-weight:700;font-family:'DM Mono',monospace;color:var(--purple)">4次</div></div>
+              <div><div class="stat-label" style="margin-bottom:4px;">工具调用</div><div style="font-size:16px;font-weight:700;font-family:'DM Mono',monospace;color:var(--cyan)">7次</div></div>
+              <div><div class="stat-label" style="margin-bottom:4px;">总 Tokens</div><div style="font-size:16px;font-weight:700;font-family:'DM Mono',monospace;color:var(--text)">3,847</div></div>
+              <div><div class="stat-label" style="margin-bottom:4px;">本次成本</div><div style="font-size:16px;font-weight:700;font-family:'DM Mono',monospace;color:var(--yellow)">¥0.12</div></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 瀑布图 -->
+        <div class="waterfall-panel">
+          <div class="waterfall-head">
+            <div class="waterfall-title">Span 调用链 · 瀑布图</div>
+            <span style="font-size:11px;color:var(--text3)">总耗时 5,830ms</span>
+          </div>
+          <div class="waterfall-body">
+
+            <!-- span 1: root -->
+            <div class="span-row" style="margin-bottom:2px;">
+              <div style="width:0px" class="span-indent"></div>
+              <div class="span-dot" style="background:var(--blue)"></div>
+              <div class="span-name" style="font-weight:600;">XPilot 告警诊断 [root]</div>
+              <span class="span-type agent">Agent</span>
+              <div class="waterfall-track">
+                <div class="waterfall-bar" style="left:0%;width:100%;background:rgba(59,130,246,0.2);border:1px solid rgba(59,130,246,0.4);"></div>
+                <div class="waterfall-label">5830ms</div>
+              </div>
+            </div>
+
+            <!-- span 2: memory -->
+            <div class="span-row" style="margin-bottom:2px;">
+              <div style="width:16px" class="span-indent"></div>
+              <div class="span-dot" style="background:var(--green)"></div>
+              <div class="span-name">Memory 检索</div>
+              <span class="span-type mem">Memory</span>
+              <div class="waterfall-track">
+                <div class="waterfall-bar" style="left:0%;width:5%;background:rgba(16,185,129,0.4);"></div>
+                <div class="waterfall-label">298ms</div>
+              </div>
+            </div>
+
+            <!-- span 3: llm1 -->
+            <div class="span-row" style="margin-bottom:2px;">
+              <div style="width:16px" class="span-indent"></div>
+              <div class="span-dot" style="background:var(--purple)"></div>
+              <div class="span-name">LLM 推理 · 意图分析</div>
+              <span class="span-type llm">LLM</span>
+              <div class="waterfall-track">
+                <div class="waterfall-bar" style="left:5%;width:18%;background:rgba(139,92,246,0.4);"></div>
+                <div class="waterfall-label">1050ms</div>
+              </div>
+            </div>
+
+            <!-- span 4: rag -->
+            <div class="span-row" style="margin-bottom:2px;">
+              <div style="width:16px" class="span-indent"></div>
+              <div class="span-dot" style="background:var(--yellow)"></div>
+              <div class="span-name">RAG 检索 · 历史案例</div>
+              <span class="span-type rag">RAG</span>
+              <div class="waterfall-track">
+                <div class="waterfall-bar" style="left:23%;width:8%;background:rgba(245,158,11,0.4);"></div>
+                <div class="waterfall-label">460ms</div>
+              </div>
+            </div>
+
+            <!-- span 5: tool: xray log -->
+            <div class="span-row" style="margin-bottom:2px;">
+              <div style="width:16px" class="span-indent"></div>
+              <div class="span-dot" style="background:var(--cyan)"></div>
+              <div class="span-name">Tool: xray_log_query</div>
+              <span class="span-type tool">Tool</span>
+              <div class="waterfall-track">
+                <div class="waterfall-bar" style="left:31%;width:22%;background:rgba(6,182,212,0.4);"></div>
+                <div class="waterfall-label">1280ms</div>
+              </div>
+            </div>
+
+            <!-- span 6: tool: metric -->
+            <div class="span-row" style="margin-bottom:2px;">
+              <div style="width:16px" class="span-indent"></div>
+              <div class="span-dot" style="background:var(--cyan)"></div>
+              <div class="span-name">Tool: metric_query</div>
+              <span class="span-type tool">Tool</span>
+              <div class="waterfall-track">
+                <div class="waterfall-bar" style="left:31%;width:12%;background:rgba(6,182,212,0.35);"></div>
+                <div class="waterfall-label">700ms</div>
+              </div>
+            </div>
+
+            <!-- span 7: llm2 -->
+            <div class="span-row" style="margin-bottom:2px;">
+              <div style="width:16px" class="span-indent"></div>
+              <div class="span-dot" style="background:var(--purple)"></div>
+              <div class="span-name">LLM 推理 · 根因分析</div>
+              <span class="span-type llm">LLM</span>
+              <div class="waterfall-track">
+                <div class="waterfall-bar" style="left:53%;width:28%;background:rgba(139,92,246,0.4);"></div>
+                <div class="waterfall-label">1630ms</div>
+              </div>
+            </div>
+
+            <!-- span 8: tool failed -->
+            <div class="span-row" style="margin-bottom:2px;">
+              <div style="width:16px" class="span-indent"></div>
+              <div class="span-dot" style="background:var(--red)"></div>
+              <div class="span-name" style="color:var(--red)">Tool: rca_query ✗ 超时</div>
+              <span class="span-type tool" style="background:var(--red-dim);color:var(--red)">Tool</span>
+              <div class="waterfall-track">
+                <div class="waterfall-bar" style="left:81%;width:14%;background:rgba(239,68,68,0.4);border:1px solid rgba(239,68,68,0.5);"></div>
+                <div class="waterfall-label" style="color:var(--red)">815ms</div>
+              </div>
+            </div>
+
+          </div>
+        </div>
+
+        <!-- 选中 Span 详情 + LLM IO -->
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+          <!-- Span 属性 -->
+          <div class="span-detail-box">
+            <div class="span-detail-title">Span 详情 · Tool: rca_query</div>
+            <div class="kv-list">
+              <div class="kv-row"><div class="kv-key">状态</div><div class="kv-val red">ERROR · Timeout</div></div>
+              <div class="kv-row"><div class="kv-key">耗时</div><div class="kv-val">815ms（超时阈值 800ms）</div></div>
+              <div class="kv-row"><div class="kv-key">重试次数</div><div class="kv-val yellow">2 次</div></div>
+              <div class="kv-row"><div class="kv-key">错误信息</div><div class="kv-val red">upstream timeout: rca-service unreachable</div></div>
+              <div class="kv-row"><div class="kv-key">SLA 等级</div><div class="kv-val yellow">强依赖（影响最终输出）</div></div>
+              <div class="kv-row"><div class="kv-key">关联变更</div><div class="kv-val">rca-service v2.1.0 · 3h 前上线</div></div>
+            </div>
+          </div>
+          <!-- LLM IO -->
+          <div class="llm-io-box">
+            <div class="llm-io-tab">
+              <div class="llm-io-tab-item active">LLM Input</div>
+              <div class="llm-io-tab-item">LLM Output</div>
+              <div style="margin-left:auto;padding:6px 12px;font-size:10px;color:var(--text3)">gpt-4o · 2,341 tokens</div>
+            </div>
+            <div class="llm-io-content">
+              <span class="role">[system]</span><br>
+              <span class="content-text">你是小红书 XPilot 告警诊断专家。基于以下上下文分析告警根因...</span><br><br>
+              <span class="role">[user]</span><br>
+              <span class="content-text">告警：CPU 使用率持续 > 90%，持续时间 15min。<br>
+              相关服务：recommendation-service v3.2.1<br>
+              最近变更：[metric_query 结果] QPS +340%，[log_query 结果] GC 频繁...</span>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════════════
+     PAGE: 评估实验
+════════════════════════════ -->
+<div id="page-eval" class="page">
+  <div class="topbar">
+    <div><span class="topbar-title">评估实验</span><span class="topbar-sub">/ Eval Gate + 持续评估</span></div>
+    <div class="tab-bar">
+      <div class="tab active">实验列表</div>
+      <div class="tab">数据集</div>
+      <div class="tab">评估器</div>
+    </div>
+    <div class="topbar-right">
+      <button class="btn btn-ghost">导入数据集</button>
+      <button class="btn btn-primary">+ 新建评估</button>
+    </div>
+  </div>
+  <div class="content">
+    <div class="eval-layout">
+
+      <!-- 左侧：评估实验列表 + 样本详情 -->
+      <div>
+        <div class="stat-grid" style="grid-template-columns:repeat(3,1fr);margin-bottom:20px;">
+          <div class="stat-card green"><div class="stat-label">本周评估运行</div><div class="stat-value">47</div><div class="stat-trend"><span class="up">↑ 12</span> 较上周</div></div>
+          <div class="stat-card blue"><div class="stat-label">平均通过率</div><div class="stat-value">82<span style="font-size:14px">%</span></div><div class="stat-trend">Eval Gate 通过</div></div>
+          <div class="stat-card red"><div class="stat-label">Eval Gate 拦截</div><div class="stat-value">8</div><div class="stat-trend">本周拦截发布</div></div>
+        </div>
+
+        <div class="section-header"><div class="section-title">近期评估实验</div></div>
+        <div class="eval-run-list">
+
+          <!-- run 1 selected -->
+          <div class="eval-run-card selected">
+            <div class="eval-run-header">
+              <div>
+                <div class="eval-run-name">客服退款助手 · v1.9.0 发布前评估</div>
+                <div style="font-size:11px;color:var(--text3);margin-top:2px">2026-04-09 14:02 · 数据集: refund_qa_v3 (248条) · Eval Gate</div>
+              </div>
+              <div class="eval-run-score-big pass">88.4%</div>
+              <span class="tag green">通过</span>
+            </div>
+            <div class="eval-metrics-row">
+              <div class="eval-metric"><div class="eval-metric-label">任务完成率</div><div class="eval-metric-val" style="color:var(--green)">91.2%</div></div>
+              <div class="eval-metric"><div class="eval-metric-label">幻觉率</div><div class="eval-metric-val" style="color:var(--green)">2.8%</div></div>
+              <div class="eval-metric"><div class="eval-metric-label">格式合规率</div><div class="eval-metric-val" style="color:var(--green)">96.0%</div></div>
+              <div class="eval-metric"><div class="eval-metric-label">vs 基线</div><div class="eval-metric-val" style="color:var(--green)">↑ +3.2%</div></div>
+            </div>
+          </div>
+
+          <!-- run 2 fail -->
+          <div class="eval-run-card">
+            <div class="eval-run-header">
+              <div>
+                <div class="eval-run-name">BI 数据分析 Agent · v3.1.0 发布前评估</div>
+                <div style="font-size:11px;color:var(--text3);margin-top:2px">2026-04-09 13:40 · 数据集: bi_qa_prod (310条) · Eval Gate</div>
+              </div>
+              <div class="eval-run-score-big fail">61.3%</div>
+              <span class="tag red">拦截</span>
+            </div>
+            <div class="eval-metrics-row">
+              <div class="eval-metric"><div class="eval-metric-label">任务完成率</div><div class="eval-metric-val" style="color:var(--red)">63.5%</div></div>
+              <div class="eval-metric"><div class="eval-metric-label">幻觉率</div><div class="eval-metric-val" style="color:var(--red)">18.2%</div></div>
+              <div class="eval-metric"><div class="eval-metric-label">格式合规率</div><div class="eval-metric-val" style="color:var(--yellow)">88.1%</div></div>
+              <div class="eval-metric"><div class="eval-metric-label">vs 基线</div><div class="eval-metric-val" style="color:var(--red)">↓ -29.8%</div></div>
+            </div>
+          </div>
+
+          <!-- run 3 online -->
+          <div class="eval-run-card">
+            <div class="eval-run-header">
+              <div>
+                <div class="eval-run-name">XPilot 告警诊断 · 在线持续评估</div>
+                <div style="font-size:11px;color:var(--text3);margin-top:2px">实时 · 生产流量 10% 采样 · LLM-as-Judge</div>
+              </div>
+              <div class="eval-run-score-big pass">91.0%</div>
+              <span class="tag blue">在线</span>
+            </div>
+            <div class="eval-metrics-row">
+              <div class="eval-metric"><div class="eval-metric-label">今日采样</div><div class="eval-metric-val">847条</div></div>
+              <div class="eval-metric"><div class="eval-metric-label">任务完成率</div><div class="eval-metric-val" style="color:var(--green)">91.0%</div></div>
+              <div class="eval-metric"><div class="eval-metric-label">SLO 状态</div><div class="eval-metric-val" style="color:var(--green)">✓ 达成</div></div>
+              <div class="eval-metric"><div class="eval-metric-label">趋势</div><div class="eval-metric-val" style="color:var(--green)">↑ 稳定</div></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 样本详情 -->
+        <div class="section-header" style="margin-top:8px;"><div class="section-title">失败样本详情 · v1.9.0 客服退款助手</div><span style="font-size:11px;color:var(--text3)">22 / 248 条失败</span></div>
+        <div class="sample-list">
+          <div class="sample-item">
+            <div class="sample-header">
+              <span class="sample-idx">#012</span>
+              <span class="sample-verdict fail">FAIL</span>
+              <span style="font-size:10px;color:var(--text3)">LLM-as-Judge</span>
+              <span class="sample-score-num" style="color:var(--red)">0.31</span>
+            </div>
+            <div class="sample-q">用户输入：我的订单 #XH2024031200445 已超7天，商家未发货，要申请退款</div>
+            <div class="sample-a-row">
+              <div class="sample-a"><strong>模型输出</strong>好的，我来帮您申请退款。请问您希望退款到哪个账户？</div>
+              <div class="sample-a"><strong>期望输出</strong>我帮您查询订单状态...（应先调用 order_query 工具核实）</div>
+            </div>
+            <div class="sample-reason">⚠ 判定原因：未调用订单查询工具直接处理退款，违反核心规则「先核查后同意」。可能与 Prompt v1.9.0 的逻辑修改有关。</div>
+          </div>
+
+          <div class="sample-item">
+            <div class="sample-header">
+              <span class="sample-idx">#031</span>
+              <span class="sample-verdict partial">PARTIAL</span>
+              <span style="font-size:10px;color:var(--text3)">LLM-as-Judge</span>
+              <span class="sample-score-num" style="color:var(--yellow)">0.58</span>
+            </div>
+            <div class="sample-q">用户输入：我买了两件衣服，一件想退，一件想换码，怎么操作？</div>
+            <div class="sample-a-row">
+              <div class="sample-a"><strong>模型输出</strong>退款和换货需要分开处理。退款可以直接申请，换货需要联系商家...</div>
+              <div class="sample-a"><strong>期望输出</strong>同上，但应明确给出两个操作入口的具体步骤和时间节点</div>
+            </div>
+            <div class="sample-reason">⚠ 判定原因：回答方向正确但缺少操作步骤细节，完整性不足。</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 右侧：Eval Gate 面板 -->
+      <div class="eval-detail-panel">
+
+        <!-- Gate 结果 -->
+        <div class="gate-panel">
+          <div class="gate-banner pass">
+            <div class="gate-icon">✅</div>
+            <div>
+              <div class="gate-title">Eval Gate 通过</div>
+              <div class="gate-desc">客服退款助手 v1.9.0 · 允许发布</div>
+            </div>
+            <div class="gate-score pass">88.4%</div>
+          </div>
+          <div class="gate-body">
+            <div class="gate-metrics">
+              <div class="gate-metric-card">
+                <div class="gate-metric-name">任务完成率</div>
+                <div class="gate-metric-row">
+                  <div class="gate-metric-val" style="color:var(--green)">91.2%</div>
+                  <div class="gate-metric-threshold">阈值 ≥ 85%</div>
+                </div>
+                <div class="gate-track"><div class="gate-fill" style="width:91%;background:var(--green)"></div></div>
+              </div>
+              <div class="gate-metric-card">
+                <div class="gate-metric-name">幻觉率</div>
+                <div class="gate-metric-row">
+                  <div class="gate-metric-val" style="color:var(--green)">2.8%</div>
+                  <div class="gate-metric-threshold">阈值 ≤ 5%</div>
+                </div>
+                <div class="gate-track"><div class="gate-fill" style="width:28%;background:var(--green)"></div></div>
+              </div>
+              <div class="gate-metric-card">
+                <div class="gate-metric-name">格式合规率</div>
+                <div class="gate-metric-row">
+                  <div class="gate-metric-val" style="color:var(--green)">96.0%</div>
+                  <div class="gate-metric-threshold">阈值 ≥ 90%</div>
+                </div>
+                <div class="gate-track"><div class="gate-fill" style="width:96%;background:var(--green)"></div></div>
+              </div>
+              <div class="gate-metric-card">
+                <div class="gate-metric-name">vs 历史基线</div>
+                <div class="gate-metric-row">
+                  <div class="gate-metric-val" style="color:var(--green)">+3.2%</div>
+                  <div class="gate-metric-threshold">需 ≥ -5%</div>
+                </div>
+                <div class="gate-track"><div class="gate-fill" style="width:70%;background:var(--green)"></div></div>
+              </div>
+            </div>
+            <div style="font-size:11px;color:var(--text3);margin-bottom:8px;">评估运行详情</div>
+            <div class="kv-list">
+              <div class="kv-row"><div class="kv-key">数据集</div><div class="kv-val">refund_qa_v3 · 248 条</div></div>
+              <div class="kv-row"><div class="kv-key">评估器</div><div class="kv-val">GPT-4o Judge · 自定义规则 ×3</div></div>
+              <div class="kv-row"><div class="kv-key">耗时</div><div class="kv-val">3m 47s</div></div>
+              <div class="kv-row"><div class="kv-key">失败样本</div><div class="kv-val yellow">22 条（已归档）</div></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 拦截案例 -->
+        <div class="panel">
+          <div class="panel-head">
+            <div class="panel-title" style="color:var(--red)">⛔ Eval Gate 拦截 · BI v3.1.0</div>
+          </div>
+          <div class="panel-body" style="padding:14px;">
+            <div style="background:var(--red-dim);border:1px solid rgba(239,68,68,0.2);border-radius:8px;padding:10px 12px;margin-bottom:12px;">
+              <div style="font-size:12px;font-weight:600;color:var(--red);margin-bottom:4px;">发布被拦截，需整改后重新提交</div>
+              <div style="font-size:11px;color:var(--text3);">任务完成率 63.5% &lt; 阈值 85%；幻觉率 18.2% 远超 5% 上限</div>
+            </div>
+            <div class="kv-list">
+              <div class="kv-row"><div class="kv-key">主要问题</div><div class="kv-val red">幻觉率异常高（+13.2%）</div></div>
+              <div class="kv-row"><div class="kv-key">怀疑根因</div><div class="kv-val">Prompt 修改导致 RAG 召回逻辑失效</div></div>
+              <div class="kv-row"><div class="kv-key">建议操作</div><div class="kv-val">回退 Prompt，或修复 RAG 召回策略</div></div>
+            </div>
+            <div style="display:flex;gap:8px;margin-top:12px;">
+              <button class="action-btn" style="flex:1;justify-content:center;">查看失败样本</button>
+              <button class="action-btn danger" style="flex:1;justify-content:center;">通知研发</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- 评估器配置 -->
+        <div class="panel">
+          <div class="panel-head"><div class="panel-title">评估器配置</div><button class="action-btn success" style="font-size:10px;">+ 添加</button></div>
+          <div class="panel-body" style="padding:12px 16px;">
+            <div style="display:flex;flex-direction:column;gap:8px;">
+              <div style="display:flex;align-items:center;gap:8px;padding:8px 10px;background:var(--bg3);border-radius:8px;">
+                <span class="tag purple">LLM</span>
+                <span style="font-size:12px;flex:1;">GPT-4o Judge · 任务完成率</span>
+                <span style="font-size:11px;color:var(--green)">已启用</span>
+              </div>
+              <div style="display:flex;align-items:center;gap:8px;padding:8px 10px;background:var(--bg3);border-radius:8px;">
+                <span class="tag cyan">规则</span>
+                <span style="font-size:12px;flex:1;">幻觉检测 · 关键词过滤</span>
+                <span style="font-size:11px;color:var(--green)">已启用</span>
+              </div>
+              <div style="display:flex;align-items:center;gap:8px;padding:8px 10px;background:var(--bg3);border-radius:8px;">
+                <span class="tag yellow">规则</span>
+                <span style="font-size:12px;flex:1;">格式合规率 · 结构校验</span>
+                <span style="font-size:11px;color:var(--green)">已启用</span>
+              </div>
+              <div style="display:flex;align-items:center;gap:8px;padding:8px 10px;background:var(--bg3);border-radius:8px;">
+                <span class="tag blue">人工</span>
+                <span style="font-size:12px;flex:1;">人工标注队列 · 抽样 5%</span>
+                <span style="font-size:11px;color:var(--text3)">暂停</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════════════
+     PAGE: 成本分析
+════════════════════════════ -->
+<div id="page-cost" class="page">
+  <div class="topbar">
+    <div><span class="topbar-title">成本分析</span><span class="topbar-sub">/ Token 消耗 · 成本归因 · 熔断管理</span></div>
+    <div class="tab-bar">
+      <div class="tab active">总览</div>
+      <div class="tab">Agent 明细</div>
+      <div class="tab">异常分析</div>
+    </div>
+    <div class="topbar-right">
+      <button class="btn btn-ghost">时间范围: 最近 7 天</button>
+      <button class="btn btn-primary">设置预算告警</button>
+    </div>
+  </div>
+  <div class="content">
+    <div class="stat-grid">
+      <div class="stat-card blue"><div class="stat-label">本月 Token 消耗</div><div class="stat-value">482<span style="font-size:14px">M</span></div><div class="stat-trend"><span class="up">↑ 23%</span> 较上月</div></div>      <div class="stat-card yellow"><div class="stat-label">本月推算费用</div><div class="stat-value">¥<span style="font-size:20px">2,841</span></div><div class="stat-trend"><span class="down">↑ 18%</span> 较上月</div></div>
+      <div class="stat-card red"><div class="stat-label">成本异常告警</div><div class="stat-value">2</div><div class="stat-trend">今日新增</div></div>
+      <div class="stat-card cyan"><div class="stat-label">预算使用率</div><div class="stat-value">71<span style="font-size:14px">%</span></div><div class="stat-trend">月度预算 ¥4,000</div></div>
+    </div>
+
+    <div class="cost-layout">
+      <!-- 左侧：趋势图 + 明细表 -->
+      <div>
+        <div class="cost-bar-chart">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
+            <div class="cost-bar-chart-title">每日 Token 消耗趋势（近 7 天）</div>
+            <div style="display:flex;gap:12px;font-size:11px;">
+              <span style="display:flex;align-items:center;gap:4px;"><span style="width:8px;height:8px;background:var(--blue);border-radius:2px;display:inline-block;"></span>XPilot</span>
+              <span style="display:flex;align-items:center;gap:4px;"><span style="width:8px;height:8px;background:var(--purple);border-radius:2px;display:inline-block;"></span>客服退款</span>
+              <span style="display:flex;align-items:center;gap:4px;"><span style="width:8px;height:8px;background:var(--cyan);border-radius:2px;display:inline-block;"></span>内容审核</span>
+              <span style="display:flex;align-items:center;gap:4px;"><span style="width:8px;height:8px;background:var(--yellow);border-radius:2px;display:inline-block;"></span>BI 分析</span>
+            </div>
+          </div>
+          <div class="cost-bars">
+            <!-- day1 -->
+            <div class="cost-bar-group">
+              <div style="width:100%;display:flex;flex-direction:column;gap:1px;height:90%;">
+                <div style="flex:2;background:var(--blue);opacity:0.7;border-radius:3px 3px 0 0;"></div>
+                <div style="flex:3;background:var(--purple);opacity:0.7;"></div>
+                <div style="flex:1.5;background:var(--cyan);opacity:0.7;"></div>
+                <div style="flex:1;background:var(--yellow);opacity:0.7;border-radius:0 0 3px 3px;"></div>
+              </div>
+              <div class="cost-bar-val">¥341</div>
+              <div class="cost-bar-day">04-03</div>
+            </div>
+            <!-- day2 -->
+            <div class="cost-bar-group">
+              <div style="width:100%;display:flex;flex-direction:column;gap:1px;height:75%;">
+                <div style="flex:2;background:var(--blue);opacity:0.7;border-radius:3px 3px 0 0;"></div>
+                <div style="flex:2.5;background:var(--purple);opacity:0.7;"></div>
+                <div style="flex:1.5;background:var(--cyan);opacity:0.7;"></div>
+                <div style="flex:1;background:var(--yellow);opacity:0.7;border-radius:0 0 3px 3px;"></div>
+              </div>
+              <div class="cost-bar-val">¥298</div>
+              <div class="cost-bar-day">04-04</div>
+            </div>
+            <!-- day3 -->
+            <div class="cost-bar-group">
+              <div style="width:100%;display:flex;flex-direction:column;gap:1px;height:80%;">
+                <div style="flex:2.2;background:var(--blue);opacity:0.7;border-radius:3px 3px 0 0;"></div>
+                <div style="flex:2.8;background:var(--purple);opacity:0.7;"></div>
+                <div style="flex:1.5;background:var(--cyan);opacity:0.7;"></div>
+                <div style="flex:1.2;background:var(--yellow);opacity:0.7;border-radius:0 0 3px 3px;"></div>
+              </div>
+              <div class="cost-bar-val">¥312</div>
+              <div class="cost-bar-day">04-05</div>
+            </div>
+            <!-- day4 -->
+            <div class="cost-bar-group">
+              <div style="width:100%;display:flex;flex-direction:column;gap:1px;height:85%;">
+                <div style="flex:2.5;background:var(--blue);opacity:0.75;border-radius:3px 3px 0 0;"></div>
+                <div style="flex:3;background:var(--purple);opacity:0.75;"></div>
+                <div style="flex:1.8;background:var(--cyan);opacity:0.75;"></div>
+                <div style="flex:1;background:var(--yellow);opacity:0.75;border-radius:0 0 3px 3px;"></div>
+              </div>
+              <div class="cost-bar-val">¥334</div>
+              <div class="cost-bar-day">04-06</div>
+            </div>
+            <!-- day5 -->
+            <div class="cost-bar-group">
+              <div style="width:100%;display:flex;flex-direction:column;gap:1px;height:70%;">
+                <div style="flex:2;background:var(--blue);opacity:0.7;border-radius:3px 3px 0 0;"></div>
+                <div style="flex:2.2;background:var(--purple);opacity:0.7;"></div>
+                <div style="flex:1.5;background:var(--cyan);opacity:0.7;"></div>
+                <div style="flex:0.8;background:var(--yellow);opacity:0.7;border-radius:0 0 3px 3px;"></div>
+              </div>
+              <div class="cost-bar-val">¥271</div>
+              <div class="cost-bar-day">04-07</div>
+            </div>
+            <!-- day6 -->
+            <div class="cost-bar-group">
+              <div style="width:100%;display:flex;flex-direction:column;gap:1px;height:88%;">
+                <div style="flex:2.5;background:var(--blue);opacity:0.8;border-radius:3px 3px 0 0;"></div>
+                <div style="flex:3.2;background:var(--purple);opacity:0.8;"></div>
+                <div style="flex:1.8;background:var(--cyan);opacity:0.8;"></div>
+                <div style="flex:1.2;background:var(--yellow);opacity:0.8;border-radius:0 0 3px 3px;"></div>
+              </div>
+              <div class="cost-bar-val">¥347</div>
+              <div class="cost-bar-day">04-08</div>
+            </div>
+            <!-- day7 highlighted -->
+            <div class="cost-bar-group">
+              <div style="width:100%;display:flex;flex-direction:column;gap:1px;height:100%;">
+                <div style="flex:2.5;background:var(--blue);border-radius:3px 3px 0 0;"></div>
+                <div style="flex:3.5;background:var(--purple);"></div>
+                <div style="flex:2;background:var(--cyan);"></div>
+                <div style="flex:1.2;background:var(--yellow);border-radius:0 0 3px 3px;"></div>
+              </div>
+              <div class="cost-bar-val" style="color:var(--text)">¥<b>388</b></div>
+              <div class="cost-bar-day" style="color:var(--blue)">今天</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Agent 成本明细表 -->
+        <div class="section-header"><div class="section-title">Agent 成本明细</div></div>
+        <div class="cost-table">
+          <div class="cost-table-head"><div>Agent</div><div>今日消耗</div><div>本月累计</div><div>Token/次</div><div>预算状态</div></div>
+          <div class="cost-table-row">
+            <div style="display:flex;align-items:center;gap:8px;"><div class="agent-avatar ops" style="width:24px;height:24px;font-size:11px;">🤖</div><div><div style="font-size:12px;font-weight:500;">XPilot 告警诊断</div><div style="font-size:10px;color:var(--text3)">v2.4.1</div></div></div>
+            <div style="font-family:'DM Mono',monospace;font-size:12px;">¥ 142</div>
+            <div style="font-family:'DM Mono',monospace;font-size:12px;">¥ 1,024</div>
+            <div style="font-family:'DM Mono',monospace;font-size:12px;color:var(--green)">1,820</div>
+            <div><span class="tag green">正常</span></div>
+          </div>
+          <div class="cost-table-row" style="background:rgba(245,158,11,0.03)">
+            <div style="display:flex;align-items:center;gap:8px;"><div class="agent-avatar warn" style="width:24px;height:24px;font-size:11px;">⚠️</div><div><div style="font-size:12px;font-weight:500;">客服退款助手</div><div style="font-size:10px;color:var(--text3)">v1.8.3</div></div></div>
+            <div style="font-family:'DM Mono',monospace;font-size:12px;color:var(--yellow)">¥ 318</div>
+            <div style="font-family:'DM Mono',monospace;font-size:12px;">¥ 892</div>
+            <div style="font-family:'DM Mono',monospace;font-size:12px;color:var(--red)">5,214 ↑</div>
+            <div><span class="tag yellow">超基线 140%</span></div>
+          </div>
+          <div class="cost-table-row">
+            <div style="display:flex;align-items:center;gap:8px;"><div class="agent-avatar ops" style="width:24px;height:24px;font-size:11px;">📝</div><div><div style="font-size:12px;font-weight:500;">内容审核 Agent</div><div style="font-size:10px;color:var(--text3)">v1.2.0</div></div></div>
+            <div style="font-family:'DM Mono',monospace;font-size:12px;">¥ 221</div>
+            <div style="font-family:'DM Mono',monospace;font-size:12px;">¥ 634</div>
+            <div style="font-family:'DM Mono',monospace;font-size:12px;color:var(--green)">892</div>
+            <div><span class="tag green">正常</span></div>
+          </div>
+          <div class="cost-table-row">
+            <div style="display:flex;align-items:center;gap:8px;"><div class="agent-avatar err" style="width:24px;height:24px;font-size:11px;">🔴</div><div><div style="font-size:12px;font-weight:500;">BI 数据分析 Agent</div><div style="font-size:10px;color:var(--text3)">v3.1.0</div></div></div>
+            <div style="font-family:'DM Mono',monospace;font-size:12px;">¥ 89</div>
+            <div style="font-family:'DM Mono',monospace;font-size:12px;">¥ 291</div>
+            <div style="font-family:'DM Mono',monospace;font-size:12px;color:var(--text2)">2,103</div>
+            <div><span class="tag red">异常（评估拦截）</span></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 右侧：Donut + 预算告警 + 熔断配置 -->
+      <div class="cost-breakdown-panel">
+        <!-- 分布饼图 -->
+        <div class="panel">
+          <div class="panel-head"><div class="panel-title">成本分布 · 今日</div></div>
+          <div class="panel-body">
+            <div class="donut-wrap">
+              <div class="donut">
+                <svg width="130" height="130" viewBox="0 0 130 130">
+                  <circle cx="65" cy="65" r="50" fill="none" stroke="#e8edf5" stroke-width="18"/>
+                  <!-- XPilot 142/770 = 18.4% → 57.8deg → stroke-dasharray -->
+                  <circle cx="65" cy="65" r="50" fill="none" stroke="#3b82f6" stroke-width="18"
+                    stroke-dasharray="57.8 256.2" stroke-dashoffset="0"/>
+                  <!-- 客服退款 318/770 = 41.3% → 129.7deg -->
+                  <circle cx="65" cy="65" r="50" fill="none" stroke="#8b5cf6" stroke-width="18"
+                    stroke-dasharray="130 184" stroke-dashoffset="-58"/>
+                  <!-- 内容审核 221/770 = 28.7% → 90.2deg -->
+                  <circle cx="65" cy="65" r="50" fill="none" stroke="#06b6d4" stroke-width="18"
+                    stroke-dasharray="90 224" stroke-dashoffset="-188"/>
+                  <!-- BI 89/770 = 11.6% → 36.4deg -->
+                  <circle cx="65" cy="65" r="50" fill="none" stroke="#f59e0b" stroke-width="18"
+                    stroke-dasharray="36 278" stroke-dashoffset="-278"/>
+                </svg>
+                <div class="donut-center">
+                  <div class="donut-total">¥770</div>
+                  <div class="donut-label">今日合计</div>
+                </div>
+              </div>
+            </div>
+            <div class="legend-list">
+              <div class="legend-item"><div class="legend-dot" style="background:var(--blue)"></div><div class="legend-name">XPilot 告警诊断</div><div class="legend-val">¥142</div><div class="legend-pct">18%</div></div>
+              <div class="legend-item"><div class="legend-dot" style="background:var(--purple)"></div><div class="legend-name">客服退款助手</div><div class="legend-val" style="color:var(--yellow)">¥318</div><div class="legend-pct">41%</div></div>
+              <div class="legend-item"><div class="legend-dot" style="background:var(--cyan)"></div><div class="legend-name">内容审核 Agent</div><div class="legend-val">¥221</div><div class="legend-pct">29%</div></div>
+              <div class="legend-item"><div class="legend-dot" style="background:var(--yellow)"></div><div class="legend-name">BI 数据分析</div><div class="legend-val">¥89</div><div class="legend-pct">12%</div></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 预算告警 -->
+        <div class="budget-alert">
+          <div class="budget-alert-title">⚠ 月度预算预警</div>
+          <div class="budget-alert-desc">按当前趋势，本月预计消耗 ¥3,920，将于 4月25日 触达 ¥4,000 预算上限。建议检查客服退款助手的 context 长度。</div>
+          <div class="budget-track"><div class="budget-fill" style="width:71%;background:var(--yellow)"></div></div>
+          <div style="font-size:10px;color:var(--text3);margin-top:4px;">¥2,841 / ¥4,000 · 71% 已使用</div>
+        </div>
+
+        <!-- 熔断配置 -->
+        <div class="panel">
+          <div class="panel-head"><div class="panel-title">成本熔断配置</div><button class="action-btn" style="font-size:10px;">编辑</button></div>
+          <div class="panel-body" style="padding:12px 16px;">
+            <div style="display:flex;flex-direction:column;gap:8px;">
+              <div style="padding:10px;background:var(--bg3);border-radius:8px;">
+                <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;">
+                  <span style="font-size:12px;font-weight:600;">单次请求上限</span>
+                  <span style="font-size:12px;font-family:'DM Mono',monospace;color:var(--cyan)">50K tokens</span>
+                </div>
+                <div style="font-size:11px;color:var(--text3);">超出则截断 context，保留最近 N 轮对话</div>
+              </div>
+              <div style="padding:10px;background:var(--bg3);border-radius:8px;">
+                <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;">
+                  <span style="font-size:12px;font-weight:600;">单 Agent 日限</span>
+                  <span style="font-size:12px;font-family:'DM Mono',monospace;color:var(--cyan)">¥500 / 天</span>
+                </div>
+                <div style="font-size:11px;color:var(--text3);">超出触发告警 + 降级模型（gpt-4o → gpt-3.5）</div>
+              </div>
+              <div style="padding:10px;background:var(--bg3);border-radius:8px;border:1px solid rgba(239,68,68,0.2);">
+                <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;">
+                  <span style="font-size:12px;font-weight:600;">月度硬熔断</span>
+                  <span style="font-size:12px;font-family:'DM Mono',monospace;color:var(--red)">¥4,000 / 月</span>
+                </div>
+                <div style="font-size:11px;color:var(--text3);">自动限流至 10% 流量，强制人工审批恢复</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+</div>
+
+</main>
+</div>
+
+<script>
+function switchPage(pageId, el) {
+  // 切换页面
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.getElementById('page-' + pageId).classList.add('active');
+  // 切换 nav 高亮（兼容点到子元素 span 的情况）
+  document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'));
+  if (el) {
+    var navItem = el.closest ? el.closest('.nav-item') : el;
+    if (navItem) navItem.classList.add('active');
+  }
+}
+</script>
+</body>
+</html>

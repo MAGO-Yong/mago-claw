@@ -47,43 +47,43 @@
     },
     "calendar": {
       "version": "1.0.8",
-      "installedAt": 1775560935562
+      "installedAt": 1775747724539
     },
     "summarize": {
       "version": "1.0.0",
-      "installedAt": 1775560945807
+      "installedAt": 1775747725042
     },
     "docx": {
       "version": "1.0.0",
-      "installedAt": 1775560946430
+      "installedAt": 1775747725566
     },
     "pptx": {
       "version": "1.0.0",
-      "installedAt": 1775560946970
+      "installedAt": 1775747726100
     },
     "xlsx": {
       "version": "1.0.0",
-      "installedAt": 1775560947538
+      "installedAt": 1775747726656
     },
     "hi-docs": {
       "version": "1.0.5",
-      "installedAt": 1775658271479
+      "installedAt": 1775747727130
     },
     "hi-im": {
-      "version": "1.0.3",
-      "installedAt": 1775560948519
+      "version": "1.0.4",
+      "installedAt": 1775747727619
     },
     "hi-search": {
-      "version": "1.0.5",
-      "installedAt": 1775560949020
+      "version": "1.0.6",
+      "installedAt": 1775747728144
     },
     "hi-todos": {
-      "version": "1.0.4",
-      "installedAt": 1775560949488
+      "version": "1.0.5",
+      "installedAt": 1775747728613
     },
     "hi-calendar": {
       "version": "1.0.4",
-      "installedAt": 1775654480800
+      "installedAt": 1775747729098
     },
     "ones-assistant": {
       "version": "1.0.4",
@@ -112,6 +112,10 @@
     "hi-assistant-profile": {
       "version": "1.0.1",
       "installedAt": 1775659471466
+    },
+    "mysql_cluster_analyze": {
+      "version": "1.0.3",
+      "installedAt": 1775702631587
     }
   }
 }

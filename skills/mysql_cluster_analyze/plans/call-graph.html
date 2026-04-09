@@ -1,0 +1,527 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>mysql-cluster-analyze 调用图</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: "PingFang SC", "Helvetica Neue", Arial, sans-serif; background: #0f1117; color: #e2e8f0; min-height: 100vh; }
+
+  .header { background: linear-gradient(135deg, #1a1f2e 0%, #0d1117 100%); border-bottom: 1px solid #2d3748; padding: 20px 32px; display: flex; align-items: center; gap: 16px; }
+  .header h1 { font-size: 20px; font-weight: 600; color: #63b3ed; }
+  .header .subtitle { font-size: 13px; color: #718096; }
+  .badge { background: #2d3748; border: 1px solid #4a5568; border-radius: 4px; padding: 2px 8px; font-size: 11px; color: #90cdf4; }
+
+  .container { display: grid; grid-template-columns: 280px 1fr; gap: 0; height: calc(100vh - 65px); }
+
+  /* 左侧图例 */
+  .sidebar { background: #141821; border-right: 1px solid #2d3748; padding: 20px 16px; overflow-y: auto; }
+  .sidebar h2 { font-size: 12px; font-weight: 600; color: #718096; text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 12px; }
+  .legend-item { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; font-size: 12px; color: #a0aec0; }
+  .legend-dot { width: 12px; height: 12px; border-radius: 3px; flex-shrink: 0; }
+  .legend-section { margin-bottom: 24px; }
+
+  .path-list { margin-top: 8px; }
+  .path-item { display: flex; align-items: flex-start; gap: 8px; margin-bottom: 10px; padding: 8px; background: #1a2035; border-radius: 6px; cursor: pointer; transition: background 0.2s; }
+  .path-item:hover { background: #243050; }
+  .path-badge { min-width: 48px; height: 20px; border-radius: 4px; font-size: 10px; font-weight: 700; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+  .path-desc { font-size: 11px; color: #718096; line-height: 1.4; }
+  .path-name { font-size: 12px; color: #cbd5e0; font-weight: 500; }
+
+  /* 主图区 */
+  .main { overflow: auto; padding: 24px; }
+  .graph-title { font-size: 13px; color: #718096; margin-bottom: 20px; text-align: center; }
+
+  /* 节点样式 */
+  .flow { display: flex; flex-direction: column; align-items: center; gap: 0; min-width: 900px; }
+
+  .node { border-radius: 8px; padding: 10px 16px; font-size: 12px; font-weight: 500; text-align: center; position: relative; white-space: nowrap; border: 1px solid transparent; }
+  .node-user    { background: #2d3748; border-color: #4a5568; color: #e2e8f0; width: 180px; }
+  .node-phase0  { background: #1a365d; border-color: #2b6cb0; color: #90cdf4; width: 260px; }
+  .node-probe   { background: #132330; border-color: #2c5282; color: #76c7f0; width: 200px; font-size: 11px; }
+  .node-atomic  { background: #1a2e1a; border-color: #276327; color: #9ae6b4; width: 200px; font-size: 11px; }
+  .node-path    { border-radius: 8px; padding: 10px 18px; font-size: 12px; font-weight: 600; text-align: center; width: 150px; }
+  .node-api     { background: #2d1b4e; border-color: #553c9a; color: #c084fc; width: 190px; font-size: 11px; }
+  .node-output  { background: #2a1f00; border-color: #7b5e00; color: #f6c90e; width: 180px; font-size: 11px; }
+  .node-common  { background: #2a1a1a; border-color: #7c3030; color: #fc8181; width: 190px; font-size: 11px; }
+  .node-decision{ background: #1c2a3a; border-color: #2b6cb0; color: #90cdf4; border-radius: 50px; padding: 8px 20px; font-size: 11px; }
+
+  /* 箭头/连线 */
+  .arrow { display: flex; flex-direction: column; align-items: center; }
+  .arrow-line { width: 2px; background: #2d3748; }
+  .arrow-line.phase0 { background: #2b6cb0; }
+  .arrow-line.path-a { background: #276327; }
+  .arrow-line.path-b { background: #7b4c00; }
+  .arrow-line.path-c { background: #553c9a; }
+  .arrow-line.path-d { background: #7c3030; }
+  .arrow-line.path-e { background: #7c1a1a; }
+  .arrow-line.path-f { background: #1a4a4a; }
+  .arrow-tip { width: 0; height: 0; border-left: 5px solid transparent; border-right: 5px solid transparent; border-top: 7px solid #2d3748; }
+  .arrow-tip.phase0 { border-top-color: #2b6cb0; }
+
+  .arrow-label { font-size: 10px; color: #718096; background: #141821; padding: 2px 6px; border-radius: 4px; border: 1px solid #2d3748; white-space: nowrap; }
+
+  /* 布局容器 */
+  .row { display: flex; align-items: flex-start; gap: 24px; justify-content: center; }
+  .col { display: flex; flex-direction: column; align-items: center; }
+  .v-arrow { display: flex; flex-direction: column; align-items: center; }
+  .v-line { width: 2px; height: 20px; }
+  .v-tip { width: 0; height: 0; border-left: 4px solid transparent; border-right: 4px solid transparent; }
+
+  /* 并发探测区域 */
+  .probe-block { background: #0e1827; border: 1px dashed #2b6cb0; border-radius: 10px; padding: 16px; margin: 0; }
+  .probe-header { font-size: 11px; color: #63b3ed; margin-bottom: 12px; text-align: center; font-weight: 600; }
+  .probe-row { display: flex; gap: 16px; justify-content: center; }
+  .probe-col { display: flex; flex-direction: column; align-items: center; gap: 6px; }
+
+  /* 路径分叉 */
+  .paths-block { background: #0e1a0e; border: 1px dashed #276327; border-radius: 10px; padding: 20px 16px; }
+  .paths-header { font-size: 11px; color: #9ae6b4; margin-bottom: 16px; text-align: center; font-weight: 600; }
+  .paths-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 12px; }
+  .path-col { display: flex; flex-direction: column; gap: 8px; align-items: center; }
+
+  /* 原子脚本块 */
+  .atomic-block { background: #0d180d; border: 1px dashed #276327; border-radius: 8px; padding: 12px; }
+  .atomic-header { font-size: 10px; color: #68d391; margin-bottom: 8px; }
+  .atomic-list { display: flex; flex-direction: column; gap: 5px; }
+  .atomic-tag { background: #1a2e1a; border: 1px solid #276327; border-radius: 4px; padding: 3px 8px; font-size: 10px; color: #9ae6b4; white-space: nowrap; }
+  .atomic-tag.used { border-color: #48bb78; color: #68d391; }
+
+  /* API 块 */
+  .api-block { background: #170d2e; border: 1px dashed #553c9a; border-radius: 8px; padding: 12px; }
+  .api-header { font-size: 10px; color: #b794f4; margin-bottom: 8px; }
+  .api-list { display: flex; flex-direction: column; gap: 4px; }
+  .api-tag { background: #2d1b4e; border: 1px solid #553c9a; border-radius: 4px; padding: 3px 8px; font-size: 10px; color: #c084fc; white-space: nowrap; }
+
+  /* 输出块 */
+  .output-block { background: #1a1500; border: 1px dashed #7b5e00; border-radius: 8px; padding: 12px; display: flex; gap: 10px; }
+  .output-tag { background: #2a1f00; border: 1px solid #7b5e00; border-radius: 4px; padding: 4px 10px; font-size: 11px; color: #f6c90e; white-space: nowrap; }
+
+  /* 路径颜色 */
+  .path-A { background: #1c4422; border: 1px solid #276327; color: #9ae6b4; }
+  .path-B { background: #3d2400; border: 1px solid #7b4c00; color: #fbb038; }
+  .path-B2 { background: #3d2a00; border: 1px solid #9a5c00; color: #f6ad55; }
+  .path-C1 { background: #2d1e5c; border: 1px solid #553c9a; color: #c084fc; }
+  .path-C2 { background: #3c1e5c; border: 1px solid #6b4cb0; color: #d0a8ff; }
+  .path-D { background: #3c1010; border: 1px solid #7c3030; color: #fc8181; }
+  .path-E { background: #4a0d0d; border: 1px solid #9b2c2c; color: #feb2b2; }
+  .path-F { background: #0d2e2e; border: 1px solid #1a4a4a; color: #81e6d9; }
+  .path-G { background: #2e1a0d; border: 1px solid #4a3000; color: #fbd38d; }
+
+  /* 连线 SVG */
+  .connector { display: flex; justify-content: center; margin: 4px 0; }
+  .h-line { height: 2px; background: #2d3748; flex: 1; align-self: center; }
+
+  /* 矩阵表 */
+  .matrix-block { background: #0d1117; border: 1px solid #2d3748; border-radius: 8px; padding: 12px; margin-top: 8px; max-width: 700px; }
+  .matrix-title { font-size: 11px; color: #718096; margin-bottom: 8px; }
+  .matrix-row { display: grid; grid-template-columns: 1fr 1fr 1fr 120px; gap: 4px; margin-bottom: 4px; font-size: 10px; }
+  .matrix-row.header { color: #63b3ed; font-weight: 600; border-bottom: 1px solid #2d3748; padding-bottom: 4px; }
+  .matrix-row div { color: #718096; }
+  .matrix-row .result { color: #90cdf4; font-weight: 500; }
+
+  /* 阶段步骤 */
+  .step-block { background: #0d1421; border: 1px solid #1a365d; border-radius: 6px; padding: 8px 12px; min-width: 160px; }
+  .step-num { font-size: 10px; color: #63b3ed; font-weight: 700; }
+  .step-name { font-size: 11px; color: #90cdf4; margin-top: 2px; }
+  .step-subs { margin-top: 6px; display: flex; flex-direction: column; gap: 3px; }
+  .step-sub { font-size: 10px; color: #718096; padding-left: 8px; border-left: 2px solid #2b6cb0; }
+
+  /* 公共模块 */
+  .common-block { background: #1a1010; border: 1px solid #553030; border-radius: 8px; padding: 12px; display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; }
+  .common-tag { background: #2a1a1a; border: 1px solid #7c3030; border-radius: 4px; padding: 4px 10px; font-size: 11px; color: #fc8181; white-space: nowrap; }
+
+  .section-gap { height: 16px; }
+  .section-gap-sm { height: 8px; }
+  .divider { border-top: 1px solid #2d3748; margin: 8px 0; }
+
+  .tooltip-wrap { position: relative; display: inline-block; }
+  .tooltip-wrap:hover .tooltip { display: block; }
+  .tooltip { display: none; position: absolute; bottom: 120%; left: 50%; transform: translateX(-50%); background: #2d3748; color: #e2e8f0; font-size: 10px; padding: 4px 8px; border-radius: 4px; white-space: nowrap; z-index: 10; pointer-events: none; }
+
+  .note { font-size: 10px; color: #4a5568; text-align: center; }
+  .concurrent-label { font-size: 10px; color: #63b3ed; border: 1px solid #2b6cb0; border-radius: 4px; padding: 1px 6px; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div>
+    <h1>mysql-cluster-analyze · 调用图</h1>
+    <div class="subtitle">MySQL/MyHub 集群 AI 诊断 Skill — Layer 1 & Layer 2 完整调用链路</div>
+  </div>
+  <span class="badge">v2026-04-03</span>
+</div>
+
+<div class="container">
+
+  <!-- 左侧图例 -->
+  <div class="sidebar">
+    <div class="legend-section">
+      <h2>节点类型</h2>
+      <div class="legend-item"><div class="legend-dot" style="background:#2d3748"></div>用户输入</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#1a365d"></div>Phase 0 分诊</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#1a2e1a"></div>Layer 1 原子脚本</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#2d1b4e"></div>DMS API 接口</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#2a1a1a"></div>公共模块</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#2a1f00"></div>输出产物</div>
+    </div>
+
+    <div class="legend-section">
+      <h2>诊断路径</h2>
+      <div class="path-list">
+        <div class="path-item">
+          <div class="path-badge path-A">路径 A</div>
+          <div><div class="path-name">慢查询诊断</div><div class="path-desc">CK+原机慢日志双路采集，explain+索引分析</div></div>
+        </div>
+        <div class="path-item">
+          <div class="path-badge path-B">路径 B</div>
+          <div><div class="path-name">CPU 高诊断</div><div class="path-desc">活跃连接+慢日志+PromQL时序</div></div>
+        </div>
+        <div class="path-item">
+          <div class="path-badge path-B2">路径 B2</div>
+          <div><div class="path-name">连接堆积诊断</div><div class="path-desc">连接时序+锁等待+会话分析</div></div>
+        </div>
+        <div class="path-item">
+          <div class="path-badge path-C1">路径 C1</div>
+          <div><div class="path-name">主从延迟诊断</div><div class="path-desc">slave status+慢日志+连接时序</div></div>
+        </div>
+        <div class="path-item">
+          <div class="path-badge path-C2">路径 C2</div>
+          <div><div class="path-name">复制中断诊断</div><div class="path-desc">IO/SQL Thread 状态+Error Log</div></div>
+        </div>
+        <div class="path-item">
+          <div class="path-badge path-D">路径 D</div>
+          <div><div class="path-name">磁盘满诊断</div><div class="path-desc">磁盘使用+表统计+清理建议</div></div>
+        </div>
+        <div class="path-item">
+          <div class="path-badge path-E">路径 E</div>
+          <div><div class="path-name">Crash 诊断</div><div class="path-desc">Error Log+节点状态+回放分析</div></div>
+        </div>
+        <div class="path-item">
+          <div class="path-badge path-F">路径 F</div>
+          <div><div class="path-name">机器带宽诊断</div><div class="path-desc">网络流量+连接器+DTS流量</div></div>
+        </div>
+        <div class="path-item">
+          <div class="path-badge path-G">路径 G</div>
+          <div><div class="path-name">IOWait 诊断</div><div class="path-desc">磁盘IO+慢日志+表统计</div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 主图区 -->
+  <div class="main">
+    <div class="flow">
+
+      <!-- 用户输入 -->
+      <div class="node node-user">👤 用户诊断请求</div>
+      <div style="display:flex;flex-direction:column;align-items:center">
+        <div style="width:2px;height:12px;background:#4a5568"></div>
+        <div style="width:0;height:0;border-left:5px solid transparent;border-right:5px solid transparent;border-top:7px solid #4a5568"></div>
+      </div>
+
+      <!-- Token 检查 -->
+      <div class="node node-decision">🔑 DMS_CLAW_TOKEN 检查</div>
+      <div style="display:flex;flex-direction:column;align-items:center">
+        <div style="width:2px;height:8px;background:#2b6cb0"></div>
+        <div class="arrow-label">Token OK</div>
+        <div style="width:2px;height:8px;background:#2b6cb0"></div>
+        <div style="width:0;height:0;border-left:5px solid transparent;border-right:5px solid transparent;border-top:7px solid #2b6cb0"></div>
+      </div>
+
+      <!-- 路由分叉 -->
+      <div class="row" style="align-items:flex-start;gap:40px">
+
+        <!-- Layer 1 -->
+        <div class="col">
+          <div class="node" style="background:#0d2238;border:1px solid #2b6cb0;color:#63b3ed;width:190px;font-weight:600">⚡ Layer 1 · 原子能力</div>
+          <div style="width:2px;height:12px;background:#2b6cb0"></div>
+          <div style="background:#0e1827;border:1px dashed #2b6cb0;border-radius:8px;padding:12px;width:190px">
+            <div style="font-size:10px;color:#63b3ed;margin-bottom:8px">单接口直接调用</div>
+            <div style="display:flex;flex-direction:column;gap:5px">
+              <div class="atomic-tag">get_db_connectors.py</div>
+              <div class="atomic-tag">explain_sql.py</div>
+              <div class="atomic-tag">get_table_stats.py</div>
+              <div class="atomic-tag">get_index_stats.py</div>
+              <div class="atomic-tag">get_slow_log_list.py</div>
+              <div class="atomic-tag">get_raw_slow_log.py</div>
+              <div class="atomic-tag">get_active_sessions.py</div>
+              <div class="atomic-tag">get_slave_status.py</div>
+              <div class="atomic-tag">get_disk_usage.py</div>
+              <div class="atomic-tag">get_error_log.py</div>
+              <div class="atomic-tag">get_network_traffic.py</div>
+              <div class="atomic-tag">get_system_lock_status.py</div>
+              <div class="atomic-tag">get_connection_timeline.py</div>
+              <div class="atomic-tag">query_xray_metrics.py</div>
+            </div>
+          </div>
+          <div style="width:2px;height:10px;background:#2b6cb0"></div>
+          <div style="font-size:10px;color:#4a5568;text-align:center">原始数据输出<br>无副作用，可独立调用</div>
+        </div>
+
+        <!-- 中间箭头 -->
+        <div style="display:flex;flex-direction:column;align-items:center;padding-top:28px;gap:4px">
+          <div style="font-size:10px;color:#4a5568">或</div>
+        </div>
+
+        <!-- Layer 2 -->
+        <div class="col" style="flex:1;min-width:560px">
+          <div class="node" style="background:#1c2a0a;border:1px solid #48bb78;color:#9ae6b4;width:100%;font-weight:600;max-width:600px">🩺 Layer 2 · 诊断编排（AI 主导）</div>
+
+          <div style="width:2px;height:12px;background:#48bb78"></div>
+
+          <!-- Step 0: Precheck -->
+          <div style="background:#0d1a0d;border:1px solid #276327;border-radius:6px;padding:8px 16px;width:100%;max-width:600px">
+            <div style="font-size:10px;color:#68d391;font-weight:700">Step 0 · Precheck</div>
+            <div style="font-size:11px;color:#a0aec0;margin-top:2px">precheck.py → 验证 Token + DMS 服务可达性</div>
+          </div>
+
+          <div style="width:2px;height:10px;background:#276327"></div>
+
+          <!-- Phase 0 分诊大块 -->
+          <div class="probe-block" style="width:100%;max-width:600px">
+            <div class="probe-header">⚙️ Phase 0 · 问题类型分诊（所有路径统一入口，不可跳过）</div>
+
+            <!-- P0-1 -->
+            <div style="background:#0d1827;border:1px solid #2b6cb0;border-radius:6px;padding:8px 12px;margin-bottom:10px">
+              <div style="font-size:10px;color:#63b3ed;font-weight:700">P0-1 · 提取基本信息</div>
+              <div style="font-size:10px;color:#718096;margin-top:3px">集群名（必须）、告警时间（必须）、告警节点 vm_name（可选）、告警类型（可选）</div>
+            </div>
+
+            <!-- P0-2 三路并发探测 -->
+            <div style="font-size:10px;color:#63b3ed;text-align:center;margin-bottom:8px;font-weight:600">P0-2 · 三路并发探测（同时发起，约 10~15s）</div>
+            <div class="probe-row">
+
+              <!-- 探测 A -->
+              <div class="probe-col">
+                <div style="background:#0a1f10;border:1px solid #276327;border-radius:6px;padding:8px 10px;width:170px">
+                  <div style="font-size:10px;color:#68d391;font-weight:700;margin-bottom:4px">探测 A · CK 慢查询</div>
+                  <div class="atomic-tag used" style="margin-bottom:3px">get_slow_log_list.py</div>
+                  <div style="font-size:9px;color:#718096">--phase0 模式<br>输出 _phase0_summary<br>level / noise_dominated<br>dts_dominated</div>
+                </div>
+              </div>
+
+              <!-- 探测 B -->
+              <div class="probe-col">
+                <div style="background:#0d1020;border:1px solid #2b6cb0;border-radius:6px;padding:8px 10px;width:170px">
+                  <div style="font-size:10px;color:#63b3ed;font-weight:700;margin-bottom:4px">探测 B · 节点/延迟</div>
+                  <div class="atomic-tag" style="background:#0d1020;border-color:#2b6cb0;color:#90cdf4;margin-bottom:3px">get_db_connectors.py</div>
+                  <div class="atomic-tag" style="background:#0d1020;border-color:#2b6cb0;color:#90cdf4;margin-bottom:3px">get_slave_status.py</div>
+                  <div style="font-size:9px;color:#718096">节点可达性 + sqlDelay<br>Slave_SQL/IO_Running</div>
+                </div>
+              </div>
+
+              <!-- 探测 C -->
+              <div class="probe-col">
+                <div style="background:#1a0d20;border:1px solid #553c9a;border-radius:6px;padding:8px 10px;width:170px">
+                  <div style="font-size:10px;color:#b794f4;font-weight:700;margin-bottom:4px">探测 C · 活跃连接</div>
+                  <div class="atomic-tag" style="background:#1a0d20;border-color:#553c9a;color:#c084fc;margin-bottom:3px">get_active_sessions.py</div>
+                  <div style="font-size:9px;color:#718096">双路：CK历史快照<br>+ 实时采集<br>total_active / lock_waiters<br>relay_waiters</div>
+                </div>
+              </div>
+
+            </div>
+
+            <!-- 推理矩阵 -->
+            <div style="margin-top:12px;background:#0d1117;border:1px solid #2d3748;border-radius:6px;padding:10px">
+              <div style="font-size:10px;color:#718096;font-weight:600;margin-bottom:6px">推理矩阵 → 量化信号推理问题类型</div>
+              <div style="display:grid;grid-template-columns:1fr 1fr 1fr 110px;gap:3px;font-size:9px">
+                <div style="color:#63b3ed;font-weight:600;padding-bottom:3px;border-bottom:1px solid #2d3748">探测 A（慢查询量级）</div>
+                <div style="color:#63b3ed;font-weight:600;padding-bottom:3px;border-bottom:1px solid #2d3748">探测 B（节点/延迟）</div>
+                <div style="color:#63b3ed;font-weight:600;padding-bottom:3px;border-bottom:1px solid #2d3748">探测 C（连接）</div>
+                <div style="color:#63b3ed;font-weight:600;padding-bottom:3px;border-bottom:1px solid #2d3748">推理结论</div>
+
+                <div style="color:#718096;padding:2px 0">none/light</div><div style="color:#718096;padding:2px 0">不可达</div><div style="color:#718096;padding:2px 0">任意</div><div style="color:#feb2b2;padding:2px 0;font-weight:500">→ 路径 E (Crash)</div>
+                <div style="color:#718096;padding:2px 0">severe/moderate，business>0</div><div style="color:#718096;padding:2px 0">正常，delay&lt;30s</div><div style="color:#718096;padding:2px 0">relay=0</div><div style="color:#9ae6b4;padding:2px 0;font-weight:500">→ 路径 A (慢SQL)</div>
+                <div style="color:#718096;padding:2px 0">moderate/severe</div><div style="color:#718096;padding:2px 0">正常，delay&gt;30s</div><div style="color:#718096;padding:2px 0">relay>0</div><div style="color:#c084fc;padding:2px 0;font-weight:500">→ 路径 C1 (延迟)</div>
+                <div style="color:#718096;padding:2px 0">none/light</div><div style="color:#718096;padding:2px 0">delay&lt;30s</div><div style="color:#718096;padding:2px 0">active>100,cpu&lt;70%</div><div style="color:#f6ad55;padding:2px 0;font-weight:500">→ 路径 B2 (堆积)</div>
+                <div style="color:#718096;padding:2px 0">none/light</div><div style="color:#718096;padding:2px 0">delay&lt;30s</div><div style="color:#718096;padding:2px 0">active>100或long>5</div><div style="color:#fbb038;padding:2px 0;font-weight:500">→ 路径 B (CPU高)</div>
+                <div style="color:#718096;padding:2px 0">none/light</div><div style="color:#718096;padding:2px 0">SQL/IO=No</div><div style="color:#718096;padding:2px 0">任意</div><div style="color:#d0a8ff;padding:2px 0;font-weight:500">→ 路径 C2 (中断)</div>
+                <div style="color:#718096;padding:2px 0">任意(磁盘告警)</div><div style="color:#718096;padding:2px 0">正常</div><div style="color:#718096;padding:2px 0">任意</div><div style="color:#fc8181;padding:2px 0;font-weight:500">→ 路径 D (磁盘)</div>
+              </div>
+            </div>
+
+            <!-- P0-3 置信度 -->
+            <div style="margin-top:10px;background:#0d1520;border:1px solid #2b6cb0;border-radius:6px;padding:8px 12px">
+              <div style="font-size:10px;color:#63b3ed;font-weight:700">P0-3 · 置信度评估</div>
+              <div style="display:flex;gap:12px;margin-top:6px">
+                <div style="flex:1;background:#0a1f10;border:1px solid #276327;border-radius:4px;padding:6px">
+                  <div style="font-size:9px;color:#68d391;font-weight:600">HIGH → 直接执行</div>
+                  <div style="font-size:9px;color:#718096;margin-top:2px">矩阵唯一命中 + 三路数据完整 + 无动态回溯信号</div>
+                </div>
+                <div style="flex:1;background:#200d0d;border:1px solid #7c3030;border-radius:4px;padding:6px">
+                  <div style="font-size:9px;color:#fc8181;font-weight:600">LOW → 向用户确认</div>
+                  <div style="font-size:9px;color:#718096;margin-top:2px">矩阵多行命中 / 探测失败 / 数据矛盾</div>
+                </div>
+              </div>
+            </div>
+          </div><!-- end probe-block -->
+
+          <div style="width:2px;height:12px;background:#276327"></div>
+
+          <!-- 路径分叉 -->
+          <div class="paths-block" style="width:100%;max-width:600px">
+            <div class="paths-header">📌 按推理结论进入对应诊断路径</div>
+            <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px">
+
+              <!-- 路径 A -->
+              <div style="background:#0d180d;border:1px solid #276327;border-radius:6px;padding:10px">
+                <div class="path-badge path-A" style="margin-bottom:6px;width:100%;border-radius:4px">路径 A · 慢查询</div>
+                <div style="font-size:9px;color:#718096">Step 1: get_db_connectors</div>
+                <div style="font-size:9px;color:#718096">Step 2a: get_slow_log_list</div>
+                <div style="font-size:9px;color:#718096">Step 2b: get_raw_slow_log</div>
+                <div style="font-size:9px;color:#718096">Step 2c: 识别 TOP3 业务SQL</div>
+                <div style="font-size:9px;color:#718096">Step 2d: get_error_log</div>
+                <div style="font-size:9px;color:#718096">Step 2e: get_active_sessions</div>
+                <div style="font-size:9px;color:#718096">Step 3: explain_sql (TOP3)</div>
+                <div style="font-size:9px;color:#718096">Step 4: get_table_stats</div>
+                <div style="font-size:9px;color:#718096">Step 5: get_index_stats</div>
+                <div style="font-size:9px;color:#718096">Step 6: 生成 HTML 报告</div>
+              </div>
+
+              <!-- 路径 B & B2 -->
+              <div style="display:flex;flex-direction:column;gap:8px">
+                <div style="background:#1a0e00;border:1px solid #7b4c00;border-radius:6px;padding:8px">
+                  <div class="path-badge path-B" style="margin-bottom:4px;width:100%;border-radius:4px">路径 B · CPU高</div>
+                  <div style="font-size:9px;color:#718096">get_active_sessions</div>
+                  <div style="font-size:9px;color:#718096">get_slow_log_list</div>
+                  <div style="font-size:9px;color:#718096">query_xray_metrics (CPU时序)</div>
+                  <div style="font-size:9px;color:#718096">get_raw_slow_log</div>
+                </div>
+                <div style="background:#1a1000;border:1px solid #9a5c00;border-radius:6px;padding:8px">
+                  <div class="path-badge path-B2" style="margin-bottom:4px;width:100%;border-radius:4px">路径 B2 · 连接堆积</div>
+                  <div style="font-size:9px;color:#718096">get_connection_timeline</div>
+                  <div style="font-size:9px;color:#718096">get_system_lock_status</div>
+                  <div style="font-size:9px;color:#718096">get_active_sessions</div>
+                  <div style="font-size:9px;color:#718096">get_db_connectors</div>
+                </div>
+              </div>
+
+              <!-- 路径 C1 & C2 -->
+              <div style="display:flex;flex-direction:column;gap:8px">
+                <div style="background:#120a28;border:1px solid #553c9a;border-radius:6px;padding:8px">
+                  <div class="path-badge path-C1" style="margin-bottom:4px;width:100%;border-radius:4px">路径 C1 · 主从延迟</div>
+                  <div style="font-size:9px;color:#718096">get_slave_status</div>
+                  <div style="font-size:9px;color:#718096">get_slow_log_list</div>
+                  <div style="font-size:9px;color:#718096">get_connection_timeline</div>
+                  <div style="font-size:9px;color:#718096">query_xray_metrics</div>
+                </div>
+                <div style="background:#1a0a28;border:1px solid #6b4cb0;border-radius:6px;padding:8px">
+                  <div class="path-badge path-C2" style="margin-bottom:4px;width:100%;border-radius:4px">路径 C2 · 复制中断</div>
+                  <div style="font-size:9px;color:#718096">get_slave_status</div>
+                  <div style="font-size:9px;color:#718096">get_error_log</div>
+                  <div style="font-size:9px;color:#718096">get_active_sessions</div>
+                </div>
+              </div>
+
+              <!-- 路径 D -->
+              <div style="background:#1a0505;border:1px solid #7c3030;border-radius:6px;padding:8px">
+                <div class="path-badge path-D" style="margin-bottom:4px;width:100%;border-radius:4px">路径 D · 磁盘满</div>
+                <div style="font-size:9px;color:#718096">get_disk_usage</div>
+                <div style="font-size:9px;color:#718096">get_table_stats (大表扫描)</div>
+                <div style="font-size:9px;color:#718096">query_xray_metrics (磁盘时序)</div>
+              </div>
+
+              <!-- 路径 E -->
+              <div style="background:#200505;border:1px solid #9b2c2c;border-radius:6px;padding:8px">
+                <div class="path-badge path-E" style="margin-bottom:4px;width:100%;border-radius:4px">路径 E · Crash</div>
+                <div style="font-size:9px;color:#718096">get_error_log (mysqld.log)</div>
+                <div style="font-size:9px;color:#718096">get_db_connectors (可达性)</div>
+                <div style="font-size:9px;color:#718096">get_slave_status</div>
+                <div style="font-size:9px;color:#718096">query_xray_metrics (崩溃前)</div>
+              </div>
+
+              <!-- 路径 F & G -->
+              <div style="display:flex;flex-direction:column;gap:8px">
+                <div style="background:#031515;border:1px solid #1a4a4a;border-radius:6px;padding:8px">
+                  <div class="path-badge path-F" style="margin-bottom:4px;width:100%;border-radius:4px">路径 F · 带宽异常</div>
+                  <div style="font-size:9px;color:#718096">get_network_traffic</div>
+                  <div style="font-size:9px;color:#718096">get_db_connectors</div>
+                  <div style="font-size:9px;color:#718096">query_xray_metrics</div>
+                </div>
+                <div style="background:#15100a;border:1px solid #4a3000;border-radius:6px;padding:8px">
+                  <div class="path-badge path-G" style="margin-bottom:4px;width:100%;border-radius:4px">路径 G · IOWait</div>
+                  <div style="font-size:9px;color:#718096">query_xray_metrics (IO)</div>
+                  <div style="font-size:9px;color:#718096">get_slow_log_list</div>
+                  <div style="font-size:9px;color:#718096">get_table_stats</div>
+                </div>
+              </div>
+
+            </div>
+          </div><!-- end paths-block -->
+
+          <div style="width:2px;height:10px;background:#276327"></div>
+
+          <!-- DMS API 层 -->
+          <div style="background:#170d2e;border:1px dashed #553c9a;border-radius:8px;padding:12px;width:100%;max-width:600px">
+            <div style="font-size:10px;color:#b794f4;font-weight:600;margin-bottom:8px">🔌 DMS API 层（所有原子脚本最终调用）</div>
+            <div style="display:flex;flex-wrap:wrap;gap:6px">
+              <div class="api-tag">/open-claw/auth/generate-session</div>
+              <div class="api-tag">/open-claw/auth/get-token</div>
+              <div class="api-tag">/open-claw/meta-data/mysql/get-db-connectors</div>
+              <div class="api-tag">/open-claw/meta-data/mysql/explain-sql</div>
+              <div class="api-tag">/open-claw/meta-data/mysql/get-table-stats</div>
+              <div class="api-tag">/open-claw/meta-data/mysql/get-index-stats</div>
+              <div class="api-tag">/open-claw/meta-data/mysql/get-raw-slow-log</div>
+              <div class="api-tag">/open-claw/meta-data/mysql/get-error-log</div>
+              <div class="api-tag">/open-claw/grafana/fetch-data-by-pql</div>
+              <div class="api-tag">/v1/mysql/slow-query/slow-log-list</div>
+              <div class="api-tag">/v1/mysql/session-manage/get-his-process-count-list</div>
+              <div class="api-tag">/v1/mysql/session-manage/get-his-process-group-and-detail-list</div>
+              <div class="api-tag">/v1/mysql/session-manage/get-cur-process-list</div>
+              <div class="api-tag">/v1/mysql/cluster/search</div>
+              <div class="api-tag">/v1/mysql/get-db-list</div>
+            </div>
+          </div>
+
+          <div style="width:2px;height:10px;background:#276327"></div>
+
+          <!-- 公共模块 -->
+          <div style="background:#1a0a0a;border:1px dashed #7c3030;border-radius:8px;padding:10px;width:100%;max-width:600px">
+            <div style="font-size:10px;color:#fc8181;font-weight:600;margin-bottom:8px">🔧 公共模块 (scripts/common/)</div>
+            <div style="display:flex;flex-wrap:wrap;gap:6px">
+              <div class="common-tag">precheck.py · 环境检查</div>
+              <div class="common-tag">report_generator.py · HTML渲染</div>
+              <div class="common-tag">report_data_models.py · 数据结构</div>
+              <div class="common-tag">generate_report.py · 报告入口</div>
+              <div class="common-tag">data_retention_check.py · 数据保留期检查</div>
+              <div class="common-tag">dms_upload.py · CDN上传</div>
+              <div class="common-tag">notify.py · Webhook推送</div>
+            </div>
+          </div>
+
+          <div style="width:2px;height:10px;background:#7b5e00"></div>
+
+          <!-- 输出 -->
+          <div style="background:#1a1500;border:1px dashed #7b5e00;border-radius:8px;padding:10px;width:100%;max-width:600px">
+            <div style="font-size:10px;color:#f6c90e;font-weight:600;margin-bottom:8px">📤 输出产物</div>
+            <div style="display:flex;flex-wrap:wrap;gap:8px">
+              <div class="output-tag">HTML 报告（8章节规范）</div>
+              <div class="output-tag">CDN URL（DMS上传）</div>
+              <div class="output-tag">Webhook 通知</div>
+              <div class="output-tag">raw/*.json（中间数据）</div>
+              <div class="output-tag">报告类型：COMPLETE / MANUAL / LIMITED</div>
+            </div>
+          </div>
+
+        </div><!-- end Layer 2 col -->
+      </div><!-- end row -->
+
+    </div><!-- end flow -->
+
+    <!-- 底部说明 -->
+    <div style="margin-top:24px;max-width:960px;text-align:center">
+      <div style="font-size:11px;color:#4a5568;border-top:1px solid #2d3748;padding-top:12px">
+        Layer 1 · 原子能力：单接口调用，无副作用，可独立使用 &nbsp;|&nbsp;
+        Layer 2 · 诊断编排：AI 主导，强制 Phase 0 分诊，输出 HTML 报告 + Webhook 通知 &nbsp;|&nbsp;
+        版本：2026-04-03
+      </div>
+    </div>
+
+  </div><!-- end main -->
+</div><!-- end container -->
+
+</body>
+</html>
