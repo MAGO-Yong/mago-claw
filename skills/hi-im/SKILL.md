@@ -1,7 +1,7 @@
 ---
 name: hi-im
 version: 1.0.0
-description: 'hi 官方即时通讯 Skill，支持上传文件到 Hi IM 服务，返回 fileId 和 fileUrl'
+description: hi 官方即时通讯 Skill。当用户需要上传文件到 Hi、发送图片/文档到群聊、或通过 Hi 即时通讯服务分享任何本地文件时，必须使用此 skill
 metadata: { 'openclaw': { 'requires': { 'bins': ["bun"] } } }
 ---
 
@@ -19,10 +19,10 @@ metadata: { 'openclaw': { 'requires': { 'bins': ["bun"] } } }
 
 ```bash
 # 列出所有 im 子命令
-bunx @xhs/hi-workspace-cli@0.2.10 im --help
+bunx @xhs/hi-workspace-cli@0.2.11 im --help
 
 # 查看具体命令的参数（含输出格式）
-bunx @xhs/hi-workspace-cli@0.2.10 im:<method> --help
+bunx @xhs/hi-workspace-cli@0.2.11 im:<method> --help
 ```
 
 ## 文件上传

@@ -1,7 +1,7 @@
 ---
 name: hi-todos
 version: 1.0.0
-description: 'hi 官方待办 Skill。支持查询待办列表、待办详情；支持为用户创建、关闭、完成待办事项'
+description: hi 官方待办任务 Skill。当用户需要创建待办/任务/Todo、查看任务列表、完成任务、关闭任务或查询任务详情时，必须使用此 skill。可以覆盖以下场景：建个 todo、看看我的任务、修改 deadline
 metadata: { 'openclaw': { 'requires': { 'bins': ["bun"] } } }
 ---
 
@@ -19,10 +19,10 @@ metadata: { 'openclaw': { 'requires': { 'bins': ["bun"] } } }
 
 ```bash
 # 列出所有 todos 子命令
-bunx @xhs/hi-workspace-cli@0.2.10 todos --help
+bunx @xhs/hi-workspace-cli@0.2.11 todos --help
 
 # 查看具体命令的参数（含输出格式）
-bunx @xhs/hi-workspace-cli@0.2.10 todos:<method> --help
+bunx @xhs/hi-workspace-cli@0.2.11 todos:<method> --help
 ```
 
 以下是 `--help` 中没有的约束和指引。

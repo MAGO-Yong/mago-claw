@@ -1,7 +1,7 @@
 ---
 name: hi-search
 version: 1.0.0
-description: 'hi 官方搜索 Skill，支持查询员工自己的基础信息；支持通过邮箱、员工姓名、薯名查询员工基础信息；支持根据业务方向、项目名、功能点等自然语言线索语义化查找负责人、部门、账号；支持通过关键词搜索 hi 的群聊；支持通过关键词搜索 REDoc 文档和 REDoc 空间，支持通过关键词搜索 hi 的应用。'
+description: hi 官方信息搜索 Skill。当用户需要查找员工/同事联系方式、通过业务方向/项目名/功能点找人找部门、搜索 Hi 群聊、搜索 REDoc 文档或文档空间、搜索 Hi 应用时，必须使用此 skill。适用于按邮箱、姓名、薯名精确查询，以及通过自然语言语义化搜索负责人、部门和账号的场景。也覆盖以下场景：搜索 REDoc 空间下的文档列表、查找负责某个后台系统/接口/项目的人
 metadata: { 'openclaw': { 'requires': { 'bins': ["bun"] } } }
 ---
 
@@ -10,7 +10,7 @@ metadata: { 'openclaw': { 'requires': { 'bins': ["bun"] } } }
 技能核心能力通过 CLI 提供，在执行 CLI 命令时，**禁止**猜测命令用法：
 
 ```bash
-bunx @xhs/hi-workspace-cli@0.2.10 search --help              # 所有命令概览
+bunx @xhs/hi-workspace-cli@0.2.11 search --help              # 所有命令概览
 ```
 
 ## 技能使用方式

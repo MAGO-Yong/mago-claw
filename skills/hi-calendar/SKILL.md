@@ -1,7 +1,7 @@
 ---
 name: hi-calendar
 version: 1.0.0
-description: 'hi 官方日历 Skill，支持查询会议室区域与预约情况、自动定位空闲会议室、创建/编辑普通日程和循环日程（按周重复）、取消日程、创建/编辑/取消专注时间，支持关联腾讯会议、添加参会人、文档自动赋权'
+description: hi 官方日历与会议室 Skill。当用户需要获取、管理日程（包括循环日程），管理专注时间，预约会议室、查询空闲会议室、取消会议、添加参会人、关联腾讯会议，或跨时区定会等会议操作时，必须使用此 skill。覆盖以下场景：查看日程安排、安排周会、和其他时区的同事约会议
 metadata: { 'openclaw': { 'requires': { 'bins': ["bun"] } } }
 ---
 
@@ -10,10 +10,10 @@ metadata: { 'openclaw': { 'requires': { 'bins': ["bun"] } } }
 先读 CLI help，再用下面这些补充规则。
 
 ```bash
-bunx @xhs/hi-workspace-cli@0.2.10 calendar --help
+bunx @xhs/hi-workspace-cli@0.2.11 calendar --help
 
 # 查看具体命令的参数、示例和输出格式
-bunx @xhs/hi-workspace-cli@0.2.10 calendar:<method> --help
+bunx @xhs/hi-workspace-cli@0.2.11 calendar:<method> --help
 ```
 
 以下是 `--help` 中没有的约束和指引：
