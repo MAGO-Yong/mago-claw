@@ -30,8 +30,8 @@
       "installedAt": 1774624790876
     },
     "pretty-mermaid": {
-      "version": "1.0.0",
-      "installedAt": 1774624791387
+      "version": "1.1.0",
+      "installedAt": 1776055906007
     },
     "agent-browser": {
       "version": "1.0.0",
@@ -86,12 +86,12 @@
       "installedAt": 1775997863762
     },
     "ones-assistant": {
-      "version": "1.0.4",
-      "installedAt": 1775544418226
+      "version": "1.0.6",
+      "installedAt": 1776055905475
     },
     "rec-new-note-diagnosis": {
-      "version": "1.0.8",
-      "installedAt": 1775554851917
+      "version": "1.1.9",
+      "installedAt": 1776055906571
     },
     "xray_changevent_query": {
       "version": "1.0.2",
@@ -110,12 +110,12 @@
       "installedAt": 1775555141578
     },
     "hi-assistant-profile": {
-      "version": "1.0.1",
-      "installedAt": 1775659471466
+      "version": "1.0.2",
+      "installedAt": 1776055904316
     },
     "mysql_cluster_analyze": {
-      "version": "1.0.3",
-      "installedAt": 1775702631587
+      "version": "1.0.4",
+      "installedAt": 1776055904928
     }
   }
 }

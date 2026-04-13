@@ -9,7 +9,8 @@
 | `xray_changevent_query` | 查询 XRay 变更事件（Apollo配置+实验变更） | `openclaw skill install xray_changevent_query` | ✅ |
 | `xray_metrics_query` | 查询 XRay 监控指标 | `openclaw skill install xray_metrics_query` | ✅ |
 | `index-switch-check` | 检查索引切换状态 | `openclaw skill install index-switch-check` | ✅ |
-| `data-fe-common-sso` | 获取登录态 | `openclaw skill install data-fe-common-sso` | ✅ |
+
+> **SSO 登录态**：直接读取 `/home/node/.token/sso_token.json`（OpenClaw 自动维护），无需安装 `data-fe-common-sso`。
 
 ## 依赖检测机制
 
@@ -47,8 +48,7 @@ python3 scripts/check_dependencies.py
 ├── rec-new-note-diagnosis/          # 本 skill
 ├── xray_changevent_query/           # 依赖：变更查询（XRay平台）
 ├── xray_metrics_query/              # 依赖：指标查询
-├── index-switch-check/              # 依赖：索引检查
-└── data-fe-common-sso/              # 依赖：登录态
+└── index-switch-check/              # 依赖：索引检查
 ```
 
 ## Skill 调用方式
@@ -91,12 +91,26 @@ python3 ~/.openclaw/workspace/skills/index-switch-check/scripts/check_switch.py 
     dssm_inst_v1_oo_1day --deep
 ```
 
-### 调用 data-fe-common-sso
+### 获取 SSO 登录态
 
-```bash
-# 获取登录态
-~/.openclaw/workspace/skills/data-fe-common-sso/script/run-sso.sh \
-    "/home/node/.openclaw/workspace"
+SSO 登录态由 OpenClaw 自动维护，无需调用外部脚本：
+
+```python
+import json
+
+SSO_TOKEN_FILE = "/home/node/.token/sso_token.json"
+
+def read_sso_token(env: str = "prod") -> str:
+    key = f"common-internal-access-token-{env}"
+    try:
+        with open(SSO_TOKEN_FILE) as f:
+            data = json.load(f)
+        token = data.get(key, "").strip()
+        if token:
+            return f"{key}={token}"
+    except Exception:
+        pass
+    return ""
 ```
 
 ## 配置变更检测流程
@@ -112,11 +126,9 @@ Step 0: 检测依赖项
     ├─ 未安装 → 提示安装命令，退出
     └─ 已安装 → 继续
     ↓
-检查 data-fe-common-sso 是否安装
-    ├─ 未安装 → 提示安装命令，退出
-    └─ 已安装 → 继续
-    ↓
-获取 SSO Token
+读取 /home/node/.token/sso_token.json 获取登录态
+    ├─ 读取失败 → 提示检查 token 文件，继续（部分功能受限）
+    └─ 读取成功 → 继续
     ↓
 调用 xray_changevent_query 查询变更
     ├─ Apollo 配置变更（arkfeedx 相关）
@@ -194,8 +206,9 @@ python3 skills/xray_changevent_query/scripts/query.py \
 openclaw skill install xray_changevent_query
 openclaw skill install xray_metrics_query
 openclaw skill install index-switch-check
-openclaw skill install data-fe-common-sso
 ```
+
+> SSO 登录态由 OpenClaw 自动维护（`/home/node/.token/sso_token.json`），无需单独安装。
 
 2. 验证依赖：
 ```bash

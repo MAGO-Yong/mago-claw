@@ -11,7 +11,7 @@
       "type": "change_detection",
       "action": "调用change-event-locator skill查询变更",
       "script": "~/.openclaw/workspace/skills/change-event-locator/scripts/query_changes.py",
-      "dependencies": ["change-event-locator", "data-fe-common-sso"],
+      "dependencies": ["change-event-locator"],
       "output_template": "检测到 {high_risk_count} 项高风险变更",
       "branches": [
         {

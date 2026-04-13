@@ -205,6 +205,81 @@
 
 ---
 
+## 测试项目（泳道）类
+
+### list_person_projects_by_owner
+
+查询当前用户拥有（owner）的测试项目列表。内部拉取全量项目后按 owner 字段（用户 um）过滤。
+
+- **参数**: 无（用户身份由框架自动注入）
+- **返回**: 测试项目列表，每项含：
+  - `name`: 项目名（格式 `sit.<lane>` 或 `staging.<lane>`）
+  - `alias`: 项目别名（人类可读）
+  - `lane`: 泳道名
+  - `env`: 部署环境（sit / staging）
+  - `owner`: 项目 owner（um）
+  - `owner_email`: owner 邮箱
+  - `members`: 成员列表
+  - `created_at`: 创建时间
+  - `expire_days`: 过期天数
+  - `project_link`: ones 平台页面链接，格式 `https://ones.devops.xiaohongshu.com/project/{name}`
+
+---
+
+### describe_person_project
+
+根据测试项目名称查询项目完整详情。
+
+| 参数 | 类型 | 必填 | 说明 |
+|------|------|------|------|
+| project_name | string | 是 | 测试项目名称，如 `sit.my-feature-123`，可从 `list_person_projects_by_owner` 的 `name` 字段获取 |
+
+- **返回**: 项目详情，含：
+  - 基础信息（同 list 返回字段）
+  - `project_ingresses`: Ingress 路由列表（访问域名等）
+  - `applications`: 应用列表，每项含 `name`（应用名）和 `children`（服务列表，含当前镜像版本、发布状态 `is_deploying`、正在进行的流程名 `changeflow_name`）
+  - `routes`: 路由配置
+  - `link`: ones 平台页面链接，格式 `https://ones.devops.xiaohongshu.com/project/{name}`
+
+---
+
+### create_person_project
+
+创建测试项目（泳道/个人环境）。创建者身份（owner）由框架从登录态自动获取。
+
+| 参数 | 类型 | 必填 | 说明 |
+|------|------|------|------|
+| alias | string | 是 | 项目别名（人类可读），如 "我的联调项目" |
+| lane | string | 是 | 泳道名称，系统内唯一，建议小写字母+数字+短横线，如 `my-feature-123` |
+| expire_days | int | 是 | 过期天数，建议 1-30，到期自动回收 |
+| applications | array | 是 | 应用配置列表，结构见下方说明 |
+| description | string | 否 | 项目描述 |
+| env | string | 否 | 部署环境，默认 `sit`，可选 `sit` 或 `staging` |
+
+**applications 字段结构**（数组，每项为一个应用）：
+
+```json
+[
+  {
+    "name": "应用名（appName），playground",
+      "children": [
+          {
+              "name": "服务名/子应用名（service/applicationChildName），例如playground-service-prod",
+              "image_tag": "镜像 tag，如 master-abc1234，可通过 get_service_image_repo_info 查询",
+              "workload_group_name": "部署组名称（workloadGroupName），例如hssh-gpu-2.playground-service-prod-staging",
+              "replicas": "副本数（replicas），例如1,默认为1"
+          }
+      ]
+  }
+]
+```
+
+- **返回**:
+  - `project_name`: 创建成功的项目名（格式 `sit.<lane>` 或 `staging.<lane>`）
+  - `project_link`: ones 平台页面链接，格式 `https://ones.devops.xiaohongshu.com/project/{project_name}`
+
+---
+
 ## 完整发布流程推荐顺序
 
 ```

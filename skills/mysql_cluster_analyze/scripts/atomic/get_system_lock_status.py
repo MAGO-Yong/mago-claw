@@ -45,7 +45,8 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parents[1]))
 from common.dms_client import (
-    AI_TOKEN, CLAW_TOKEN, AI_V1_PREFIX, _AI_HEADERS, _http_post,
+    AI_TOKEN, CLAW_TOKEN, BASE_URL, AI_V1_PREFIX,
+    _AI_HEADERS, _http_post, call_with_fallback,
 )
 
 # System lock 触发风险 SQL 关键词（AUTO-INC 锁高危语句）
@@ -88,15 +89,27 @@ def normalize_sql(sql: str) -> str:
 def analyze(ip: str, port: int, cluster: str = "") -> dict:
     """采集并分析 System lock 状态"""
 
-    # 调用 v1 实时会话接口（节点级）
+    # 调用 v1 实时会话接口（节点级），兜底 open-claw
+    payload_v1 = {"ip": ip, "port": str(port), "show_system_session": False}
+    payload_old = {"ip": ip, "port": str(port), "filter": {"show_system_session": False}}
     try:
-        resp = _http_post(
-            f"{AI_V1_PREFIX}/mysql/session/get_cur_process_list",
-            {"ip": ip, "port": str(port), "show_system_session": False},
-            _AI_HEADERS,
+        resp = call_with_fallback(
+            lambda: _http_post(f"{AI_V1_PREFIX}/mysql/session/get_cur_process_list", payload_v1, _AI_HEADERS),
+            lambda: _http_post(f"{BASE_URL}/dms-api/v1/mysql/session-manage/get-cur-process-list", payload_old, {"dms-claw-token": CLAW_TOKEN}),
+            "[get_system_lock_status]",
         )
     except Exception as e:
         return {"error": f"API 调用失败: {e}", "_analysis": {"subtype": "unknown", "risks": [f"❌ API 失败: {e}"]}}
+
+    # 检查业务错误（HTTP 200 但实际失败）
+    # v1 格式：errorMessage 非空表示失败
+    # open-claw 格式：{"code": 0, "message": "ok", "data": {...}}，code != 0 才是失败
+    if resp.get("errorMessage"):
+        err = resp["errorMessage"]
+        return {"error": f"业务错误: {err}", "_analysis": {"subtype": "unknown", "risks": [f"❌ 业务错误: {err}"]}}
+    if resp.get("code", 0) != 0:
+        err = f"code={resp.get('code')} {resp.get('message', '')}"
+        return {"error": f"业务错误: {err}", "_analysis": {"subtype": "unknown", "risks": [f"❌ 业务错误: {err}"]}}
 
     data = resp.get("data") or {}
     all_sessions = data.get("connectionList") or []
@@ -262,7 +275,7 @@ def main():
     result = analyze(args.ip, args.port, args.cluster)
 
     if args.output and args.run_id:
-        raw_dir = os.path.join(args.output, "raw")
+        raw_dir = os.path.join(args.output, args.run_id, "raw")
         os.makedirs(raw_dir, exist_ok=True)
         out_path = os.path.join(raw_dir, "get_system_lock_status.json")
         with open(out_path, "w") as f:

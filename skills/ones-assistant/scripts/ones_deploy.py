@@ -25,6 +25,9 @@ Cookie 和 Agent-Platform 由框架层自动注入，本脚本无需携带。
   deploy-history <service> <wg>    查询指定部署组的发布历史
   deploy <service> ...             创建发布流程（含交互式确认）
   diagnose <name>                  诊断发布流程运行状态
+  list-projects                    查询当前用户拥有的测试项目列表（按 owner 过滤）
+  describe-project <project>       根据项目名称查询测试项目详情
+  create-project ...               创建测试项目（泳道环境）
 """
 
 import argparse
@@ -36,7 +39,7 @@ from typing import Any
 
 
 BASE_URL = "https://ones.devops.xiaohongshu.com"
-TOOLS_API = f"{BASE_URL}/api/v1/x/a/tools"
+TOOLS_API = f"{BASE_URL}/api/v1/skills/a/tools"
 
 
 # ──────────────────────────────────────────────
@@ -378,6 +381,152 @@ def cmd_deploy(args) -> int:
     return 0
 
 
+def cmd_list_projects(args) -> int:
+    """查询当前用户拥有（owner）的测试项目列表。"""
+    try:
+        data = call_tool("list_person_projects_by_owner", {})
+        print_json(data)
+    except Exception as e:
+        print_error(str(e))
+        return 1
+    return 0
+
+
+def cmd_describe_project(args) -> int:
+    """根据测试项目名称查询项目完整详情（包含应用列表、路由、成员等）。"""
+    try:
+        data = call_tool(
+            "describe_person_project",
+            {"project_name": args.project},
+        )
+        print_json(data)
+    except Exception as e:
+        print_error(str(e))
+        return 1
+    return 0
+
+
+def cmd_create_project(args) -> int:
+    """
+    创建测试项目（泳道/个人环境）。
+
+    applications 格式示例（JSON 字符串）:
+      '[{"name":"playground","children":[{"name":"playground-service","image_tag":"master-abc1234","workload_group_name":"sit.playground-service","replicas":1}]}]'
+
+    如果用户未提供完整的应用、服务、部署组或镜像信息，脚本会查询并推荐：
+      - my-apps / my-services：查询用户有权限的应用和服务
+      - app-info <app>：查询特定应用的详情
+      - service-info <service>：查询服务的部署组列表
+      - images <service>：查询服务的可用镜像版本
+    """
+    # 解析 applications JSON 字符串
+    try:
+        applications = json.loads(args.applications)
+    except json.JSONDecodeError as e:
+        print_error(f"--applications 必须是有效的 JSON 字符串: {e}")
+        print_error('示例: \'[{"name":"app","children":[{"name":"svc","image_tag":"master-abc","workload_group_name":"sit.svc","replicas":1}]}]\'')
+        print_info("提示：可通过以下命令查询应用、服务、部署组和镜像信息：")
+        print_info("  - my-apps / my-services：查询有权限的应用和服务")
+        print_info("  - app-info <app>：查询应用详情")
+        print_info("  - service-info <service>：查询服务的部署组")
+        print_info("  - images <service>：查询服务的可用镜像版本")
+        return 1
+
+    # 验证 applications 结构，如果缺少必要字段则提示用户查询
+    if not isinstance(applications, list):
+        print_error("--applications 必须是数组格式")
+        return 1
+
+    missing_info = False
+    for app_idx, app in enumerate(applications):
+        if not isinstance(app, dict):
+            print_error(f"applications[{app_idx}] 必须是对象")
+            missing_info = True
+            break
+        
+        app_name = app.get("name")
+        if not app_name:
+            print_error(f"applications[{app_idx}] 缺少 'name' 字段（应用名）")
+            missing_info = True
+            break
+        
+        children = app.get("children", [])
+        if not isinstance(children, list):
+            print_error(f"应用 '{app_name}' 的 'children' 必须是数组")
+            missing_info = True
+            break
+        
+        if not children:
+            print_error(f"应用 '{app_name}' 的 'children' 不能为空")
+            missing_info = True
+            break
+        
+        for child_idx, child in enumerate(children):
+            if not isinstance(child, dict):
+                print_error(f"应用 '{app_name}' 的 children[{child_idx}] 必须是对象")
+                missing_info = True
+                break
+            
+            svc_name = child.get("name")
+            if not svc_name:
+                print_error(f"应用 '{app_name}' 的 children[{child_idx}] 缺少 'name' 字段（服务名）")
+                missing_info = True
+                break
+            
+            if "image_tag" not in child:
+                print_warning(f"应用 '{app_name}' 的服务 '{svc_name}' 缺少 'image_tag' 字段")
+                print_info(f"  建议通过 images {svc_name} 查询可用镜像版本")
+            
+            if "workload_group_name" not in child:
+                print_warning(f"应用 '{app_name}' 的服务 '{svc_name}' 缺少 'workload_group_name' 字段")
+                print_info(f"  建议通过 service-info {svc_name} 查询部署组列表")
+            
+            # replicas 是可选的，默认为 1
+            if "replicas" in child:
+                try:
+                    replicas = int(child["replicas"])
+                    if replicas <= 0:
+                        print_warning(f"应用 '{app_name}' 的服务 '{svc_name}' 的 replicas 应为正整数，当前值: {replicas}")
+                except (ValueError, TypeError):
+                    print_warning(f"应用 '{app_name}' 的服务 '{svc_name}' 的 replicas 应为整数，当前值: {child['replicas']}")
+        
+        if missing_info:
+            break
+
+    if missing_info:
+        print_info("提示：可通过以下命令查询应用、服务、部署组和镜像信息：")
+        print_info("  - my-apps / my-services：查询有权限的应用和服务")
+        print_info("  - app-info <app>：查询应用详情")
+        print_info("  - service-info <service>：查询服务的部署组")
+        print_info("  - images <service>：查询服务的可用镜像版本")
+        return 1
+
+    arguments: dict = {
+        "alias": args.alias,
+        "lane": args.lane,
+        "expire_days": args.expire_days,
+        "applications": applications,
+    }
+    if args.description:
+        arguments["description"] = args.description
+    if args.env:
+        arguments["env"] = args.env
+
+    print_info(f"正在创建测试项目: alias={args.alias}, lane={args.lane}, expire_days={args.expire_days}")
+    print_info(f"应用配置: {json.dumps(applications, ensure_ascii=False)}")
+    try:
+        data = call_tool("create_person_project", arguments)
+        print_json(data)
+        if isinstance(data, dict):
+            link = data.get("link", "")
+            if link:
+                print_info(f"项目已创建，ones 页面: {link}")
+    except Exception as e:
+        print_error(f"创建测试项目失败: {e}")
+        return 1
+    return 0
+
+
 # ──────────────────────────────────────────────
 # 命令行解析
 # ──────────────────────────────────────────────
@@ -496,6 +645,31 @@ def build_parser() -> argparse.ArgumentParser:
     p_dep.add_argument("--description", default="", help="发布描述（可选）")
     p_dep.add_argument("--yes", "-y", action="store_true", help="跳过交互确认，直接发布")
 
+    # list-projects
+    sub.add_parser("list-projects", help="查询当前用户拥有的测试项目列表（按 owner 过滤）")
+
+    # describe-project
+    p_dp = sub.add_parser("describe-project", help="根据测试项目名称查询项目详情")
+    p_dp.add_argument("project", help="测试项目名称（project_name），如 sit.my-feature-123")
+
+    # create-project
+    p_cp = sub.add_parser("create-project", help="创建测试项目（泳道/个人环境）")
+    p_cp.add_argument("--alias", required=True, help="项目别名（人类可读），如 \"我的联调项目\"")
+    p_cp.add_argument("--lane", required=True, help="泳道名称，系统内唯一，如 my-feature-123")
+    p_cp.add_argument("--expire-days", dest="expire_days", type=int, required=True,
+                      help="过期天数（1-30）")
+    p_cp.add_argument(
+        "--applications", required=True,
+        help=(
+            "应用配置，JSON 字符串。每个应用必须包含 name（应用名）和 children（服务数组）。"
+            "每个服务必须包含 name（服务名）、image_tag（镜像tag）、workload_group_name（部署组名），"
+            "replicas（副本数，可选，默认1）。"
+            "格式: '[{\"name\":\"appName\",\"children\":[{\"name\":\"serviceName\",\"image_tag\":\"tag\",\"workload_group_name\":\"wg\",\"replicas\":1}]}]'"
+        ),
+    )
+    p_cp.add_argument("--description", default="", help="项目描述（可选）")
+    p_cp.add_argument("--env", default="", help="部署环境，默认 sit，可选 sit/staging")
+
     return parser
 
 
@@ -515,6 +689,9 @@ SUBCOMMAND_MAP = {
     "deploy-history": cmd_deploy_history,
     "diagnose": cmd_diagnose,
     "deploy": cmd_deploy,
+    "list-projects": cmd_list_projects,
+    "describe-project": cmd_describe_project,
+    "create-project": cmd_create_project,
 }
 
 

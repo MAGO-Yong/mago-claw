@@ -249,3 +249,24 @@ curl "https://dms.devops.xiaohongshu.com/dms-api/v1/mysql/sql-query/get-db-conne
 - 比"活跃连接数超阈值"提前 1~2 分钟感知，变滞后告警为预警
 
 **实战案例**：2026-04-01 sns_user_extra 集群 lshm-db-user-9，INSERT IGNORE INTO user_location_1d? 6条并发 System lock，活跃连接数从正常值升至 125+，P0 告警，客户可感知。innodb_autoinc_lock_mode=1 是根因之一。
+
+---
+
+## ⚠️ 坑16：query_xray_metrics.py 的时区是北京时间，不是 UTC
+
+**常见误解**：`get_raw_slow_log.py` 需要 UTC 时间，于是以为 `query_xray_metrics.py` 也要 UTC。
+
+**实际行为**（已验证脚本源码）：
+
+| 脚本 | `--start` / `--end` 入参 | API 调用时区 | 输出时间字段 |
+|------|--------------------------|-------------|------------|
+| `query_xray_metrics.py` | **北京时间**（UTC+8）字符串 | 内部自动转 UTC Unix timestamp | `time_beijing`（北京时间） |
+| `get_raw_slow_log.py` | **UTC 时间**字符串（北京 -8h）| 直接传字符串给 API | 原始 UTC 字符串 |
+| `get_network_traffic.py` | **北京时间**（UTC+8）字符串 | 内部自动转 UTC Unix timestamp | 无时间字段 |
+| `get_slow_log_list.py` | **北京时间**字符串 | 直接传 | - |
+
+**结论**：`query_xray_metrics.py` 全程以**北京时间**为用户接口，UTC 只用于内部 API 调用，用户无感知。
+查询时序数据时 `--start` / `--end` 直接填北京时间即可，不需要 -8h 换算。
+
+**对比记忆**（一句话）：
+> `get_raw_slow_log` 入参要 UTC（慢日志文件里存的是 UTC），`query_xray_metrics` 入参要北京时间（Grafana/xray 对用户暴露北京时间）。

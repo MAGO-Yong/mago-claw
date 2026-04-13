@@ -39,15 +39,10 @@ REQUIRED_SKILLS = [
         "script": "scripts/check_switch.py",
         "required": True
     },
-    {
-        "name": "data-fe-common-sso",
-        "description": "获取小红书内部登录态（SSO）",
-        "install_cmd": "openclaw skill install data-fe-common-sso",
-        "path": "skills/data-fe-common-sso",
-        "script": "script/run-sso.sh",
-        "required": True
-    }
 ]
+
+# SSO 登录态：直接读取全局 token 文件，无需安装 data-fe-common-sso
+# Token 路径：/home/node/.token/sso_token.json（由 OpenClaw 自动维护）
 
 # 可选依赖
 OPTIONAL_SKILLS = [
@@ -88,8 +83,61 @@ def print_separator():
     print("-" * 60)
 
 
+def install_skills(skills, dry_run=False):
+    """安装 skills 列表"""
+    import subprocess
+    
+    if not skills:
+        return True
+    
+    skill_names = " ".join([s["name"] for s in skills])
+    cmd = f"openclaw skill install {skill_names}"
+    
+    print(f"\n🔧 执行安装命令：{cmd}")
+    
+    if dry_run:
+        print("（dry-run 模式，未实际执行）")
+        return True
+    
+    try:
+        result = subprocess.run(cmd, shell=True, capture_output=True, text=True, timeout=300)
+        if result.returncode == 0:
+            print("✅ 安装成功！")
+            return True
+        else:
+            print(f"❌ 安装失败：{result.stderr}")
+            return False
+    except subprocess.TimeoutExpired:
+        print("❌ 安装超时（>5 分钟）")
+        return False
+    except Exception as e:
+        print(f"❌ 安装异常：{e}")
+        return False
+
+
 def main():
     """主函数"""
+    import argparse
+    
+    parser = argparse.ArgumentParser(
+        description="检测 rec-new-note-diagnosis 的依赖 skills",
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog="""
+示例：
+  python3 check_dependencies.py              # 仅检查依赖
+  python3 check_dependencies.py --install    # 检查并安装缺失的依赖
+  python3 check_dependencies.py --dry-run    # 预览将安装的 skills
+        """
+    )
+    parser.add_argument("--install", action="store_true",
+                        help="自动安装缺失的依赖")
+    parser.add_argument("--dry-run", action="store_true",
+                        help="预览将安装的 skills，不实际执行")
+    parser.add_argument("--all", action="store_true",
+                        help="安装所有依赖（包括可选）")
+    
+    args = parser.parse_args()
+    
     print_separator()
     print("🔍 检测 rec-new-note-diagnosis 依赖项")
     print_separator()
@@ -135,23 +183,37 @@ def main():
             print(f"   安装命令：{skill['install_cmd']}")
             print()
         
-        print("💡 快速安装所有依赖：")
-        print()
-        print("openclaw skill install xray_changevent_query xray_metrics_query index-switch-check data-fe-common-sso")
-        print()
-        
-        return 1
+        if args.install or args.dry_run:
+            print("💡 准备安装缺失的依赖...")
+            success = install_skills(missing_required, dry_run=args.dry_run)
+            if success and not args.dry_run:
+                print("\n✅ 依赖安装完成！重新运行诊断脚本即可使用。")
+                print("   python3 skills/rec-homefeed-newnote-diagnosis/scripts/diagnose.py")
+            return 0 if success else 1
+        else:
+            print("💡 快速安装所有依赖：")
+            print()
+            print("openclaw skill install xray_changevent_query xray_metrics_query index-switch-check")
+            print()
+            print("或使用自动安装：")
+            print("python3 scripts/check_dependencies.py --install")
+            print()
+            return 1
     
     if missing_optional:
         print("⚠️  可选依赖未安装（不影响核心功能）：")
         for skill in missing_optional:
             print(f"  - {skill['name']}: {skill['install_cmd']}")
         print()
+        
+        if args.all and (args.install or args.dry_run):
+            print("💡 准备安装可选依赖...")
+            install_skills(missing_optional, dry_run=args.dry_run)
     
     print("✅ 所有必需依赖已安装，可以正常使用 rec-new-note-diagnosis。")
     print()
     print("使用示例：")
-    print("  python3 skills/rec-new-note-diagnosis/scripts/diagnose.py")
+    print("  python3 skills/rec-homefeed-newnote-diagnosis/scripts/diagnose.py")
     print()
     
     return 0

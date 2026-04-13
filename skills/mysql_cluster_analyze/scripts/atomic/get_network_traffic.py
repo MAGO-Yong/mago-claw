@@ -28,7 +28,10 @@ from pathlib import Path
 from datetime import datetime, timezone, timedelta
 
 sys.path.insert(0, str(Path(__file__).parents[1]))
-from common.dms_client import AI_TOKEN, CLAW_TOKEN, AI_V1_PREFIX, _AI_HEADERS, _http_post
+from common.dms_client import (
+    AI_TOKEN, CLAW_TOKEN, BASE_URL, AI_V1_PREFIX, OPEN_CLAW_PREFIX,
+    _AI_HEADERS, _http_post, call_with_fallback,
+)
 
 
 _CST = timezone(timedelta(hours=8))
@@ -57,7 +60,11 @@ def _query_pql(pql: str, start_ts: int, end_ts: int, step: int = 30) -> list:
         "step": step,
         "datasource": "vms-db",
     }
-    result = _http_post(f"{AI_V1_PREFIX}/grafana/fetch_data_by_pql", payload, _AI_HEADERS, timeout=20)
+    result = call_with_fallback(
+        lambda: _http_post(f"{AI_V1_PREFIX}/grafana/fetch_data_by_pql", payload, _AI_HEADERS, timeout=20),
+        lambda: _http_post(f"{OPEN_CLAW_PREFIX}/grafana/fetch-data-by-pql", payload, {"dms-claw-token": CLAW_TOKEN}, timeout=20),
+        "[get_network_traffic]",
+    )
     # grafana v1 响应结构：{data: {success: bool, data: {success: bool, data: [...]}}}
     outer = result.get("data") or {}
     if not outer.get("success"):

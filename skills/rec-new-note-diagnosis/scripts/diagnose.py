@@ -26,8 +26,30 @@ WORKSPACE_DIR = os.path.dirname(SKILLS_DIR)
 XRAY_CHANGEVENT_QUERY = os.path.join(SKILLS_DIR, "xray_changevent_query", "scripts", "query.py")
 XRAY_METRICS_QUERY = os.path.join(SKILLS_DIR, "xray_metrics_query", "scripts", "query.py")
 INDEX_SWITCH_CHECK = os.path.join(SKILLS_DIR, "index-switch-check", "scripts", "check_switch.py")
-SSO_SCRIPT = os.path.join(SKILLS_DIR, "data-fe-common-sso", "script", "run-sso.sh")
+SSO_TOKEN_FILE = "/home/node/.token/sso_token.json"
 CONFIG_WATCHLIST = os.path.join(SKILL_DIR, "references", "config-watchlist.json")
+
+
+def read_sso_token(env: str = "prod") -> str:
+    """从全局 token 文件读取 SSO 登录态（OpenClaw 自动维护）。
+    
+    优先级：
+    1. 环境变量 SSO_COOKIE（显式传入，最高优先级）
+    2. /home/node/.token/sso_token.json（OpenClaw 自动维护，推荐主路径）
+    """
+    env_cookie = os.environ.get("SSO_COOKIE", "").strip()
+    if env_cookie:
+        return env_cookie
+    key = f"common-internal-access-token-{env}"
+    try:
+        with open(SSO_TOKEN_FILE) as f:
+            data = json.load(f)
+        token = data.get(key, "").strip()
+        if token:
+            return f"{key}={token}"
+    except Exception:
+        pass
+    return ""
 PROMQL_COLLECTION = os.path.join(SKILL_DIR, "references", "promql-collection.json")
 DECISION_TREE = os.path.join(SKILL_DIR, "references", "decision-tree.json")
 
@@ -257,6 +279,158 @@ class NewNoteDiagnosis:
         return 0
 
     # ─────────────────────────────────────────────────────────
+    # Step-level Checker（步骤级自检，每步结论前调用）
+    # ─────────────────────────────────────────────────────────
+    def _step_check(self, step_label, *,
+                    query_systems=None,       # 实际查询的系统列表，None=未过滤（全量）
+                    data_points=None,         # (当期点数, 基准点数) 元组
+                    conclusion=None,          # 即将输出的结论文本（用于逻辑检测）
+                    single_point_drop=None,   # 单点跌幅(%)，用于抖动检测
+                    single_point_duration_min=None,  # 抖动持续时长(分钟)
+                    all_channels_uniform=False):     # 所有渠道跌幅是否高度一致
+        """
+        步骤级自检（三门）：
+          门1 查询覆盖完整性
+          门2 结论逻辑完整性
+          门3 数据异常信号检测
+
+        返回值: "ok" | "warn" | "block"
+        block 时调用方应停止输出结论，补查后重来。
+        """
+        BANNER = "┌─────────────────────────────────────────┐"
+        BANNER_END = "└─────────────────────────────────────────┘"
+
+        gate1_ok   = True
+        gate1_msgs = []
+        gate2_ok   = True
+        gate2_msgs = []
+        gate3_lvl  = "ok"   # ok / warn / block
+        gate3_msgs = []
+
+        # ── 门1：查询覆盖完整性 ──────────────────────────────
+        if query_systems is not None:
+            # 用了系统过滤，但结论含"无变更"类表述
+            if conclusion and any(kw in conclusion for kw in
+                                  ["无变更", "零变更", "无 apollo", "无apollo",
+                                   "no change", "无操作"]):
+                gate1_ok = False
+                gate1_msgs.append(
+                    f"❌ 查询仅覆盖 {query_systems}，但结论含[无变更] → "
+                    f"必须去掉 --system 过滤补查完整系统（含 baichuan/flink/datastudio）"
+                )
+            else:
+                gate1_msgs.append(
+                    f"✅ 系统过滤={query_systems}，结论未声明[无变更]，覆盖范围可接受"
+                )
+        else:
+            gate1_msgs.append("✅ 未加系统过滤，覆盖所有系统")
+
+        if data_points is not None:
+            cur_pts, base_pts = data_points
+            if cur_pts == 0:
+                gate1_ok = False
+                gate1_msgs.append(
+                    f"❌ 当期数据点数=0，查询失败或数据已过期 → 跳过本步，标注[数据不可用]"
+                )
+            elif base_pts == 0:
+                gate1_ok = False
+                gate1_msgs.append(
+                    f"❌ 基准数据点数=0，无法做同比 → 标注[无基准，无法判断趋势]"
+                )
+            else:
+                gate1_msgs.append(f"✅ 数据点数 cur={cur_pts} base={base_pts}，完整")
+
+        # ── 门2：结论逻辑完整性 ──────────────────────────────
+        if conclusion:
+            # 2a. 以无证据证明不存在
+            if any(kw in conclusion for kw in
+                   ["无变更", "零变更", "无异常", "正常"]) \
+               and query_systems is not None:
+                gate2_ok = False
+                gate2_msgs.append(
+                    "❌ [无/正常]类结论 + 有系统过滤 → 存在[以无证据证明不存在]风险，"
+                    "结论应降级为: 已查系统范围内无变更，其他系统未覆盖"
+                )
+            # 2b. 直接因果断言（含"因为""导致""根因是"）
+            if any(kw in conclusion for kw in ["因为", "导致", "根因是", "根本原因"]):
+                gate2_msgs.append(
+                    "⚠️ 含因果断言，确认: ① 变更时间早于T0? ② 有回滚验证或其他直接证据? "
+                    "若否，请改为: 疑似 X，待验证"
+                )
+            # 2c. 单层正常推全链路正常
+            if "召回正常" in conclusion and "mixRank" not in conclusion \
+               and "混排" not in conclusion:
+                gate2_ok = False
+                gate2_msgs.append(
+                    "❌ 仅说[召回正常]即下[整体正常]结论，未检查 mixRank/postRank → "
+                    "召回是漏斗第一层，下游阶段需单独验证"
+                )
+
+        if not gate2_msgs:
+            gate2_msgs.append("✅ 未发现逻辑缺陷")
+
+        # ── 门3：数据异常信号检测 ────────────────────────────
+        if single_point_drop is not None and single_point_drop < -20:
+            duration = single_point_duration_min or 0
+            if duration < 5:
+                gate3_lvl = "warn"
+                gate3_msgs.append(
+                    f"⚠️ 单点跌幅 {single_point_drop:.1f}%，持续 {duration}min（<5min）"
+                    f" → 疑似 Flink 重启或采集抖动；"
+                    f"必须先补查该窗口 baichuan 变更（不加 --system 过滤），再出结论"
+                )
+            else:
+                gate3_msgs.append(
+                    f"✅ 跌幅 {single_point_drop:.1f}%，持续 {duration}min，非短暂抖动"
+                )
+
+        if all_channels_uniform:
+            gate3_lvl = "warn" if gate3_lvl == "ok" else gate3_lvl
+            gate3_msgs.append(
+                "⚠️ 各渠道跌幅高度一致 → 优先检查分母（总曝光量）是否膨胀，"
+                "再检查分子（新笔记量），避免误判"
+            )
+
+        if not gate3_msgs:
+            gate3_msgs.append("✅ 无异常信号")
+
+        # ── 综合判定 ──────────────────────────────────────────
+        if not gate1_ok or not gate2_ok:
+            overall = "❌ 阻断，需补查"
+            overall_sym = "block"
+        elif gate3_lvl == "warn":
+            overall = "⚠️ 降级输出（结论改为[疑似+待验证]格式）"
+            overall_sym = "warn"
+        else:
+            overall = "✅ 可输出"
+            overall_sym = "ok"
+
+        # ── 打印（仅在非 ok 或 verbose 模式时完整打印）────────
+        verbose = getattr(self.args, 'verbose', False)
+        if overall_sym != "ok" or verbose:
+            print(BANNER)
+            print(f"│ 🔍 Step-level Check @ {step_label}")
+            print(f"├─────────────────────────────────────────┤")
+            print(f"│ 门1 查询覆盖：{'✅' if gate1_ok else '❌'}")
+            for m in gate1_msgs:
+                print(f"│   {m}")
+            print(f"│ 门2 结论逻辑：{'✅' if gate2_ok else '❌'}")
+            for m in gate2_msgs:
+                print(f"│   {m}")
+            print(f"│ 门3 数据信号：{'✅' if gate3_lvl=='ok' else gate3_lvl.upper()}")
+            for m in gate3_msgs:
+                print(f"│   {m}")
+            print(f"├─────────────────────────────────────────┤")
+            print(f"│ 自检结论：{overall}")
+            print(BANNER_END)
+            print()
+        else:
+            # ok 时只打一行摘要
+            print(f"  [Step-check ✅ {step_label}]")
+
+        return overall_sym
+
+    # ─────────────────────────────────────────────────────────
     # Step 0: 配置变更预检（优化版 - 基于异常时间）
     # ─────────────────────────────────────────────────────────
     def _step0_changes(self, anomaly_time=None):
@@ -473,6 +647,22 @@ class NewNoteDiagnosis:
                 print(f"\n  🟢 无高风险变更，继续正常诊断流程")
             print()
 
+            # ── 存储 watchlist 命中，供 ProgressiveDiagnosisRunner 分诊使用 ──
+            self._watchlist_hits = (
+                [{"level": "critical", "key": c.get("name", "?"), "time": c.get("time", "?")} for c in critical] +
+                [{"level": "high",     "key": c.get("name", "?"), "time": c.get("time", "?")} for c in high] +
+                [{"level": "medium",   "key": c.get("name", "?"), "time": c.get("time", "?")} for c in medium]
+            )
+
+            # ── Step-level check（Step 0 变更查询后）──────────
+            # 注意：Step 0 默认查全系统（无 --system 过滤），所以 query_systems=None
+            conclusion_text = "无高风险变更" if not critical and not high else "有高风险变更"
+            self._step_check(
+                "Step0/变更预检",
+                query_systems=None,   # 全量系统，覆盖完整
+                conclusion=conclusion_text,
+            )
+
         except subprocess.TimeoutExpired:
             print(f"⚠️ 查询变更超时（限制30秒），可能是数据量过大")
             print(f"   建议：缩小时间范围或增加服务过滤")
@@ -554,7 +744,31 @@ class NewNoteDiagnosis:
             print(f"【Step 1 结论】🟢 未发现显著异常（1H和24H跌幅均<5%）")
             print(f"              按诊断时间窗口末尾前3小时查询变更")
         print()
-        
+
+        # ── 将关键数据存到 self，供 ProgressiveDiagnosisRunner 分诊使用 ──
+        def _get_drop(r):
+            if not r: return 0
+            return r.get("stats", {}).get("drop_pct", 0) or r.get("drop_pct", 0)
+        self._last_drop_1h_pct  = -_get_drop(result_1h)
+        self._last_drop_24h_pct = -_get_drop(result_24h)
+
+        # ── Step-level check（Step 1 指标结论后）─────────────
+        is_anomaly = anomaly_time is not None
+        cur_pts  = sum(len(r.get("values",[])) for r in (result_1h or {}).get("raw",[]))\
+                   if result_1h and isinstance(result_1h.get("raw"), list) else \
+                   (1 if result_1h else 0)
+        base_pts = 1 if result_1h else 0  # 简化：有 result_1h 说明数据存在
+
+        # 检查是否有异常幅度的单点（用 _last_drop_1h_pct 近似）
+        drop_1h = abs(self._last_drop_1h_pct or 0)
+        self._step_check(
+            "Step1/指标确认",
+            data_points=(cur_pts, base_pts),
+            conclusion="异常" if is_anomaly else "无异常",
+            single_point_drop=-drop_1h if drop_1h > 20 else None,
+            single_point_duration_min=30,   # Step1 是长时段均值，不是短暂抖动
+        )
+
         return anomaly_time
 
     def _print_metric_comparison(self, label, current, baseline):
@@ -740,6 +954,14 @@ class NewNoteDiagnosis:
         print("  其他阶段异常        →  联系推荐算法团队")
         print()
 
+        # ── Step-level check（Step 2 阶段结论后）────────────
+        cur_pts  = len(current) if current else 0
+        base_pts = len(baseline) if baseline else 0
+        self._step_check(
+            "Step2/阶段定位",
+            data_points=(cur_pts, base_pts),
+        )
+
     # ─────────────────────────────────────────────────────────
     # Step 3: 召回渠道（详细）
     # ─────────────────────────────────────────────────────────
@@ -813,7 +1035,37 @@ class NewNoteDiagnosis:
         else:
             print(f"【SOP判定】渠道正常但占比跌 → 进入Step 2.5 矛盾判断")
         print()
-        
+
+        # ── Step-level check（Step 3 召回渠道结论后）────────
+        # 检测各渠道跌幅是否高度一致（暗示分母变化而非分子）
+        all_ratios = []
+        for ch_data in (current or []):
+            ch_meta = ch_data.get("metric", {})
+            ch_name = ch_meta.get("name", "")
+            cvals = [float(v[1]) for v in ch_data.get("values", []) if v[1]]
+            if cvals:
+                cur_a = sum(cvals)/len(cvals)
+                for brow in (baseline or []):
+                    if brow.get("metric", {}).get("name") == ch_name:
+                        bvals = [float(v[1]) for v in brow.get("values", []) if v[1]]
+                        if bvals:
+                            base_a = sum(bvals)/len(bvals)
+                            if base_a > 0:
+                                all_ratios.append(cur_a/base_a)
+        uniform = False
+        if len(all_ratios) >= 3:
+            avg_r = sum(all_ratios)/len(all_ratios)
+            std_r = (sum((r-avg_r)**2 for r in all_ratios)/len(all_ratios))**0.5
+            uniform = std_r < 0.02   # 标准差<2%认为高度一致
+
+        self._step_check(
+            "Step3/召回渠道",
+            data_points=(len(current) if current else 0,
+                         len(baseline) if baseline else 0),
+            conclusion="召回正常" if not abnormal else f"异常渠道{len(abnormal)}个",
+            all_channels_uniform=uniform,
+        )
+
         return abnormal
 
     # ─────────────────────────────────────────────────────────
@@ -1211,46 +1463,490 @@ class NewNoteDiagnosis:
         print(r.stdout); return r.returncode == 0
 
     def _sso(self, verbose=True):
-        """获取 SSO 登录态
+        """获取 SSO 登录态（直接读取 /home/node/.token/sso_token.json）
         
         Args:
             verbose: 是否打印详细步骤信息（Step 0.2 标题等）
         """
         if verbose:
             print(SEP); print("Step 0.2: 获取登录态"); print(SEP); print()
-        try:
-            r = subprocess.run([SSO_SCRIPT, WORKSPACE_DIR], capture_output=True, text=True, timeout=30)
-            if r.returncode == 0 and "common-internal-access-token-prod=" in r.stdout:
-                if verbose:
-                    print("✅  登录态获取成功\n")
-                else:
-                    print("✅  SSO 刷新成功")
-                return True
+        token = read_sso_token()
+        if token:
             if verbose:
-                print("❌  登录态获取失败")
+                print("✅  登录态获取成功\n")
             else:
-                print("❌  SSO 刷新失败")
-        except Exception as e:
-            if verbose:
-                print(f"❌  {e}")
-            else:
-                print(f"❌  SSO 刷新异常: {e}")
+                print("✅  SSO 刷新成功")
+            return True
+        if verbose:
+            print("❌  登录态获取失败，请确认 /home/node/.token/sso_token.json 是否存在")
+        else:
+            print("❌  SSO 刷新失败")
         return False
-    
+
     def _sso_refresh(self):
         """轻量级 SSO 刷新（用于查询失败时自动重试）"""
-        try:
-            r = subprocess.run([SSO_SCRIPT, WORKSPACE_DIR], capture_output=True, text=True, timeout=30)
-            return r.returncode == 0 and "common-internal-access-token-prod=" in r.stdout
-        except:
-            return False
+        return bool(read_sso_token())
 
 
 def main():
-    p = argparse.ArgumentParser(description="rec-new-note-diagnosis v3.6（完整数据版）")
+    p = argparse.ArgumentParser(description="rec-new-note-diagnosis v4.0（渐进式+无人值守）")
+    # 原有参数
     p.add_argument("--step", type=int, default=0, help="从指定步骤开始 (0-6)")
+    # 路径控制
+    p.add_argument("--fast", action="store_true", help="强制走 Fast Path（无 GATE，快速结论）")
+    p.add_argument("--deep", action="store_true", help="强制走 Deep Path（Step 1-6 全流程）")
+    p.add_argument("--auto", action="store_true", help="全自动无人值守（跳过所有 GATE）")
+    p.add_argument("--gate-timeout", type=int, default=300, help="GATE 等待超时秒数，超时后自动继续（默认 300s）")
+    # 断点续诊
+    p.add_argument("--resume", type=str, help="从会话快照恢复，填入 sessions/YYYY-MM-DD_HH-MM.json 路径")
+    p.add_argument("--list-sessions", action="store_true", help="列出所有历史诊断会话")
     args = p.parse_args()
-    sys.exit(NewNoteDiagnosis(args).run())
+
+    # ── 列出历史会话 ─────────────────────────────────────────
+    if args.list_sessions:
+        sessions_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "sessions")
+        try:
+            from session_manager import SessionManager
+            SessionManager.print_sessions(sessions_dir)
+        except ImportError:
+            print("session_manager 模块未找到，请确认 scripts/ 目录完整。")
+        return
+
+    # ── 渐进式诊断入口 ───────────────────────────────────────
+    runner = ProgressiveDiagnosisRunner(args)
+    sys.exit(runner.run())
+
+
+# ═══════════════════════════════════════════════════════════════
+# 渐进式诊断运行器（外层路由 + GATE 机制）
+# ═══════════════════════════════════════════════════════════════
+
+class ProgressiveDiagnosisRunner:
+    """
+    渐进式诊断路由器。
+
+    三条路径：
+      🟢 Fast Path   — 跌幅<5%，watchlist无命中 → 无GATE，直接输出结论
+      🟡 Standard    — 跌幅5-15%，命中Medium/High → GATE A + GATE B → 结论
+      🔴 Deep Path   — 跌幅>15% 或 Critical命中 → GATE A/B/C/D + 结论自检
+    """
+
+    GATE_BANNER = "━" * 60
+
+    def __init__(self, args):
+        self.args = args
+        self.auto_mode = getattr(args, "auto", False)
+        self.force_fast = getattr(args, "fast", False)
+        self.force_deep = getattr(args, "deep", False)
+        self.gate_timeout = getattr(args, "gate_timeout", 300)
+        self.resume_file = getattr(args, "resume", None)
+
+        script_dir = os.path.dirname(os.path.abspath(__file__))
+        self.skill_dir = os.path.dirname(script_dir)
+        self.sessions_dir = os.path.join(self.skill_dir, "sessions")
+
+        self.session = None
+        self.path = None          # "fast" / "standard" / "deep"
+        self.diagnosis = None     # NewNoteDiagnosis 实例
+
+    def run(self) -> int:
+        self._print_header()
+
+        # 初始化 session 管理器
+        try:
+            sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+            from session_manager import SessionManager
+            self.SessionManager = SessionManager
+        except ImportError:
+            self.SessionManager = None
+
+        # 断点恢复
+        if self.resume_file:
+            return self._resume_from_snapshot()
+
+        # 创建 diagnosis 实例（使用原有核心逻辑）
+        self.diagnosis = NewNoteDiagnosis(self.args)
+        if not self.diagnosis._check_deps():
+            return 1
+        if not self.diagnosis._sso():
+            return 1
+
+        # Step 1：查指标（始终执行）
+        print(f"\n{'='*60}")
+        print("阶段 1/4：指标确认")
+        print(f"{'='*60}")
+        anomaly_time = self.diagnosis._step1_anomaly()
+
+        # 变更查询（基于异常时间）
+        self.diagnosis._step0_changes(anomaly_time)
+
+        # 分诊：决定路径
+        self.path = self._determine_path()
+
+        # 创建会话快照
+        if self.SessionManager:
+            sm = self.SessionManager(self.sessions_dir)
+            params = {
+                "start": self.diagnosis.start_time.strftime("%Y-%m-%d %H:%M:%S"),
+                "end": self.diagnosis.end_time.strftime("%Y-%m-%d %H:%M:%S"),
+                "tag": "外流推荐",
+            }
+            sm.create(params)
+            sm.update(path=self.path, findings={"steps_completed": [0, 1]})
+            self.session = sm
+
+        # 按路径执行
+        if self.path == "fast":
+            return self._run_fast_path()
+        elif self.path == "standard":
+            return self._run_standard_path()
+        else:
+            return self._run_deep_path()
+
+    # ─────────────────────────────────────────────────────────
+    # 路径决策
+    # ─────────────────────────────────────────────────────────
+
+    def _determine_path(self) -> str:
+        """根据 Step 1 结果和 watchlist 命中决定路径"""
+        if self.force_fast:
+            print("\n[路径] 用户指定 --fast，走 🟢 Fast Path")
+            return "fast"
+        if self.force_deep:
+            print("\n[路径] 用户指定 --deep，走 🔴 Deep Path")
+            return "deep"
+
+        # 读取 Step 1 产出的跌幅（从 diagnosis 对象中获取，如无则用默认）
+        drop_1h = getattr(self.diagnosis, "_last_drop_1h_pct", None)
+        drop_24h = getattr(self.diagnosis, "_last_drop_24h_pct", None)
+
+        # watchlist 命中统计（从 diagnosis 对象中获取）
+        watchlist_hits = getattr(self.diagnosis, "_watchlist_hits", [])
+        hit_levels = [h.get("level", "low") for h in watchlist_hits]
+
+        try:
+            from triage import triage
+            result = triage(
+                drop_1h_pct=drop_1h if drop_1h is not None else 0,
+                drop_24h_pct=drop_24h,
+                watchlist_hits=len(watchlist_hits),
+                hit_levels=hit_levels,
+            )
+            path = result["path"]
+            print(f"\n{self.GATE_BANNER}")
+            print(f"🔀 分诊结果：{result['emoji']} {result['label']}  置信度：{result['confidence']}")
+            for r in result["reasons"]:
+                print(f"   ✓ {r}")
+            print(self.GATE_BANNER)
+            return path
+        except Exception:
+            # fallback：基于简单阈值
+            if drop_1h is not None:
+                if drop_1h < -15:
+                    return "deep"
+                elif drop_1h < -5:
+                    return "standard"
+            return "fast"
+
+    # ─────────────────────────────────────────────────────────
+    # Fast Path
+    # ─────────────────────────────────────────────────────────
+
+    def _run_fast_path(self) -> int:
+        print(f"\n{'='*60}")
+        print("🟢 Fast Path — 无重大异常，输出快速结论")
+        print(f"{'='*60}\n")
+        print("【结论】")
+        print("  指标波动在正常范围内（跌幅 < 5%，watchlist 无高风险命中）")
+        print("  建议：继续观察，无需止损操作")
+        print()
+        print("若需进一步排查，可使用：")
+        print("  python3 scripts/diagnose.py --standard  # 执行 Standard Path")
+        print("  python3 scripts/diagnose.py --deep      # 执行完整 Deep Path")
+        if self.session:
+            self.session.complete()
+        return 0
+
+    # ─────────────────────────────────────────────────────────
+    # Standard Path
+    # ─────────────────────────────────────────────────────────
+
+    def _run_standard_path(self) -> int:
+        # Step 2-4
+        print(f"\n{'='*60}")
+        print("🟡 Standard Path — 进行召回层分析")
+        print(f"{'='*60}")
+
+        print("\n阶段 2/4：阶段定位")
+        self.diagnosis._step2_phases()
+        if self.session:
+            self.session.mark_step_completed(2)
+
+        print("\n阶段 3/4：召回渠道分析")
+        abnormal_channels = self.diagnosis._step3_channels()
+        if self.session:
+            self.session.mark_step_completed(3)
+
+        print("\n阶段 4/4：召回根因定位")
+        self.diagnosis._step4_root_cause()
+        if self.session:
+            self.session.mark_step_completed(4)
+
+        # GATE A
+        if not self._gate("A", "Step 1-4 完成",
+                          next_info="可继续进入 Step 5-6（索引+内容供给）深度排查"):
+            return self._output_conclusion()
+
+        # 用户选择继续 → 升级为 Deep Path
+        print("\n[路径升级] Standard → 🔴 Deep Path")
+        self.path = "deep"
+        return self._run_deep_steps_cd(abnormal_channels)
+
+    # ─────────────────────────────────────────────────────────
+    # Deep Path
+    # ─────────────────────────────────────────────────────────
+
+    def _run_deep_path(self) -> int:
+        print(f"\n{'='*60}")
+        print("🔴 Deep Path — 完整六步排查")
+        print(f"{'='*60}")
+
+        print("\n阶段 2/6：阶段定位")
+        self.diagnosis._step2_phases()
+        if self.session:
+            self.session.mark_step_completed(2)
+
+        print("\n阶段 3/6：召回渠道分析")
+        abnormal_channels = self.diagnosis._step3_channels()
+        if self.session:
+            self.session.mark_step_completed(3)
+
+        print("\n阶段 4/6：召回根因定位")
+        self.diagnosis._step4_root_cause()
+        if self.session:
+            self.session.mark_step_completed(4)
+
+        # GATE A
+        self._gate("A", "Step 1-4 完成（指标+变更+召回层）",
+                   next_info="Step 5 索引层排查", mandatory=True)
+
+        return self._run_deep_steps_cd(abnormal_channels)
+
+    def _run_deep_steps_cd(self, abnormal_channels) -> int:
+        print("\n阶段 5/6：索引层排查")
+        self._print_knowledge_hint("index-switch.md", "索引切换知识")
+        self.diagnosis._step5_index(abnormal_channels)
+        if self.session:
+            self.session.mark_step_completed(5)
+
+        # GATE B
+        self._gate("B", "Step 5 索引层完成",
+                   next_info="Step 6 内容供给排查", mandatory=True)
+
+        print("\n阶段 6/6：内容供给排查")
+        self._print_knowledge_hint("data-flow.md", "数据流知识")
+        self.diagnosis._step6_content()
+        if self.session:
+            self.session.mark_step_completed(6)
+
+        # GATE C
+        self._gate("C", "Step 6 内容供给完成",
+                   next_info="输出诊断结论 + 结论自检", mandatory=True)
+
+        rc = self._output_conclusion()
+
+        # 结论自检（Deep Path 专属）
+        self._run_conclusion_review()
+
+        return rc
+
+    # ─────────────────────────────────────────────────────────
+    # GATE 实现
+    # ─────────────────────────────────────────────────────────
+
+    def _gate(self, gate_id: str, completed_info: str, next_info: str = "",
+              mandatory: bool = False) -> bool:
+        """
+        显示 GATE 信息并等待用户指令。
+        --auto 模式下直接返回 True（继续）。
+        mandatory=True 时忽略 /skip-deep，强制继续。
+        返回 True = 继续，False = 用户选择跳过深度排查
+        """
+        print(f"\n{self.GATE_BANNER}")
+        print(f"⏸️  GATE {gate_id} — {completed_info}")
+        print(self.GATE_BANNER)
+
+        if self.session:
+            snap_path = self.session.pause(gate=gate_id)
+            print(f"💾 快照已保存：{snap_path}")
+        print()
+
+        if next_info:
+            print(f"下一步：{next_info}")
+        print()
+
+        if self.auto_mode:
+            print("[--auto 模式] 自动继续...")
+            return True
+
+        # 显示可用指令
+        print("输入指令：")
+        print("  /continue    — 继续下一步")
+        if not mandatory:
+            print("  /skip-deep   — 跳过深度排查，直接输出当前结论")
+        print("  /go-deep     — 强制进入完整深度排查（若在 Standard Path）")
+        print("  /save        — 保存并退出（稍后用 --resume 恢复）")
+        print()
+
+        deadline = self.gate_timeout
+        try:
+            import select
+            print(f"（{deadline}s 内未输入将自动继续）", flush=True)
+
+            rlist, _, _ = select.select([sys.stdin], [], [], deadline)
+            if rlist:
+                cmd = sys.stdin.readline().strip().lower()
+            else:
+                print("\n[超时] 自动继续下一步...")
+                return True
+        except Exception:
+            # 非 TTY 环境（如 CI）直接继续
+            return True
+
+        if cmd in ("/save", "save"):
+            print("已保存。下次运行：")
+            if self.session:
+                print(f"  python3 scripts/diagnose.py --resume {self.session.session_file}")
+            sys.exit(0)
+
+        if not mandatory and cmd in ("/skip-deep", "skip-deep", "/skip", "skip"):
+            print("[跳过] 输出当前结论...")
+            return False
+
+        if cmd in ("/go-deep", "go-deep"):
+            self.path = "deep"
+            return True
+
+        # 默认：/continue 或任意 Enter
+        return True
+
+    # ─────────────────────────────────────────────────────────
+    # 结论输出 + 自检
+    # ─────────────────────────────────────────────────────────
+
+    def _output_conclusion(self) -> int:
+        print(f"\n{'='*60}")
+        print("📋 诊断结论")
+        print(f"{'='*60}")
+
+        # 从 diagnosis 对象获取已收集的发现
+        drop_1h = getattr(self.diagnosis, "_last_drop_1h_pct", None)
+        drop_24h = getattr(self.diagnosis, "_last_drop_24h_pct", None)
+        watchlist_hits = getattr(self.diagnosis, "_watchlist_hits", [])
+
+        print()
+        if drop_1h is not None:
+            status = "🔴 异常" if drop_1h < -10 else "🟠 关注" if drop_1h < -5 else "🟢 正常"
+            print(f"【1H新笔记曝光占比】{drop_1h:+.1f}%  {status}")
+        if drop_24h is not None:
+            status = "🔴 异常" if drop_24h < -10 else "🟠 关注" if drop_24h < -5 else "🟢 正常"
+            print(f"【24H新笔记曝光占比】{drop_24h:+.1f}%  {status}")
+
+        if watchlist_hits:
+            print(f"\n【高风险变更】共命中 {len(watchlist_hits)} 条：")
+            for h in watchlist_hits:
+                emoji = {"critical": "🔴", "high": "🟠", "medium": "🟡"}.get(h.get("level", "low"), "⚪")
+                print(f"  {emoji} {h.get('time', '?')}  {h.get('key', '?')}")
+        else:
+            print("\n【变更】watchlist 无高风险命中")
+
+        print()
+        print("【止损建议】")
+        if watchlist_hits:
+            critical = [h for h in watchlist_hits if h.get("level") == "critical"]
+            high = [h for h in watchlist_hits if h.get("level") == "high"]
+            if critical:
+                print("  🔴 立即回滚以下 Critical 级变更（需人工确认）：")
+                for h in critical:
+                    print(f"     - {h.get('key', '?')} @ {h.get('time', '?')}")
+            elif high:
+                print("  🟠 建议回滚以下 High 级变更并观察恢复情况（需人工确认）：")
+                for h in high:
+                    print(f"     - {h.get('key', '?')} @ {h.get('time', '?')}")
+        else:
+            print("  无高风险变更，建议继续观察。")
+
+        print()
+        print(f"【后续监控】")
+        print("  指标：rt_new_one_hour_new_note_imp_ratio{data_source=\"holo_rawtracker\",overview=\"true\"}")
+        print("  阈值：绝对值 < 0.065 → ⚠️ 警戒  |  < 0.060 → 🔴 立即回滚")
+
+        if self.session:
+            self.session.complete()
+
+        return 0
+
+    def _run_conclusion_review(self):
+        """运行结论自检（Deep Path 专属）"""
+        if not self.session or not self.session.session_file:
+            return
+
+        print(f"\n{'='*60}")
+        print("🔎 结论自检（上下文隔离验证）")
+        print(f"{'='*60}")
+
+        try:
+            from conclusion_review import review, print_review
+            result = review(self.session.session_file)
+            print_review(result, self.session.get("session_id", ""))
+        except Exception as e:
+            print(f"[自检跳过] {e}")
+
+    # ─────────────────────────────────────────────────────────
+    # 断点恢复
+    # ─────────────────────────────────────────────────────────
+
+    def _resume_from_snapshot(self) -> int:
+        if not self.SessionManager:
+            print("错误：session_manager 模块未找到")
+            return 1
+
+        sm = self.SessionManager(self.sessions_dir)
+        try:
+            data = sm.load(self.resume_file)
+        except FileNotFoundError as e:
+            print(f"错误：{e}")
+            return 1
+
+        print(f"\n📂 恢复会话：{data['session_id']}")
+        print(f"   路径：{data['path']}  |  上次停在 GATE {data.get('current_gate', '?')}")
+        print(f"   已完成步骤：{data['findings'].get('steps_completed', [])}")
+
+        params = data.get("diagnosis_params", {})
+        print(f"   时间范围：{params.get('start', '?')} ~ {params.get('end', '?')}")
+        print()
+        print("[恢复说明] 请重新运行诊断命令，指定相同时间范围继续排查：")
+        print(f"  python3 scripts/diagnose.py")
+        print("（当前版本断点恢复仅展示快照内容，完整恢复功能在后续版本实现）")
+        return 0
+
+    # ─────────────────────────────────────────────────────────
+    # 工具方法
+    # ─────────────────────────────────────────────────────────
+
+    def _print_header(self):
+        print()
+        print("╔" + "=" * 74 + "╗")
+        print("║" + " " * 14 + "rec-new-note-diagnosis  v4.0" + " " * 32 + "║")
+        print("║" + " " * 16 + "渐进式诊断 | Fast / Standard / Deep Path" + " " * 17 + "║")
+        print("╚" + "=" * 74 + "╝")
+        print()
+
+    def _print_knowledge_hint(self, filename: str, description: str):
+        """提示需要加载的知识文件"""
+        knowledge_path = os.path.join(self.skill_dir, "knowledge", filename)
+        if os.path.exists(knowledge_path):
+            print(f"\n📚 [知识加载] {description} → knowledge/{filename}")
 
 
 if __name__ == "__main__":

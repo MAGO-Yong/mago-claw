@@ -22,12 +22,18 @@ MySQL/MyHub 集群 AI 诊断能力，分为两层：
 
 API 调用采用**双 Token 体系**：
 
-| Token | 环境变量 | 用途 |
-|-------|----------|------|
-| `DMS_AI_TOKEN` | `DMS_AI_TOKEN` | **优先**，走 `/dms-api/ai-api/v1`（新接口） |
-| `DMS_CLAW_TOKEN` | `DMS_CLAW_TOKEN` | **兜底**，走 `/dms-api/open-claw`（旧接口） |
+| Token | 环境变量 | Header 名 | 用途 |
+|-------|----------|-----------|------|
+| `DMS_AI_TOKEN` | `DMS_AI_TOKEN` | `DMS-AI-Token` | **优先**，走 `/dms-api/ai-api/v1`（新接口） |
+| `DMS_CLAW_TOKEN` | `DMS_CLAW_TOKEN` | `dms-claw-token` | **兜底**，走 `/dms-api/open-claw`（旧接口） |
 
 两者**至少配置一个**。优先配置 `DMS_AI_TOKEN`；若 v1 接口出现网络/HTTP 异常，脚本自动降级到 open-claw。
+
+> **Token 等价说明**：`DMS_AI_TOKEN` 和 `DMS_CLAW_TOKEN` 的**值完全相同**，均来自同一套授权流程，区别仅在于：
+> - 调用 v1 接口时放在 `DMS-AI-Token` header
+> - 调用 open-claw 接口时放在 `dms-claw-token` header
+>
+> 当前暂时维护两个环境变量，保持向后兼容。后续 `DMS_CLAW_TOKEN` 会逐步下掉，统一使用 `DMS_AI_TOKEN`。
 
 **AI 启动时检查**：若 `.env` 中两个 Token 都没有，必须先完成下方授权流程再继续。
 
@@ -277,6 +283,55 @@ python3 scripts/atomic/get_raw_slow_log.py \
 
 > ⚠️ `start_time` / `end_time` 为 **UTC** 时间，北京时间 -8 小时换算。时间窗口不能超过 10 分钟。
 
+#### 🔄 超过 10 分钟时：自动切分循环调用
+
+**当诊断时间窗口超过 10 分钟时**（如需采集 17:10~17:30 共 20 分钟），**必须按 10 分钟切分，循环调用，合并结果**。
+
+```python
+# AI 编排时使用此模式（伪代码）
+from datetime import datetime, timedelta
+import os, json
+
+def fetch_slow_log_range(cluster, hostname, start_bj, end_bj, out_dir):
+    """
+    start_bj / end_bj：北京时间字符串，如 "2026-03-30 17:10:00"
+    自动按 10min 切分，每段调用一次 get_raw_slow_log，
+    所有段结果合并输出到 out_dir/get_raw_slow_log_merged.json
+    """
+    start = datetime.strptime(start_bj, "%Y-%m-%d %H:%M:%S")
+    end   = datetime.strptime(end_bj,   "%Y-%m-%d %H:%M:%S")
+    window = timedelta(minutes=10)
+    seg_no = 0
+    all_raw_texts = []
+
+    cur = start
+    while cur < end:
+        seg_end = min(cur + window, end)
+        # 北京 → UTC（-8h）
+        utc_start = (cur     - timedelta(hours=8)).strftime("%Y-%m-%d %H:%M:%S")
+        utc_end   = (seg_end - timedelta(hours=8)).strftime("%Y-%m-%d %H:%M:%S")
+        seg_dir   = f"{out_dir}/seg_{seg_no:02d}_{cur.strftime('%H%M')}_{seg_end.strftime('%H%M')}"
+
+        os.system(f"""python3 scripts/atomic/get_raw_slow_log.py \
+            --cluster {cluster} --hostname {hostname} \
+            --start "{utc_start}" --end "{utc_end}" \
+            --limit 500 --output {seg_dir} --run_id seg_{seg_no}""")
+
+        seg_json = f"{seg_dir}/raw/get_raw_slow_log.json"
+        if os.path.exists(seg_json):
+            d = json.load(open(seg_json))
+            raw = (d.get("data") or {}).get("raw_text") or ""
+            if raw:
+                all_raw_texts.append(raw)
+
+        seg_no += 1
+        cur = seg_end
+
+    return "\n".join(all_raw_texts)
+```
+
+> ⚠️ **关键**：接口 `data` 字段中，慢日志是**原始文本**（MySQL slow log 格式），不是结构化 JSON 数组。必须用正则解析 `# Time:` 分隔块，不能直接用 `data.slow_logs[]` 字段。
+
 ---
 
 ### 1-G. 慢日志聚合列表（CK）
@@ -450,6 +505,21 @@ python3 scripts/atomic/query_xray_metrics.py \
 **选择建议**：
 - 先用 `get_slow_log_list` 宏观定位问题库和 SQL 模板
 - 再用 `get_raw_slow_log` 精确定位具体实例的原始慢查询明细
+
+---
+
+### ⚠️ 时区速查表
+
+> 除 `get_raw_slow_log.py` 需要 **UTC**（北京时间 -8h）外，其余脚本 `--start`/`--end` 一律填**北京时间**。
+
+| 脚本 | 入参时区 | 备注 |
+|------|---------|------|
+| `query_xray_metrics.py` | 北京时间 | 内部自动转 UTC，输出 `time_beijing` |
+| `get_slow_log_list.py` | 北京时间 | - |
+| `get_error_log.py` | 北京时间 | 窗口 ≤ 60 分钟 |
+| `get_network_traffic.py` | 北京时间 | 内部自动转 UTC |
+| `get_active_sessions.py` | 北京时间 | `--fault_time` 参数 |
+| `get_raw_slow_log.py` | ⚡ **UTC** | 北京 -8h，窗口 ≤ 10 分钟，跨日注意日期 |
 
 ---
 
@@ -719,6 +789,38 @@ python3 scripts/common/precheck.py
 
 ---
 
+**Step 0b · 初始化诊断元信息（run_meta.json）**
+
+紧接 Step 0 之后执行，记录本次诊断的基本信息，供复盘报告自动生成使用。
+
+```bash
+python3 scripts/common/run_meta.py init \
+    --out_dir   <OUT_DIR> \
+    --cluster   <cluster> \
+    --run_id    <RUN_ID> \
+    --path      <路径类型：A/B/B2/C1/C2/D/E/F/G> \
+    --time_range "<北京时间start> ~ <北京时间end>" \
+    [--fault_time "<故障时刻 北京时间>"]
+```
+
+> **📦 交付物**：`<OUT_DIR>/run_meta.json`
+>
+> **✅ 验收条件**：文件存在，内容包含 `cluster`、`run_id`、`path` 三个字段。
+>
+> **ℹ️ 用途**：诊断过程中如有改进建议（接口异常、绕过方式、踩坑记录），随时追加：
+> ```bash
+> python3 scripts/common/run_meta.py note \
+>     --out_dir <OUT_DIR> \
+>     --text "get_error_log 接口返回 404，建议平台补全"
+> ```
+> 主报告上传后，更新 URL：
+> ```bash
+> python3 scripts/common/run_meta.py set \
+>     --out_dir <OUT_DIR> --key main_report_url --value "<url>"
+> ```
+
+---
+
 **Step 1 · 获取连接器**
 
 执行：
@@ -976,10 +1078,25 @@ python3 scripts/atomic/query_xray_metrics.py \
     --output <OUT_DIR> --run_id <RUN_ID>
 ```
 
+**SQL 命令速率组（路径 B 必采，路径 A 可选）**：
+
+```bash
+# ⑱ DML+SELECT irate（15s 粒度）——归档任务/批量写入识别
+for cmd in insert delete update select; do
+  python3 scripts/atomic/query_xray_metrics.py \
+      --pql "irate(mysql_global_status_commands_total{cluster_name=\"<cluster>\",command=\"${cmd}\"}[15s])" \
+      --start "<北京时间start>" --end "<北京时间end>" --step 15 \
+      --vmname "<master_vm_name>" --label "cmd_${cmd}" \
+      --output <OUT_DIR> --run_id <RUN_ID>
+done
+```
+
+> **归档任务识别**（Step 4 计算）：`INSERT_avg/DELETE_avg ≈ 1.0` 且两者同一 15s 窗口从 0 跳到 N/s → 归档任务特征（INSERT 新行 + DELETE 旧行各一次/事务）
+
 **配置变量组（一次性采集，取最后一个点即可）**：
 
 ```bash
-# ⑱ InnoDB 关键配置（取 end 前 1 分钟即可）
+# ⑲ InnoDB 关键配置（取 end 前 1 分钟即可）
 for var in innodb_buffer_pool_size innodb_max_dirty_pages_pct innodb_io_capacity \
            innodb_io_capacity_max innodb_page_cleaners innodb_buffer_pool_instances \
            innodb_lru_scan_depth innodb_flush_neighbors; do
@@ -1004,6 +1121,7 @@ done
 > **✅ 验收条件**：
 > - **核心组**：至少 ①②③ 采集成功（缺失任一则在报告标注"⚠️ 核心指标缺失"）
 > - **扩展组**（路径 B）：至少 ⑥⑧⑩ 采集成功（缺失则无法构建 Buffer Pool 深度分析章节，降级标注）
+> - **SQL 命令速率组**（路径 B）：⑱ 四条全部采集成功，否则无法识别归档任务型根因
 > - **配置变量组**：采集失败时标注"⚠️ 配置参数未采集，建议人工确认"
 > - **采集失败**：跳过该指标，在报告中标注"⚠️ 指标采集失败"，**不阻断流程**
 
@@ -1128,13 +1246,25 @@ python3 scripts/common/notify.py \
 
 **Step 7 · 生成复盘报告并推送**
 
+> ⚠️ **强制步骤**：复盘报告由脚本自动生成，不得手写 HTML 或跳过。
+
 ```bash
-# 1. 按 references/report_process_review.md 规范生成复盘报告，上传 DMS
+# 1. 自动生成复盘报告（从 raw/*.json 扫描组装 §1~§7）
+python3 scripts/common/generate_process_review.py \
+    --out_dir <OUT_DIR> \
+    --run_id  <RUN_ID>
+# → 输出：<OUT_DIR>/report_process_review_<RUN_ID>.html
+
+# 2. 上传 DMS
 python3 scripts/common/dms_upload.py <OUT_DIR>/report_process_review_<RUN_ID>.html \
     --file-name <cluster>-<yyyymmddHHMMSS>-slow_query-process_review.html
 # → 获得 review_dms_url
 
-# 2. 推送复盘报告链接
+# 3. 记录复盘报告 URL 到 run_meta.json
+python3 scripts/common/run_meta.py set \
+    --out_dir <OUT_DIR> --key review_report_url --value "<review_dms_url>"
+
+# 4. 推送复盘报告链接
 REVIEW_URL=<review_dms_url>
 CLUSTER=<cluster>
 TIME_RANGE="<北京时间start> ~ <北京时间end>"
@@ -1147,11 +1277,33 @@ curl -s -X POST \
 > **📦 交付物**：`report_process_review_<RUN_ID>.html`，DMS URL 已推送到群
 >
 > **✅ 验收条件**：
-> - 文件大小 > 15KB，包含 §1~§7 全部 7 章节标识符
+> - `generate_process_review.py` 输出 `✅ 复盘报告已生成`，文件存在
 > - curl 响应 `"code":0`
 > - 向用户同时回复主报告 URL 和复盘报告 URL
 >
-> **⚠️ 容错**：复盘报告生成或上传失败时跳过，向用户说明原因，不影响主报告推送状态。
+> **⚠️ 容错**：上传或推送失败时向用户说明，不影响主报告状态；生成失败需检查 `run_meta.json` 是否存在。
+
+---
+
+**Step 8 · Skill 自迭代（挂载 skill-self-evolve）**
+
+```bash
+python3 scripts/common/trigger_self_evolve.py \
+    --out_dir  <OUT_DIR> \
+    --run_id   <RUN_ID>
+```
+
+> **行为说明**：
+> - 若复盘报告不存在，自动先调用 `generate_process_review.py` 补生成
+> - 提示用户："🔄 诊断报告已就绪，是否触发 skill 自迭代？(y/N)"
+> - 用户回复 `y` → 自动执行 parse → generate_patch → apply_patch → validate 四步
+> - 用户回复 `N` 或不回复 → 静默跳过，不影响本次诊断产出
+>
+> **✅ 验收条件**：
+> - 用户确认后，四个子步骤均输出 `✅`
+> - `CHANGELOG.md` 有新增记录（时间戳在本次诊断之后）
+>
+> **⚠️ 容错**：任一子步骤失败时仅打印 warning，不影响主流程。
 
 ---
 
@@ -1582,7 +1734,9 @@ wait $P2 || { echo "❌ table_stats 失败，终止"; exit 1; }
 
 **③ 因果链推理（核心）**
 
-判断是"SQL 导致资源瓶颈"还是"资源瓶颈导致 SQL 变慢"：
+> 判断顺序：**写入型负载** → InnoDB 资源层 → SQL 层（三类互斥，按序命中第一条即止）
+
+- **写入型负载突增**（InnoDB 无异常）：wait_free=0 且 row_lock_waits≈0，且 INSERT/DELETE irate 同一 15s 窗口从 0 跳到 N/s（比值≈1.0 = 归档任务）→ 根因是批量写入/归档任务，建议错峰/限速
 
 - **SQL → 资源**（根因在 SQL 层）：
   - 慢 SQL 出现时间 **早于** CPU/wait_free 升高
@@ -1790,13 +1944,25 @@ python3 scripts/common/notify.py \
 验收：脚本输出包含 `✅ 推送成功`
 
 **Step B5** 生成复盘报告并推送
+
+> ⚠️ **强制步骤**：复盘报告由脚本自动生成，不得手写 HTML 或跳过。
+
 ```bash
-# 1. 生成复盘报告（按 references/report_process_review.md 规范）并上传 DMS
+# 1. 自动生成复盘报告
+python3 scripts/common/generate_process_review.py \
+    --out_dir <OUT_DIR> \
+    --run_id  <RUN_ID>
+
+# 2. 上传 DMS
 python3 scripts/common/dms_upload.py <OUT_DIR>/report_process_review_<RUN_ID>.html \
     --file-name <cluster>-<yyyymmddHHMMSS>-cpu_high-process_review.html
 # → 获得 review_dms_url
 
-# 2. 推送复盘报告链接
+# 3. 记录 URL
+python3 scripts/common/run_meta.py set \
+    --out_dir <OUT_DIR> --key review_report_url --value "<review_dms_url>"
+
+# 4. 推送
 REVIEW_URL=<review_dms_url>
 CLUSTER=<cluster>
 TIME_RANGE="<北京时间start> ~ <北京时间end>"
@@ -1805,8 +1971,8 @@ curl -s -X POST \
   -d "{\"msgtype\":\"markdown\",\"markdown\":{\"content\":\"## 📋 MySQL 诊断复盘报告 · \`$CLUSTER\`\\n> **类型**：CPU 高\\n> **诊断窗口**：$TIME_RANGE\\n> 📋 复盘报告 → [**点击查看诊断过程复盘**]($REVIEW_URL)\"} }" \
   "${DMS_WEBHOOK_URL:-https://redcity-open.xiaohongshu.com/api/robot/webhook/send?key=d9bf1a35-bbf6-4dc2-9c4d-7d0ebb401f40}"
 ```
-验收：curl 响应 `"code":0`；向用户同时回复主报告 URL 和复盘报告 URL。
-**⚠️ 容错**：复盘报告生成或上传失败时跳过本步骤，向用户说明原因，不影响主报告推送状态。
+验收：`generate_process_review.py` 输出 `✅ 复盘报告已生成`；curl 响应 `"code":0`；向用户同时回复主报告 URL 和复盘报告 URL。
+**⚠️ 容错**：上传或推送失败时向用户说明，不影响主报告状态；生成失败需检查 `run_meta.json` 是否存在。
 
 ---
 
@@ -1848,13 +2014,25 @@ python3 scripts/common/notify.py \
 验收：脚本输出包含 `✅ 推送成功`
 
 **Step C5** 生成复盘报告并推送
+
+> ⚠️ **强制步骤**：复盘报告由脚本自动生成，不得手写 HTML 或跳过。
+
 ```bash
-# 1. 生成复盘报告（按 references/report_process_review.md 规范）并上传 DMS
+# 1. 自动生成复盘报告
+python3 scripts/common/generate_process_review.py \
+    --out_dir <OUT_DIR> \
+    --run_id  <RUN_ID>
+
+# 2. 上传 DMS
 python3 scripts/common/dms_upload.py <OUT_DIR>/report_process_review_<RUN_ID>.html \
     --file-name <cluster>-<yyyymmddHHMMSS>-replication_lag-process_review.html
 # → 获得 review_dms_url
 
-# 2. 推送复盘报告链接
+# 3. 记录 URL
+python3 scripts/common/run_meta.py set \
+    --out_dir <OUT_DIR> --key review_report_url --value "<review_dms_url>"
+
+# 4. 推送
 REVIEW_URL=<review_dms_url>
 CLUSTER=<cluster>
 TIME_RANGE="<北京时间start> ~ <北京时间end>"
@@ -1863,8 +2041,8 @@ curl -s -X POST \
   -d "{\"msgtype\":\"markdown\",\"markdown\":{\"content\":\"## 📋 MySQL 诊断复盘报告 · \`$CLUSTER\`\\n> **类型**：主从延迟\\n> **诊断窗口**：$TIME_RANGE\\n> 📋 复盘报告 → [**点击查看诊断过程复盘**]($REVIEW_URL)\"} }" \
   "${DMS_WEBHOOK_URL:-https://redcity-open.xiaohongshu.com/api/robot/webhook/send?key=d9bf1a35-bbf6-4dc2-9c4d-7d0ebb401f40}"
 ```
-验收：curl 响应 `"code":0`；向用户同时回复主报告 URL 和复盘报告 URL。
-**⚠️ 容错**：复盘报告生成或上传失败时跳过本步骤，向用户说明原因，不影响主报告推送状态。
+验收：`generate_process_review.py` 输出 `✅ 复盘报告已生成`；curl 响应 `"code":0`；向用户同时回复主报告 URL 和复盘报告 URL。
+**⚠️ 容错**：上传或推送失败时向用户说明，不影响主报告状态；生成失败需检查 `run_meta.json` 是否存在。
 
 ---
 
@@ -1906,13 +2084,25 @@ python3 scripts/common/notify.py \
 验收：脚本输出包含 `✅ 推送成功`
 
 **Step D6** 生成复盘报告并推送
+
+> ⚠️ **强制步骤**：复盘报告由脚本自动生成，不得手写 HTML 或跳过。
+
 ```bash
-# 1. 生成复盘报告（按 references/report_process_review.md 规范）并上传 DMS
+# 1. 自动生成复盘报告
+python3 scripts/common/generate_process_review.py \
+    --out_dir <OUT_DIR> \
+    --run_id  <RUN_ID>
+
+# 2. 上传 DMS
 python3 scripts/common/dms_upload.py <OUT_DIR>/report_process_review_<RUN_ID>.html \
     --file-name <cluster>-<yyyymmddHHMMSS>-disk_full-process_review.html
 # → 获得 review_dms_url
 
-# 2. 推送复盘报告链接
+# 3. 记录 URL
+python3 scripts/common/run_meta.py set \
+    --out_dir <OUT_DIR> --key review_report_url --value "<review_dms_url>"
+
+# 4. 推送
 REVIEW_URL=<review_dms_url>
 CLUSTER=<cluster>
 TIME_RANGE="<北京时间start> ~ <北京时间end>"
@@ -1921,8 +2111,8 @@ curl -s -X POST \
   -d "{\"msgtype\":\"markdown\",\"markdown\":{\"content\":\"## 📋 MySQL 诊断复盘报告 · \`$CLUSTER\`\\n> **类型**：磁盘满\\n> **诊断窗口**：$TIME_RANGE\\n> 📋 复盘报告 → [**点击查看诊断过程复盘**]($REVIEW_URL)\"} }" \
   "${DMS_WEBHOOK_URL:-https://redcity-open.xiaohongshu.com/api/robot/webhook/send?key=d9bf1a35-bbf6-4dc2-9c4d-7d0ebb401f40}"
 ```
-验收：curl 响应 `"code":0`；向用户同时回复主报告 URL 和复盘报告 URL。
-**⚠️ 容错**：复盘报告生成或上传失败时跳过本步骤，向用户说明原因，不影响主报告推送状态。
+验收：`generate_process_review.py` 输出 `✅ 复盘报告已生成`；curl 响应 `"code":0`；向用户同时回复主报告 URL 和复盘报告 URL。
+**⚠️ 容错**：上传或推送失败时向用户说明，不影响主报告状态；生成失败需检查 `run_meta.json` 是否存在。
 
 ---
 
@@ -1962,13 +2152,25 @@ python3 scripts/common/notify.py \
 验收：脚本输出包含 `✅ 推送成功`
 
 **Step E5** 生成复盘报告并推送
+
+> ⚠️ **强制步骤**：复盘报告由脚本自动生成，不得手写 HTML 或跳过。
+
 ```bash
-# 1. 生成复盘报告（按 references/report_process_review.md 规范）并上传 DMS
+# 1. 自动生成复盘报告
+python3 scripts/common/generate_process_review.py \
+    --out_dir <OUT_DIR> \
+    --run_id  <RUN_ID>
+
+# 2. 上传 DMS
 python3 scripts/common/dms_upload.py <OUT_DIR>/report_process_review_<RUN_ID>.html \
     --file-name <cluster>-<yyyymmddHHMMSS>-process_down-process_review.html
 # → 获得 review_dms_url
 
-# 2. 推送复盘报告链接
+# 3. 记录 URL
+python3 scripts/common/run_meta.py set \
+    --out_dir <OUT_DIR> --key review_report_url --value "<review_dms_url>"
+
+# 4. 推送
 REVIEW_URL=<review_dms_url>
 CLUSTER=<cluster>
 TIME_RANGE="<北京时间start> ~ <北京时间end>"
@@ -1977,8 +2179,8 @@ curl -s -X POST \
   -d "{\"msgtype\":\"markdown\",\"markdown\":{\"content\":\"## 📋 MySQL 诊断复盘报告 · \`$CLUSTER\`\\n> **类型**：Crash\\n> **诊断窗口**：$TIME_RANGE\\n> 📋 复盘报告 → [**点击查看诊断过程复盘**]($REVIEW_URL)\"} }" \
   "${DMS_WEBHOOK_URL:-https://redcity-open.xiaohongshu.com/api/robot/webhook/send?key=d9bf1a35-bbf6-4dc2-9c4d-7d0ebb401f40}"
 ```
-验收：curl 响应 `"code":0`；向用户同时回复主报告 URL 和复盘报告 URL。
-**⚠️ 容错**：复盘报告生成或上传失败时跳过本步骤，向用户说明原因，不影响主报告推送状态。
+验收：`generate_process_review.py` 输出 `✅ 复盘报告已生成`；curl 响应 `"code":0`；向用户同时回复主报告 URL 和复盘报告 URL。
+**⚠️ 容错**：上传或推送失败时向用户说明，不影响主报告状态；生成失败需检查 `run_meta.json` 是否存在。
 
 ---
 
@@ -1996,9 +2198,13 @@ curl -s -X POST \
 
 ```bash
 python3 scripts/atomic/get_system_lock_status.py \
+    --ip      <master_ip> \
+    --port    <master_port> \
     --cluster <cluster> \
     --output <OUT_DIR> --run_id <RUN_ID>
 ```
+
+> ℹ️ `--ip` 和 `--port` 为必填参数（ai-api/v1 `get_cur_process_list` 要求节点级寻址），从 Step 1 的 `get_db_connectors.json` 中读取主库 IP/Port。
 
 读取 `_analysis.subtype` 字段，按以下规则分叉：
 
@@ -2104,13 +2310,25 @@ python3 scripts/common/notify.py \
 验收：脚本输出包含 `✅ 推送成功`
 
 **Step B2-7** 生成复盘报告并推送
+
+> ⚠️ **强制步骤**：复盘报告由脚本自动生成，不得手写 HTML 或跳过。
+
 ```bash
-# 1. 生成复盘报告（按 references/report_process_review.md 规范）并上传 DMS
+# 1. 自动生成复盘报告
+python3 scripts/common/generate_process_review.py \
+    --out_dir <OUT_DIR> \
+    --run_id  <RUN_ID>
+
+# 2. 上传 DMS
 python3 scripts/common/dms_upload.py <OUT_DIR>/report_process_review_<RUN_ID>.html \
     --file-name <cluster>-<yyyymmddHHMMSS>-conn_spike-process_review.html
 # → 获得 review_dms_url
 
-# 2. 推送复盘报告链接
+# 3. 记录 URL
+python3 scripts/common/run_meta.py set \
+    --out_dir <OUT_DIR> --key review_report_url --value "<review_dms_url>"
+
+# 4. 推送
 REVIEW_URL=<review_dms_url>
 CLUSTER=<cluster>
 TIME_RANGE="<北京时间start> ~ <北京时间end>"
@@ -2119,8 +2337,8 @@ curl -s -X POST \
   -d "{\"msgtype\":\"markdown\",\"markdown\":{\"content\":\"## 📋 MySQL 诊断复盘报告 · \`$CLUSTER\`\\n> **类型**：连接堆积\\n> **诊断窗口**：$TIME_RANGE\\n> 📋 复盘报告 → [**点击查看诊断过程复盘**]($REVIEW_URL)\"} }" \
   "${DMS_WEBHOOK_URL:-https://redcity-open.xiaohongshu.com/api/robot/webhook/send?key=d9bf1a35-bbf6-4dc2-9c4d-7d0ebb401f40}"
 ```
-验收：curl 响应 `"code":0`；向用户同时回复主报告 URL 和复盘报告 URL。
-**⚠️ 容错**：复盘报告生成或上传失败时跳过本步骤，向用户说明原因，不影响主报告推送状态。
+验收：`generate_process_review.py` 输出 `✅ 复盘报告已生成`；curl 响应 `"code":0`；向用户同时回复主报告 URL 和复盘报告 URL。
+**⚠️ 容错**：上传或推送失败时向用户说明，不影响主报告状态；生成失败需检查 `run_meta.json` 是否存在。
 
 ---
 
@@ -2169,13 +2387,25 @@ python3 scripts/common/notify.py \
 验收：脚本输出包含 `✅ 推送成功`
 
 **Step C2-6** 生成复盘报告并推送
+
+> ⚠️ **强制步骤**：复盘报告由脚本自动生成，不得手写 HTML 或跳过。
+
 ```bash
-# 1. 生成复盘报告（按 references/report_process_review.md 规范）并上传 DMS
+# 1. 自动生成复盘报告
+python3 scripts/common/generate_process_review.py \
+    --out_dir <OUT_DIR> \
+    --run_id  <RUN_ID>
+
+# 2. 上传 DMS
 python3 scripts/common/dms_upload.py <OUT_DIR>/report_process_review_<RUN_ID>.html \
     --file-name <cluster>-<yyyymmddHHMMSS>-replication_lag-process_review.html
 # → 获得 review_dms_url
 
-# 2. 推送复盘报告链接
+# 3. 记录 URL
+python3 scripts/common/run_meta.py set \
+    --out_dir <OUT_DIR> --key review_report_url --value "<review_dms_url>"
+
+# 4. 推送
 REVIEW_URL=<review_dms_url>
 CLUSTER=<cluster>
 TIME_RANGE="<北京时间start> ~ <北京时间end>"
@@ -2184,8 +2414,8 @@ curl -s -X POST \
   -d "{\"msgtype\":\"markdown\",\"markdown\":{\"content\":\"## 📋 MySQL 诊断复盘报告 · \`$CLUSTER\`\\n> **类型**：复制中断\\n> **诊断窗口**：$TIME_RANGE\\n> 📋 复盘报告 → [**点击查看诊断过程复盘**]($REVIEW_URL)\"} }" \
   "${DMS_WEBHOOK_URL:-https://redcity-open.xiaohongshu.com/api/robot/webhook/send?key=d9bf1a35-bbf6-4dc2-9c4d-7d0ebb401f40}"
 ```
-验收：curl 响应 `"code":0`；向用户同时回复主报告 URL 和复盘报告 URL。
-**⚠️ 容错**：复盘报告生成或上传失败时跳过本步骤，向用户说明原因，不影响主报告推送状态。
+验收：`generate_process_review.py` 输出 `✅ 复盘报告已生成`；curl 响应 `"code":0`；向用户同时回复主报告 URL 和复盘报告 URL。
+**⚠️ 容错**：上传或推送失败时向用户说明，不影响主报告状态；生成失败需检查 `run_meta.json` 是否存在。
 
 ---
 
@@ -2239,13 +2469,25 @@ python3 scripts/common/notify.py \
 验收：脚本输出包含 `✅ 推送成功`
 
 **Step F6** 生成复盘报告并推送
+
+> ⚠️ **强制步骤**：复盘报告由脚本自动生成，不得手写 HTML 或跳过。
+
 ```bash
-# 1. 生成复盘报告（按 references/report_process_review.md 规范）并上传 DMS
+# 1. 自动生成复盘报告
+python3 scripts/common/generate_process_review.py \
+    --out_dir <OUT_DIR> \
+    --run_id  <RUN_ID>
+
+# 2. 上传 DMS
 python3 scripts/common/dms_upload.py <OUT_DIR>/report_process_review_<RUN_ID>.html \
     --file-name <cluster>-<yyyymmddHHMMSS>-net_bandwidth-process_review.html
 # → 获得 review_dms_url
 
-# 2. 推送复盘报告链接
+# 3. 记录 URL
+python3 scripts/common/run_meta.py set \
+    --out_dir <OUT_DIR> --key review_report_url --value "<review_dms_url>"
+
+# 4. 推送
 REVIEW_URL=<review_dms_url>
 CLUSTER=<cluster>
 TIME_RANGE="<北京时间start> ~ <北京时间end>"
@@ -2254,8 +2496,8 @@ curl -s -X POST \
   -d "{\"msgtype\":\"markdown\",\"markdown\":{\"content\":\"## 📋 MySQL 诊断复盘报告 · \`$CLUSTER\`\\n> **类型**：机器带宽\\n> **诊断窗口**：$TIME_RANGE\\n> 📋 复盘报告 → [**点击查看诊断过程复盘**]($REVIEW_URL)\"} }" \
   "${DMS_WEBHOOK_URL:-https://redcity-open.xiaohongshu.com/api/robot/webhook/send?key=d9bf1a35-bbf6-4dc2-9c4d-7d0ebb401f40}"
 ```
-验收：curl 响应 `"code":0`；向用户同时回复主报告 URL 和复盘报告 URL。
-**⚠️ 容错**：复盘报告生成或上传失败时跳过本步骤，向用户说明原因，不影响主报告推送状态。
+验收：`generate_process_review.py` 输出 `✅ 复盘报告已生成`；curl 响应 `"code":0`；向用户同时回复主报告 URL 和复盘报告 URL。
+**⚠️ 容错**：上传或推送失败时向用户说明，不影响主报告状态；生成失败需检查 `run_meta.json` 是否存在。
 
 ---
 
@@ -2298,13 +2540,25 @@ python3 scripts/common/notify.py \
 验收：脚本输出包含 `✅ 推送成功`
 
 **Step G6** 生成复盘报告并推送
+
+> ⚠️ **强制步骤**：复盘报告由脚本自动生成，不得手写 HTML 或跳过。
+
 ```bash
-# 1. 生成复盘报告（按 references/report_process_review.md 规范）并上传 DMS
+# 1. 自动生成复盘报告
+python3 scripts/common/generate_process_review.py \
+    --out_dir <OUT_DIR> \
+    --run_id  <RUN_ID>
+
+# 2. 上传 DMS
 python3 scripts/common/dms_upload.py <OUT_DIR>/report_process_review_<RUN_ID>.html \
     --file-name <cluster>-<yyyymmddHHMMSS>-unknown-process_review.html
 # → 获得 review_dms_url
 
-# 2. 推送复盘报告链接
+# 3. 记录 URL
+python3 scripts/common/run_meta.py set \
+    --out_dir <OUT_DIR> --key review_report_url --value "<review_dms_url>"
+
+# 4. 推送
 REVIEW_URL=<review_dms_url>
 CLUSTER=<cluster>
 TIME_RANGE="<北京时间start> ~ <北京时间end>"
@@ -2313,5 +2567,5 @@ curl -s -X POST \
   -d "{\"msgtype\":\"markdown\",\"markdown\":{\"content\":\"## 📋 MySQL 诊断复盘报告 · \`$CLUSTER\`\\n> **类型**：IOWait\\n> **诊断窗口**：$TIME_RANGE\\n> 📋 复盘报告 → [**点击查看诊断过程复盘**]($REVIEW_URL)\"} }" \
   "${DMS_WEBHOOK_URL:-https://redcity-open.xiaohongshu.com/api/robot/webhook/send?key=d9bf1a35-bbf6-4dc2-9c4d-7d0ebb401f40}"
 ```
-验收：curl 响应 `"code":0`；向用户同时回复主报告 URL 和复盘报告 URL。
-**⚠️ 容错**：复盘报告生成或上传失败时跳过本步骤，向用户说明原因，不影响主报告推送状态。
+验收：`generate_process_review.py` 输出 `✅ 复盘报告已生成`；curl 响应 `"code":0`；向用户同时回复主报告 URL 和复盘报告 URL。
+**⚠️ 容错**：上传或推送失败时向用户说明，不影响主报告状态；生成失败需检查 `run_meta.json` 是否存在。

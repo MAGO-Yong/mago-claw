@@ -1,7 +1,8 @@
 {
-  "version": "2.1",
+  "version": "2.3",
   "description": "外流新笔记排查SOP - PromQL查询集合",
-  "last_updated": "2026-03-20",
+  "last_updated": "2026-04-08",
+  "_datasource_rule": "【强制执行规则】执行每条 query 时：若 query 内有独立的 datasource 字段，必须使用该字段值，不得使用 step 级默认 datasource。step 级 datasource 只作用于没有独立 datasource 字段的 query。当 query 返回 0 条数据时，第一步必须回源检查该 query 的 datasource 字段是否正确，而不是凭猜测枚举其他 datasource。",
   "datasource_mapping": {
     "vms-recommend": "推荐系统监控",
     "vms-search": "搜索系统监控",
@@ -10,8 +11,9 @@
   "steps": {
     "step1": {
       "name": "确认新笔记曝光占比下跌",
-      "description": "查询1H和24H新笔记曝光占比，对比-1d和-7d",
+      "description": "查询1H和24H新笔记曝光占比，必须同时查 -1d/-7d/-14d 三条基准线做置信度校验后再判断异常",
       "datasource": "vms-recommend",
+      "baseline_confidence_check": "先查三条基准线互相校验：任意两条差异>15%则较高者标记不置信，仅用置信基准与今天对比",
       "queries": {
         "1h_current": {
           "promql": "avg(avg_over_time(rt_new_one_hour_new_note_imp_ratio{data_source=\"holo_rawtracker\",overview=\"true\"}[5m]))",
@@ -19,11 +21,15 @@
         },
         "1h_offset_1d": {
           "promql": "avg(avg_over_time(rt_new_one_hour_new_note_imp_ratio{data_source=\"holo_rawtracker\",overview=\"true\"}[5m] offset 1d))",
-          "description": "1H新笔记曝光占比 - 昨天同期"
+          "description": "1H新笔记曝光占比 - 昨天同期（基准线1，需置信度校验）"
         },
         "1h_offset_7d": {
           "promql": "avg(avg_over_time(rt_new_one_hour_new_note_imp_ratio{data_source=\"holo_rawtracker\",overview=\"true\"}[5m] offset 7d))",
-          "description": "1H新笔记曝光占比 - 上周同期"
+          "description": "1H新笔记曝光占比 - 上周同期（基准线2，需置信度校验）"
+        },
+        "1h_offset_14d": {
+          "promql": "avg(avg_over_time(rt_new_one_hour_new_note_imp_ratio{data_source=\"holo_rawtracker\",overview=\"true\"}[5m] offset 14d))",
+          "description": "1H新笔记曝光占比 - 两周前同期（基准线3，需置信度校验）"
         },
         "24h_current": {
           "promql": "avg(avg_over_time(rt_new_note_imp_ratio{data_source=\"holo_rawtracker\",overview=\"true\"}[5m]))",
@@ -31,11 +37,15 @@
         },
         "24h_offset_1d": {
           "promql": "avg(avg_over_time(rt_new_note_imp_ratio{data_source=\"holo_rawtracker\",overview=\"true\"}[5m] offset 1d))",
-          "description": "24H新笔记曝光占比 - 昨天同期"
+          "description": "24H新笔记曝光占比 - 昨天同期（基准线1，需置信度校验）"
         },
         "24h_offset_7d": {
           "promql": "avg(avg_over_time(rt_new_note_imp_ratio{data_source=\"holo_rawtracker\",overview=\"true\"}[5m] offset 7d))",
-          "description": "24H新笔记曝光占比 - 上周同期"
+          "description": "24H新笔记曝光占比 - 上周同期（基准线2，需置信度校验）"
+        },
+        "24h_offset_14d": {
+          "promql": "avg(avg_over_time(rt_new_note_imp_ratio{data_source=\"holo_rawtracker\",overview=\"true\"}[5m] offset 14d))",
+          "description": "24H新笔记曝光占比 - 两周前同期（基准线3，需置信度校验）"
         }
       }
     },

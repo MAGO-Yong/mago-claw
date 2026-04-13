@@ -32,8 +32,31 @@ TOOLS = {
     'change_query': os.path.join(SKILLS_DIR, 'xray_changevent_query', 'scripts', 'query.py'),
     'metrics_query': os.path.join(SKILLS_DIR, 'xray_metrics_query', 'scripts', 'query.py'),
     'index_check': os.path.join(SKILLS_DIR, 'index-switch-check', 'scripts', 'check_switch.py'),
-    'sso': os.path.join(SKILLS_DIR, 'data-fe-common-sso', 'script', 'run-sso.sh'),
 }
+
+SSO_TOKEN_FILE = "/home/node/.token/sso_token.json"
+
+
+def read_sso_token(env: str = "prod") -> str:
+    """从全局 token 文件读取 SSO 登录态（OpenClaw 自动维护）。
+    
+    优先级：
+    1. 环境变量 SSO_COOKIE（显式传入，最高优先级）
+    2. /home/node/.token/sso_token.json（OpenClaw 自动维护，推荐主路径）
+    """
+    env_cookie = os.environ.get("SSO_COOKIE", "").strip()
+    if env_cookie:
+        return env_cookie
+    key = f"common-internal-access-token-{env}"
+    try:
+        with open(SSO_TOKEN_FILE) as f:
+            data = json.load(f)
+        token = data.get(key, "").strip()
+        if token:
+            return f"{key}={token}"
+    except Exception:
+        pass
+    return ""
 
 SEP = "=" * 76
 SEP2 = "-" * 76
@@ -332,18 +355,15 @@ def main():
     print("╚" + "=" * 74 + "╝")
     print(f"\n【诊断时间范围】{start_time.strftime('%Y-%m-%d %H:%M')} ~ {end_time.strftime('%Y-%m-%d %H:%M')}")
     
-    # 执行SSO
+    # 获取SSO登录态（直接读取 token 文件，无需调用外部脚本）
     print(f"\n{SEP}")
     print("获取登录态")
     print(SEP)
-    try:
-        r = subprocess.run([TOOLS['sso'], WORKSPACE_DIR], capture_output=True, text=True, timeout=30)
-        if r.returncode == 0:
-            print("✅ 登录态获取成功")
-        else:
-            print("⚠️ 登录态可能过期")
-    except Exception as e:
-        print(f"⚠️ 登录态获取失败: {e}")
+    token = read_sso_token()
+    if token:
+        print("✅ 登录态获取成功")
+    else:
+        print("⚠️ 登录态获取失败，请确认 /home/node/.token/sso_token.json 是否存在")
     
     # 创建引擎并执行
     engine = DecisionEngine(start_time, end_time)

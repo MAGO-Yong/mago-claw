@@ -1,6 +1,6 @@
 # 配色方案参考
 
-基于小红书品牌色系设计的 4 套 Mermaid 配色方案。所有色值均通过 Mermaid `%%{init}%%` 指令和 `classDef` 内联应用。
+共 6 套 Mermaid 配色方案。其中 4 套基于小红书品牌色系，另有青蓝和翡翠绿两套清爽风格色系。所有色值均通过 Mermaid `%%{init}%%` 指令和 `classDef` 内联应用。
 
 ---
 
@@ -265,6 +265,154 @@ classDef surface fill:#231E26,stroke:#3A3340,color:#F0E6F0,stroke-width:1px,rx:8
 
 ---
 
+## 方案五：清澈青蓝（horizon-blue）
+
+以清爽的青蓝色（Teal Blue）为主色调，搭配冷灰白底，营造现代、理性、技术感的视觉风格。
+
+### 核心色参考
+
+| 色名 | 色值 | 用途 |
+|------|------|------|
+| 青蓝 | `#087EA4` | 主色调 |
+| 深蓝 | `#044E68` | 主色加深 |
+| 天蓝 | `#E6F7FF` | 浅蓝背景 |
+| 冷白 | `#F6F7F9` | 页面底色 |
+| 亮青 | `#149ECA` | 亮青色辅助 |
+| 墨色 | `#23272F` | 深色文字 |
+
+### 色板
+
+| 角色 | 色值 | 说明 |
+|------|------|------|
+| primary fill | `#087EA4` | 青蓝主色节点 |
+| primary border | `#044E68` | 深蓝边框 |
+| primary text | `#FFFFFF` | 白色文字 |
+| secondary fill | `#E6F7FF` | 浅蓝节点背景 |
+| secondary border | `#99D6F0` | 淡蓝边框 |
+| secondary text | `#23272F` | 深色文字 |
+| accent fill | `#149ECA` | 亮青色强调节点 |
+| accent border | `#0D7EA8` | 深青色边框 |
+| accent text | `#FFFFFF` | 白色文字 |
+| neutral fill | `#F6F7F9` | 冷灰白底节点 |
+| neutral border | `#E0E3E8` | 浅灰边框 |
+| line | `#99A1B3` | 冷灰连线 |
+| text | `#23272F` | 深色文字 |
+
+### %%{init}%% 配置
+
+```
+%%{init: {
+  'theme': 'base',
+  'themeVariables': {
+    'primaryColor': '#087EA4',
+    'primaryTextColor': '#FFFFFF',
+    'primaryBorderColor': '#044E68',
+    'secondaryColor': '#E6F7FF',
+    'secondaryTextColor': '#23272F',
+    'secondaryBorderColor': '#99D6F0',
+    'tertiaryColor': '#F6F7F9',
+    'tertiaryTextColor': '#23272F',
+    'tertiaryBorderColor': '#E0E3E8',
+    'lineColor': '#99A1B3',
+    'textColor': '#23272F',
+    'fontSize': '14px',
+    'fontFamily': '"PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif'
+  }
+}}%%
+```
+
+### classDef 定义
+
+```
+classDef primary fill:#087EA4,stroke:#044E68,color:#FFFFFF,stroke-width:2px,rx:12,ry:12
+classDef secondary fill:#E6F7FF,stroke:#99D6F0,color:#23272F,stroke-width:1.5px,rx:8,ry:8
+classDef accent fill:#149ECA,stroke:#0D7EA8,color:#FFFFFF,stroke-width:2px,rx:8,ry:8
+classDef neutral fill:#F6F7F9,stroke:#E0E3E8,color:#23272F,stroke-width:1px,rx:8,ry:8
+classDef decision fill:#F6F7F9,stroke:#087EA4,color:#23272F,stroke-width:2px
+```
+
+### 适用场景
+- 技术文档和架构图
+- 蓝白色系偏好的通用图表
+- 理性、冷静风格的商务报告
+- 科技类产品说明
+
+---
+
+## 方案六：翡翠清新（evergreen）
+
+以翡翠绿为主色调，搭配深灰与纯白，呈现清新、自然、生机勃勃的视觉效果。
+
+### 核心色参考
+
+| 色名 | 色值 | 用途 |
+|------|------|------|
+| 翡翠绿 | `#42B883` | 主色调 |
+| 深绿 | `#33A06F` | 主色加深 |
+| 深灰蓝 | `#213547` | 深色文字/背景 |
+| 浅绿 | `#E8F5EE` | 浅绿背景 |
+| 薄荷 | `#AADCC8` | 薄荷绿辅助 |
+| 灰蓝 | `#476582` | 灰蓝色文字 |
+
+### 色板
+
+| 角色 | 色值 | 说明 |
+|------|------|------|
+| primary fill | `#42B883` | 翡翠绿主节点 |
+| primary border | `#33A06F` | 深绿边框 |
+| primary text | `#FFFFFF` | 白色文字 |
+| secondary fill | `#E8F5EE` | 浅绿节点背景 |
+| secondary border | `#AADCC8` | 薄荷绿边框 |
+| secondary text | `#213547` | 深色文字 |
+| accent fill | `#213547` | 深灰蓝强调节点 |
+| accent border | `#1A2A3A` | 极深边框 |
+| accent text | `#FFFFFF` | 白色文字 |
+| neutral fill | `#F9FCFA` | 极浅绿白底 |
+| neutral border | `#D9E5DF` | 浅灰绿边框 |
+| line | `#8BA3B8` | 灰蓝连线 |
+| text | `#213547` | 深色文字 |
+
+### %%{init}%% 配置
+
+```
+%%{init: {
+  'theme': 'base',
+  'themeVariables': {
+    'primaryColor': '#42B883',
+    'primaryTextColor': '#FFFFFF',
+    'primaryBorderColor': '#33A06F',
+    'secondaryColor': '#E8F5EE',
+    'secondaryTextColor': '#213547',
+    'secondaryBorderColor': '#AADCC8',
+    'tertiaryColor': '#F9FCFA',
+    'tertiaryTextColor': '#213547',
+    'tertiaryBorderColor': '#D9E5DF',
+    'lineColor': '#8BA3B8',
+    'textColor': '#213547',
+    'fontSize': '14px',
+    'fontFamily': '"PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif'
+  }
+}}%%
+```
+
+### classDef 定义
+
+```
+classDef primary fill:#42B883,stroke:#33A06F,color:#FFFFFF,stroke-width:2px,rx:12,ry:12
+classDef secondary fill:#E8F5EE,stroke:#AADCC8,color:#213547,stroke-width:1.5px,rx:8,ry:8
+classDef accent fill:#213547,stroke:#1A2A3A,color:#FFFFFF,stroke-width:2px,rx:8,ry:8
+classDef neutral fill:#F9FCFA,stroke:#D9E5DF,color:#213547,stroke-width:1px,rx:8,ry:8
+classDef decision fill:#F9FCFA,stroke:#42B883,color:#213547,stroke-width:2px
+```
+
+### 适用场景
+- 清新自然风格的图表
+- 绿色系偏好的通用图表
+- 生态环保或健康相关内容
+- 轻松友好的产品文档
+
+---
+
 ## 按场景选择方案
 
 ```
@@ -272,15 +420,18 @@ classDef surface fill:#231E26,stroke:#3A3340,color:#F0E6F0,stroke-width:1px,rx:8
 ├── 通用 / 默认 → 薯红经典 ⭐
 ├── 正式 / 商务 → 玫瑰高级
 ├── 活泼 / 创意 → 珊瑚活力
-└── 深色 / 技术 → 深红暗夜
+├── 深色 / 技术 → 深红暗夜
+├── 蓝白 / 理性 → 清澈青蓝
+└── 绿白 / 清新 → 翡翠清新
 ```
 
 ---
 
 ## 时序图专用变量
 
-时序图有额外的主题变量可以控制参与者、激活块、备注等样式：
+时序图有额外的主题变量可以控制参与者、激活块、备注等样式。
 
+### 薯红经典配色
 ```
 'actorBkg': '#FF2442',           // 参与者背景
 'actorTextColor': '#FFFFFF',     // 参与者文字
@@ -291,6 +442,32 @@ classDef surface fill:#231E26,stroke:#3A3340,color:#F0E6F0,stroke-width:1px,rx:8
 'noteBkgColor': '#FFF5F7',      // 备注背景
 'noteBorderColor': '#FFB3C1',   // 备注边框
 'noteTextColor': '#2D2D2D',     // 备注文字
+```
+
+### 清澈青蓝配色
+```
+'actorBkg': '#087EA4',           // 参与者背景
+'actorTextColor': '#FFFFFF',     // 参与者文字
+'actorBorder': '#044E68',        // 参与者边框
+'activationBkgColor': '#E6F7FF', // 激活块背景
+'activationBorderColor': '#087EA4', // 激活块边框
+'signalColor': '#23272F',       // 消息线颜色
+'noteBkgColor': '#F6F7F9',      // 备注背景
+'noteBorderColor': '#99D6F0',   // 备注边框
+'noteTextColor': '#23272F',     // 备注文字
+```
+
+### 翡翠清新配色
+```
+'actorBkg': '#42B883',           // 参与者背景
+'actorTextColor': '#FFFFFF',     // 参与者文字
+'actorBorder': '#33A06F',        // 参与者边框
+'activationBkgColor': '#E8F5EE', // 激活块背景
+'activationBorderColor': '#42B883', // 激活块边框
+'signalColor': '#213547',       // 消息线颜色
+'noteBkgColor': '#F9FCFA',      // 备注背景
+'noteBorderColor': '#AADCC8',   // 备注边框
+'noteTextColor': '#213547',     // 备注文字
 ```
 
 ---
@@ -313,8 +490,8 @@ classDef surface fill:#231E26,stroke:#3A3340,color:#F0E6F0,stroke-width:1px,rx:8
 ```
 
 ### 配色原则
-1. **主色**：使用 `#FF2442` 或其衍生色保持品牌一致性
+1. **主色一致**：选定方案后，全图使用同一套色系（品牌红、青蓝或翡翠绿）
 2. **对比度**：深色填充配白色文字，浅色填充配深色文字
 3. **层次**：最重要的节点用最醒目的颜色，次要节点用浅色
-4. **连线**：使用中性灰色（`#8C8C8C`），不与节点争注意力
+4. **连线**：使用中性灰色（如 `#8C8C8C`、`#99A1B3`、`#8BA3B8`），不与节点争注意力
 5. **一致性**：同一张图中的同类节点使用相同样式
