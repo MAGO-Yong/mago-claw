@@ -10,7 +10,7 @@ metadata: { 'openclaw': { 'requires': { 'bins': ["bun"] } } }
 技能核心能力通过 CLI 提供，在执行 CLI 命令时，必须查看运行命令的参数,**禁止**猜测命令用法：
 
 ```bash
-bunx @xhs/hi-workspace-cli@0.2.11 docs --help              # 所有命令概览
+bunx @xhs/hi-workspace-cli@0.2.12 docs --help              # 所有命令概览
 ```
 
 # 文档 shortcutId

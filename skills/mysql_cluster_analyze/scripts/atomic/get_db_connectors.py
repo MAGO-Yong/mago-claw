@@ -248,6 +248,56 @@ def fetch_connectors(cluster_name: str, db_name: str, include_master: bool = Fal
 
 
 # ──────────────────────────────────────────────
+# Fallback：instance/get-by-cluster（myhub 集群专用）
+# ──────────────────────────────────────────────
+
+def _fallback_instance_list(cluster_name: str, include_master: bool = False) -> dict | None:
+    """
+    当 get-db-connectors 接口返回 400（myhub 集群不支持）时，
+    fallback 到 /mysql/base/instance/get-by-cluster，返回全量节点。
+
+    white-screen-instance-list/get-by-cluster 仅返回白屏展示用的部分分片，
+    本接口返回完整节点列表（含全部分片，如 ads_ad_core 返回 33 个节点）。
+
+    shard 字段部分节点可能为空（lshn 前缀等跨机房节点），填充 "" 空字符串，不过滤。
+    """
+    try:
+        url = f"{V1_BASE}/mysql/base/instance/get-by-cluster?{urllib.parse.urlencode({'db_cluster': cluster_name})}"
+        d = _get(url)
+        instances = d.get("data", [])
+        if not instances:
+            print(f"[get_db_connectors] ⚠️  instance/get-by-cluster 返回空列表", file=sys.stderr)
+            return None
+
+        # 格式化为 get-db-connectors 兼容结构
+        nodes = []
+        for inst in instances:
+            role = (inst.get("role") or "slave").lower()
+            if not include_master and role == "master":
+                continue
+            nodes.append({
+                "role":      role,
+                "vm_name":   inst.get("vmName", ""),
+                "ip":        inst.get("ip", ""),
+                "port":      inst.get("port", 3306),
+                "shardName": inst.get("shardName") or "",  # 部分节点为空，填充 ""
+            })
+
+        total = len(instances)
+        masters = sum(1 for i in instances if (i.get("role") or "").lower() == "master")
+        slaves  = sum(1 for i in instances if (i.get("role") or "").lower() == "slave")
+        print(
+            f"[get_db_connectors] ✅ instance/get-by-cluster fallback 成功："
+            f"共 {total} 个节点（master={masters}, slave={slaves}）",
+            file=sys.stderr,
+        )
+        return {"data": nodes, "_fallback": "instance/get-by-cluster"}
+    except Exception as e:
+        print(f"[get_db_connectors] ❌ instance/get-by-cluster fallback 失败: {e}", file=sys.stderr)
+        return None
+
+
+# ──────────────────────────────────────────────
 # 工具函数（供外部调用）
 # ──────────────────────────────────────────────
 
@@ -305,11 +355,19 @@ def main():
                 resolved["connector_db"] = "mysql"
                 resolved["analysis_shards"] = ["mysql"]
             except RuntimeError as e2:
-                print(str(e2), file=sys.stderr)
-                sys.exit(1)
+                print(f"[get_db_connectors] ⚠️  db=mysql 也失败，尝试 instance/get-by-cluster fallback", file=sys.stderr)
+                result = _fallback_instance_list(args.cluster, args.include_master)
+                if result is None:
+                    print(str(e2), file=sys.stderr)
+                    sys.exit(1)
+                resolved["connector_db"] = "mysql"
+                resolved["analysis_shards"] = ["mysql"]
         else:
-            print(str(e), file=sys.stderr)
-            sys.exit(1)
+            print(f"[get_db_connectors] ⚠️  fetch_connectors 失败，尝试 instance/get-by-cluster fallback", file=sys.stderr)
+            result = _fallback_instance_list(args.cluster, args.include_master)
+            if result is None:
+                print(str(e), file=sys.stderr)
+                sys.exit(1)
 
     # ── 构建 _meta，明确区分 connector_db 和 analysis_shards ──
     shards = resolved["shards"]

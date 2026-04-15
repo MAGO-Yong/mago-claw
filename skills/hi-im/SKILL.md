@@ -19,10 +19,10 @@ metadata: { 'openclaw': { 'requires': { 'bins': ["bun"] } } }
 
 ```bash
 # 列出所有 im 子命令
-bunx @xhs/hi-workspace-cli@0.2.11 im --help
+bunx @xhs/hi-workspace-cli@0.2.12 im --help
 
 # 查看具体命令的参数（含输出格式）
-bunx @xhs/hi-workspace-cli@0.2.11 im:<method> --help
+bunx @xhs/hi-workspace-cli@0.2.12 im:<method> --help
 ```
 
 ## 文件上传

@@ -1,0 +1,488 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>诊断复盘 · sns_note_extra · 复制中断 · 2026-04-07</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: -apple-system, BlinkMacSystemFont, 'PingFang SC', 'Helvetica Neue', sans-serif; background: #f0f2f5; color: #333; font-size: 14px; }
+
+/* Banner */
+.banner { background: linear-gradient(135deg, #1a1a2e 0%, #0f3460 100%); color: #fff; padding: 36px 48px 28px; }
+.banner h1 { font-size: 24px; font-weight: 700; margin-bottom: 6px; }
+.banner .sub { font-size: 13px; color: rgba(255,255,255,.7); margin-bottom: 20px; }
+.banner-kpi { display: flex; gap: 24px; flex-wrap: wrap; }
+.kpi-box { background: rgba(255,255,255,.1); border-radius: 8px; padding: 10px 18px; }
+.kpi-box .val { font-size: 20px; font-weight: 700; color: #ffd700; }
+.kpi-box .lbl { font-size: 11px; color: rgba(255,255,255,.7); margin-top: 2px; }
+
+/* Layout */
+.container { max-width: 1200px; margin: 0 auto; padding: 24px 24px 48px; }
+.section-card { background: #fff; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,.07); margin-bottom: 24px; overflow: hidden; }
+.section-title { font-size: 16px; font-weight: 700; padding: 16px 24px; border-bottom: 1px solid #f0f0f0; display: flex; align-items: center; gap: 10px; }
+.section-title .tag { font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: 10px; }
+.tag-blue { background: #e8f4fd; color: #1890ff; }
+.tag-green { background: #f6ffed; color: #52c41a; }
+.tag-orange { background: #fff7e6; color: #fa8c16; }
+.tag-red { background: #fff1f0; color: #f5222d; }
+.tag-gray { background: #f5f5f5; color: #888; }
+.section-body { padding: 20px 24px; }
+
+/* Chat bubbles */
+.chat { display: flex; flex-direction: column; gap: 14px; }
+.bubble-row { display: flex; align-items: flex-start; gap: 10px; }
+.bubble-row.user { flex-direction: row-reverse; }
+.avatar { width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700; flex-shrink: 0; }
+.avatar.user-av { background: #0f3460; color: #fff; }
+.avatar.ai-av { background: #1890ff; color: #fff; }
+.bubble { max-width: 75%; padding: 10px 16px; border-radius: 12px; font-size: 13px; line-height: 1.6; }
+.bubble.user { background: #0f3460; color: #fff; border-bottom-right-radius: 4px; }
+.bubble.ai { background: #f5f5f5; color: #333; border-bottom-left-radius: 4px; border: 1px solid #e8e8e8; }
+.bubble code { font-family: monospace; font-size: 12px; background: rgba(0,0,0,.1); padding: 1px 5px; border-radius: 3px; }
+
+/* Phase cards */
+.phase-card { border-radius: 8px; margin-bottom: 16px; overflow: hidden; }
+.phase-head { padding: 10px 16px; font-weight: 700; font-size: 13px; color: #fff; display: flex; align-items: center; gap: 8px; }
+.ph-p0 { background: linear-gradient(90deg, #1a1a2e, #264653); }
+.ph-p1 { background: linear-gradient(90deg, #0e6655, #1abc9c); }
+.ph-collect { background: linear-gradient(90deg, #7b241c, #c0392b); }
+.ph-confirm { background: linear-gradient(90deg, #784212, #e67e22); }
+.ph-output { background: linear-gradient(90deg, #1a5276, #2980b9); }
+.phase-body { background: #fafafa; border: 1px solid #e8e8e8; border-top: none; border-radius: 0 0 8px 8px; padding: 14px 16px; }
+
+.step-row { display: flex; gap: 10px; margin-bottom: 10px; align-items: flex-start; }
+.step-row:last-child { margin-bottom: 0; }
+.step-icon { font-size: 16px; flex-shrink: 0; width: 24px; text-align: center; }
+.step-content { flex: 1; }
+.step-title { font-weight: 600; font-size: 13px; margin-bottom: 3px; }
+.step-desc { font-size: 12px; color: #666; line-height: 1.6; }
+.step-result { margin-top: 5px; font-size: 12px; background: #f0f0f0; padding: 6px 10px; border-radius: 5px; font-family: monospace; color: #333; }
+.step-result.ok { background: #f6ffed; border-left: 3px solid #52c41a; }
+.step-result.warn { background: #fff7e6; border-left: 3px solid #fa8c16; }
+.step-result.err { background: #fff1f0; border-left: 3px solid #f5222d; }
+
+/* Flow chart */
+.flow { display: flex; align-items: center; gap: 0; flex-wrap: wrap; padding: 16px 0; overflow-x: auto; }
+.flow-node { display: flex; flex-direction: column; align-items: center; padding: 10px 14px; border-radius: 8px; font-size: 11px; font-weight: 600; text-align: center; min-width: 90px; max-width: 120px; }
+.flow-node .fn-title { font-size: 11px; font-weight: 700; margin-bottom: 3px; }
+.flow-node .fn-sub { font-size: 10px; font-weight: 400; opacity: .8; }
+.flow-node .fn-status { margin-top: 4px; font-size: 10px; }
+.fn-trigger { background: #fff7e6; border: 1.5px solid #fa8c16; color: #ad4e00; }
+.fn-collect { background: #e6f7ff; border: 1.5px solid #1890ff; color: #0050b3; }
+.fn-analyze { background: #fff0f6; border: 1.5px solid #eb2f96; color: #780650; }
+.fn-output { background: #f6ffed; border: 1.5px solid #52c41a; color: #135200; }
+.fn-blocked { background: #f5f5f5; border: 1.5px dashed #bbb; color: #999; }
+.flow-arrow { color: #aaa; font-size: 18px; margin: 0 2px; flex-shrink: 0; }
+
+/* Tool cards */
+.tool-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
+.tool-card { border-radius: 8px; border: 1px solid #e8e8e8; padding: 14px; border-top: 3px solid #0f3460; }
+.tool-card .tc-name { font-weight: 700; font-size: 13px; margin-bottom: 5px; font-family: monospace; }
+.tool-card .tc-desc { font-size: 12px; color: #666; line-height: 1.5; margin-bottom: 8px; }
+.tool-card .tc-status { font-size: 11px; padding: 2px 8px; border-radius: 10px; display: inline-block; }
+.ts-ok { background: #f6ffed; color: #52c41a; }
+.ts-warn { background: #fff7e6; color: #fa8c16; }
+.ts-err { background: #fff1f0; color: #f5222d; }
+
+/* Finding grid */
+.find-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+.find-card { border-radius: 8px; border: 1px solid #e8e8e8; padding: 14px; }
+.find-card.pos { border-left: 4px solid #52c41a; }
+.find-card.lim { border-left: 4px solid #fa8c16; }
+.find-card .fc-head { font-weight: 700; font-size: 13px; margin-bottom: 6px; }
+.find-card .fc-body { font-size: 12px; color: #555; line-height: 1.6; }
+
+/* Exp grid */
+.exp-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+.exp-card { border-radius: 8px; background: #f9f9f9; border: 1px solid #e8e8e8; padding: 14px; }
+.exp-num { font-size: 22px; font-weight: 900; color: #ddd; float: right; }
+.exp-title { font-weight: 700; font-size: 13px; margin-bottom: 6px; color: #0f3460; }
+.exp-desc { font-size: 12px; color: #555; line-height: 1.65; clear: both; }
+
+/* Matrix table */
+table { width: 100%; border-collapse: collapse; }
+th { background: #f5f5f5; font-size: 12px; font-weight: 700; padding: 8px 12px; text-align: left; border-bottom: 1px solid #e8e8e8; }
+td { font-size: 12px; padding: 8px 12px; border-bottom: 1px solid #f0f0f0; vertical-align: top; }
+td a { color: #1890ff; text-decoration: none; }
+.matrix-table th, .matrix-table td { font-size: 11px; padding: 6px 10px; border: 1px solid #e8e8e8; }
+.matrix-table th { background: #f0f2f5; }
+.hit { background: #f6ffed; color: #135200; font-weight: 700; }
+.miss { background: #f5f5f5; color: #999; }
+
+code { font-family: monospace; font-size: 12px; background: #f5f5f5; padding: 1px 5px; border-radius: 3px; color: #c7254e; }
+pre { background: #f5f5f5; border: 1px solid #e8e8e8; border-radius: 6px; padding: 12px 16px; font-size: 12px; line-height: 1.7; overflow-x: auto; }
+
+@media (max-width: 768px) {
+  .tool-grid, .find-grid, .exp-grid { grid-template-columns: 1fr; }
+  .banner { padding: 24px; }
+  .banner-kpi { gap: 12px; }
+}
+</style>
+</head>
+<body>
+
+<!-- Banner -->
+<div class="banner">
+  <h1>📋 诊断复盘报告 · sns_note_extra · 复制中断</h1>
+  <div class="sub">路径 C2（复制中断） &nbsp;·&nbsp; 故障时刻：2026-04-07 14:43:00 &nbsp;·&nbsp; 分析窗口：14:13 ~ 15:13 &nbsp;·&nbsp; Run ID：sns_note_extra_c2_20260409_200000</div>
+  <div class="banner-kpi">
+    <div class="kpi-box"><div class="val">C2</div><div class="lbl">诊断路径</div></div>
+    <div class="kpi-box"><div class="val">0.0</div><div class="lbl">SQL Thread 运行值（持续停止）</div></div>
+    <div class="kpi-box"><div class="val">1.0</div><div class="lbl">IO Thread 运行值（全程正常）</div></div>
+    <div class="kpi-box"><div class="val">14:40:45</div><div class="lbl">节点首个 xray 数据点（上线时间）</div></div>
+    <div class="kpi-box"><div class="val">6</div><div class="lbl">工具调用次数</div></div>
+  </div>
+</div>
+
+<div class="container">
+
+  <!-- §1 用户提问 -->
+  <div class="section-card">
+    <div class="section-title">§1 · 用户提问（原始输入）<span class="tag tag-gray">对话还原</span></div>
+    <div class="section-body">
+      <div class="chat">
+        <div class="bubble-row user">
+          <div class="avatar user-av">CF</div>
+          <div class="bubble user">分析集群告警问题</div>
+        </div>
+        <div class="bubble-row">
+          <div class="avatar ai-av">AI</div>
+          <div class="bubble ai">收到。读取 SKILL.md，确认路径：集群 sns_note_extra，告警时间 2026-04-07 14:43，告警类型为 MySQL 复制异常，进入路径 C2（复制中断）分析流程。</div>
+        </div>
+        <div class="bubble-row user">
+          <div class="avatar user-av">CF</div>
+          <div class="bubble user">不要管以前，重新分析</div>
+        </div>
+        <div class="bubble-row">
+          <div class="avatar ai-av">AI</div>
+          <div class="bubble ai">收到，全新 RUN_ID：<code>sns_note_extra_c2_20260409_200000</code>，忽略之前所有分析结论，从 Phase 0 重新开始。分析窗口：2026-04-07 14:13:00 ~ 15:13:00（故障前后各30分钟）。</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- §2 完整分析流程 -->
+  <div class="section-card">
+    <div class="section-title">§2 · 完整分析流程（Step by Step）<span class="tag tag-blue">路径 C2 · 复制中断</span></div>
+    <div class="section-body">
+
+      <!-- Phase 0 -->
+      <div class="phase-card">
+        <div class="phase-head ph-p0">🔍 Phase 0 · 初始化 &amp; 节点采集</div>
+        <div class="phase-body">
+
+          <div class="step-row">
+            <div class="step-icon">🏗️</div>
+            <div class="step-content">
+              <div class="step-title">P0-0 · run_meta 初始化</div>
+              <div class="step-desc">写入 start_time，记录 cluster / path / time_range / fault_time</div>
+              <div class="step-result ok">cluster=sns_note_extra &nbsp; path=C2 &nbsp; fault_time=2026-04-07 14:43:00</div>
+            </div>
+          </div>
+
+          <div class="step-row">
+            <div class="step-icon">🔌</div>
+            <div class="step-content">
+              <div class="step-title">P0-1 · get_db_connectors — 节点拓扑采集</div>
+              <div class="step-desc">集群 sns_note_extra，connectType=myhub，自动 fallback 到 /mysql/base/instance/get-by-cluster</div>
+              <div class="step-result ok">返回 111 个节点，全部 role=slave；⚠️ 告警节点 qsh8-db-sns-note-extra-d-zsiha-1 不在列表（k8s 动态 pod，节点列表未注册）</div>
+            </div>
+          </div>
+
+          <div class="step-row">
+            <div class="step-icon">📡</div>
+            <div class="step-content">
+              <div class="step-title">P0-2 · get_slave_status — 节点元数据采集</div>
+              <div class="step-desc">采集 qsh8-db-sns-note-extra-d-vhfcq-1（qsh8 区可达节点，zsiha 不可直接查）</div>
+              <div class="step-result ok">Seconds_Behind=0 &nbsp; CPU=4.8% &nbsp; IO_Wait=0.4% &nbsp; role=slave &nbsp; shard=rs01<br>
+              ⚠️ DMS get_slave_status 返回节点元数据，非 SHOW SLAVE STATUS；Last_Error 字段不可用</div>
+            </div>
+          </div>
+
+          <div class="step-row">
+            <div class="step-icon">📋</div>
+            <div class="step-content">
+              <div class="step-title">P0-3 · get_error_log — mysqld 错误日志</div>
+              <div class="step-desc">--hostname qsh8-db-sns-note-extra-d-zsiha-1，窗口 UTC 06:13~07:13（北京时间 14:13~15:13）</div>
+              <div class="step-result warn">HTTP 404 — 节点不在 DMS error_log 索引（k8s 动态节点命名规范 -zsiha- 未注册）<br>改用 vhfcq-1 节点查询：总行数 0，Error 0，Warning 0（14:13~15:13 窗口无异常）</div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- Phase 1 -->
+      <div class="phase-card">
+        <div class="phase-head ph-p1">🧭 Phase 1 · xray 监控指标采集 &amp; 推理</div>
+        <div class="phase-body">
+
+          <div class="step-row">
+            <div class="step-icon">📊</div>
+            <div class="step-content">
+              <div class="step-title">Step 1 · query_xray_metrics — slave_io_running（窗口 14:13~15:13）</div>
+              <div class="step-desc">PromQL: mysql_slave_status_slave_io_running{cluster_name="sns_note_extra"}，vmname 过滤 zsiha-1</div>
+              <div class="step-result ok">min=1.0 &nbsp; max=1.0 &nbsp; avg=1.0 &nbsp; 共 130 点<br>首个数据点：2026-04-07 14:40:45（xray 在此之前无数据，节点上线时间确认）<br>→ IO Thread 全程正常，binlog 传输无问题</div>
+            </div>
+          </div>
+
+          <div class="step-row">
+            <div class="step-icon">📊</div>
+            <div class="step-content">
+              <div class="step-title">Step 2 · query_xray_metrics — slave_sql_running（扩展窗口 13:00~16:00）</div>
+              <div class="step-desc">向前扩窗验证节点上线前是否有数据；向后扩窗确认 SQL Thread 是否恢复</div>
+              <div class="step-result err">min=0.0 &nbsp; max=0.0 &nbsp; avg=0.0 &nbsp; 共 318 点（13:00~16:00 全程为 0）<br>首个数据点：2026-04-07 14:40:45（与 io_running 首点一致，节点 14:40 上线）<br>→ SQL Thread 从未启动，从上线到分析结束（次日 15:15）持续为 0</div>
+            </div>
+          </div>
+
+          <div class="step-row">
+            <div class="step-icon">📊</div>
+            <div class="step-content">
+              <div class="step-title">Step 3 · query_xray_metrics — seconds_behind_master（13:00~16:00）</div>
+              <div class="step-desc">验证复制延迟是否可观测</div>
+              <div class="step-result warn">filtered_series=0，无数据<br>→ SQL Thread 停止，延迟无法计算，xray 无 seconds_behind 指标（符合预期）</div>
+            </div>
+          </div>
+
+          <div class="step-row">
+            <div class="step-icon">🧭</div>
+            <div class="step-content">
+              <div class="step-title">Step 4 · 推理矩阵</div>
+              <div class="step-desc">基于三路指标确定中断类型</div>
+              <table class="matrix-table" style="margin-top:8px">
+                <tr>
+                  <th>维度</th><th>采集结果</th><th>推理结论</th>
+                </tr>
+                <tr>
+                  <td>slave_io_running</td>
+                  <td>1.0（全程正常）</td>
+                  <td class="hit">✅ IO Thread 正常，binlog 传输无障碍，非网络/主库问题</td>
+                </tr>
+                <tr>
+                  <td>slave_sql_running</td>
+                  <td>0.0（从未为 1）</td>
+                  <td class="hit">❌ SQL Thread 从未启动过（非"中断后停止"，而是"从未开始"）</td>
+                </tr>
+                <tr>
+                  <td>seconds_behind_master</td>
+                  <td>无数据</td>
+                  <td>SQL Thread 停止导致，符合预期</td>
+                </tr>
+                <tr>
+                  <td>xray 首个数据点</td>
+                  <td>14:40:45</td>
+                  <td class="hit">节点 14:40 上线，告警 14:43 触发（上线后 2 分 15 秒）</td>
+                </tr>
+                <tr>
+                  <td>error_log</td>
+                  <td>404 / 0 条</td>
+                  <td class="miss">k8s 节点未注册，Last_Error 不可获取</td>
+                </tr>
+              </table>
+              <div class="step-result ok" style="margin-top:8px">推理结论：新节点上线后 SQL Thread 从未启动（非传统复制中断），置信度 HIGH</div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- Phase 2 -->
+      <div class="phase-card">
+        <div class="phase-head ph-confirm">🔎 Phase 2 · 根因确认</div>
+        <div class="phase-body">
+
+          <div class="step-row">
+            <div class="step-icon">🎯</div>
+            <div class="step-content">
+              <div class="step-title">根因归纳</div>
+              <div class="step-desc">综合所有采集数据</div>
+              <div class="step-result ok">
+                <b>直接根因：</b>节点 qsh8-db-sns-note-extra-d-zsiha-1 于 14:40:45 加入集群，IO Thread 正常启动（binlog 传输正常），但 <b>SQL Thread 从未被启动</b>，relay log 从未被回放。<br><br>
+                <b>告警触发逻辑：</b>DMS 监控在 14:43:00 检测到该节点 slave_sql_running=0（上线后约 2 分钟），触发 P0 复制异常告警。<br><br>
+                <b>持续时间：</b>截至分析时（2026-04-08 15:15）仍未恢复，SQL Thread 持续停止超过 24 小时。<br><br>
+                <b>数据盲区：</b>error_log 不可获取（k8s 动态节点），Last_SQL_Error 内容未知，无法确认是"未执行 START SLAVE"还是"启动后立即报错停止"。
+              </div>
+            </div>
+          </div>
+
+          <div class="step-row">
+            <div class="step-icon">❌</div>
+            <div class="step-content">
+              <div class="step-title">假说排除</div>
+              <div class="step-desc"></div>
+              <div class="step-result ok">
+                · <b>主库宕机 / binlog 断层：</b>排除（slave_io_running=1，IO Thread 全程正常）<br>
+                · <b>网络分区：</b>排除（IO Thread 正常，binlog 传输无中断）<br>
+                · <b>持续延迟累积：</b>排除（SQL Thread 从未启动，非延迟场景）<br>
+                · <b>既有节点复制中断：</b>排除（xray 数据从 14:40 才存在，节点是新上线的）
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- Phase 3 -->
+      <div class="phase-card">
+        <div class="phase-head ph-output">📤 Phase 3 · 报告输出</div>
+        <div class="phase-body">
+          <div class="step-row">
+            <div class="step-icon">✅</div>
+            <div class="step-content">
+              <div class="step-title">主报告生成 &amp; 上传 DMS</div>
+              <div class="step-result ok">path_c2_report.py → sns-note-extra_path-C2_20260409.html → DMS 上传成功 → Webhook 推送成功</div>
+            </div>
+          </div>
+          <div class="step-row">
+            <div class="step-icon">✅</div>
+            <div class="step-content">
+              <div class="step-title">复盘报告生成 &amp; 上传 DMS</div>
+              <div class="step-result ok">AI 生成本报告 → DMS 上传成功 → Webhook 推送成功</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- §3 数据采集流图 -->
+  <div class="section-card">
+    <div class="section-title">§3 · 数据采集流图<span class="tag tag-blue">6 次工具调用</span></div>
+    <div class="section-body">
+      <div class="flow">
+        <div class="flow-node fn-trigger"><div class="fn-title">告警触发</div><div class="fn-sub">14:43 复制异常</div><div class="fn-status">🔴</div></div>
+        <div class="flow-arrow">→</div>
+        <div class="flow-node fn-collect"><div class="fn-title">get_db_connectors</div><div class="fn-sub">111节点拓扑</div><div class="fn-status">✅</div></div>
+        <div class="flow-arrow">→</div>
+        <div class="flow-node fn-collect"><div class="fn-title">get_slave_status</div><div class="fn-sub">节点元数据</div><div class="fn-status">✅</div></div>
+        <div class="flow-arrow">→</div>
+        <div class="flow-node fn-blocked"><div class="fn-title">get_error_log</div><div class="fn-sub">zsiha 404</div><div class="fn-status">⚠️</div></div>
+        <div class="flow-arrow">→</div>
+        <div class="flow-node fn-analyze"><div class="fn-title">xray: io_running</div><div class="fn-sub">min=max=1.0</div><div class="fn-status">✅</div></div>
+        <div class="flow-arrow">→</div>
+        <div class="flow-node fn-analyze"><div class="fn-title">xray: sql_running</div><div class="fn-sub">min=max=0.0</div><div class="fn-status">❌</div></div>
+        <div class="flow-arrow">→</div>
+        <div class="flow-node fn-output"><div class="fn-title">根因确认</div><div class="fn-sub">SQL Thread 未启动</div><div class="fn-status">🎯</div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- §4 工具链使用情况 -->
+  <div class="section-card">
+    <div class="section-title">§4 · 工具链使用情况<span class="tag tag-green">5 成功 &nbsp; 1 受限</span></div>
+    <div class="section-body">
+      <div class="tool-grid">
+        <div class="tool-card">
+          <div class="tc-name">get_db_connectors</div>
+          <div class="tc-desc">集群节点拓扑采集（主从 IP/Port/Role）</div>
+          <span class="tc-status ts-ok">✅ 成功 &nbsp; 24.1 KB</span>
+        </div>
+        <div class="tool-card">
+          <div class="tc-name">get_slave_status</div>
+          <div class="tc-desc">从库节点元数据（CPU/IO/Delay）</div>
+          <span class="tc-status ts-ok">✅ 成功 &nbsp; 1.0 KB</span>
+        </div>
+        <div class="tool-card" style="border-top-color:#fa8c16">
+          <div class="tc-name">get_error_log</div>
+          <div class="tc-desc">mysqld 错误日志采集（告警节点 zsiha-1）</div>
+          <span class="tc-status ts-warn">⚠️ 404 — k8s 节点未注册</span>
+        </div>
+        <div class="tool-card">
+          <div class="tc-name">query_xray_metrics</div>
+          <div class="tc-desc">slave_io_running 时序（13:00~16:00）</div>
+          <span class="tc-status ts-ok">✅ 成功 &nbsp; filtered=1</span>
+        </div>
+        <div class="tool-card">
+          <div class="tc-name">query_xray_metrics</div>
+          <div class="tc-desc">slave_sql_running 时序（13:00~16:00）</div>
+          <span class="tc-status ts-ok">✅ 成功 &nbsp; filtered=1</span>
+        </div>
+        <div class="tool-card">
+          <div class="tc-name">get_slow_log_list</div>
+          <div class="tc-desc">CK 聚合慢查询（14:00~15:30），辅助上下文</div>
+          <span class="tc-status ts-ok">✅ 成功 &nbsp; 6.8 KB</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- §5 关键发现 -->
+  <div class="section-card">
+    <div class="section-title">§5 · 关键发现总结<span class="tag tag-orange">3 项发现 &nbsp; 1 项局限</span></div>
+    <div class="section-body">
+      <div class="find-grid">
+        <div class="find-card pos">
+          <div class="fc-head">✅ IO Thread 全程正常</div>
+          <div class="fc-body">slave_io_running 在整个分析窗口（14:40~15:13）持续为 1.0，共 130 个数据点无波动。主从网络链路完好，binlog 传输无中断，排除网络/主库问题。</div>
+        </div>
+        <div class="find-card pos">
+          <div class="fc-head">✅ 节点上线时间精确确认</div>
+          <div class="fc-body">xray 首个数据点为 14:40:45，与告警触发时间 14:43:00 相差 2 分 15 秒。这是新节点上线触发告警的典型时序（监控检测延迟约 2 分钟）。</div>
+        </div>
+        <div class="find-card pos">
+          <div class="fc-head">❌ SQL Thread 从未启动</div>
+          <div class="fc-body">slave_sql_running 全程为 0.0（318 个数据点），且无从 1 变 0 的切换点——这不是"中断"，而是"从未开始"。截至次日 15:15 仍未恢复，relay log 积压超过 24 小时未回放。</div>
+        </div>
+        <div class="find-card lim">
+          <div class="fc-head">⚠️ Last_SQL_Error 不可获取</div>
+          <div class="fc-body">告警节点 zsiha-1 为 k8s 动态节点，不在 DMS error_log 索引中（HTTP 404）。无法确认是"未执行 START SLAVE"还是"启动后立即报错停止"。需登录节点执行 SHOW SLAVE STATUS\G 确认。</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- §6 改进建议 -->
+  <div class="section-card">
+    <div class="section-title">§6 · 改进建议 &amp; 经验沉淀<span class="tag tag-blue">4 条</span></div>
+    <div class="section-body">
+      <div class="exp-grid">
+        <div class="exp-card">
+          <div class="exp-num">1</div>
+          <div class="exp-title">🔴 P0 · 立即确认 Last_SQL_Error</div>
+          <div class="exp-desc">登录 qsh8-db-sns-note-extra-d-zsiha-1，执行 <code>SHOW SLAVE STATUS\G</code>，查看 Last_SQL_Error 字段：<br>· 若为空 → 直接 <code>START SLAVE SQL_THREAD</code><br>· 若为主键冲突 → <code>SET GLOBAL SQL_SLAVE_SKIP_COUNTER=1; START SLAVE SQL_THREAD</code><br>· 若为 GTID 断层 → 需重建从库</div>
+        </div>
+        <div class="exp-card">
+          <div class="exp-num">2</div>
+          <div class="exp-title">🟡 P1 · 新节点上线 SOP 补充校验步骤</div>
+          <div class="exp-desc">新从库上线流程中增加强制校验：节点上线后 60 秒内必须确认 Slave_SQL_Running=Yes。建议在 DMS 自动化运维流水线中增加此检查，发现 SQL Thread 未启动时自动告警并阻断上线。</div>
+        </div>
+        <div class="exp-card">
+          <div class="exp-num">3</div>
+          <div class="exp-title">🟡 P1 · k8s 动态节点 error_log 采集盲区</div>
+          <div class="exp-desc">-zsiha- 类命名的 k8s 动态节点不在 DMS error_log 索引中，遇到此类节点时 get_error_log 会 404。SKILL.md 应补充说明：对 k8s 动态节点，error_log 采集步骤标记为"受限"，改用 xray 指标作为主要数据源。</div>
+        </div>
+        <div class="exp-card">
+          <div class="exp-num">4</div>
+          <div class="exp-title">🔵 P2 · get_slave_status 语义澄清</div>
+          <div class="exp-desc">DMS get_slave_status API 返回的是节点元数据（CPU/IO/sqlDelay），而非 MySQL 原生 <code>SHOW SLAVE STATUS</code> 输出（Last_Error/GTID/IO Thread/SQL Thread）。SKILL.md 和路径 C2 文档需补充此说明，避免误以为可以从该接口获取 Last_SQL_Error。</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- §7 关联报告 -->
+  <div class="section-card">
+    <div class="section-title">§7 · 关联报告</div>
+    <div class="section-body">
+      <table>
+        <tr><th>报告类型</th><th>链接</th><th>说明</th></tr>
+        <tr>
+          <td>主报告（根因分析）</td>
+          <td><a href="https://dms.devops.xiaohongshu.com/dms-api/v1/ai-files/sns-note-extra_path-C2_20260409.html" target="_blank">sns-note-extra_path-C2_20260409.html →</a></td>
+          <td>路径C2诊断报告，含 KPI 格子 + 影响范围 + 建议</td>
+        </tr>
+        <tr>
+          <td>本复盘报告</td>
+          <td><a href="https://dms.devops.xiaohongshu.com/dms-api/v1/ai-files/report_process_review_sns_note_extra_c2_20260409_200000.html" target="_blank">report_process_review_sns_note_extra_c2_20260409_200000.html →</a></td>
+          <td>诊断过程复盘，含 Phase-by-Phase 分析流程还原</td>
+        </tr>
+      </table>
+    </div>
+  </div>
+
+  <div style="font-size:11px;color:#aaa;text-align:right;margin-top:8px">生成时间：2026-04-09 20:31 CST &nbsp;·&nbsp; AI 生成，数据来源 raw/*.json</div>
+
+</div>
+</body>
+</html>

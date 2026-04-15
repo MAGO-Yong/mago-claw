@@ -87,6 +87,8 @@ def save(out_dir: str, data: dict) -> None:
 
 def cmd_init(args):
     path_label = PATH_LABELS.get(args.path, args.path)
+    # 先读已有数据（Sai 可能已提前写入 start_time），merge 而非覆盖
+    existing = load(args.out_dir)
     data = {
         "cluster":           args.cluster,
         "run_id":            args.run_id,
@@ -99,9 +101,14 @@ def cmd_init(args):
         "notes":             [],
         "created_at":        datetime.now(CST).isoformat(),
     }
+    # 保留已有的 start_time（Sai 在 Phase 0 开始前写入，覆盖会导致 token 统计窗口丢失）
+    if "start_time" in existing:
+        data["start_time"] = existing["start_time"]
     save(args.out_dir, data)
     print(f"[run_meta] ✅ 初始化完成：{meta_path(args.out_dir)}")
     print(f"  cluster={data['cluster']}  path={data['path']}({path_label})  run_id={data['run_id']}")
+    if "start_time" in data:
+        print(f"  start_time 已保留：{data['start_time']}")
 
 
 def cmd_set(args):

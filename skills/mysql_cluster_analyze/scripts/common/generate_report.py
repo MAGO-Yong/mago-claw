@@ -1,4 +1,8 @@
 #!/usr/bin/env python3
+# ⚠️ DEPRECATED（2026-04-10）
+# 历史兼容文件，依赖旧渲染架构（report_data_models / report_generator）。
+# 当前所有路径已改为 AI 直接生成 HTML + publish_report.py 发布。
+# 新路径禁止调用本脚本。保留仅供旧数据格式兼容场景参考。
 """
 快速报告生成入口
 支持从 JSON 数据文件生成报告
@@ -40,7 +44,8 @@ def main():
     parser.add_argument('--node', default='', help='节点名称')
     parser.add_argument('--fault-time', default='', help='故障时间')
     parser.add_argument('--period', default='', help='分析时段')
-    parser.add_argument('--output', required=True, help='输出文件路径')
+    parser.add_argument('--path', default='', help='诊断路径字母，如 D / F / C2（用于文件命名）')
+    parser.add_argument('--output', default='', help='输出文件路径（不传则按命名规范自动生成）')
     
     # 报告类型
     parser.add_argument('--limited', action='store_true', help='生成受限分析报告')
@@ -50,7 +55,6 @@ def main():
     parser.add_argument('--input', help='JSON 数据文件路径')
     parser.add_argument('--gap-json', help='数据缺口 JSON 文件（受限报告用）')
     parser.add_argument('--events-json', help='事件列表 JSON 文件')
-    parser.add_argument('--conclusions-json', help='结论 JSON 文件')
     
     args = parser.parse_args()
     
@@ -62,10 +66,69 @@ def main():
     else:
         report_type = ReportType.COMPLETE
     
+    # P0-2：命名规范 —— {cluster}_{path}_{date}.html
+    if not args.output:
+        date_str = datetime.now().strftime("%Y%m%d")
+        path_seg = f"path-{args.path}" if args.path else "report"
+        cluster_slug = args.cluster.replace("_", "-")
+        args.output = f"{cluster_slug}_{path_seg}_{date_str}.html"
+
     # 加载或构建报告数据
     if args.input:
-        # 从完整 JSON 加载
+        # 从完整 JSON 加载，并将嵌套 dict 转换为对应 dataclass
+        from report_data_models import (
+            SummaryCard, TimelineData, TimelinePoint, TimelineEvent,
+            TableStatsEntry, TableStats, IndexStats, ExplainResult,
+            ImpactAssessment, AppendixData, SlowQuerySummary
+        )
         data_dict = load_json(args.input)
+
+        # 转换 summary_card
+        if isinstance(data_dict.get("summary_card"), dict):
+            data_dict["summary_card"] = SummaryCard(**data_dict["summary_card"])
+
+        # 转换 timeline
+        if isinstance(data_dict.get("timeline"), dict):
+            td = data_dict["timeline"]
+            points = [TimelinePoint(**p) for p in td.get("points", [])]
+            events = [TimelineEvent(**e) for e in td.get("events", [])]
+            data_dict["timeline"] = TimelineData(points=points, events=events)
+
+        # 转换 table_stats_list
+        if isinstance(data_dict.get("table_stats_list"), list):
+            entries = []
+            for entry in data_dict["table_stats_list"]:
+                ts = TableStats(**entry["table_stats"]) if isinstance(entry.get("table_stats"), dict) else entry.get("table_stats")
+                idx = [IndexStats(**i) for i in entry.get("index_stats", [])]
+                exp = [ExplainResult(**e) for e in entry.get("explain_results", [])]
+                entries.append(TableStatsEntry(
+                    table_stats=ts,
+                    index_stats=idx,
+                    explain_results=exp,
+                    sql_template=entry.get("sql_template", "")
+                ))
+            data_dict["table_stats_list"] = entries
+
+        # 转换 impact
+        if isinstance(data_dict.get("impact"), dict):
+            data_dict["impact"] = ImpactAssessment(**data_dict["impact"])
+
+        # 转换 appendix
+        if isinstance(data_dict.get("appendix"), dict):
+            data_dict["appendix"] = AppendixData(**data_dict["appendix"])
+
+        # 转换 slow_query_summary
+        if isinstance(data_dict.get("slow_query_summary"), dict):
+            # SlowQuerySummary 可能字段不完全对应，过滤掉多余字段
+            import dataclasses
+            sq_fields = {f.name for f in dataclasses.fields(SlowQuerySummary)}
+            sq_dict = {k: v for k, v in data_dict["slow_query_summary"].items() if k in sq_fields}
+            data_dict["slow_query_summary"] = SlowQuerySummary(**sq_dict)
+
+        # report_type 枚举转换
+        if isinstance(data_dict.get("report_type"), str):
+            data_dict["report_type"] = ReportType(data_dict["report_type"])
+
         report_data = ReportData(**data_dict)
     else:
         # 构建基础报告数据
@@ -75,6 +138,7 @@ def main():
             fault_time=args.fault_time,
             analysis_period=args.period,
             report_type=report_type,
+            path=args.path,
             generated_at=datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         )
         
@@ -91,8 +155,10 @@ def main():
     
     # 生成报告
     generator = ReportGenerator()
-    output_path = generator.generate(report_data, args.output)
-    
+    output_path, missing = generator.generate(report_data, args.output)
+    if missing:
+        print(f"[report-check] ⚠️ 缺少章节: {missing}")
+
     print(f"✅ 报告已生成: {output_path}")
     print(f"   类型: {report_type.value}")
     print(f"   集群: {args.cluster}")

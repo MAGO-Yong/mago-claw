@@ -47,43 +47,43 @@
     },
     "calendar": {
       "version": "1.0.8",
-      "installedAt": 1775997859239
+      "installedAt": 1776264862595
     },
     "summarize": {
       "version": "1.0.0",
-      "installedAt": 1775997859724
+      "installedAt": 1776264863076
     },
     "docx": {
       "version": "1.0.0",
-      "installedAt": 1775997860286
+      "installedAt": 1776264863600
     },
     "pptx": {
       "version": "1.0.0",
-      "installedAt": 1775997860878
+      "installedAt": 1776264864108
     },
     "xlsx": {
       "version": "1.0.0",
-      "installedAt": 1775997861435
+      "installedAt": 1776264864656
     },
     "hi-docs": {
-      "version": "1.0.6",
-      "installedAt": 1775997861906
+      "version": "1.0.7",
+      "installedAt": 1776264865136
     },
     "hi-im": {
-      "version": "1.0.5",
-      "installedAt": 1775997862369
+      "version": "1.0.6",
+      "installedAt": 1776264865628
     },
     "hi-search": {
-      "version": "1.0.7",
-      "installedAt": 1775997862831
+      "version": "1.0.8",
+      "installedAt": 1776264866103
     },
     "hi-todos": {
-      "version": "1.0.6",
-      "installedAt": 1775997863307
+      "version": "1.0.7",
+      "installedAt": 1776264866595
     },
     "hi-calendar": {
-      "version": "1.0.5",
-      "installedAt": 1775997863762
+      "version": "1.0.6",
+      "installedAt": 1776264867075
     },
     "ones-assistant": {
       "version": "1.0.6",
@@ -110,12 +110,20 @@
       "installedAt": 1775555141578
     },
     "hi-assistant-profile": {
-      "version": "1.0.2",
-      "installedAt": 1776055904316
+      "version": "1.0.3",
+      "installedAt": 1776219460234
     },
     "mysql_cluster_analyze": {
-      "version": "1.0.4",
-      "installedAt": 1776055904928
+      "version": "1.0.5",
+      "installedAt": 1776219460878
+    },
+    "pingcode-create-workitem": {
+      "version": "1.0.0",
+      "installedAt": 1776250092232
+    },
+    "pingcode-query-workitem": {
+      "version": "1.0.0",
+      "installedAt": 1776250098051
     }
   }
 }
