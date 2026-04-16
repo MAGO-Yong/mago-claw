@@ -1,35 +1,27 @@
-# Diff Report: snapshot → 2026-04-15
+# Backup Diff: 2026-04-16 → 2026-04-17
 
-_Generated: 2026-04-15 02:01:43 CST_
-_对比基准: backup/snapshot（上次提交快照）_
+生成时间: 2026-04-17 02:00 (Asia/Shanghai)
 
-## MEMORY.md
-_无变化_
+## MEMORY.md — 无变更
 
-## SOUL.md
-_无变化_
+## AGENTS.md — 无变更
 
-## AGENTS.md
-_无变化_
+## SOUL.md — 无变更
 
-## ROUTING.md
-_无变化_
+## ROUTING.md — 无变更
 
-## USER.md
-_（快照中无此文件，今日新增）_
+## HEARTBEAT.md — 无变更
 
-## TOOLS.md
-_（快照中无此文件，今日新增）_
+## TOOLS.md — 无变更
 
-## HEARTBEAT.md
-_（快照中无此文件，今日新增）_
+## USER.md — 无变更
 
-## memory/ 目录变化
-
-**新增文件**:
-- ai-eval-pr-draft.md
-- ones-assistant-eval-report-2026-04-14.md
-
-**删除文件**:
-- memory
+## memory/ 目录变更
+**新增文件:**
+- 2026-04-16.md
+- alarm-agent-requirements-v0.3.md
+- alarm-agent-requirements-v0.4.md
+- alarm-agent-requirements-v0.5.md
+- alarm-agent-requirements-v0.6.md
+- alarm-agent-requirements-v0.6-redoc.md
 
