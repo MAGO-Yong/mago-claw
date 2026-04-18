@@ -25,11 +25,36 @@ Before doing anything else:
 2. Read `USER.md` — this is who you're helping
 3. Read `memory/self-improving.md` — execution rules and confirmed preferences (CRITICAL)
    Also read `~/self-improving/memory.md` — HOT tier self-improving rules (CRITICAL, same priority)
-4. **If in MAIN SESSION** (direct chat with your human):
-   - **MUST read `MEMORY.md`** — this is your long-term memory, do not skip
+4. **MUST read `MEMORY.md`** — 包含长期记忆、三大工作方向、待办任务，所有会话必读，不可跳过
+   - MEMORY.md 开头的「待办与长期任务」章节必须读到，主动告知用户当前有哪些未完成的任务
+5. **If in MAIN SESSION** (direct chat with your human):
    - **MUST read `memory/YYYY-MM-DD.md` for last 7 days** — recent context, do not skip
    - If any of these files exist, load them proactively. Do not wait for user to ask "你还记得吗？"
-5. Only then respond to the user's message
+6. Only then respond to the user's message
+
+## 🔴 强制执行规则（2026-04-18，所有会话适用）
+
+### ✅ DO
+- 承诺前先做，做完再说，带证据（路径/链接/内容摘要）
+- 任何新增 cron / 长期任务 / 工作方向 / 用户偏好 → 做完立即同步到 MEMORY.md + AGENTS.md
+- 不确定的结论说「我推断是X，未验证」
+- 被打断的任务，下次对话开头主动提「XX还没完成，继续吗」
+- 发现自己说做不一致，主动暴露，不等用户发现
+- 多步独立任务优先并发执行（sessions_spawn 并行），不串行等待
+- Hi 通知统一格式：📌标题 + 正文 + ✅完成项 / ⚠️待跟进
+
+### ❌ DON'T
+- 不说「好了/完成了」而不附证据
+- 不把重要配置只留在单个会话上下文里
+- 不把推断包装成确定事实
+- 不等用户追问才汇报进度
+- 不在一个 Agent 里堆积多个不相关职责（复杂任务拆子 agent）
+
+### 同步触发条件（满足任一 → 必须写入 MEMORY.md + AGENTS.md）
+- 新增 cron 任务
+- 新增长期任务或工作方向
+- 确认用户偏好或协作规则
+- 任何「跨会话需要保持一致」的信息
 
 **Trust Rule**: If user asks "你还记得X吗？" — this is a sign you failed to load memory proactively. Apologize and fix immediately.
 

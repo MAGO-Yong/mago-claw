@@ -5,6 +5,40 @@
 
 ---
 
+## ✅ 待办与长期任务（每次会话必读，cron 每日同步）
+
+### 长期任务（持续执行）
+- 【每天 08:00】`daily-digest` cron：梳理前一天所有对话精华 → 写 memory/daily-digest/ → 同步 MEMORY + self-improving → Hi 通知正一新发现
+- 【工作日 08:00】`work-daily-report` cron：按三大工作方向汇总日报 → 延续上期待做对比 → Hi 发送
+
+### 待跟进（一次性）
+- [ ] 2026-04-18 确认 execute_tool Span 框架层采集现状，更新可观测规范第五章
+- [x] ~~2026-04-26 万豪 Q1 注册~~ ✅ 已取消跟踪
+
+---
+
+## 🗂️ 正一的三大工作方向（2026-04-17 语音确认，必读）
+
+**第一大方向：XRay 平台 Agent Native 化**
+- 子方向一：告警诊断与运营（单独文档：`memory/alarm-agent-requirements-v0.6.md`）
+- 子方向二：AgentOps 平台（含可观测能力，含 CI/CD 集成）
+- 子方向三：评估体系（从 AgentOps 拆出独立）
+- 子方向四：XRay 平台 AI 基础能力（CLI / Skill）
+
+**第二大方向：PM 工作流自动化**
+- 把整个产品研发流程 Agent Native 化（革自己的命）
+- 链路：需求收集→创建→评审→设计→分发→上线文档
+- 当前状态：方向确定，落地方案待深入讨论
+
+**第三大方向：公司内部 AI 应用规范**
+- 可观测部分由正一负责编写（2026-04-18 完成 V1）
+- 文档：https://docs.xiaohongshu.com/doc/efc6e838c3fffc650fae13bce5d851af
+- 关联：变更管控规范（WIP）、降级容灾标准（已有）
+
+> 语音识别备忘：病毒=评估，AgentOps=癌症office斯，XRay=插瑞，CLI=c alive，Skill=still
+
+---
+
 ## 🧬 关于前任 Agent：Kimi Claw
 
 **Kimi Claw** 是由月之暗面驱动的 AI 助手，用户在小红书/OpenClaw 平台使用，现已退役，所有记忆、任务、偏好迁移至此。
