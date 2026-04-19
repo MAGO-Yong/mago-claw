@@ -19,10 +19,10 @@ metadata: { 'openclaw': { 'requires': { 'bins': ["bun"] } } }
 
 ```bash
 # 列出所有 todos 子命令
-bunx @xhs/hi-workspace-cli@0.2.12 todos --help
+bunx @xhs/hi-cli@0.2.15 todos --help
 
 # 查看具体命令的参数（含输出格式）
-bunx @xhs/hi-workspace-cli@0.2.12 todos:<method> --help
+bunx @xhs/hi-cli@0.2.15 todos:<method> --help
 ```
 
 以下是 `--help` 中没有的约束和指引。

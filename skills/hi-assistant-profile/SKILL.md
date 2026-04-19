@@ -11,7 +11,7 @@ metadata: { 'openclaw': { 'requires': { 'bins': ["bun"] } } }
 
 > 当前仅支持**修改**操作，暂不支持查询当前助理信息。如果用户想先查看现有信息再修改，请告知此限制。
 >
-> 如果不确定参数用法，可先执行 `bunx @xhs/hi-workspace-cli@0.2.12 assistant-profile:update-info --help` 查看。
+> 如果不确定参数用法，可先执行 `bunx @xhs/hi-cli@0.2.15 assistant-profile:update-info --help` 查看。
 
 ## 修改助理信息
 
@@ -35,7 +35,7 @@ curl -L -o /tmp/assistant_avatar_$(date +%s).png "<图片URL>"
 ls -l /tmp/assistant_avatar_*.png
 
 # 然后将下载后的本地路径传给命令
-bunx @xhs/hi-workspace-cli@0.2.12 assistant-profile:update-info --icon /tmp/assistant_avatar_<时间戳>.png
+bunx @xhs/hi-cli@0.2.15 assistant-profile:update-info --icon /tmp/assistant_avatar_<时间戳>.png
 ```
 
 **下载后验证**：

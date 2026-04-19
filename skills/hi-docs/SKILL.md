@@ -10,7 +10,7 @@ metadata: { 'openclaw': { 'requires': { 'bins': ["bun"] } } }
 技能核心能力通过 CLI 提供，在执行 CLI 命令时，必须查看运行命令的参数,**禁止**猜测命令用法：
 
 ```bash
-bunx @xhs/hi-workspace-cli@0.2.12 docs --help              # 所有命令概览
+bunx @xhs/hi-cli@0.2.15 docs --help              # 所有命令概览
 ```
 
 # 文档 shortcutId
@@ -101,12 +101,14 @@ Hi 文档的 spaceId 是文档空间的唯一标识符。
 
 **支持的操作**：
 
-| op 类型 | 说明 |
-|---------|------|
-| `edit` | 用新的 Markdown 内容**替换**目标块的全部内容 |
-| `insert_before` | 在目标块**前方**插入新内容（Markdown） |
-| `insert_after` | 在目标块**后方**插入新内容（Markdown） |
-| `remove` | 删除目标块 |
+| op 类型 | 说明 | 参数 |
+|---------|------|------|
+| `edit` | 用新的 Markdown 内容**替换**目标块的全部内容 | `blockId` + `content` |
+| `insert_before` | 在目标块**前方**插入新内容（Markdown） | `blockId` + `content` |
+| `insert_after` | 在目标块**后方**插入新内容（Markdown） | `blockId` + `content` |
+| `remove` | 删除目标块 | `blockId` |
+| `move_before` | 将 `blockId` 块**移动到** `targetBlockId` 块的**前方** | `blockId` + `targetBlockId` |
+| `move_after` | 将 `blockId` 块**移动到** `targetBlockId` 块的**后方** | `blockId` + `targetBlockId` |
 
 **注意**：
 - 多个操作按数组顺序依次执行

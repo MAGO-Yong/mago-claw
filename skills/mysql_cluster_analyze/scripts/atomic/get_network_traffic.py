@@ -9,6 +9,11 @@ get_network_traffic.py — 查询集群网络流量监控指标
   查询集群网络带宽使用情况（network_in / network_out），用于带宽告警诊断（路径 F）。
   通过分析流量时序判断：是 DTS 迁移导致的预期高负载，还是业务大查询/大结果集异常。
 
+  双数据源自动回退：
+  1. 优先查 vms-db（cluster_name 标签，DMS 管控节点）
+  2. 若 vms-db 无数据（0 series）且提供了 --vm_ip，自动回退到 vms-vm（instance 标签，覆盖所有云主机）
+  适用场景：vms-db 未覆盖的节点（如非 DMS 管控机、备份恢复时的临时机器）
+
 指标说明：
   network_in  — 入方向流量（Mbps，由 node_network_receive_bytes_total 换算）
   network_out — 出方向流量（Mbps，由 node_network_transmit_bytes_total 换算）
@@ -18,6 +23,7 @@ get_network_traffic.py — 查询集群网络流量监控指标
       --cluster <cluster_name> \\
       --start "2026-03-26 14:00:00" \\
       --end "2026-03-26 15:00:00" \\
+      [--vm_ip <master_ip>]   # 提供后，vms-db 无数据时自动回退 vms-vm
       [--output <dir>] [--run_id <id>]
 """
 
@@ -45,12 +51,11 @@ def to_utc_ts(dt_str: str) -> int:
         raise ValueError(
             f"[get_network_traffic] 时间格式错误（期望 'YYYY-MM-DD HH:MM:SS'）: {e}"
         )
-    # 明确指定为北京时间（UTC+8），timestamp() 自动转 UTC
     dt_cst = dt.replace(tzinfo=_CST)
     return int(dt_cst.timestamp())
 
 
-def _query_pql(pql: str, start_ts: int, end_ts: int, step: int = 30) -> list:
+def _query_pql(pql: str, start_ts: int, end_ts: int, step: int = 30, datasource: str = "vms-db") -> list:
     """执行单条 PromQL 查询，返回 series 列表。"""
     payload = {
         "app": "pangu",
@@ -58,7 +63,7 @@ def _query_pql(pql: str, start_ts: int, end_ts: int, step: int = 30) -> list:
         "start": start_ts,
         "end": end_ts,
         "step": step,
-        "datasource": "vms-db",
+        "datasource": datasource,
     }
     result = call_with_fallback(
         lambda: _http_post(f"{AI_V1_PREFIX}/grafana/fetch_data_by_pql", payload, _AI_HEADERS, timeout=20),
@@ -72,12 +77,43 @@ def _query_pql(pql: str, start_ts: int, end_ts: int, step: int = 30) -> list:
     return outer.get("data", {}).get("data") or []
 
 
-def fetch_network_metrics(cluster_name: str, start: str, end: str) -> dict:
-    """通过 Grafana PromQL 查询集群网络流量（RX / TX），转换为 Mbps。"""
+def _extract_values(series_list: list) -> list:
+    """从 grafana series 格式提取所有数值点。"""
+    vals = []
+    for s in series_list:
+        for point in s.get("values", []):
+            v = point.get("value")
+            if v is not None:
+                try:
+                    vals.append(float(v))
+                except (TypeError, ValueError):
+                    pass
+    return vals
+
+
+def _has_data(series_list: list) -> bool:
+    """判断 series 是否有有效数据点。"""
+    return any(
+        point.get("value") is not None
+        for s in series_list
+        for point in s.get("values", [])
+    )
+
+
+def fetch_network_metrics(cluster_name: str, start: str, end: str, vm_ip: str = None) -> dict:
+    """
+    通过 Grafana PromQL 查询集群网络流量（RX / TX），转换为 Mbps。
+
+    策略：
+    1. 先用 vms-db（cluster_name 标签）查询
+    2. 若 vms-db 返回 0 有效数据点 且提供了 vm_ip，自动回退 vms-vm（instance=~"{vm_ip}:.*"）
+    """
     start_ts = to_utc_ts(start)
     end_ts = to_utc_ts(end)
 
-    # bytes/s → Mbps：× 8 / 1_000_000
+    datasource_used = "vms-db"
+
+    # ---- vms-db 查询（cluster_name 标签，DMS 管控节点）----
     pql_rx = (
         f'sum(irate(node_network_receive_bytes_total'
         f'{{cluster_name=~"{cluster_name}", device!~"lo"}}[1m])) * 8 / 1000000'
@@ -88,30 +124,42 @@ def fetch_network_metrics(cluster_name: str, start: str, end: str) -> dict:
     )
 
     try:
-        rx_series = _query_pql(pql_rx, start_ts, end_ts)
-        tx_series = _query_pql(pql_tx, start_ts, end_ts)
+        rx_series = _query_pql(pql_rx, start_ts, end_ts, datasource="vms-db")
+        tx_series = _query_pql(pql_tx, start_ts, end_ts, datasource="vms-db")
     except Exception as e:
-        raise RuntimeError(f"[get_network_traffic] 请求失败：{e}")
+        raise RuntimeError(f"[get_network_traffic] vms-db 请求失败：{e}")
 
-    def extract_values(series_list: list) -> list[float]:
-        """从 grafana series 格式提取所有数值点。"""
-        vals = []
-        for s in series_list:
-            for point in s.get("values", []):
-                v = point.get("value")
-                if v is not None:
-                    try:
-                        vals.append(float(v))
-                    except (TypeError, ValueError):
-                        pass
-        return vals
+    # ---- 检查是否有数据，若无且提供了 vm_ip，回退 vms-vm ----
+    if not _has_data(rx_series) and not _has_data(tx_series) and vm_ip:
+        print(
+            f"[get_network_traffic] vms-db 无数据（cluster_name=~\"{cluster_name}\"），"
+            f"回退 vms-vm（instance=~\"{vm_ip}:.*\"）",
+            file=sys.stderr,
+        )
+        datasource_used = "vms-vm"
+        # vms-vm 使用 instance=~"{IP}:.*" 过滤（node_exporter 标签格式）
+        pql_rx = (
+            f'sum(irate(node_network_receive_bytes_total'
+            f'{{instance=~"{vm_ip}:.*", device!~"lo"}}[1m])) * 8 / 1000000'
+        )
+        pql_tx = (
+            f'sum(irate(node_network_transmit_bytes_total'
+            f'{{instance=~"{vm_ip}:.*", device!~"lo"}}[1m])) * 8 / 1000000'
+        )
+        try:
+            rx_series = _query_pql(pql_rx, start_ts, end_ts, datasource="vms-vm")
+            tx_series = _query_pql(pql_tx, start_ts, end_ts, datasource="vms-vm")
+        except Exception as e:
+            raise RuntimeError(f"[get_network_traffic] vms-vm 请求失败：{e}")
 
     return {
         "cluster": cluster_name,
+        "vm_ip": vm_ip,
+        "datasource_used": datasource_used,
         "time_range": {"start": start, "end": end},
         "data": {
-            "network_in_mbps": extract_values(rx_series),
-            "network_out_mbps": extract_values(tx_series),
+            "network_in_mbps": _extract_values(rx_series),
+            "network_out_mbps": _extract_values(tx_series),
         },
     }
 
@@ -141,6 +189,14 @@ def analyze_traffic(data: dict) -> dict:
 
     in_vals = [v for v in metrics.get("network_in_mbps", []) if v is not None]
     out_vals = [v for v in metrics.get("network_out_mbps", []) if v is not None]
+
+    if not in_vals and not out_vals:
+        summary["interpretation"] = (
+            "无有效数据点。vms-db 和 vms-vm 均无数据，请确认 --vm_ip 是否正确"
+            if data.get("vm_ip") else
+            "vms-db 无数据。若告警节点不在 DMS 管控范围，请传入 --vm_ip 触发 vms-vm 回退"
+        )
+        return summary
 
     if in_vals:
         summary["peak_in_mbps"] = round(max(in_vals), 2)
@@ -184,6 +240,10 @@ def main():
     parser.add_argument("--cluster", required=True, help="集群名称")
     parser.add_argument("--start", required=True, help="开始时间，格式：YYYY-MM-DD HH:MM:SS（北京时间）")
     parser.add_argument("--end", required=True, help="结束时间，格式：YYYY-MM-DD HH:MM:SS（北京时间）")
+    parser.add_argument(
+        "--vm_ip", default="",
+        help="告警节点 IP（如 10.65.1.166）。提供后，若 vms-db 无数据则自动回退 vms-vm",
+    )
     parser.add_argument("--output", default="", help="输出目录")
     parser.add_argument("--run_id", default="", help="本次运行 ID")
     args = parser.parse_args()
@@ -193,7 +253,7 @@ def main():
         sys.exit(1)
 
     try:
-        result = fetch_network_metrics(args.cluster, args.start, args.end)
+        result = fetch_network_metrics(args.cluster, args.start, args.end, vm_ip=args.vm_ip or None)
     except RuntimeError as e:
         print(str(e), file=sys.stderr)
         sys.exit(1)
@@ -214,8 +274,10 @@ def main():
 
     # 打印摘要到 stderr
     s = summary
+    ds = result.get("datasource_used", "vms-db")
     print(
-        f"[get_network_traffic] 峰值入流量={s['peak_in_mbps']} Mbps  峰值出流量={s['peak_out_mbps']} Mbps  "
+        f"[get_network_traffic] datasource={ds}  "
+        f"峰值入流量={s['peak_in_mbps']} Mbps  峰值出流量={s['peak_out_mbps']} Mbps  "
         f"模式={s['pattern']}  高位={s['is_high']}",
         file=sys.stderr,
     )

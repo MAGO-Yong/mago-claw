@@ -10,7 +10,7 @@ metadata: { 'openclaw': { 'requires': { 'bins': ["bun"] } } }
 技能核心能力通过 CLI 提供，在执行 CLI 命令时，**禁止**猜测命令用法：
 
 ```bash
-bunx @xhs/hi-workspace-cli@0.2.12 search --help              # 所有命令概览
+bunx @xhs/hi-cli@0.2.15 search --help              # 所有命令概览
 ```
 
 ## 技能使用方式

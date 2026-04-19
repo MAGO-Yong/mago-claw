@@ -7,8 +7,10 @@
 
 ```bash
 # F1-a：告警窗口网络 pattern
+# ⚠️ 告警节点 IP 必须传入 --vm_ip：vms-db 无数据时自动回退 vms-vm（覆盖非 DMS 管控节点）
 python3 scripts/atomic/get_network_traffic.py \
     --cluster <cluster> \
+    --vm_ip <master_ip> \
     --start "<告警时间前30分钟>" --end "<告警时间后30分钟>" \
     --output <OUT_DIR> --run_id <RUN_ID>
 

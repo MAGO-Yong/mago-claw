@@ -1,16 +1,16 @@
 ---
 name: xray-metric-query
 description:
-  统一指标数据查询，支持三种查询模式：1)
+  统一指标数据查询，支持四种查询模式：1)
   系统/中间件模板指标查询（CPU、内存、JVM、RPC、Redis、MySQL、MQ、HTTP、线程池、Sentinel 等）；2)
   PromQL(PQL) 自定义查询；3) Cat 指标查询（transaction/event/problem 的
-  QPS、耗时、成功率等）。根据数据量智能返回原始数据或特征数据。当用户想要查询服务的系统指标、中间件指标、JVM
+  QPS、耗时、成功率等）；4) Cat 元数据查询（type/name 列表）。根据数据量智能返回原始数据或特征数据。当用户想要查询服务的系统指标、中间件指标、JVM
   信息、Cat 指标（transaction/event/problem）、或执行 PQL/PromQL 查询时使用此 skill。
 ---
 
 # 统一指标数据查询 Metric Query
 
-这个 skill 是统一的指标数据查询入口，支持三种查询模式，覆盖所有常见的指标查询场景。
+这个 skill 是统一的指标数据查询入口，支持系统指标、PQL、Cat 时序和 Cat 元数据查询，覆盖所有常见的指标查询场景。
 
 ## 工作流程
 
@@ -24,7 +24,12 @@ description:
    - 用户想按**接口维度**拆分查看（如「各接口的 QPS」「按接口看耗时」「哪个接口最慢」）
    - 用户指定了具体的接口名称（如「getUserInfo 的 tp99」）
    - 用户想按**机器/Pod 维度**或**机房维度**拆分看 Cat 类指标
-3. **system 模式**（默认） — 用户提到具体的指标名称（CPU、内存、JVM、RPC、Redis 等）且不涉及接口级拆分 →
+   - 用户提到了业务自定义埋点的名称（非通用系统指标，如 `PromVmsClient`、`SendAlarm` 等）→ cat 模式，将该名称作为 `--type` 传入
+3. **cat-meta 模式** — 用户想查询 Cat 可用元数据，或时序查询缺少准确的 `type` / `name` 且需要先发现候选值 → `--mode cat-meta`
+   - 不传 `--type`：查询该 app/theme 下可用的 type 列表
+   - 传 `--type`：查询该 type 下可用的 name 列表
+   - 元数据结果可直接用于后续 `cat` 时序查询的 `--type` / `--names`
+4. **system 模式**（默认） — 用户提到具体的指标名称（CPU、内存、JVM、RPC、Redis 等）且不涉及接口级拆分 →
    `--mode system`
 
 > **歧义处理**：
@@ -48,8 +53,8 @@ description:
 
 | 参数      | 必需   | 说明                                 |
 | --------- | ------ | ------------------------------------ |
-| `--start` | 是     | 开始时间，格式 `yyyy-MM-dd HH:mm:ss` |
-| `--end`   | 是     | 结束时间，格式 `yyyy-MM-dd HH:mm:ss` |
+| `--start` | cat-meta 不需要，其他模式必需 | 开始时间，格式 `yyyy-MM-dd HH:mm:ss` |
+| `--end`   | cat-meta 不需要，其他模式必需 | 结束时间，格式 `yyyy-MM-dd HH:mm:ss` |
 | `--app`   | 视模式 | 服务名，system/cat 必填，pql 可选    |
 
 #### system 模式参数
@@ -75,14 +80,23 @@ description:
 | 参数          | 必需 | 说明                                                                                                 |
 | ------------- | ---- | ---------------------------------------------------------------------------------------------------- |
 | `--theme`     | 否   | 主题：`transaction`（默认）/ `event` / `problem`                                                     |
-| `--metric`    | 否   | 指标：`qps`（默认）/ `avg` / `tp99` / `tp95` / `tp90` / `count` / `fail_percent` / `success_percent` |
-| `--type`      | 否   | Cat 类型，单选：`Call` / `Service` / `Http` / `URL` 等                                               |
+| `--metric`    | 否   | 单个指标：`qps`（默认）/ `avg` / `tp99` / `tp95` / `tp90` / `count` / `failPercent` / `successPercent` |
+| `--metrics`   | 否   | 多个指标，逗号分隔。优先级高于 `--metric`，适合一次查询 `qps,count,failPercent,tp99` 等组合 |
+| `--type`      | 否   | Cat 埋点类型，单选。常见通用值：`Call`（下游调用）、`Service`（服务端）、`Http`、`URL`。**业务方可自定义任意埋点类型**（如 `PromVmsClient`、`RedisClient` 等），用户提到具体埋点名称时直接作为 `--type` 值传入，不要强行映射到通用类型。 |
 | `--types`     | 否   | Cat 类型，多选（逗号分隔），与 `--type` 互斥。默认 `Service,Http`                                    |
 | `--names`     | 否   | 接口名称，逗号分隔。默认 `All`                                                                       |
 | `--zones`     | 否   | 机房列表，逗号分隔。默认 `All`                                                                       |
 | `--ips`       | 否   | IP 列表，逗号分隔。默认 `All`                                                                        |
 | `--step`      | 否   | 步长（秒），默认 60                                                                                  |
 | `--group-bys` | 否   | 分组维度，逗号分隔。可选值：`ip`（按机器/Pod）、`name`（按接口名）、`zone`（按机房/可用区）          |
+
+#### cat-meta 模式参数
+
+| 参数      | 必需 | 说明                                                                 |
+| --------- | ---- | -------------------------------------------------------------------- |
+| `--app`   | 是   | 服务名                                                               |
+| `--theme` | 否   | 主题：`transaction`（默认）/ `event` / `problem`                     |
+| `--type`  | 否   | 不传时查询 type 列表；传入具体 type 时查询该 type 下的 name 列表     |
 
 ---
 
@@ -105,6 +119,20 @@ python {SKILL_DIR}/scripts/query.py --mode cat \
   --app "creator-service-default" \
   --start "2025-05-30 10:00:00" --end "2025-05-30 11:00:00" \
   --theme transaction --metric qps --type Call
+
+# cat 模式 — 一次查询多个 Cat 指标
+python {SKILL_DIR}/scripts/query.py --mode cat \
+  --app "creator-service-default" \
+  --start "2025-05-30 10:00:00" --end "2025-05-30 11:00:00" \
+  --theme transaction --metrics "qps,count,failPercent,tp99" --type Service
+
+# cat-meta 模式 — 查询transaction的 type 列表
+python {SKILL_DIR}/scripts/query.py --mode cat-meta \
+  --app "riskhulk-sync-shield" --theme transaction
+
+# cat-meta 模式 — 查询event某个 type 下可用 name 列表
+python {SKILL_DIR}/scripts/query.py --mode cat-meta \
+  --app "riskhulk-sync-shield" --theme event --type "Exception"
 ```
 
 ---
@@ -131,6 +159,49 @@ python {SKILL_DIR}/scripts/query.py --mode cat \
 - 数据为空（返回空数组/无数据点）→ 明确告知用户"该时段无数据"，而不是"数据正常"或沉默跳过
 - 查询成功但数据异常（如全为 0）→ 如实展示，并提示用户可能是指标未上报或服务未启动
 - Don't 只因为"拿到了一些数据"就声称查询成功——返回数据不完整时也要说明
+
+**图表渲染**（查询成功且有数据时，先调用 `show-chart` tool 渲染图表，再输出文字分析）：
+
+| 场景 | 图表类型 | data 映射 |
+| ---- | -------- | --------- |
+| 单指标时序（QPS、成功率、耗时趋势） | `line` | `{ legend: 指标名, values: [{value, formattedTime}] }` |
+| group by name/zone/ip 的占比分布 | `pie` | `[{ name: 分组名, value: 聚合均值或总量 }]` |
+| 多指标对比（P50/P99/P999 等） | `bar` | `[{ name: 指标名, data: [{label: 时间或分组, value}] }]` |
+
+不画图的情况：数据为空、查询失败、用户只问单个数字（如"CPU 现在多少"）。
+
+---
+
+### Step 5: 异常检测与 samples 下钻（仅 cat 模式）
+
+cat 模式查询并呈现结果后，分析时序数据判断是否存在异常。
+不依赖固定阈值，基于数据的统计分布和上下文综合判断，典型异常形态：
+
+- **突降/突升**：某时间窗口内数值相对前后明显偏离
+- **持续劣化**：整体趋势单向恶化
+- **毛刺**：单点值显著偏离整体均值
+
+**若检测到异常**，执行以下步骤：
+
+1. 定位异常最严重的时间窗口，精确到分钟级（通常 1~5 分钟）
+2. 调用 samples 接口：
+   - 时间范围：使用异常时间窗口，而非原始查询范围（避免返回大量无关数据）
+   - 时间格式：`yyyy-MM-dd HH:mm:ss`，不要传时间戳
+   - `--type`：与 cat 查询保持一致（若原查询是 `--types` 多选，取异常最严重的那个 type）
+   - `--success false`：优先查失败样本；若是耗时异常（avg/tp99 等指标）则不传 `--success`
+
+```bash
+python {SKILL_DIR}/scripts/query.py --mode samples \
+  --app "your-service" \
+  --start "2025-05-30 10:03:00" --end "2025-05-30 10:05:00" \
+  --type "Service" --success false
+```
+
+3. 从返回结果中提取 `messageId`（非空），取前 3 个
+4. 依次调用 `xray-logview-analysis` skill，传入每个 `messageId` 进行链路分析
+5. 汇总链路结论，与指标异常关联，给出综合根因判断
+
+**若未检测到异常**：不触发下钻，正常结束。
 
 ---
 
@@ -386,20 +457,26 @@ Cat 指标用于查询应用的 Transaction / Event / Problem 维度的时序数
 | `event`       | 事件指标                                           |
 | `problem`     | 异常/问题指标                                      |
 
-### metric（指标类型）
+### metric / metrics（指标类型）
+
+优先级规则：
+
+- 传了 `--metrics`：一次查询多个指标
+- 没传 `--metrics`，但传了 `--metric`：查询单个指标
+- 两者都不传：后端默认 `qps`
 
 | 值                | 说明               |
 | ----------------- | ------------------ |
-| `qps`             | 每秒请求数（默认） |
+| `qps`             | QPS（每秒请求数）   |
 | `avg`             | 平均耗时(ms)       |
+| `count`           | 请求次数            |
 | `tp50`            | 耗时 TP50          |
 | `tp90`            | 耗时 TP90          |
 | `tp95`            | 耗时 TP95          |
 | `tp99`            | 耗时 TP99          |
 | `tp999`           | 耗时 TP999         |
-| `count`           | 总数               |
-| `fail_percent`    | 失败率(%)          |
-| `success_percent` | 成功率(%)          |
+| `failPercent`    | 失败率(%)          |
+| `successPercent` | 成功率(%)          |
 
 ### type / types（Cat 类型）
 
@@ -410,7 +487,6 @@ Cat 指标用于查询应用的 Transaction / Event / Problem 维度的时序数
 | `Call`    | 下游调用（RPC 客户端） |
 | `Service` | 服务端处理             |
 | `Http`    | HTTP 请求              |
-| `URL`     | URL 请求               |
 
 如果用户未指定，默认使用 `--types "Service,Http"`。
 
@@ -429,7 +505,6 @@ Cat 指标用于查询应用的 Transaction / Event / Problem 维度的时序数
 > - `type=Service` → `name` 是服务端接口名
 > - `type=Call` → `name` 是下游调用接口名
 > - `type=Http` → `name` 是 HTTP 请求路径
-> - `type=URL` → `name` 是 URL 路径
 
 #### 意图→参数推断指南
 
@@ -453,6 +528,9 @@ Cat 指标用于查询应用的 Transaction / Event / Problem 维度的时序数
 ```bash
 # 查看 transaction 的 QPS（默认 Service+Http 类型）
 --mode cat --app xxx --theme transaction --metric qps
+
+# 一次查看多个 transaction 指标
+--mode cat --app xxx --theme transaction --metrics "qps,count,failPercent,tp99"
 
 # 查看 Call 类型的平均耗时
 --mode cat --app xxx --metric avg --type Call
@@ -535,6 +613,17 @@ python {SKILL_DIR}/scripts/query.py --mode cat \
   --app "creator-service-default" \
   --start "2025-05-30 10:00:00" --end "2025-05-30 11:00:00" \
   --theme transaction --metric qps
+```
+
+### 场景 3.1：一次查看多个 Cat 指标
+
+用户：「看一下 creator-service-default 的 transaction QPS、请求数和失败率」
+
+```bash
+python {SKILL_DIR}/scripts/query.py --mode cat \
+  --app "creator-service-default" \
+  --start "2025-05-30 10:00:00" --end "2025-05-30 11:00:00" \
+  --theme transaction --metrics "qps,count,failPercent"
 ```
 
 ### 场景 4：查看特定接口的 TP99

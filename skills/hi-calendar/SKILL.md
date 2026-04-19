@@ -10,10 +10,10 @@ metadata: { 'openclaw': { 'requires': { 'bins': ["bun"] } } }
 先读 CLI help，再用下面这些补充规则。
 
 ```bash
-bunx @xhs/hi-workspace-cli@0.2.12 calendar --help
+bunx @xhs/hi-cli@0.2.15 calendar --help
 
 # 查看具体命令的参数、示例和输出格式
-bunx @xhs/hi-workspace-cli@0.2.12 calendar:<method> --help
+bunx @xhs/hi-cli@0.2.15 calendar:<method> --help
 ```
 
 以下是 `--help` 中没有的约束和指引：
