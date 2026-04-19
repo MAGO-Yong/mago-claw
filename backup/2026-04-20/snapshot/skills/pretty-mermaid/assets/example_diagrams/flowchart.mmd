@@ -1,0 +1,41 @@
+%%{init: {
+  'theme': 'base',
+  'themeVariables': {
+    'primaryColor': '#FF2442',
+    'primaryTextColor': '#FFFFFF',
+    'primaryBorderColor': '#CC1D35',
+    'secondaryColor': '#FFE0E6',
+    'secondaryTextColor': '#2D2D2D',
+    'secondaryBorderColor': '#FFB3C1',
+    'tertiaryColor': '#FFF5F7',
+    'tertiaryTextColor': '#2D2D2D',
+    'tertiaryBorderColor': '#FFD6DE',
+    'lineColor': '#8C8C8C',
+    'textColor': '#2D2D2D',
+    'fontSize': '13px',
+    'fontFamily': '"PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif'
+  },
+  'flowchart': {
+    'nodeSpacing': 30,
+    'rankSpacing': 50,
+    'padding': 15,
+    'wrappingWidth': 120
+  }
+}}%%
+flowchart LR
+    classDef primary fill:#FF2442,stroke:#CC1D35,color:#FFFFFF,stroke-width:2px,rx:12,ry:12
+    classDef secondary fill:#FFE0E6,stroke:#FFB3C1,color:#2D2D2D,stroke-width:1.5px,rx:8,ry:8
+    classDef accent fill:#FF6B35,stroke:#CC5529,color:#FFFFFF,stroke-width:2px,rx:8,ry:8
+    classDef decision fill:#FFF5F7,stroke:#FF2442,color:#2D2D2D,stroke-width:2px
+
+    Start([开始]):::primary --> Input[/输入数据/]:::secondary
+    Input --> Process[处理数据]:::secondary
+    Process --> Decision{校验?}:::decision
+    Decision -->|通过| Success[成功]:::primary
+    Decision -->|失败| ErrorHandler[错误处理]:::accent
+    ErrorHandler --> Input
+    Success --> End([结束]):::primary
+
+    linkStyle 0,1,2,3 stroke:#FF2442,stroke-width:2px
+    linkStyle 4 stroke:#FF6B35,stroke-width:2px,stroke-dasharray:5 5
+    linkStyle 5 stroke:#8C8C8C,stroke-width:1.5px,stroke-dasharray:4 4

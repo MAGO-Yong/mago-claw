@@ -1,0 +1,22 @@
+%%{init: {
+  'theme': 'base',
+  'themeVariables': {
+    'primaryColor': '#FF4757',
+    'primaryTextColor': '#FFFFFF',
+    'primaryBorderColor': '#E63E4D',
+    'secondaryColor': '#FFF1F2',
+    'secondaryTextColor': '#2F3542',
+    'lineColor': '#747D8C',
+    'textColor': '#2F3542',
+    'fontSize': '13px',
+    'fontFamily': '"PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif'
+  }
+}}%%
+stateDiagram-v2
+    [*] --> 空闲
+    空闲 --> 加载中: 发起请求
+    加载中 --> 成功: 数据就绪
+    加载中 --> 失败: 请求出错
+    成功 --> 空闲: 重置
+    失败 --> 空闲: 重试
+    失败 --> [*]: 终止

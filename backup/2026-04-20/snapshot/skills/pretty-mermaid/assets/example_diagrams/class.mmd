@@ -1,0 +1,43 @@
+%%{init: {
+  'theme': 'base',
+  'themeVariables': {
+    'primaryColor': '#FFE0E6',
+    'primaryTextColor': '#2D2D2D',
+    'primaryBorderColor': '#FF2442',
+    'secondaryColor': '#FFF5F7',
+    'lineColor': '#8C8C8C',
+    'textColor': '#2D2D2D',
+    'classText': '#2D2D2D',
+    'fontSize': '13px',
+    'fontFamily': '"PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif'
+  }
+}}%%
+classDiagram
+    class User {
+        +String id
+        +String name
+        +String email
+        +login()
+        +logout()
+    }
+
+    class Post {
+        +String id
+        +String title
+        +String content
+        +Date createdAt
+        +publish()
+        +delete()
+    }
+
+    class Comment {
+        +String id
+        +String text
+        +Date createdAt
+        +edit()
+        +delete()
+    }
+
+    User "1" --> "*" Post: 创建
+    Post "1" --> "*" Comment: 包含
+    User "1" --> "*" Comment: 评论

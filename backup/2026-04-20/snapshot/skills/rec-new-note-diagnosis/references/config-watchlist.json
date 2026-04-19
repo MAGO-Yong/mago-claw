@@ -1,0 +1,371 @@
+{
+  "version": "4.0",
+  "description": "ark-feedx + ark-mixrank 新笔记相关配置监控清单 - 用于 rec-new-note-diagnosis skill",
+  "last_updated": "2026-04-02",
+  "code_sources": [
+    "rec/ark-feedx: feedx-hf/feedx-hf-recall/biz/recall/retrieval/VectoreOmegaRecallProc.java",
+    "rec/ark-feedx: feedx-hf/feedx-hf-recall/biz/recall/sinkfilter/NoteAgeSinkFilterProc.java",
+    "rec/ark-feedx: feedx-hf/feedx-hf-recall/biz/recall/sinkfilter/EverGreenPoolSinkFilterProc.java",
+    "rec/ark-feedx: feedx-hf/feedx-hf-postrank/biz/postrank/firstpage/adjust/videoscore/FpAllVideoWeekTimePeriodAdjustScoreProc.java",
+    "rec/ark-feedx: feedx-hf/feedx-hf-postrank/biz/postrank/EcologyNoteRatioProc.java",
+    "rec/ark-feedx: feedx-hf/feedx-hf-base/biz/monitor/MonitorProc.java",
+    "rec/ark-mixrank: mixer-homefeed/mixer-homefeed-base/biz/experiment/RerankExpExporter.java"
+  ],
+  "apollo_configs": {
+    "critical": [
+      {
+        "key": "hf_lve_merge_age_1h_ratio",
+        "description": "1小时新笔记merge比例",
+        "default_value": "1.0",
+        "risk_description": "<1.0会减少1小时内新笔记的召回量，导致新笔记占比下降",
+        "related_step": "step5",
+        "related_code": "VectoreOmegaRecallProc.java"
+      },
+      {
+        "key": "hf_all_lve_merge_age_1h_ratio",
+        "description": "全量1小时新笔记merge比例",
+        "default_value": "1.0",
+        "risk_description": "<1.0会减少1小时内新笔记的召回量（全量模式）",
+        "related_step": "step5",
+        "related_code": "VectoreOmegaRecallProc.java"
+      },
+      {
+        "key": "hf_lve_merge_age_1d_ratio",
+        "description": "1天新笔记merge比例",
+        "default_value": "1.0",
+        "risk_description": "<1.0会减少1天内新笔记的召回量",
+        "related_step": "step5",
+        "related_code": "VectoreOmegaRecallProc.java"
+      },
+      {
+        "key": "hf_all_lve_merge_age_1d_ratio",
+        "description": "全量1天新笔记merge比例",
+        "default_value": "1.0",
+        "risk_description": "<1.0会减少1天内新笔记的召回量（全量模式）",
+        "related_step": "step5",
+        "related_code": "VectoreOmegaRecallProc.java"
+      },
+      {
+        "key": "hf_lve_merge_age_3d_ratio",
+        "description": "3天新笔记merge比例",
+        "default_value": "1.0",
+        "risk_description": "<1.0会减少3天内新笔记的召回量",
+        "related_step": "step5",
+        "related_code": "VectoreOmegaRecallProc.java"
+      },
+      {
+        "key": "hf_lve_merge_age_7d_ratio",
+        "description": "7天新笔记merge比例",
+        "default_value": "1.0",
+        "risk_description": "<1.0会减少7天内新笔记的召回量",
+        "related_step": "step5",
+        "related_code": "VectoreOmegaRecallProc.java"
+      },
+      {
+        "key": "hf_lve_merge_age_30d_ratio",
+        "description": "30天新笔记merge比例",
+        "default_value": "1.0",
+        "risk_description": "<1.0会减少30天内新笔记的召回量",
+        "related_step": "step5",
+        "related_code": "VectoreOmegaRecallProc.java"
+      }
+    ],
+    "high": [
+      {
+        "key": "enable_fdx_filter_note_time",
+        "description": "笔记时间过滤总开关（NoteAgeSinkFilterProc）",
+        "default_value": "false",
+        "risk_description": "意外开启会在 sinkFilter 阶段过滤掉超过 feedx_life_time_filter_min_create_hour 阈值的所有笔记，直接导致新笔记大量丢失",
+        "related_step": "step2_5",
+        "related_code": "NoteAgeSinkFilterProc.java"
+      },
+      {
+        "key": "feedx_life_time_filter_min_create_hour",
+        "description": "笔记最小创建时间阈值（小时）",
+        "default_value": "336",
+        "risk_description": "值过小会过滤掉超过该时间的笔记（默认336小时=14天）；若误设为极小值（如48），会大量过滤新笔记",
+        "related_step": "step2_5",
+        "related_code": "NoteAgeSinkFilterProc.java"
+      },
+      {
+        "key": "fdx_sink_filter_note_time_user_status_enable",
+        "description": "按用户状态细分的笔记时间过滤开关",
+        "default_value": "false",
+        "risk_description": "开启后对特定用户状态额外启用笔记年龄过滤，可能影响特定人群的新笔记供给",
+        "related_step": "step2_5",
+        "related_code": "NoteAgeSinkFilterProc.java"
+      },
+      {
+        "key": "enable_feedx_life_time_filter_sink",
+        "description": "EverGreen池笔记年龄过滤开关",
+        "default_value": "false",
+        "risk_description": "开启后在 sinkFilter 阶段对 EverGreen 池的笔记也做年龄过滤，可能误杀常青内容中的新笔记",
+        "related_step": "step2_5",
+        "related_code": "EverGreenPoolSinkFilterProc.java"
+      },
+      {
+        "key": "hf_enable_lve_merge_age",
+        "description": "LVE Merge Age总开关",
+        "default_value": "false",
+        "risk_description": "开启后各年龄段 hf_lve_merge_age_*_ratio 配置才生效，若同时设置了 <1.0 的 ratio 则立即导致新笔记召回量下降",
+        "related_step": "step5",
+        "related_code": "VectoreOmegaRecallProc.java"
+      },
+      {
+        "key": "hf_enable_lve",
+        "description": "LVE迁移总开关",
+        "default_value": "true",
+        "risk_description": "关闭会切换回非LVE模式，影响整个向量召回链路，可能导致新笔记召回量大幅变化",
+        "related_step": "step5",
+        "related_code": "VectoreOmegaRecallProc.java"
+      },
+      {
+        "key": "hf_enable_new_lve",
+        "description": "LVE新业务逻辑开关",
+        "default_value": "false",
+        "risk_description": "新逻辑可能改变召回行为，需配合新 ratio 参数同步验证",
+        "related_step": "step5",
+        "related_code": "VectoreOmegaRecallProc.java"
+      },
+      {
+        "key": "hf_mix_ecology_note_lv_score_flag",
+        "description": "生态内容分层评分开关（EcologyNoteRatioProc）",
+        "default_value": "false",
+        "risk_description": "开启后对生态笔记（含新笔记）按层次做 score 调整，可能改变新笔记与其他内容的竞争关系",
+        "related_step": "step2",
+        "related_code": "EcologyNoteRatioProc.java"
+      },
+      {
+        "key": "hf_mix_ecology_note_time_score_flag",
+        "description": "生态内容时间评分开关（EcologyNoteRatioProc）",
+        "default_value": "false",
+        "risk_description": "开启后对笔记发布时间做评分调整，影响新旧笔记的分布比例",
+        "related_step": "step2",
+        "related_code": "EcologyNoteRatioProc.java"
+      }
+    ],
+    "medium": [
+      {
+        "key": "feedx_life_time_filter_ever_green_skip",
+        "description": "EverGreen笔记跳过年龄过滤的开关",
+        "default_value": "false",
+        "risk_description": "关闭后 EverGreen 笔记也受年龄过滤约束，可能间接减少新笔记展示机会（因 EverGreen 槽位变少，新笔记需与更多内容竞争）",
+        "related_step": "step2_5",
+        "related_code": "NoteAgeSinkFilterProc.java"
+      },
+      {
+        "key": "feedx_life_time_filter_ever_green_hour",
+        "description": "EverGreen笔记年龄豁免阈值（小时）",
+        "default_value": "未知",
+        "risk_description": "阈值过小会导致更多 EverGreen 笔记受到年龄过滤",
+        "related_step": "step2_5",
+        "related_code": "NoteAgeSinkFilterProc.java"
+      },
+      {
+        "key": "enable_new_note_cnt_by_reason_counter",
+        "description": "分渠道新笔记统计开关",
+        "default_value": "false",
+        "risk_description": "关闭后无法观测分渠道新笔记数据，影响排查",
+        "related_step": "monitoring",
+        "related_code": "MonitorProc.java"
+      },
+      {
+        "key": "enable_avg_note_age_counter",
+        "description": "平均笔记年龄统计开关",
+        "default_value": "true",
+        "risk_description": "关闭后无法观测笔记年龄，影响矛盾判断",
+        "related_step": "monitoring",
+        "related_code": "MonitorProc.java"
+      },
+      {
+        "key": "feedx_online_monitor_ratio",
+        "description": "整体监控采样率",
+        "default_value": "0.01",
+        "risk_description": "过低会导致数据点稀疏，影响观测",
+        "related_step": "monitoring",
+        "related_code": "MonitorProc.java"
+      },
+      {
+        "key": "enable_vec_reason_and_pool_cnt_counter",
+        "description": "向量池quota统计开关",
+        "default_value": "false",
+        "risk_description": "关闭后无法观测各渠道quota",
+        "related_step": "step4",
+        "related_code": "RecallMonitorUtil.java"
+      },
+      {
+        "key": "hf_adjust_req_compress_v3_enable",
+        "description": "请求压缩V3开关",
+        "default_value": "true",
+        "risk_description": "变更可能导致请求数量变化，影响召回",
+        "related_step": "step3",
+        "related_code": "GenQueryProc.java"
+      },
+      {
+        "key": "hf_adjust_req_compress_num_v3",
+        "description": "请求压缩数量V3",
+        "default_value": "12000",
+        "risk_description": "过低会导致召回笔记被截断",
+        "related_step": "step3",
+        "related_code": "GenQueryProc.java"
+      }
+    ]
+  },
+  "experiment_flags": {
+    "critical": [
+      {
+        "pattern": "hf_lve_merge_age_*_ratio",
+        "description": "LVE Merge Age各时间段比例（1h/1d/3d/7d/30d）",
+        "risk_description": "任何<1.0的ratio都会减少对应年龄段新笔记召回。代码来源：VectoreOmegaRecallProc.java，支持时间段：1h/1d/3d/7d/30d",
+        "related_step": "step5",
+        "related_code": "VectoreOmegaRecallProc.java"
+      },
+      {
+        "pattern": "hf_all_lve_merge_age_*_ratio",
+        "description": "全量LVE Merge Age各时间段比例（全量模式）",
+        "risk_description": "任何<1.0的ratio都会减少对应年龄段新笔记召回（全量模式），与 hf_lve_merge_age_*_ratio 并列生效",
+        "related_step": "step5",
+        "related_code": "VectoreOmegaRecallProc.java"
+      }
+    ],
+    "high": [
+      {
+        "pattern": "enable_fdx_filter_note_time",
+        "description": "笔记年龄过滤总开关",
+        "risk_description": "开启后在 sinkFilter 阶段会过滤超过 feedx_life_time_filter_min_create_hour 的所有笔记",
+        "related_step": "step2_5",
+        "related_code": "NoteAgeSinkFilterProc.java"
+      },
+      {
+        "pattern": "feedx_life_time_filter_*",
+        "description": "笔记年龄过滤系列参数（min_create_hour / ever_green_skip / ever_green_hour）",
+        "risk_description": "控制笔记年龄过滤的阈值与豁免逻辑，任一变更都需结合 enable_fdx_filter_note_time 状态判断影响",
+        "related_step": "step2_5",
+        "related_code": "NoteAgeSinkFilterProc.java"
+      },
+      {
+        "pattern": "hf_enable_lve*",
+        "description": "LVE相关开关（hf_enable_lve / hf_enable_lve_merge_age / hf_enable_new_lve）",
+        "risk_description": "LVE模式总开关或子功能开关切换，均会改变召回链路行为，需同步确认 ratio 参数是否配套",
+        "related_step": "step5",
+        "related_code": "VectoreOmegaRecallProc.java"
+      },
+      {
+        "pattern": "*mix*rank*",
+        "description": "混排相关实验（arkmixrank 层）",
+        "risk_description": "混排逻辑变更影响新笔记最终曝光位置，是新笔记曝光占比下跌的高频根因。重点关注 lf_enable_multi_target_snake_merge / lf_multi_target_queue_pick_per_round",
+        "related_step": "step2",
+        "related_code": "SeqGenerateProc.java（ark-feedx firstpage 混排）/ RerankExpExporter.java（ark-mixrank）"
+      },
+      {
+        "pattern": "lf_enable_multi_target_snake_merge",
+        "description": "多目标队列蛇形合并去重开关",
+        "risk_description": "开启/关闭蛇形合并会改变各内容类型（含新笔记）在首页的最终排列顺序",
+        "related_step": "step2",
+        "related_code": "SeqGenerateProc.java（feedx-hf-postrank firstpage）"
+      },
+      {
+        "pattern": "lf_multi_target_queue_pick_per_round",
+        "description": "多目标队列每轮选取数量（格式：距离_点击_分享_时长_收藏_关注_评论_CTR_分享率_评论率_点赞率_发布时间）",
+        "risk_description": "调整各目标队列每轮选取比例会改变首页 feed 内容组成结构，影响新笔记（通常在发布时间队列中）的曝光份额",
+        "related_step": "step2",
+        "related_code": "SeqGenerateProc.java（feedx-hf-postrank firstpage）"
+      },
+      {
+        "pattern": "*first*screen*",
+        "description": "首屏相关实验",
+        "risk_description": "首屏筛选逻辑影响新笔记首屏曝光",
+        "related_step": "step2",
+        "related_code": "feedx-hf-postrank firstpage 系列 Proc"
+      },
+      {
+        "pattern": "hf_mix_ecology_note_*",
+        "description": "生态内容评分系列（EcologyNoteRatioProc）",
+        "risk_description": "控制生态内容分层和时间评分，影响新笔记与其他内容在 postrank 阶段的相对得分，进而影响曝光比例",
+        "related_step": "step2",
+        "related_code": "EcologyNoteRatioProc.java（feedx-hf-postrank）"
+      }
+    ],
+    "medium": [
+      {
+        "pattern": "hf_adjust_req_compress_*",
+        "description": "请求压缩配置",
+        "risk_description": "影响召回请求数量",
+        "related_step": "step3",
+        "related_code": "GenQueryProc.java"
+      },
+      {
+        "pattern": "fdx_recall_req_num_adjust_*",
+        "description": "召回请求数量调整",
+        "risk_description": "影响各渠道召回quota",
+        "related_step": "step3",
+        "related_code": "VectoreOmegaRecallProc.java"
+      },
+      {
+        "pattern": "*pgy*recall*",
+        "description": "蒲公英召回相关",
+        "risk_description": "蒲公英召回增加会挤压正常新笔记quota",
+        "related_step": "step3",
+        "related_code": "feedx-hf-recall 召回链路"
+      },
+      {
+        "pattern": "fp_all_video_fusion_weights_*",
+        "description": "粗排（firstpage）视频 fusion 权重（FpAllVideoWeekTimePeriodAdjustScoreProc）",
+        "risk_description": "视频 fusion 权重大幅提升会在粗排阶段挤压图文/新笔记竞争力，导致新笔记逐级损耗放大（firstRank→finalRank→mixRank）。默认值：1.0,1.0,1.0,1.0。参考案例：2026-03-25 改为3.0,1.5,1.0,1.0，19:00起1H新笔记曝光占比下跌12%~19%",
+        "related_step": "step2",
+        "related_code": "FpAllVideoWeekTimePeriodAdjustScoreProc.java（feedx-hf-postrank/firstpage/adjust/videoscore）"
+      },
+      {
+        "pattern": "fp_all_video_time_weights_*",
+        "description": "粗排（firstpage）视频时间衰减权重",
+        "risk_description": "调整视频时间衰减权重影响视频与图文在粗排阶段的分数分布，间接挤压新笔记。默认值：2.5,3.0",
+        "related_step": "step2",
+        "related_code": "FpAllVideoWeekTimePeriodAdjustScoreProc.java（feedx-hf-postrank/firstpage/adjust/videoscore）"
+      },
+      {
+        "pattern": "fp_all_video_week_time_params_*",
+        "description": "粗排视频周内时段参数",
+        "risk_description": "按周内时段差异化调整视频权重，可能在特定时段显著影响新笔记占比",
+        "related_step": "step2",
+        "related_code": "FpAllVideoWeekTimePeriodAdjustScoreProc.java（feedx-hf-postrank/firstpage/adjust/videoscore）"
+      },
+      {
+        "pattern": "enable_fp_all_video_week_time_periods_*",
+        "description": "粗排视频周内时段调整总开关",
+        "risk_description": "开关变更会整体启用/禁用视频时段权重调整，影响全天新笔记分布",
+        "related_step": "step2",
+        "related_code": "FpAllVideoWeekTimePeriodAdjustScoreProc.java（feedx-hf-postrank/firstpage/adjust/videoscore）"
+      },
+      {
+        "pattern": "hf_new_mix_ad_power",
+        "description": "混排层广告权重系数（ark-mixrank RerankExpExporter）",
+        "risk_description": "值越大广告在 mixRank 层权重越高，挤压推荐内容（含新笔记）的展示份额。默认值：1，变为4时 mixRank 层新笔记曝光占比可下跌10%~15%",
+        "related_step": "step2",
+        "related_code": "ark-mixrank: mixer-homefeed/biz/experiment/RerankExpExporter.java"
+      },
+      {
+        "pattern": "lf_multi_target_queue_total_limit",
+        "description": "多目标队列合并去重后最终保留数量",
+        "risk_description": "值过小会截断候选集，可能导致新笔记在 firstpage 阶段被丢弃",
+        "related_step": "step2",
+        "related_code": "SeqGenerateProc.java（feedx-hf-postrank firstpage）"
+      }
+    ]
+  },
+  "experiment_tags": {
+    "业务标签": ["外流推荐"],
+    "domain_code": ["rec", "rec_mix", "rec_global", "rec_trade"],
+    "services": ["arkfeedx", "arkfeedx-1-default", "arkfeedxmerchant", "arkmixrank-77-default"]
+  },
+  "checklist": {
+    "渐进式故障预防": {
+      "发布时间": ["14:00-16:00"],
+      "关键监控点": [
+        "18:00 是否从峰值下降>5%",
+        "22:00 是否跌破0.065",
+        "23:00 是否跌破0.060"
+      ],
+      "止损窗口": "22:00-24:00"
+    }
+  }
+}

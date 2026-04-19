@@ -1,0 +1,204 @@
+{
+  "version": "2.3",
+  "description": "外流新笔记排查SOP - PromQL查询集合",
+  "last_updated": "2026-04-08",
+  "_datasource_rule": "【强制执行规则】执行每条 query 时：若 query 内有独立的 datasource 字段，必须使用该字段值，不得使用 step 级默认 datasource。step 级 datasource 只作用于没有独立 datasource 字段的 query。当 query 返回 0 条数据时，第一步必须回源检查该 query 的 datasource 字段是否正确，而不是凭猜测枚举其他 datasource。",
+  "datasource_mapping": {
+    "vms-recommend": "推荐系统监控",
+    "vms-search": "搜索系统监控",
+    "vms-shequ": "社区系统监控"
+  },
+  "steps": {
+    "step1": {
+      "name": "确认新笔记曝光占比下跌",
+      "description": "查询1H和24H新笔记曝光占比，必须同时查 -1d/-7d/-14d 三条基准线做置信度校验后再判断异常",
+      "datasource": "vms-recommend",
+      "baseline_confidence_check": "先查三条基准线互相校验：任意两条差异>15%则较高者标记不置信，仅用置信基准与今天对比",
+      "queries": {
+        "1h_current": {
+          "promql": "avg(avg_over_time(rt_new_one_hour_new_note_imp_ratio{data_source=\"holo_rawtracker\",overview=\"true\"}[5m]))",
+          "description": "1H新笔记曝光占比 - 当前值"
+        },
+        "1h_offset_1d": {
+          "promql": "avg(avg_over_time(rt_new_one_hour_new_note_imp_ratio{data_source=\"holo_rawtracker\",overview=\"true\"}[5m] offset 1d))",
+          "description": "1H新笔记曝光占比 - 昨天同期（基准线1，需置信度校验）"
+        },
+        "1h_offset_7d": {
+          "promql": "avg(avg_over_time(rt_new_one_hour_new_note_imp_ratio{data_source=\"holo_rawtracker\",overview=\"true\"}[5m] offset 7d))",
+          "description": "1H新笔记曝光占比 - 上周同期（基准线2，需置信度校验）"
+        },
+        "1h_offset_14d": {
+          "promql": "avg(avg_over_time(rt_new_one_hour_new_note_imp_ratio{data_source=\"holo_rawtracker\",overview=\"true\"}[5m] offset 14d))",
+          "description": "1H新笔记曝光占比 - 两周前同期（基准线3，需置信度校验）"
+        },
+        "24h_current": {
+          "promql": "avg(avg_over_time(rt_new_note_imp_ratio{data_source=\"holo_rawtracker\",overview=\"true\"}[5m]))",
+          "description": "24H新笔记曝光占比 - 当前值"
+        },
+        "24h_offset_1d": {
+          "promql": "avg(avg_over_time(rt_new_note_imp_ratio{data_source=\"holo_rawtracker\",overview=\"true\"}[5m] offset 1d))",
+          "description": "24H新笔记曝光占比 - 昨天同期（基准线1，需置信度校验）"
+        },
+        "24h_offset_7d": {
+          "promql": "avg(avg_over_time(rt_new_note_imp_ratio{data_source=\"holo_rawtracker\",overview=\"true\"}[5m] offset 7d))",
+          "description": "24H新笔记曝光占比 - 上周同期（基准线2，需置信度校验）"
+        },
+        "24h_offset_14d": {
+          "promql": "avg(avg_over_time(rt_new_note_imp_ratio{data_source=\"holo_rawtracker\",overview=\"true\"}[5m] offset 14d))",
+          "description": "24H新笔记曝光占比 - 两周前同期（基准线3，需置信度校验）"
+        }
+      }
+    },
+    "step2": {
+      "name": "定位下跌阶段",
+      "description": "查询各阶段(postrank/finalrank等)新笔记占比",
+      "datasource": "vms-recommend",
+      "queries": {
+        "by_phase": {
+          "promql": "sum by (phase) (rate(new_note_cnt_sum{application=\"arkfeedx\", sub_appid=~\"arkfeedx-1-default\", env=~\"prod\", zone=~\"(alhz1|alsh1-gray|qcnj2|rcsh1|alhz1-3|alhz1-4|qcnj2-3|qcnj2-4|rcsh1-5)\", type=~\"1h\", subPhase=\"after\"}[1m]))/sum by (phase) (rate(note_size_cnt_sum{application=\"arkfeedx\", sub_appid=~\"arkfeedx-1-default\", env=~\"prod\", zone=~\"(alhz1|alsh1-gray|qcnj2|rcsh1|alhz1-3|alhz1-4|qcnj2-3|qcnj2-4|rcsh1-5)\", subPhase=\"after\"}[1m]))",
+          "description": "各阶段新笔记占比（需添加offset对比）"
+        }
+      }
+    },
+    "step2_5": {
+      "name": "矛盾判断 - 检查笔记年龄",
+      "description": "当recall↓但渠道正常时，检查笔记年龄",
+      "datasource": "vms-recommend",
+      "queries": {
+        "note_age": {
+          "promql": "(sum by (type) (rate(avg_note_age_sum{application=\"arkfeedx\", env=~\"prod\",type=~\"DSSM_MODEL_BASE|DSSM_MODEL_BASE_RERANK|MLLM_CLUSTER_MLP_1W|MLLM_CLUSTER|MLLM_CLUSTER_10W|MLLM_SID_TWO|ES|FOLLOW|DSSM_INST|DSSM_LOWNV|DSSM_LOW_ENGAGE|MLLM_NOTE_EMBEDDING|U2U_MF|PDN|DSSM_MODEL|DSSM_TOPK|DSSM_TAX_MASK|DSSM_LOW_ENGAGE|DSSM_PICTURE|MAXIMA_COLD_START|MAXIMA_OUT_OF_24H|DSSM_NEWNOTE_UNITY|DSSM_OUTOF24H_1000PV|DSSM_EMB_I2I_OUTOF24H_1000PV|DSSM_EMB_I2I|MLLM_SEQ_U2I|MLLM_SEQ_U2I_V2\", phase=~\"recall\"}[1m]))/sum by (type) (rate(avg_note_age_count{application=\"arkfeedx\", env=~\"prod\", type=~\"DSSM_MODEL_BASE|DSSM_MODEL_BASE_RERANK|MLLM_CLUSTER_MLP_1W|MLLM_CLUSTER|MLLM_CLUSTER_10W|MLLM_SID_TWO|ES|FOLLOW|DSSM_INST|DSSM_LOWNV|DSSM_LOW_ENGAGE|MLLM_NOTE_EMBEDDING|U2U_MF|PDN|DSSM_MODEL|DSSM_TOPK|DSSM_TAX_MASK|DSSM_LOW_ENGAGE|DSSM_PICTURE|MAXIMA_COLD_START|MAXIMA_OUT_OF_24H|DSSM_NEWNOTE_UNITY|DSSM_OUTOF24H_1000PV|DSSM_EMB_I2I_OUTOF24H_1000PV|DSSM_EMB_I2I|MLLM_SEQ_U2I|MLLM_SEQ_U2I_V2\", phase=~\"recall\"}[1m])))",
+          "description": "召回阶段笔记年龄"
+        }
+      }
+    },
+    "step3": {
+      "name": "召回渠道排查",
+      "description": "查询各召回渠道召回量",
+      "datasource": "vms-recommend",
+      "queries": {
+        "channel_recall": {
+          "promql": "sum by (name) (rate(recall_num_exp_sum{application=\"arkfeedx\", sub_appid=~\"arkfeedx-1-default\", env=~\"prod\", name=~\"DSSM_MODEL_BASE|DSSM_MODEL_BASE_RERANK|MLLM_CLUSTER_MLP_1W|MLLM_CLUSTER|MLLM_CLUSTER_10W|MLLM_SID_TWO|ES|FOLLOW|DSSM_INST|DSSM_LOWNV|DSSM_LOW_ENGAGE|MLLM_NOTE_EMBEDDING|U2U_MF|PDN|DSSM_MODEL|DSSM_TOPK|DSSM_TAX_MASK|DSSM_LOW_ENGAGE|DSSM_PICTURE|MAXIMA_COLD_START|MAXIMA_OUT_OF_24H|DSSM_NEWNOTE_UNITY|DSSM_OUTOF24H_1000PV|DSSM_EMB_I2I_OUTOF24H_1000PV|DSSM_EMB_I2I|MLLM_SEQ_U2I|MLLM_SEQ_U2I_V2\"}[1m]))/sum by (name) (rate(recall_num_exp_sum{application=\"arkfeedx\", sub_appid=~\"arkfeedx-1-default\", env=~\"prod\", name=~\"DSSM_MODEL_BASE|DSSM_MODEL_BASE_RERANK|MLLM_CLUSTER_MLP_1W|MLLM_CLUSTER|MLLM_CLUSTER_10W|MLLM_SID_TWO|ES|FOLLOW|DSSM_INST|DSSM_LOWNV|DSSM_LOW_ENGAGE|MLLM_NOTE_EMBEDDING|U2U_MF|PDN|DSSM_MODEL|DSSM_TOPK|DSSM_TAX_MASK|DSSM_LOW_ENGAGE|DSSM_PICTURE|MAXIMA_COLD_START|MAXIMA_OUT_OF_24H|DSSM_NEWNOTE_UNITY|DSSM_OUTOF24H_1000PV|DSSM_EMB_I2I_OUTOF24H_1000PV|DSSM_EMB_I2I|MLLM_SEQ_U2I|MLLM_SEQ_U2I_V2\"}[1m] offset 1d))",
+          "description": "各渠道召回量（对比-1d）"
+        }
+      }
+    },
+    "step4": {
+      "name": "召回根因分析",
+      "description": "种子个数、笔记年龄、quota分析",
+      "datasource": "vms-recommend",
+      "queries": {
+        "seed_count": {
+          "promql": "sum by (reason_type) (rate(retrieval_end_to_end_reasontype_seed_num_sum{application=\"arkfeedx\", sub_appid=~\"arkfeedx-1-default\", env=~\"prod\", zone=~\"(alhz1|alsh1-gray|qcnj2|rcsh1|alhz1-3|alhz1-4|qcnj2-3|qcnj2-4|rcsh1-5)\", reason_type=~\"DSSM_LOW_ENGAGE\"}[1m]))/sum by (reason_type) (rate(retrieval_end_to_end_reasontype_seed_num_count{application=\"arkfeedx\", sub_appid=~\"arkfeedx-1-default\", env=~\"prod\", zone=~\"(alhz1|alsh1-gray|qcnj2|rcsh1|alhz1-3|alhz1-4|qcnj2-3|qcnj2-4|rcsh1-5)\", reason_type=~\"DSSM_LOW_ENGAGE\"}[1m]))",
+          "description": "种子个数分析"
+        }
+      }
+    },
+    "step5": {
+      "name": "索引表排查",
+      "description": "索引quota、omega笔记年龄、数据新鲜度",
+      "datasource": "vms-recommend",
+      "queries": {
+        "index_quota": {
+          "promql": "sum by (reason_type,name) (rate(vec_reason_and_pool_cnt_sum{application=\"arkfeedx\", sub_appid=~\"arkfeedx-1-default\", env=~\"prod\", zone=~\"(alhz1|alsh1-gray|qcnj2|rcsh1|alhz1-3|alhz1-4|qcnj2-3|qcnj2-4|rcsh1-5)\", reason_type=~\"DSSM_MODEL_BASE|DSSM_MODEL_BASE_RERANK|MLLM_CLUSTER_MLP_1W|MLLM_CLUSTER|MLLM_CLUSTER_10W|MLLM_SID_TWO|ES|FOLLOW|DSSM_INST|DSSM_LOWNV|DSSM_LOW_ENGAGE|MLLM_NOTE_EMBEDDING|U2U_MF|PDN|DSSM_MODEL|DSSM_TOPK|DSSM_TAX_MASK|DSSM_LOW_ENGAGE|DSSM_PICTURE|MAXIMA_COLD_START|MAXIMA_OUT_OF_24H|DSSM_NEWNOTE_UNITY|DSSM_OUTOF24H_1000PV|DSSM_EMB_I2I_OUTOF24H_1000PV|DSSM_EMB_I2I|MLLM_SEQ_U2I|MLLM_SEQ_U2I_V2\"}[1m]))/sum by (reason_type,name) (rate(vec_reason_and_pool_cnt_count{application=\"arkfeedx\", sub_appid=~\"arkfeedx-1-default\", env=~\"prod\", zone=~\"(alhz1|alsh1-gray|qcnj2|rcsh1|alhz1-3|alhz1-4|qcnj2-3|qcnj2-4|rcsh1-5)\", reason_type=~\"DSSM_MODEL_BASE|DSSM_MODEL_BASE_RERANK|MLLM_CLUSTER_MLP_1W|MLLM_CLUSTER|MLLM_CLUSTER_10W|MLLM_SID_TWO|ES|FOLLOW|DSSM_INST|DSSM_LOWNV|DSSM_LOW_ENGAGE|MLLM_NOTE_EMBEDDING|U2U_MF|PDN|DSSM_MODEL|DSSM_TOPK|DSSM_TAX_MASK|DSSM_LOW_ENGAGE|DSSM_PICTURE|MAXIMA_COLD_START|MAXIMA_OUT_OF_24H|DSSM_NEWNOTE_UNITY|DSSM_OUTOF24H_1000PV|DSSM_EMB_I2I_OUTOF24H_1000PV|DSSM_EMB_I2I|MLLM_SEQ_U2I|MLLM_SEQ_U2I_V2\"}[1m]))",
+          "description": "向量索引池quota"
+        },
+        "omega_note_age": {
+          "promql": "avg by (scene,graphs,channels) ({__name__=~\".*note_age_one_hour\", cluster_name=\"omega-hf-merger-vec\",sd_xhs_com_service=~\"omega-hf-merger-vec-m.*\", proc!~\".*response_processor\", extra=\"before_plugin\"} >0)",
+          "datasource": "vms-search",
+          "description": "omega侧笔记年龄（过滤前）"
+        },
+        "data_freshness": {
+          "promql": "zebraindex_inc_note_cnt_by_datakey_age{datakey=\"hf_note_info\",datasource=\"holo\"}",
+          "description": "正倒排数据新鲜度"
+        }
+      }
+    },
+    "step5_5": {
+      "name": "索引深度排查",
+      "description": "Kafka延迟、内存、构建QPS",
+      "queries": {
+        "kafka_lag": {
+          "promql": "kafka_consumer_lag{cluster_name=\"omega-hf-inv\",topic=~\".*note.*|.*index.*\"} / 60",
+          "description": "Kafka消费延迟（分钟）"
+        },
+        "memory_usage": {
+          "promql": "container_memory_usage_percent{cluster_name=\"omega-hf-inv\",app=~\".*searcher.*|.*merger.*\"}",
+          "description": "内存使用率"
+        },
+        "build_qps": {
+          "promql": "redindex_hf_invert_index_build_qps{cluster_name=\"omega-hf-inv\"}",
+          "description": "索引构建QPS"
+        }
+      }
+    },
+    "step6": {
+      "name": "内容供给排查",
+      "description": "内容池、审核、发布链路",
+      "datasource": "vms-recommend",
+      "queries": {
+        "content_pool_1h": {
+          "promql": "(avg(avg_over_time(zebraindex_inc_note_cnt_by_datakey_age{datakey=\"hf_note_info\",datasource=\"holo\",group_type=\"3600\"}[5m])) * 10)",
+          "description": "内容池1H新笔记数"
+        },
+        "content_pool_24h": {
+          "promql": "(avg(avg_over_time(zebraindex_inc_note_cnt_by_datakey_age{datakey=\"hf_note_info\",datasource=\"holo\",group_type=\"86400\"}[5m])) * 10)",
+          "description": "内容池24H新笔记数"
+        },
+        "audit_retry": {
+          "promql": "sum(avg_over_time(postnotescanner_SingleShardTableScanner_scanSingleShard_needRetryTaskNumber{quantile=\"0.999\", code=\"NOTE_SPAM\"}[1m])) by (biz, code)",
+          "datasource": "vms-shequ",
+          "description": "审核重试任务数"
+        },
+        "publish_qps": {
+          "promql": "sum by (endpoint)(rate(api_request_count{env=~\"prod|canary\",application=\"noteupdater\",endpoint=~\"newNote|editNote\"}[30s]))",
+          "datasource": "vms-shequ",
+          "description": "发布QPS"
+        }
+      }
+    },
+    "step6_4": {
+      "name": "数据流/同步层排查",
+      "description": "Flink、Kafka、Lindorm",
+      "queries": {
+        "flink_lag": {
+          "promql": "flink_taskmanager_job_task_operator_kafka_consumer_records_lag_max{job_name=~\".*sync.*|.*正倒排.*\"}",
+          "description": "Flink任务消费延迟"
+        },
+        "lindorm_latency": {
+          "promql": "lindorm_put_latency{quantile=\"0.99\"}",
+          "description": "Lindorm写入P99延迟"
+        }
+      }
+    },
+    "post_release_monitor": {
+      "name": "发布后监控（渐进式故障预警）",
+      "description": "发布后18-24小时持续跟踪",
+      "datasource": "vms-recommend",
+      "queries": {
+        "trend_hourly": {
+          "promql": "avg(avg_over_time(rt_new_one_hour_new_note_imp_ratio{data_source=\"holo_rawtracker\",overview=\"true\"}[5m]))",
+          "description": "每小时查询一次，观察趋势"
+        },
+        "compare_pre_release": {
+          "promql": "avg(avg_over_time(rt_new_one_hour_new_note_imp_ratio{data_source=\"holo_rawtracker\",overview=\"true\"}[5m]))",
+          "description": "对比发布前同期数据"
+        }
+      }
+    }
+  },
+  "thresholds": {
+    "abnormal": {
+      "kafka_lag_min": 30,
+      "memory_usage_percent": 90,
+      "build_qps": 5000,
+      "index_switch_duration_min": 30,
+      "post_release_decline_percent": 20,
+      "evening_threshold": 0.060
+    },
+    "warning": {
+      "kafka_lag_min": 15,
+      "memory_usage_percent": 85,
+      "post_release_decline_percent": 10
+    }
+  }
+}

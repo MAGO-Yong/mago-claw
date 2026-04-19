@@ -1,0 +1,41 @@
+{
+  "skill_name": "code-search",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "帮我找一下公司里所有 GitResponse 这个类的定义和使用,我想看看大家是怎么用的",
+      "expected_output": "搜索结果应该包含 GitResponse 类的定义和引用,使用 sym:GitResponse 进行符号搜索,展示多个仓库中的匹配结果,包含文件路径、代码行号和链接",
+      "files": [],
+      "expectations": [
+        "使用了 sym:GitResponse 符号搜索语法",
+        "展示了搜索结果中的仓库名、文件路径和代码行",
+        "提供了 CodeWiz 链接供用户查看详情",
+        "搜索结果总数大于 0"
+      ]
+    },
+    {
+      "id": 2,
+      "prompt": "我想看看 backend 相关仓库里错误处理是怎么写的,特别是 Go 语言的实现",
+      "expected_output": "在 backend 仓库中搜索 Go 语言的错误处理代码,使用 repo 和 lang 过滤器,展示相关代码片段和上下文",
+      "files": [],
+      "expectations": [
+        "使用了 lang:go 语言过滤器",
+        "使用了 repo: 仓库过滤器(如 repo:backend 或类似)",
+        "搜索关键词包含 error 或 error handling",
+        "展示了代码上下文(匹配行及周围的代码)"
+      ]
+    },
+    {
+      "id": 3,
+      "prompt": "搜索一下所有 Python 文件里面 def process 开头的函数定义,我想看看命名规范",
+      "expected_output": "使用正则表达式搜索 Python 文件中的 process 函数定义,展示函数签名和上下文代码",
+      "files": [],
+      "expectations": [
+        "使用了 lang:python 语言过滤器",
+        "使用了正则表达式搜索(regex: 或类似语法)",
+        "搜索模式匹配函数定义(如 def process 或 def.*process)",
+        "展示了匹配到的函数定义行"
+      ]
+    }
+  ]
+}

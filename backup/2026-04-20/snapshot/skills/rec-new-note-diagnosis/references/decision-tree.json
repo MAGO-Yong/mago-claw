@@ -1,0 +1,342 @@
+{
+  "version": "3.0",
+  "description": "外流新笔记排查SOP - 结构化决策树（含变更预检）",
+  "last_updated": "2026-03-23",
+  "start_node": "step0",
+  "nodes": {
+    "step0": {
+      "id": "step0",
+      "name": "【新增】配置变更预检",
+      "description": "检查过去24小时内arkfeedx的Apollo配置变更和外流推荐实验变更",
+      "type": "change_detection",
+      "action": "调用change-event-locator skill查询变更",
+      "script": "~/.openclaw/workspace/skills/change-event-locator/scripts/query_changes.py",
+      "dependencies": ["change-event-locator"],
+      "output_template": "检测到 {high_risk_count} 项高风险变更",
+      "branches": [
+        {
+          "condition": "high_risk_changes > 0",
+          "next": "step0_analysis",
+          "description": "发现高风险变更，优先排查变更影响"
+        },
+        {
+          "condition": "high_risk_changes == 0",
+          "next": "step1",
+          "description": "无高风险变更，进入常规SOP排查"
+        }
+      ],
+      "config_ref": "config-watchlist.json"
+    },
+    "step0_analysis": {
+      "id": "step0_analysis",
+      "name": "变更影响分析",
+      "description": "根据变更类型跳转到对应排查步骤",
+      "type": "decision",
+      "branches": [
+        {
+          "condition": "LVE Merge Age变更",
+          "next": "step5",
+          "description": "LVE配置变更 → 直接检查索引新鲜度",
+          "note": "重点检查hf_lve_merge_age_1h_ratio等配置"
+        },
+        {
+          "condition": "笔记过滤配置变更",
+          "next": "step2_5",
+          "description": "笔记年龄过滤变更 → 检查矛盾判断",
+          "note": "重点检查enable_fdx_filter_note_time配置"
+        },
+        {
+          "condition": "混排/首屏实验变更",
+          "next": "step2_with_caution",
+          "description": "混排实验变更 → 重点监控postRank阶段"
+        },
+        {
+          "condition": "蒲公英召回变更",
+          "next": "step3",
+          "description": "蒲公英召回权重变更 → 检查召回渠道",
+          "note": "蒲公英召回增加会挤压正常新笔记quota"
+        },
+        {
+          "condition": "其他变更",
+          "next": "step1",
+          "description": "其他变更 → 常规排查，但保持警惕"
+        }
+      ]
+    },
+    "step2_with_caution": {
+      "id": "step2_with_caution",
+      "name": "定位下跌阶段（变更敏感模式）",
+      "description": "由于检测到混排/首屏相关变更，重点关注postRank阶段",
+      "type": "decision",
+      "condition": {
+        "type": "comparison",
+        "focus_on": "postRank",
+        "operator": "AND",
+        "checks": [
+          {"metric": "postrank", "operator": "<", "reference": "-1d"},
+          {"metric": "postrank", "operator": "<", "reference": "-7d"}
+        ]
+      },
+      "true_next": "step2_5",
+      "false_next": "investigate_ranking",
+      "promql_ref": "step2",
+      "note": "⚠️ 检测到混排/首屏实验变更，重点检查postRank阶段新笔记占比"
+    },
+    "step1": {
+      "id": "step1",
+      "name": "确认新笔记曝光占比下跌",
+      "description": "查询1H和24H新笔记占比，对比-1d和-7d",
+      "type": "decision",
+      "condition": {
+        "type": "comparison",
+        "operator": "AND",
+        "checks": [
+          {"metric": "current", "operator": "<", "reference": "-1d"},
+          {"metric": "current", "operator": "<", "reference": "-7d"}
+        ]
+      },
+      "true_next": "step2",
+      "false_next": "end_no_issue",
+      "promql_ref": "step1",
+      "output_template": "当前值 {current} < -1d({v_1d}) 且 < -7d({v_7d}) → {result}"
+    },
+    "end_no_issue": {
+      "id": "end_no_issue",
+      "name": "结束 - 无异常",
+      "type": "end",
+      "description": "当前值与历史持平或仅单日波动，无需排查",
+      "action": "记录观察，结束排查"
+    },
+    "step2": {
+      "id": "step2",
+      "name": "定位下跌阶段",
+      "description": "查询postrank/finalrank等各阶段新笔记占比",
+      "type": "decision",
+      "condition": {
+        "type": "comparison",
+        "operator": "AND",
+        "checks": [
+          {"metric": "postrank", "operator": "<", "reference": "-1d"},
+          {"metric": "postrank", "operator": "<", "reference": "-7d"}
+        ]
+      },
+      "true_next": "step2_5",
+      "false_next": "investigate_ranking",
+      "promql_ref": "step2",
+      "output_template": "postrank阶段下跌 → 进入Step 2.5"
+    },
+    "investigate_ranking": {
+      "id": "investigate_ranking",
+      "name": "排查精排/重排阶段",
+      "type": "end",
+      "description": "postrank正常但finalrank下跌，排查精排/重排（非本SOP范围）",
+      "action": "联系推荐算法团队"
+    },
+    "step2_5": {
+      "id": "step2_5",
+      "name": "矛盾判断",
+      "description": "recall下跌但各召回渠道量正常时的快速判断",
+      "type": "decision",
+      "condition": {
+        "type": "contradiction_check",
+        "description": "recall↓ 但 渠道召回量正常"
+      },
+      "branches": [
+        {
+          "condition": "note_age > -1d 且 > -7d",
+          "next": "step5_data_freshness",
+          "description": "笔记年龄变老 → 索引新鲜度问题"
+        },
+        {
+          "condition": "note_age ≈ -1d ≈ -7d",
+          "next": "step6_4_data_flow",
+          "description": "笔记年龄正常 → 审核/数据流问题"
+        },
+        {
+          "condition": "channels_abnormal",
+          "next": "step3",
+          "description": "渠道量异常 → 常规渠道排查"
+        }
+      ],
+      "promql_ref": "step2_5",
+      "output_template": "矛盾判断: {condition} → {next}"
+    },
+    "step3": {
+      "id": "step3",
+      "name": "召回渠道排查",
+      "description": "DSSM/MLLM/FOLLOW等各渠道召回量对比",
+      "type": "analysis",
+      "action": "找出当前值同时低于-1d和-7d的渠道",
+      "next": "step4",
+      "promql_ref": "step3",
+      "output_template": "异常渠道: {abnormal_channels}"
+    },
+    "step4": {
+      "id": "step4",
+      "name": "召回根因分析",
+      "description": "种子个数、笔记年龄、quota三维分析",
+      "type": "decision",
+      "branches": [
+        {
+          "condition": "seed < -1d 且 < -7d",
+          "next": "step6_supply",
+          "description": "种子供给不足 → 内容供给排查"
+        },
+        {
+          "condition": "age > -1d 且 > -7d",
+          "next": "step5_index",
+          "description": "笔记年龄变老 → 索引排查"
+        },
+        {
+          "condition": "quota_changed",
+          "next": "contact_strategy",
+          "description": "quota变化 → 联系推荐策略"
+        },
+        {
+          "condition": "channels_normal_but_ratio_down",
+          "next": "step2_5",
+          "description": "渠道正常但占比跌 → 回到矛盾判断"
+        }
+      ],
+      "promql_ref": "step4",
+      "output_template": "根因: {root_cause} → {next}"
+    },
+    "contact_strategy": {
+      "id": "contact_strategy",
+      "name": "联系推荐策略",
+      "type": "end",
+      "description": "召回quota配置变更导致",
+      "action": "联系推荐策略团队确认变更"
+    },
+    "step5": {
+      "id": "step5",
+      "name": "索引表排查",
+      "description": "向量索引池quota、omega笔记年龄、数据新鲜度",
+      "type": "sequential",
+      "sub_steps": ["5.0_check_precondition", "5.1_index_quota", "5.2_omega_age", "5.3_index_switch", "5.4_data_freshness", "5.5_deep_check"],
+      "branches": [
+        {
+          "condition": "index_switch_stuck",
+          "next": "step5_5_deep",
+          "description": "索引切换卡住 → 深度排查"
+        },
+        {
+          "condition": "data_freshness_abnormal",
+          "next": "step6_4_data_flow",
+          "description": "数据新鲜度异常 → 数据流排查"
+        },
+        {
+          "condition": "index_normal",
+          "next": "step6_supply",
+          "description": "索引正常 → 内容供给排查"
+        }
+      ],
+      "promql_ref": "step5",
+      "tool_ref": "index-switch-check"
+    },
+    "step5_data_freshness": {
+      "id": "step5_data_freshness",
+      "name": "正倒排数据新鲜度检查",
+      "type": "decision",
+      "condition": {
+        "type": "threshold",
+        "metric": "data_freshness",
+        "threshold": "abnormal"
+      },
+      "true_next": "step6_4_data_flow",
+      "false_next": "step5_index",
+      "promql_ref": "step5"
+    },
+    "step5_5_deep": {
+      "id": "step5_5_deep",
+      "name": "索引深度排查",
+      "description": "Kafka延迟、内存、构建QPS",
+      "type": "analysis",
+      "checks": [
+        {"metric": "kafka_lag", "threshold": 30, "unit": "min"},
+        {"metric": "memory_usage", "threshold": 90, "unit": "%"},
+        {"metric": "build_qps", "threshold": 5000, "operator": "<"}
+      ],
+      "promql_ref": "step5_5",
+      "output_template": "深度排查结果: {findings}"
+    },
+    "step6_supply": {
+      "id": "step6_supply",
+      "name": "内容供给排查",
+      "description": "内容池、审核、发布链路",
+      "type": "sequential",
+      "sub_steps": ["6.1_content_pool", "6.2_audit", "6.3_publish"],
+      "branches": [
+        {
+          "condition": "content_pool < -1d",
+          "result": "上游内容供给减少"
+        },
+        {
+          "condition": "audit_retry > -1d",
+          "result": "审核积压 → 联系社区安审"
+        },
+        {
+          "condition": "publish_qps < -1d",
+          "result": "发布链路异常 → 联系社区发布"
+        },
+        {
+          "condition": "all_normal",
+          "next": "step6_4_data_flow",
+          "description": "供给正常但新笔记仍跌 → 数据流排查"
+        }
+      ],
+      "promql_ref": "step6"
+    },
+    "step6_4_data_flow": {
+      "id": "step6_4_data_flow",
+      "name": "数据流/同步层排查",
+      "description": "Flink、Kafka、Lindorm",
+      "type": "analysis",
+      "checks": [
+        {"metric": "flink_lag", "description": "Flink消费延迟"},
+        {"metric": "kafka_lag", "description": "Kafka消费延迟"},
+        {"metric": "lindorm_latency", "description": "Lindorm写入延迟"},
+        {"metric": "consumer_group_config", "description": "消费组配置(tag=*)"}
+      ],
+      "promql_ref": "step6_4",
+      "common_issues": [
+        {"pattern": "CallQueueTooBigException", "cause": "Lindorm META节点过载", "action": "杀实时流/扩容"},
+        {"pattern": "kafka_lag_high", "cause": "消费组能力不足", "action": "扩容消费组"},
+        {"pattern": "tag_star", "cause": "消费组配置错误", "action": "修正tag配置"}
+      ]
+    },
+    "post_release_monitor": {
+      "id": "post_release_monitor",
+      "name": "发布后监控（渐进式故障预警）",
+      "description": "发布后18-24小时持续跟踪",
+      "type": "monitoring",
+      "schedule": [
+        {"time": "release+2h", "action": "确认指标正常"},
+        {"time": "22:00", "action": "检查是否跌破0.065"},
+        {"time": "next_morning", "action": "确认无异常"}
+      ],
+      "alert_thresholds": {
+        "evening_decline_10": {"time": "22:00", "threshold": 0.065, "severity": "warning"},
+        "evening_decline_20": {"time": "22:00", "decline_percent": 20, "severity": "critical", "action": "立即回滚"}
+      },
+      "promql_ref": "post_release_monitor"
+    }
+  },
+  "quick_reference": {
+    "root_causes": [
+      {"id": "index_switch_slow", "name": "索引切换慢", "keyword": "笔记年龄持续变老", "threshold": "30min"},
+      {"id": "index_oom", "name": "索引OOM", "keyword": "内存>90%", "threshold": "90%"},
+      {"id": "sync_delay", "name": "同步层延迟", "keyword": "数据新鲜度异常", "threshold": "1h"},
+      {"id": "audit_backlog", "name": "审核积压", "keyword": "hfRetry上升", "action": "联系安审"},
+      {"id": "consumer_config", "name": "消费组配置错误", "keyword": "tag=*", "action": "修正配置"},
+      {"id": "post_release_gradual", "name": "渐进式发布故障", "keyword": "发布后12-17h延迟下跌", "action": "晚间立即回滚"}
+    ],
+    "contacts": {
+      "index_team": "落天、明诚、书航、居中、巴蒂",
+      "strategy_team": "推荐策略",
+      "audit_team": "社区安审",
+      "publish_team": "社区发布链路",
+      "storage_team": "阿里云/存储团队"
+    }
+  }
+}
