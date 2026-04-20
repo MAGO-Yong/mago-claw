@@ -1,0 +1,445 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI 诊断卡片 v4 · 基于真实数据</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'PingFang SC', 'Microsoft YaHei', sans-serif;
+    background: #eef0f5; min-height: 100vh; padding: 32px 24px;
+    display: flex; flex-direction: column; align-items: center; gap: 24px;
+  }
+
+  .compare-wrap {
+    width: 100%; max-width: 1100px;
+    display: flex; gap: 32px; align-items: flex-start;
+  }
+  .compare-col { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 10px; }
+  .col-label {
+    font-size: 12px; font-weight: 600; color: #999; letter-spacing: 0.5px;
+    text-transform: uppercase; padding-bottom: 4px;
+    border-bottom: 2px solid #e0e4ef;
+  }
+  .col-label.new { border-bottom-color: #1677ff; color: #1677ff; }
+
+  /* ===== 现有卡片（还原截图样式） ===== */
+  .old-card {
+    background: #fff; border-radius: 10px; overflow: hidden;
+    border: 1px solid #e0e4ef;
+  }
+  .old-card-head {
+    background: #e8f0ff; padding: 12px 16px;
+    display: flex; align-items: center; gap: 8px;
+    font-size: 14px; font-weight: 600; color: #1a4fa0;
+  }
+  .old-section { padding: 12px 16px; }
+  .old-section-title { font-size: 13px; font-weight: 700; color: #1a1a2e; margin-bottom: 8px; }
+  .old-row { display: flex; gap: 0; padding: 5px 0; font-size: 13px; border-bottom: 1px solid #f5f5f5; }
+  .old-row:last-child { border-bottom: none; }
+  .old-key { color: #666; width: 72px; flex-shrink: 0; }
+  .old-val { flex: 1; color: #2a2a2a; line-height: 1.6; }
+  .old-val.red { color: #ff4d4f; }
+  .old-val.orange { color: #fa8c16; }
+  .old-foot { padding: 10px 16px; border-top: 1px solid #f0f0f5; display: flex; gap: 14px; }
+  .old-link { font-size: 13px; color: #1677ff; cursor: pointer; }
+
+  /* ===== 新卡片 ===== */
+  .new-card {
+    background: #fff; border-radius: 12px; overflow: hidden;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.07); cursor: pointer;
+    transition: box-shadow 0.15s;
+  }
+  .new-card:hover { box-shadow: 0 4px 20px rgba(0,0,0,0.11); }
+
+  /* 标题行 */
+  .nc-head {
+    background: #eaf5ee; padding: 12px 16px;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .nc-head-icon { font-size: 14px; flex-shrink: 0; }
+  .nc-head-title { font-size: 14px; font-weight: 700; color: #1a1a2e; flex: 1; line-height: 1.4; }
+  .nc-badge { font-size: 11px; font-weight: 500; padding: 2px 8px; border-radius: 5px; flex-shrink: 0; }
+  .nb-done { background: #d5f0de; color: #237a45; }
+  .nb-ref  { background: #e8eaf5; color: #5566aa; cursor: pointer; font-size: 11px; padding: 2px 8px; border-radius: 5px; }
+
+  /* Case 信息条 */
+  .nc-case {
+    margin: 10px 16px 0; padding: 7px 12px;
+    background: #f5f6f8; border-radius: 7px;
+    font-size: 12px; color: #888; line-height: 1.8;
+  }
+  .nc-case span { color: #555; }
+
+  /* 核心结论 */
+  .nc-conclusion {
+    margin: 10px 16px 0;
+    background: #f5f8ff;
+    border: 1px solid #d6e4ff;
+    border-radius: 8px;
+    padding: 10px 14px 12px;
+  }
+  .nc-concl-label {
+    font-size: 11px; font-weight: 600; color: #1677ff;
+    margin-bottom: 6px; letter-spacing: 0.3px;
+  }
+  .nc-concl-body {
+    font-size: 13px; color: #1a1a2e; line-height: 1.7; font-weight: 500;
+  }
+  .nc-block-title { font-size: 12px; font-weight: 600; color: #999; margin-bottom: 8px; letter-spacing: 0.3px; }
+
+  /* 关键证据 */
+  .nc-evidence { padding: 0 16px 0; border-top: 1px solid #f0f0f5; padding-top: 12px; }
+  .nc-dim-list { display: flex; flex-direction: column; gap: 6px; }
+  .nc-dim { display: flex; gap: 10px; align-items: flex-start; }
+  /* 纯文字维度标签，无 icon */
+  .nc-dim-name-only {
+    width: 36px; flex-shrink: 0;
+    font-size: 11px; font-weight: 600; color: #999;
+    padding-top: 9px; text-align: right;
+  }
+
+  /* 时间行 */
+  .nc-time-row {
+    padding: 8px 16px 2px;
+    font-size: 11px; color: #bbb;
+  }
+  .nc-time-row span { color: #999; }
+
+  .nc-dim-body { flex: 1; }
+  .nc-dim-main {
+    background: #f5f6f8; border-radius: 7px;
+    padding: 8px 12px; font-size: 12px; color: #2a2d3e; line-height: 1.65;
+  }
+  .nc-dim-main.suspect {
+    border-left: 3px solid #fa8c16; background: #fffaf5;
+  }
+  .nc-dim-main.impact-hi {
+    border-left: 3px solid #ff4d4f; background: #fff8f8;
+  }
+  .suspect-tag {
+    display: inline-block; font-size: 10px; font-weight: 600;
+    padding: 1px 5px; border-radius: 3px;
+    background: #fff0d6; color: #c97b00; margin-left: 5px;
+  }
+  .more-hint {
+    font-size: 11px; color: #bbb; margin-top: 4px; padding-left: 4px; cursor: pointer;
+  }
+  .more-hint:hover { color: #1677ff; }
+
+  /* 底部按钮 */
+  .nc-footer { padding: 14px 16px 8px; display: flex; gap: 8px; flex-wrap: wrap; }
+  .nc-btn { padding: 8px 14px; border-radius: 8px; font-size: 12px; font-weight: 500; cursor: pointer; transition: opacity 0.15s; border: none; }
+  .nc-btn-primary { background: #1677ff; color: #fff; }
+  .nc-btn-primary:hover { opacity: 0.88; }
+  .nc-btn-ghost { background: #fff; color: #555; border: 1px solid #d0d4e8; }
+  .nc-btn-ghost:hover { border-color: #1677ff; color: #1677ff; }
+
+  /* 反馈行 */
+  .nc-feedback {
+    padding: 8px 16px 14px;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .nc-fb-label { font-size: 12px; color: #bbb; }
+  .nc-fb-btn {
+    font-size: 12px; padding: 3px 12px; border-radius: 10px;
+    border: 1px solid #e0e4ef; background: #fff; color: #666;
+    cursor: pointer; transition: all 0.15s; user-select: none;
+  }
+  .nc-fb-btn:hover { border-color: #1677ff; color: #1677ff; }
+  .nc-fb-btn.done-yes { border-color: #52c41a; background: #f0faf2; color: #389e0d; pointer-events: none; }
+  .nc-fb-btn.done-no  { border-color: #ff4d4f; background: #fff1f0; color: #cf1322; pointer-events: none; }
+
+  /* 改进标注 */
+  .improve {
+    font-size: 10px; font-weight: 600; color: #1677ff;
+    background: #e6f0ff; border: 1px solid #bbd4ff;
+    border-radius: 3px; padding: 1px 5px; margin-left: 5px;
+    vertical-align: middle;
+  }
+
+  /* 侧边栏 */
+  .overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.22); z-index: 100; display: none; justify-content: flex-end; }
+  .overlay.open { display: flex; }
+  .sidebar { width: 480px; max-width: 94vw; height: 100%; background: #fff; display: flex; flex-direction: column; box-shadow: -4px 0 24px rgba(0,0,0,0.10); animation: slideIn 0.22s ease; }
+  @keyframes slideIn { from{transform:translateX(100%)} to{transform:translateX(0)} }
+  .sb-head { padding: 14px 18px; border-bottom: 1px solid #f0f0f5; display: flex; align-items: flex-start; gap: 10px; background: #fafbff; flex-shrink: 0; }
+  .sb-av { width: 30px; height: 30px; border-radius: 8px; background: linear-gradient(135deg,#1677ff,#722ed1); display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700; color: #fff; flex-shrink: 0; }
+  .sb-title { font-size: 13px; font-weight: 600; color: #1a1a2e; }
+  .sb-sub { font-size: 11px; color: #bbb; margin-top: 2px; }
+  .sb-close { font-size: 20px; color: #bbb; cursor: pointer; margin-left: auto; }
+  .sb-close:hover { color: #555; }
+  .sb-body { flex: 1; overflow-y: auto; padding: 14px 18px; background: #f5f6f8; display: flex; flex-direction: column; gap: 10px; }
+  .sb-bubble { background: #fff; border: 1px solid #e8e8ee; border-radius: 10px; padding: 14px 16px; font-size: 12px; line-height: 1.8; color: #333; }
+  .sb-sec { font-size: 11px; font-weight: 600; color: #999; margin-bottom: 6px; }
+  .sb-step { display: flex; gap: 8px; padding: 3px 0; font-size: 12px; color: #555; }
+  .sb-num { color: #1677ff; flex-shrink: 0; width: 18px; font-weight: 600; }
+  .sb-warn { color: #c97b00; font-weight: 500; }
+  .sb-hr { border: none; border-top: 1px solid #f0f0f5; margin: 10px 0; }
+  .sb-chips { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 8px; }
+  .sb-chip { font-size: 11px; color: #1677ff; background: #e6f0ff; border: 1px solid #bbd4ff; border-radius: 10px; padding: 3px 10px; cursor: pointer; }
+  .sb-chip:hover { background: #d0e5ff; }
+  .sb-input-wrap { padding: 10px 14px; border-top: 1px solid #e8e8ee; background: #fff; display: flex; gap: 8px; flex-shrink: 0; }
+  .sb-input { flex: 1; border: 1px solid #e0e4ef; border-radius: 8px; padding: 8px 12px; font-size: 12px; outline: none; color: #333; font-family: inherit; }
+  .sb-input:focus { border-color: #1677ff; }
+  .sb-send { width: 34px; height: 34px; border-radius: 8px; background: #1677ff; border: none; cursor: pointer; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+  .dots { display: flex; gap: 3px; align-items: center; }
+  .dots span { width: 5px; height: 5px; border-radius: 50%; background: #bbb; animation: blink 1.2s infinite; }
+  .dots span:nth-child(2) { animation-delay: 0.2s; }
+  .dots span:nth-child(3) { animation-delay: 0.4s; }
+  @keyframes blink { 0%,60%,100%{transform:translateY(0)} 30%{transform:translateY(-4px)} }
+</style>
+</head>
+<body>
+
+<div style="width:100%;max-width:1100px;">
+  <div style="font-size:18px;font-weight:700;color:#1a1a2e;margin-bottom:4px;">AI 诊断卡片重设计 v4</div>
+  <div style="font-size:12px;color:#999;">基于真实截图字段 · adwind-service-default · 2026-04-20 19:57</div>
+</div>
+
+<div class="compare-wrap">
+
+  <!-- 左：现有卡片（还原截图） -->
+  <div class="compare-col">
+    <div class="col-label">现有卡片（截图还原）</div>
+    <div class="old-card">
+      <div class="old-card-head">
+        🔔 异常分析-[P2]3分钟内异常环比上涨200%
+      </div>
+
+      <div class="old-section">
+        <div class="old-section-title">规则概览</div>
+        <div class="old-row"><span class="old-key">触发规则</span><span class="old-val">[最近3分钟中，后2分钟平均值相对于前1分钟，波动上涨>=200.0%]</span></div>
+        <div class="old-row"><span class="old-key">请求次数</span><span class="old-val">[1,11,134]</span></div>
+      </div>
+
+      <div class="old-section" style="border-top:1px solid #f5f5f5;">
+        <div class="old-section-title">诊断结论</div>
+        <div class="old-row"><span class="old-key">服务</span><span class="old-val">adwind-service-default</span></div>
+        <div class="old-row"><span class="old-key">趋势</span><span class="old-val">指标处于上涨情形，在2026-04-20 19:46:00、19:48:00、19:51:00~19:52:00时间处于异常，异常程度:critical，异常值:[102.0,118.0,81.0,161.0]</span></div>
+        <div class="old-row"><span class="old-key">异常类型</span><span class="old-val red">java.util.concurrent.ExecutionException</span></div>
+        <div class="old-row"><span class="old-key">报错函数</span><span class="old-val red">JavaBeanDeserializer.java:503 的方法 deserialze</span></div>
+        <div class="old-row"><span class="old-key">异常信息</span><span class="old-val">listSearchTopicAIMaterial async search exception: JSON解析错误，期望 { 但实际是 [，位置 657，字段名 noteVideo</span></div>
+        <div class="old-row"><span class="old-key">触发时间</span><span class="old-val">2026-04-20 19:57:08 推送时间：2026-04-20 19:57:36</span></div>
+      </div>
+
+      <div class="old-section" style="border-top:1px solid #f5f5f5;">
+        <div class="old-section-title">异常分布</div>
+        <div class="old-row"><span class="old-key">机房分布</span><span class="old-val orange">qcsh4: 100.00%</span></div>
+        <div class="old-row"><span class="old-key">影响范围</span><span class="old-val orange">[RPC Service]listSearchTopicAIMaterial: 99.40%</span></div>
+      </div>
+
+      <div class="old-section" style="border-top:1px solid #f5f5f5;">
+        <div class="old-section-title">变更</div>
+        <div style="font-size:12px;color:#555;line-height:2;">
+          <div>2026-04-20 19:50:35~19:50:35，Ones发布系统，adwind-service-default，姜德铭，发布部署</div>
+          <div>2026-04-20 19:30:51~19:40:20，Ones发布系统，addata-service-default，风影(朱永强)，发布部署</div>
+          <div>2026-04-20 19:31:50~19:48:21，Apollo配置中心，hongyan，林樊(刘成立)，配置变更</div>
+        </div>
+      </div>
+
+      <div class="old-foot">
+        <span class="old-link">异常详情</span>
+        <span class="old-link">异常堆栈</span>
+        <span class="old-link">事件详情</span>
+      </div>
+    </div>
+
+    <!-- 问题标注 -->
+    <div style="background:#fff8f0;border:1px solid #ffd591;border-radius:8px;padding:12px 14px;font-size:12px;color:#8a5a00;line-height:1.9;">
+      <div style="font-weight:700;margin-bottom:6px;color:#c97b00;">现有卡片问题</div>
+      <div>❌ 无根因结论，只列原始异常字段</div>
+      <div>❌ 趋势是时间点列表，无法扫读</div>
+      <div>❌ 三条变更未标注哪条最可疑</div>
+      <div>❌ 缺少置信度，无法判断诊断可靠性</div>
+      <div>❌ 机房分布和影响范围散落在"异常分布"区，不突出</div>
+      <div>❌ 无 P0 处置建议，SRE 需自行判断</div>
+    </div>
+  </div>
+
+  <!-- 右：新卡片 -->
+  <div class="compare-col">
+    <div class="col-label new">重设计卡片（v4）</div>
+
+    <div class="new-card" onclick="openSb()">
+      <!-- 标题行 -->
+      <div class="nc-head">
+        <span class="nc-head-icon">🤖</span>
+        <span class="nc-head-title">针对 19:57 的 [P2] adwind-service 异常环比上涨告警</span>
+        <span class="nc-badge nb-done">诊断完成</span>
+        <span class="nc-badge nb-ref" onclick="event.stopPropagation()">引用原消息</span>
+      </div>
+
+      <!-- 核心结论 -->
+      <div class="nc-conclusion">
+        <div class="nc-concl-label">诊断结论</div>
+        <div class="nc-concl-body">
+          adwind-service 19:50 发布后，下游 noteVideo 字段返回格式由对象变为数组，导致 JSON 反序列化失败。
+        </div>
+      </div>
+
+      <!-- 关键证据 -->
+      <div class="nc-evidence">
+        <div class="nc-block-title">关键证据</div>
+        <div class="nc-dim-list">
+
+          <!-- 异常 -->
+          <div class="nc-dim">
+            <div class="nc-dim-name-only">异常</div>
+            <div class="nc-dim-body">
+              <div class="nc-dim-main">ExecutionException → JavaBeanDeserializer:503，JSON 反序列化失败：期望 { 但实际是 [，字段 noteVideo。</div>
+            </div>
+          </div>
+
+          <!-- 变更 -->
+          <div class="nc-dim">
+            <div class="nc-dim-name-only">变更</div>
+            <div class="nc-dim-body">
+              <div class="nc-dim-main suspect">19:50:35 adwind-service-default 发布部署（姜德铭），与异常激增时间点（19:51）相差 25s。<span class="suspect-tag">最可疑</span></div>
+            </div>
+          </div>
+
+          <!-- 影响 -->
+          <div class="nc-dim">
+            <div class="nc-dim-name-only">影响</div>
+            <div class="nc-dim-body">
+              <div class="nc-dim-main impact-hi">qcsh4 机房 100%，listSearchTopicAIMaterial 接口 99.4% 请求失败。</div>
+            </div>
+          </div>
+
+          <!-- 指标 -->
+          <div class="nc-dim">
+            <div class="nc-dim-name-only">指标</div>
+            <div class="nc-dim-body">
+              <div class="nc-dim-main">异常量 1→134（环比 200%+），19:51~19:52 达 critical 级。</div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- 时间信息 -->
+      <div class="nc-time-row">
+        触发：<span>2026-04-20 19:57:08</span>　推送：<span>2026-04-20 19:57:36</span>
+      </div>
+
+      <!-- 底部操作 -->
+      <div class="nc-footer" onclick="event.stopPropagation()">
+        <button class="nc-btn nc-btn-primary" onclick="openSb()">展开完整诊断</button>
+        <button class="nc-btn nc-btn-ghost">异常详情</button>
+        <button class="nc-btn nc-btn-ghost">异常堆栈</button>
+        <button class="nc-btn nc-btn-ghost">事件详情</button>
+      </div>
+      <!-- 反馈行 -->
+      <div class="nc-feedback" onclick="event.stopPropagation()">
+        <span class="nc-fb-label">诊断是否有用？</span>
+        <span class="nc-fb-btn nc-fb-yes" onclick="fbClick(this,'yes')">👍 有用</span>
+        <span class="nc-fb-btn nc-fb-no"  onclick="fbClick(this,'no')">👎 没用</span>
+      </div>
+    </div>
+
+    <!-- 改进说明 -->
+    <div style="background:#f0faf2;border:1px solid #b7eb8f;border-radius:8px;padding:12px 14px;font-size:12px;color:#2a6b2a;line-height:1.9;">
+      <div style="font-weight:700;margin-bottom:6px;color:#389e0d;">改进点</div>
+      <div>✅ 根因一句话结论（替代原始异常类型）</div>
+      <div>✅ 置信度 88%（AI 推理可靠性可感知）</div>
+      <div>✅ 影响聚合：量化激增倍数 + 接口名 + 机房</div>
+      <div>✅ 变更标注「最可疑」，与异常时间线对齐</div>
+      <div>✅ 异常字段合并，去掉原始堆栈，仅保留关键信息</div>
+      <div>✅ 点击展开侧边栏可查完整推理过程和 P0 建议</div>
+    </div>
+  </div>
+
+</div>
+
+<!-- 侧边栏 -->
+<div class="overlay" id="overlay" onclick="if(event.target===this)closeSb()">
+  <div class="sidebar">
+    <div class="sb-head">
+      <div class="sb-av">X</div>
+      <div style="flex:1;">
+        <div class="sb-title">完整诊断 · adwind-service-default</div>
+        <div class="sb-sub">异常分析 · 2026-04-20 19:57</div>
+      </div>
+      <div class="sb-close" onclick="closeSb()">×</div>
+    </div>
+    <div class="sb-body" id="sbBody">
+      <div class="sb-bubble">
+        <div class="sb-sec">推理过程（5 步）</div>
+        <div class="sb-step"><span class="sb-num">①</span><span>拉取 adwind-service 近 15min 异常量指标 → 19:51 起 1→134，环比 200%+，critical 级</span></div>
+        <div class="sb-step"><span class="sb-num">②</span><span class="sb-warn">查异常类型 → ExecutionException @ JavaBeanDeserializer:503，JSON 反序列化失败，字段 noteVideo 期望 { 实际为 [</span></div>
+        <div class="sb-step"><span class="sb-num">③</span><span class="sb-warn">查变更记录 → 19:50:35 adwind-service-default 发布，与异常激增时间点（19:51）相差 25s，强相关</span></div>
+        <div class="sb-step"><span class="sb-num">④</span><span>分析机房分布 → qcsh4: 100%，符合单次发布灰度到单机房的特征，排除全局故障</span></div>
+        <div class="sb-step"><span class="sb-num">⑤</span><span>排查其余 2 条变更：addata-service-default 发布（19:30~19:40）早于异常爆发 11 分钟；Apollo 配置变更（19:31~19:48）属基础配置，与 JSON 反序列化无关。两者可疑度低，排除。</span></div>
+        <hr class="sb-hr">
+        <div class="sb-sec">诊断结论</div>
+        <div style="font-size:13px;font-weight:600;color:#1a1a2e;margin-bottom:6px;">adwind-service 19:50 发布后，下游 noteVideo 字段返回格式由对象变为数组，导致 JSON 反序列化失败。</div>
+        <span class="conf conf-high" style="font-size:12px;padding:2px 9px;">置信度 88%</span>
+        <hr class="sb-hr">
+        <div class="sb-sec">处置建议</div>
+        <div style="font-size:12px;color:#333;line-height:1.9;">
+          <div><strong>P0</strong> 回滚 adwind-service-default 至上一版本，观察 qcsh4 机房异常量是否回落。</div>
+          <div style="margin-top:4px;"><strong>P1</strong> 确认 noteVideo 字段格式变更是否为预期，若是则更新反序列化逻辑后重新上线。</div>
+        </div>
+        <hr class="sb-hr">
+        <div class="sb-sec">继续排查</div>
+        <div class="sb-chips">
+          <span class="sb-chip" onclick="sbChip(this,'查看 adwind 发布的具体变更内容')">查看 adwind 发布变更内容</span>
+          <span class="sb-chip" onclick="sbChip(this,'生成回滚步骤')">生成回滚步骤</span>
+          <span class="sb-chip" onclick="sbChip(this,'查看异常堆栈详情')">查看异常堆栈详情</span>
+          <span class="sb-chip" onclick="sbChip(this,'生成排障报告')">生成排障报告</span>
+        </div>
+      </div>
+    </div>
+    <div class="sb-input-wrap">
+      <input class="sb-input" id="sbInput" placeholder="继续追问…" onkeydown="if(event.key==='Enter')sbSend()" />
+      <button class="sb-send" onclick="sbSend()">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="#fff"><path d="M2 21l21-9L2 3v7l15 2-15 2v7z"/></svg>
+      </button>
+    </div>
+  </div>
+</div>
+
+<script>
+function openSb() { document.getElementById('overlay').classList.add('open'); }
+function closeSb() { document.getElementById('overlay').classList.remove('open'); }
+function fbClick(el, type) {
+  const fb = el.closest('.nc-feedback');
+  fb.querySelector('.nc-fb-yes').className = 'nc-fb-btn nc-fb-yes' + (type==='yes' ? ' done-yes' : '');
+  fb.querySelector('.nc-fb-no').className  = 'nc-fb-btn nc-fb-no'  + (type==='no'  ? ' done-no'  : '');
+  if (type==='yes') { fb.querySelector('.nc-fb-yes').textContent='👍 已反馈'; fb.querySelector('.nc-fb-no').style.display='none'; }
+  else              { fb.querySelector('.nc-fb-no').textContent='👎 已反馈';  fb.querySelector('.nc-fb-yes').style.display='none'; }
+}
+
+function sbChip(el, text) {
+  el.style.opacity='0.5'; el.style.pointerEvents='none';
+  appendMsg('user', text);
+  const tid='ty_'+Date.now(); appendTyping(tid);
+  setTimeout(()=>{ const e=document.getElementById(tid); if(e) e.innerHTML=`<div class="sb-bubble" style="font-size:12px;">正在处理「${text}」，此处为原型演示。</div>`; scroll(); }, 1200);
+}
+function sbSend() {
+  const inp=document.getElementById('sbInput'), text=inp.value.trim(); if(!text) return;
+  inp.value=''; appendMsg('user',text);
+  const tid='ty_'+Date.now(); appendTyping(tid);
+  setTimeout(()=>{ const e=document.getElementById(tid); if(e) e.innerHTML=`<div class="sb-bubble" style="font-size:12px;">正在处理「${text}」，此处为原型演示。</div>`; scroll(); }, 1200);
+}
+function appendMsg(role, text) {
+  const body=document.getElementById('sbBody');
+  const d=document.createElement('div');
+  d.style.cssText=role==='user'?'display:flex;justify-content:flex-end;':'';
+  d.innerHTML=role==='user'
+    ?`<div style="background:#1677ff;color:#fff;font-size:12px;border-radius:8px;padding:8px 12px;max-width:85%;line-height:1.6;">${text}</div>`
+    :`<div class="sb-bubble" style="font-size:12px;">${text}</div>`;
+  body.appendChild(d); scroll();
+}
+function appendTyping(tid) {
+  const body=document.getElementById('sbBody');
+  const d=document.createElement('div'); d.id=tid;
+  d.innerHTML=`<div class="sb-bubble" style="font-size:12px;"><div class="dots"><span></span><span></span><span></span></div></div>`;
+  body.appendChild(d); scroll();
+}
+function scroll() { document.getElementById('sbBody').scrollTop=99999; }
+</script>
+</body>
+</html>

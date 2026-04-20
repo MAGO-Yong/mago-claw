@@ -1,0 +1,764 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MySQL 故障复盘 · fls_product CPU 告警 · 2026-03-23</title>
+<style>
+  :root {
+    --red:    #e53935;
+    --orange: #f57c00;
+    --yellow: #f9a825;
+    --green:  #43a047;
+    --blue:   #1e88e5;
+    --gray:   #546e7a;
+    --bg:     #f5f6fa;
+    --card:   #ffffff;
+    --border: #e0e4ef;
+    --text:   #1a1d2e;
+    --sub:    #5f6880;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif;
+         background: var(--bg); color: var(--text); font-size: 14px; line-height: 1.7; }
+
+  /* ── 顶部 Banner ─────────────────────────────── */
+  .banner {
+    background: linear-gradient(135deg, #1a1d2e 0%, #2c3056 100%);
+    color: #fff; padding: 36px 48px 28px;
+  }
+  .banner h1 { font-size: 24px; font-weight: 700; margin-bottom: 6px; letter-spacing: .5px; }
+  .banner .meta { display: flex; gap: 24px; flex-wrap: wrap; margin-top: 10px; }
+  .banner .meta span { font-size: 13px; opacity: .75; }
+  .banner .meta b { opacity: 1; color: #ffd54f; }
+
+  /* ── 正文容器 ────────────────────────────────── */
+  .container { max-width: 1100px; margin: 0 auto; padding: 32px 24px 60px; }
+
+  /* ── 卡片 ────────────────────────────────────── */
+  .card {
+    background: var(--card); border: 1px solid var(--border);
+    border-radius: 10px; padding: 24px 28px; margin-bottom: 24px;
+    box-shadow: 0 1px 4px rgba(0,0,0,.06);
+  }
+  .card h2 {
+    font-size: 16px; font-weight: 700; color: var(--text);
+    border-left: 4px solid var(--blue); padding-left: 12px; margin-bottom: 18px;
+  }
+  .card h3 { font-size: 14px; font-weight: 600; color: var(--sub); margin: 16px 0 8px; }
+
+  /* ── 概览指标格子 ────────────────────────────── */
+  .kpi-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 16px; }
+  .kpi {
+    background: var(--bg); border-radius: 8px; padding: 16px 18px;
+    border-left: 4px solid var(--blue);
+  }
+  .kpi.danger  { border-color: var(--red); }
+  .kpi.warn    { border-color: var(--orange); }
+  .kpi.ok      { border-color: var(--green); }
+  .kpi .label  { font-size: 12px; color: var(--sub); margin-bottom: 4px; }
+  .kpi .value  { font-size: 22px; font-weight: 700; }
+  .kpi .value.red    { color: var(--red); }
+  .kpi .value.orange { color: var(--orange); }
+  .kpi .value.green  { color: var(--green); }
+
+  /* ── 告警时间线（横轴） ─────────────────────── */
+  .timeline-wrap { overflow-x: auto; }
+  .timeline-chart { display: flex; align-items: flex-end; gap: 4px;
+                    height: 140px; padding-bottom: 4px; min-width: 600px; }
+  .bar-group { display: flex; flex-direction: column; align-items: center; flex: 1; }
+  .bar {
+    width: 100%; border-radius: 4px 4px 0 0; min-height: 4px;
+    transition: opacity .2s;
+    position: relative; cursor: default;
+  }
+  .bar:hover::after {
+    content: attr(data-tip);
+    position: absolute; bottom: calc(100% + 6px); left: 50%; transform: translateX(-50%);
+    background: #1a1d2e; color: #fff; font-size: 11px; white-space: nowrap;
+    padding: 4px 8px; border-radius: 4px; pointer-events: none; z-index: 10;
+  }
+  .bar-label { font-size: 11px; color: var(--sub); margin-top: 4px; }
+  .chart-legend { display: flex; gap: 20px; margin-top: 10px; font-size: 12px; }
+  .legend-dot { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 4px; }
+
+  /* ── 慢查询分布条形图 ────────────────────────── */
+  .sql-bar-row { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+  .sql-bar-label { width: 260px; font-size: 12px; color: var(--text); white-space: nowrap;
+                   overflow: hidden; text-overflow: ellipsis; flex-shrink: 0; }
+  .sql-bar-track { flex: 1; background: #eef0f7; border-radius: 4px; height: 20px; position: relative; }
+  .sql-bar-fill  { height: 100%; border-radius: 4px; display: flex; align-items: center;
+                   padding-left: 8px; font-size: 11px; color: #fff; font-weight: 600; }
+  .sql-bar-meta  { width: 140px; font-size: 12px; color: var(--sub); flex-shrink: 0; }
+
+  /* ── 锁等待热力图 ─────────────────────────────── */
+  .lock-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; }
+  .lock-cell {
+    background: #fff3e0; border-radius: 8px; padding: 14px 16px;
+    border: 1px solid #ffe0b2;
+  }
+  .lock-cell.critical { background: #ffebee; border-color: #ffcdd2; }
+  .lock-cell.severe   { background: #fff3e0; border-color: #ffe0b2; }
+  .lock-cell.moderate { background: #fff8e1; border-color: #fff176; }
+  .lock-cell.low      { background: #f1f8e9; border-color: #c5e1a5; }
+  .lock-cell .sql-name { font-size: 12px; font-weight: 600; margin-bottom: 6px; color: var(--text); }
+  .lock-cell .ratio-bar { background: #e0e0e0; border-radius: 3px; height: 6px; margin: 6px 0; }
+  .lock-cell .ratio-fill { height: 6px; border-radius: 3px; background: var(--red); }
+  .lock-cell .stats { font-size: 11px; color: var(--sub); }
+
+  /* ── 表格 ────────────────────────────────────── */
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  th { background: #f0f2fa; color: var(--sub); font-weight: 600; text-align: left;
+       padding: 10px 12px; border-bottom: 2px solid var(--border); }
+  td { padding: 9px 12px; border-bottom: 1px solid var(--border); vertical-align: top; }
+  tr:last-child td { border-bottom: none; }
+  tr:hover td { background: #fafbff; }
+  .tag {
+    display: inline-block; padding: 2px 8px; border-radius: 12px;
+    font-size: 11px; font-weight: 600; white-space: nowrap;
+  }
+  .tag.red    { background: #ffebee; color: #c62828; }
+  .tag.orange { background: #fff3e0; color: #e65100; }
+  .tag.green  { background: #e8f5e9; color: #1b5e20; }
+  .tag.blue   { background: #e3f2fd; color: #0d47a1; }
+  .tag.gray   { background: #eceff1; color: #37474f; }
+
+  /* ── 根因流程图 ──────────────────────────────── */
+  .chain { display: flex; flex-direction: column; gap: 0; }
+  .chain-item {
+    display: flex; align-items: flex-start; gap: 16px; padding: 14px 0;
+    border-left: 2px solid #c5cae9; margin-left: 16px; padding-left: 20px;
+    position: relative;
+  }
+  .chain-item::before {
+    content: ''; position: absolute; left: -8px; top: 18px;
+    width: 14px; height: 14px; border-radius: 50%;
+    background: var(--blue); border: 2px solid #fff;
+    box-shadow: 0 0 0 2px var(--blue);
+  }
+  .chain-item.trigger::before { background: var(--orange); box-shadow: 0 0 0 2px var(--orange); }
+  .chain-item.root::before    { background: var(--red);    box-shadow: 0 0 0 2px var(--red); }
+  .chain-item.effect::before  { background: #7b1fa2;       box-shadow: 0 0 0 2px #7b1fa2; }
+  .chain-item.recover::before { background: var(--green);  box-shadow: 0 0 0 2px var(--green); }
+  .chain-time { font-size: 12px; color: var(--sub); width: 48px; flex-shrink: 0; margin-top: 2px; font-weight: 600; }
+  .chain-body { flex: 1; }
+  .chain-body .title { font-weight: 600; font-size: 14px; margin-bottom: 4px; }
+  .chain-body .desc  { font-size: 13px; color: var(--sub); }
+
+  /* ── 统计信息表 ──────────────────────────────── */
+  .stat-highlight { background: #fff3e0; font-weight: 600; color: #e65100; }
+  .stat-ok        { background: #e8f5e9; font-weight: 600; color: #2e7d32; }
+  .stat-bad       { background: #ffebee; font-weight: 600; color: #c62828; }
+
+  /* ── 建议卡片 ────────────────────────────────── */
+  .rec-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 16px; }
+  .rec-card {
+    border-radius: 8px; padding: 18px 20px;
+    border-left: 4px solid var(--blue);
+  }
+  .rec-card.p0 { border-color: var(--red);    background: #fff5f5; }
+  .rec-card.p1 { border-color: var(--orange); background: #fffaf5; }
+  .rec-card.p2 { border-color: var(--blue);   background: #f5f9ff; }
+  .rec-card .pri  { font-size: 11px; font-weight: 700; letter-spacing: .5px; margin-bottom: 8px; }
+  .rec-card.p0 .pri { color: var(--red); }
+  .rec-card.p1 .pri { color: var(--orange); }
+  .rec-card.p2 .pri { color: var(--blue); }
+  .rec-card .title { font-size: 14px; font-weight: 700; margin-bottom: 8px; }
+  .rec-card .body  { font-size: 13px; color: var(--sub); }
+
+  /* ── 代码块 ──────────────────────────────────── */
+  pre {
+    background: #1e2030; color: #a6e22e; border-radius: 8px;
+    padding: 16px 20px; font-size: 12px; font-family: "JetBrains Mono", "Fira Code", monospace;
+    overflow-x: auto; margin-top: 8px;
+  }
+  code { background: #eef0f7; padding: 1px 6px; border-radius: 4px; font-size: 12px; }
+
+  /* ── section 标题 ────────────────────────────── */
+  .section-title {
+    font-size: 13px; font-weight: 700; letter-spacing: 1px;
+    color: var(--sub); text-transform: uppercase;
+    margin: 32px 0 12px; padding-bottom: 6px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  /* ── 责任与处置 ──────────────────────────────── */
+  .action-table td:first-child { font-weight: 600; white-space: nowrap; }
+</style>
+</head>
+<body>
+
+<!-- Banner -->
+<div class="banner">
+  <h1>🔴 MySQL 故障复盘报告 · fls_product CPU 高告警</h1>
+  <div class="meta">
+    <span>故障时间 <b>2026-03-23 00:00 ~ 00:10 (北京时间)</b></span>
+    <span>告警机器 <b>qsh5-db-fls-product-122 (rs05 主库)</b></span>
+    <span>告警编号 <b>#905300</b></span>
+    <span>处置人 <b>吴一梵</b></span>
+    <span>报告生成 <b>2026-03-24</b></span>
+  </div>
+</div>
+
+<div class="container">
+
+<!-- ═══════════════════════════════════════
+     1. 告警概览
+     ═══════════════════════════════════════ -->
+<div class="section-title">1 · 告警概览</div>
+<div class="card">
+  <h2>关键指标</h2>
+  <div class="kpi-grid">
+    <div class="kpi danger">
+      <div class="label">CPU 峰值</div>
+      <div class="value red">89%</div>
+      <div class="label">基线 ~6%</div>
+    </div>
+    <div class="kpi danger">
+      <div class="label">Load Average</div>
+      <div class="value red">77.85</div>
+      <div class="label">1min 均值</div>
+    </div>
+    <div class="kpi warn">
+      <div class="label">QPS 跌幅</div>
+      <div class="value orange">5000 → 500</div>
+      <div class="label">服务降级 90%</div>
+    </div>
+    <div class="kpi danger">
+      <div class="label">慢查询总数</div>
+      <div class="value red">36,957</div>
+      <div class="label">10 分钟内</div>
+    </div>
+    <div class="kpi warn">
+      <div class="label">最长慢查询</div>
+      <div class="value orange">439 s</div>
+      <div class="label">UPDATE sku_multi_relation</div>
+    </div>
+    <div class="kpi warn">
+      <div class="label">最长锁等待</div>
+      <div class="value orange">428 s</div>
+      <div class="label">INSERT sku_extend_info</div>
+    </div>
+    <div class="kpi ok">
+      <div class="label">告警持续</div>
+      <div class="value green">3m 47s</div>
+      <div class="label">00:05:33 → 00:09:20</div>
+    </div>
+    <div class="kpi">
+      <div class="label">受影响分片</div>
+      <div class="value">rs05</div>
+      <div class="label">热点 item 集中写入</div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════
+     2. 故障时间线
+     ═══════════════════════════════════════ -->
+<div class="section-title">2 · 故障时间线</div>
+<div class="card">
+  <h2>慢查询数量分布（北京时间 00:00 ~ 00:07）</h2>
+  <div class="timeline-wrap">
+    <div class="timeline-chart" id="tlChart"></div>
+  </div>
+  <div class="chart-legend">
+    <span><span class="legend-dot" style="background:#1e88e5"></span>慢查询数量（条）</span>
+    <span><span class="legend-dot" style="background:#e53935"></span>最长执行时间（s）</span>
+  </div>
+
+  <h3>事件时序</h3>
+  <div class="chain">
+    <div class="chain-item trigger">
+      <div class="chain-time">00:00</div>
+      <div class="chain-body">
+        <div class="title">🚀 大批量商品上架任务启动</div>
+        <div class="desc">product-async-default、prodsrv-consumer-longtaskv3 等服务开始批量处理 SKU 关联写入；<br>
+        热点商品 <code>item_id = 6538f3afdbae1b000186d108</code> 在 rs05 分片产生大量并发 UPDATE。<br>
+        慢查询 3826 条，max=38.6s，系统尚可处理。</div>
+      </div>
+    </div>
+    <div class="chain-item root">
+      <div class="chain-time">00:01~<br>00:05</div>
+      <div class="chain-body">
+        <div class="title">🔒 锁竞争逐步升温</div>
+        <div class="desc">sku_multi_relation_0535 上的 UPDATE 持锁时间持续拉长（max 86s → 276s）。<br>
+        rows_examined 从 3 行上升至 25,000+（item_id 数据倾斜 + 并发写入导致 buffer pool 热页堆积）。<br>
+        慢查询累计：4754 + 4963 + 3286 + 3737 = 16,740 条。</div>
+      </div>
+    </div>
+    <div class="chain-item root">
+      <div class="chain-time">00:05:33</div>
+      <div class="chain-body">
+        <div class="title">🚨 CPU 告警触发（#905300）</div>
+        <div class="desc">CPU 突破告警阈值，GOC 告警推送，告警处置人：吴一梵。<br>
+        此时 process snapshot 显示：totalNum=200 连接，其中 updating=166，LOCK WAIT=50。</div>
+      </div>
+    </div>
+    <div class="chain-item effect">
+      <div class="chain-time">00:06~<br>00:07</div>
+      <div class="chain-body">
+        <div class="title">💥 锁风暴爆发，CPU 飙至 89%</div>
+        <div class="desc">00:06 锁风暴开始：sku_extend_info、sku_feature、heartbeat 等所有下游写入全部阻塞等锁。<br>
+        00:07 慢查询单分钟爆增至 <strong>9,145 条</strong>，max_query_time=439s，max_lock_time=428s。<br>
+        QPS 从 5000 降至 500，服务响应严重劣化。</div>
+      </div>
+    </div>
+    <div class="chain-item recover">
+      <div class="chain-time">00:09:20</div>
+      <div class="chain-body">
+        <div class="title">✅ 告警恢复</div>
+        <div class="desc">持锁事务结束，锁等待链自然释放，CPU 逐步回落。<br>
+        故障总持续时间约 <strong>9 分 20 秒</strong>，告警持续 3m 47s。</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════
+     3. 根因分析
+     ═══════════════════════════════════════ -->
+<div class="section-title">3 · 根因分析</div>
+<div class="card">
+  <h2>热点数据 + 高并发写入 → 锁风暴</h2>
+
+  <h3>3.1 直接触发者：sku_multi_relation_0535 大范围 UPDATE</h3>
+  <table>
+    <tr>
+      <th>指标</th><th>值</th><th>说明</th>
+    </tr>
+    <tr>
+      <td>SQL 模板</td>
+      <td><code>UPDATE sku_multi_relation_0535 SET status=1 WHERE item_id IN(?) AND sku_id IN(?) AND relation_type=1 AND target_id IN(?) AND status=0</code></td>
+      <td>来自 product-async-default</td>
+    </tr>
+    <tr>
+      <td>慢查询条数</td>
+      <td><span class="tag red">516 条</span></td>
+      <td>全部针对同一个 item_id</td>
+    </tr>
+    <tr>
+      <td>平均执行时间</td>
+      <td>372.9 s（#1）/ 379.6 s（#3）</td>
+      <td>最长 439.1 s</td>
+    </tr>
+    <tr>
+      <td>平均锁等待</td>
+      <td>7.5 s</td>
+      <td>本身是持锁者，lock_ratio 仅 2%</td>
+    </tr>
+    <tr>
+      <td>rows_examined 峰值</td>
+      <td><span class="tag red">32,236 行</span></td>
+      <td>超过该分片 table_rows 估算值（30,096）</td>
+    </tr>
+    <tr>
+      <td>执行计划</td>
+      <td>type=<code>range</code>，走 <code>uk_item_id_sku_id_rel_type_target_type_target_id</code></td>
+      <td>索引正常，但 item_id 严重数据倾斜导致 range 扫描代价极高</td>
+    </tr>
+    <tr>
+      <td>热点商品</td>
+      <td><code class="stat-bad">6538f3afdbae1b000186d108</code></td>
+      <td>该 item_id 在 _0535 分片关联行数 ≥ 32,236（倾斜比 ≈ 1800x 均值）</td>
+    </tr>
+  </table>
+
+  <h3>3.2 数据倾斜证据（index_stats）</h3>
+  <table>
+    <tr>
+      <th>表名</th><th>列名</th><th>cardinality</th><th>table_rows</th><th>区分度</th><th>实际 rows_examined 峰值</th>
+    </tr>
+    <tr>
+      <td>sku_multi_relation_0535</td>
+      <td>item_id（索引首列）</td>
+      <td>1,690</td>
+      <td>30,096</td>
+      <td class="stat-highlight">5.62%</td>
+      <td class="stat-bad">32,236（超过估算总行数！）</td>
+    </tr>
+    <tr>
+      <td>sku_extend_info_0538</td>
+      <td>item_id（索引首列）</td>
+      <td>136,144</td>
+      <td>3,005,500</td>
+      <td class="stat-highlight">4.53%</td>
+      <td>—</td>
+    </tr>
+    <tr>
+      <td>sku_feature_0591</td>
+      <td>item_id（索引首列）</td>
+      <td>69,562</td>
+      <td>431,059</td>
+      <td class="stat-ok">16.14%</td>
+      <td>—</td>
+    </tr>
+  </table>
+  <p style="margin-top:10px;font-size:13px;color:var(--sub)">
+    ⚠️ sku_multi_relation_0535 的 <code>update_time</code> 为空（information_schema.TABLES），
+    且 <code>innodb_stats_persistent_sample_pages=20</code>（采样仅 20 页），统计信息对极端数据倾斜不敏感。
+  </p>
+
+  <h3>3.3 锁传导链（等锁受害者）</h3>
+  <div class="lock-grid">
+    <div class="lock-cell critical">
+      <div class="sql-name">INSERT sku_extend_info_0538</div>
+      <div class="ratio-bar"><div class="ratio-fill" style="width:91%"></div></div>
+      <div class="stats">lock_ratio <strong>91%</strong> · avg_lock 194s · 4×91条<br>来自 product-async-core</div>
+    </div>
+    <div class="lock-cell critical">
+      <div class="sql-name">INSERT sku_extend_info_0538（多批次）</div>
+      <div class="ratio-bar"><div class="ratio-fill" style="width:90%"></div></div>
+      <div class="stats">lock_ratio <strong>89~91%</strong> · avg_lock 155~167s<br>共 6 个慢查询模板批次，合计 ~570 条</div>
+    </div>
+    <div class="lock-cell severe">
+      <div class="sql-name">INSERT sku_feature_xxxx</div>
+      <div class="ratio-bar"><div class="ratio-fill" style="width:69%"></div></div>
+      <div class="stats">lock_ratio <strong>26~69%</strong> · avg_lock 21~115s<br>6 个分片，合计 ~570 条；来自 product-service-default</div>
+    </div>
+    <div class="lock-cell moderate">
+      <div class="sql-name">heartbeat INSERT</div>
+      <div class="ratio-bar"><div class="ratio-fill" style="width:34%"></div></div>
+      <div class="stats">lock_ratio <strong>34%</strong> · avg_lock 65s · 208 条<br>心跳写入也被锁住，说明锁风暴已蔓延全局</div>
+    </div>
+  </div>
+
+  <h3 style="margin-top:20px">3.4 根因归纳</h3>
+  <table>
+    <tr><th>层次</th><th>原因</th></tr>
+    <tr>
+      <td><span class="tag red">业务层</span></td>
+      <td>大批量商品上架任务在 00:00 同时触发，product-async-default 对同一超热 item（6538...d108）产生高并发并行写入，没有单 item 并发度限制。</td>
+    </tr>
+    <tr>
+      <td><span class="tag orange">数据层</span></td>
+      <td>该 item_id 在 sku_multi_relation_0535 分片关联行数 ≥32,236，远超均值（17.8行），出现严重热点分片。</td>
+    </tr>
+    <tr>
+      <td><span class="tag orange">索引层</span></td>
+      <td>item_id 列 cardinality 仅 5.62%，range scan 实际覆盖整个 item_id 的全部行，扫描成本随并发累积线性放大。</td>
+    </tr>
+    <tr>
+      <td><span class="tag blue">参数层</span></td>
+      <td>innodb_stats_persistent_sample_pages=20，统计信息不能反映极端数据倾斜，优化器无法感知实际代价。</td>
+    </tr>
+  </table>
+</div>
+
+<!-- ═══════════════════════════════════════
+     4. 慢查询 TOP 20
+     ═══════════════════════════════════════ -->
+<div class="section-title">4 · 慢查询 TOP 20</div>
+<div class="card">
+  <h2>按 avg_query_time 排序（北京时间 00:00~00:07）</h2>
+  <p style="font-size:12px;color:var(--sub);margin-bottom:16px">
+    数据来源：pangu 原机慢查询日志，共 36,957 条，20 个唯一 SQL 模板
+  </p>
+
+  <!-- 水平条形图 -->
+  <div id="sqlBars"></div>
+
+  <table style="margin-top:20px">
+    <tr>
+      <th>#</th><th>SQL 模板（精简）</th><th>服务</th>
+      <th>条数</th><th>avg_qt(s)</th><th>max_qt(s)</th>
+      <th>avg_lock(s)</th><th>lock%</th><th>角色</th>
+    </tr>
+    <tr>
+      <td>1</td><td><code>UPDATE sku_multi_relation_0535 SET status=1 WHERE item_id IN(1)</code></td>
+      <td>product-async-default</td><td>451</td><td>372.9</td><td>439.1</td><td>7.5</td>
+      <td><span class="tag green">2%</span></td><td><span class="tag red">持锁者</span></td>
+    </tr>
+    <tr>
+      <td>2</td><td><code>INSERT INTO meta.heartbeat</code></td>
+      <td>—</td><td>208</td><td>193.6</td><td>416.5</td><td>65.3</td>
+      <td><span class="tag orange">34%</span></td><td><span class="tag orange">等锁</span></td>
+    </tr>
+    <tr>
+      <td>3</td><td><code>UPDATE sku_multi_relation_0535 SET status=1 WHERE item_id IN(1) (MyBatis)</code></td>
+      <td>product-async-default</td><td>76</td><td>379.6</td><td>438.7</td><td>0.0</td>
+      <td><span class="tag green">0%</span></td><td><span class="tag red">持锁者</span></td>
+    </tr>
+    <tr>
+      <td>4</td><td><code>INSERT INTO sku_feature_0591(item_id,sku_id,key,value,ext)</code></td>
+      <td>product-service-default</td><td>193</td><td>139.4</td><td>406.6</td><td>18.2</td>
+      <td><span class="tag orange">13%</span></td><td><span class="tag orange">等锁</span></td>
+    </tr>
+    <tr>
+      <td>5</td><td><code>COMMIT</code></td>
+      <td>—</td><td>497</td><td>52.6</td><td>94.1</td><td>0.0</td>
+      <td><span class="tag green">0%</span></td><td><span class="tag gray">提交延迟</span></td>
+    </tr>
+    <tr>
+      <td>6</td><td><code>INSERT INTO sku_extend_info_0538(item_id,sku_id,key,...)</code></td>
+      <td>product-async-core</td><td>91</td><td>212.4</td><td>418.5</td><td>194.4</td>
+      <td><span class="tag red">92%</span></td><td><span class="tag red">等锁</span></td>
+    </tr>
+    <tr>
+      <td>7</td><td><code>INSERT INTO sku_extend_info_0538(item_id,sku_id,key,...) 批次2</code></td>
+      <td>product-async-core</td><td>96</td><td>183.7</td><td>418.6</td><td>167.5</td>
+      <td><span class="tag red">91%</span></td><td><span class="tag red">等锁</span></td>
+    </tr>
+    <tr>
+      <td>8</td><td><code>UPDATE sku_multi_relation_0535 SET status=1 WHERE item_id IN(1) (MyBatis 多值)</code></td>
+      <td>product-async-default</td><td>45</td><td>370.1</td><td>438.9</td><td>7.8</td>
+      <td><span class="tag green">2%</span></td><td><span class="tag red">持锁者</span></td>
+    </tr>
+    <tr>
+      <td>9</td><td><code>INSERT INTO sku_feature_0611</code></td>
+      <td>product-service-default</td><td>79</td><td>205.8</td><td>416.6</td><td>53.6</td>
+      <td><span class="tag orange">26%</span></td><td><span class="tag orange">等锁</span></td>
+    </tr>
+    <tr>
+      <td>10~16</td><td><code>INSERT INTO sku_extend_info_0538 (批次3~9)</code></td>
+      <td>product-async-core</td><td>~85/批</td><td>140~210</td><td>~418</td><td>124~194</td>
+      <td><span class="tag red">89~91%</span></td><td><span class="tag red">等锁</span></td>
+    </tr>
+    <tr>
+      <td>17~20</td><td><code>INSERT INTO sku_feature_0531/0553/0612/0620</code></td>
+      <td>product-service-default</td><td>68~119</td><td>118~204</td><td>~419</td><td>21~124</td>
+      <td><span class="tag orange">18~61%</span></td><td><span class="tag orange">等锁</span></td>
+    </tr>
+  </table>
+</div>
+
+<!-- ═══════════════════════════════════════
+     5. 统计信息 & Explain
+     ═══════════════════════════════════════ -->
+<div class="section-title">5 · 表统计信息 & 执行计划</div>
+<div class="card">
+  <h2>sku_multi_relation_0535 — 统计信息</h2>
+  <table>
+    <tr><th>指标</th><th>值</th><th>说明</th></tr>
+    <tr><td>table_rows (估算)</td><td>30,096</td><td>InnoDB 内部估算，采样 20 页</td></tr>
+    <tr><td>data_length</td><td>5.5 MB</td><td></td></tr>
+    <tr><td>index_length</td><td>7.1 MB</td><td>索引大于数据，写密集场景正常</td></tr>
+    <tr><td>update_time</td><td class="stat-bad">空（从未记录）</td><td>information_schema.TABLES.UPDATE_TIME InnoDB 不保证准确</td></tr>
+    <tr><td>innodb_stats_auto_recalc</td><td>ON</td><td></td></tr>
+    <tr><td>innodb_stats_persistent_sample_pages</td><td class="stat-highlight">20（偏低）</td><td>极端倾斜数据场景下统计失准</td></tr>
+  </table>
+
+  <h3>索引基数（index_stats）</h3>
+  <table>
+    <tr><th>索引</th><th>列</th><th>cardinality</th><th>区分度</th><th>结论</th></tr>
+    <tr>
+      <td rowspan="5">uk_item_id_sku_id_rel_type_target_type_target_id</td>
+      <td>item_id</td><td>1,690</td><td class="stat-highlight">5.62% ⚠️</td>
+      <td>极度倾斜，单个 item_id 可对应 >32K 行</td>
+    </tr>
+    <tr>
+      <td>sku_id</td><td>7,134</td><td>23.70%</td><td>正常</td>
+    </tr>
+    <tr>
+      <td>relation_type</td><td>13,001</td><td>43.20%</td><td>正常</td>
+    </tr>
+    <tr>
+      <td>target_type</td><td>9,446</td><td>31.39%</td><td>正常</td>
+    </tr>
+    <tr>
+      <td>target_id</td><td>30,096</td><td class="stat-ok">100% ✅</td>
+      <td>全唯一，但索引前缀 item_id 倾斜已使 range 扫描代价失控</td>
+    </tr>
+    <tr>
+      <td>idx_update_time</td><td>update_time</td><td>9,612</td><td>31.94%</td><td>正常</td>
+    </tr>
+  </table>
+
+  <h3>EXPLAIN 结果（故障期 SQL）</h3>
+<pre>
+EXPLAIN UPDATE sku_multi_relation_0535
+  SET status = 1
+  WHERE item_id IN ('6538f3afdbae1b000186d108')    -- 单 item_id，但对应 ≥32K 行
+    AND sku_id IN ('693839867ca5630001b3f631')
+    AND relation_type = 1
+    AND target_id IN ('69bd6f0a7de4bc0001b5edb5')
+    AND status = 0;
+
++----+-------------+--------------------+-------+-----------------------------------------------------+-----------------------------------------------------+---------+-------------------+------+----------+-----------+
+| id | select_type | table              | type  | possible_keys                                       | key                                                 | key_len | ref               | rows | filtered | Extra     |
++----+-------------+--------------------+-------+-----------------------------------------------------+-----------------------------------------------------+---------+-------------------+------+----------+-----------+
+|  1 | UPDATE      | sku_multi_relation_0535 | range | uk_item_id_sku_id_rel_type_target_type_target_id | uk_item_id_sku_id_rel_type_target_type_target_id | 517     | const,const,const |   5  |  100.00  | Using where |
++----+-------------+--------------------+-------+-----------------------------------------------------+-----------------------------------------------------+---------+-------------------+------+----------+-----------+
+
+→ 优化器估算 rows=5（严重低估），实际 rows_examined 峰值 32,236（高估约 6,000 倍）
+→ 根本原因：item_id 数据极度倾斜，统计信息采样不足，优化器 range 代价估算严重失真
+</pre>
+</div>
+
+<!-- ═══════════════════════════════════════
+     6. 影响范围
+     ═══════════════════════════════════════ -->
+<div class="section-title">6 · 影响范围</div>
+<div class="card">
+  <h2>故障影响评估</h2>
+  <table class="action-table">
+    <tr><th>维度</th><th>影响</th></tr>
+    <tr>
+      <td>受影响实例</td>
+      <td>qsh5-db-fls-product-122（rs05 主库）；从库复制延迟同步拉高（未独立告警）</td>
+    </tr>
+    <tr>
+      <td>受影响业务</td>
+      <td>商品中心 SKU 关联写入链路（product-async-default、product-async-core、product-service-default）；<br>
+      心跳检测（meta.heartbeat INSERT 被锁 avg 65s）</td>
+    </tr>
+    <tr>
+      <td>QPS 影响</td>
+      <td>~5000 → ~500，跌幅 90%，持续 ~4 分钟</td>
+    </tr>
+    <tr>
+      <td>用户可见影响</td>
+      <td>新 SKU 上架写入积压，部分请求超时（具体 C 端影响需业务方确认）</td>
+    </tr>
+    <tr>
+      <td>数据完整性</td>
+      <td>无数据丢失；事务最终提交或回滚，最终一致性保证</td>
+    </tr>
+    <tr>
+      <td>故障等级</td>
+      <td><span class="tag orange">P2</span>（服务降级，有超时，无核心链路中断）</td>
+    </tr>
+  </table>
+</div>
+
+<!-- ═══════════════════════════════════════
+     7. 改进建议
+     ═══════════════════════════════════════ -->
+<div class="section-title">7 · 改进建议</div>
+<div class="card">
+  <h2>优先级排序</h2>
+  <div class="rec-grid">
+    <div class="rec-card p0">
+      <div class="pri">P0 · 立即</div>
+      <div class="title">限制单 item 并发写入</div>
+      <div class="body">product-async-default 批量上架任务中，同一 item_id 的 SKU 关联写入应串行化或限并发度（如 semaphore=1~2），避免对同一行产生大量并发 UPDATE。</div>
+    </div>
+    <div class="rec-card p0">
+      <div class="pri">P0 · 立即</div>
+      <div class="title">热点 item 分片路由优化</div>
+      <div class="body">item_id=6538...d108 在 _0535 分片关联行数 ≥32K，是极端热点。评估是否可对该 item 进行数据拆分（如按 sku_id range 拆分到多分片），或对大 item 走独立写入队列。</div>
+    </div>
+    <div class="rec-card p1">
+      <div class="pri">P1 · 本周内</div>
+      <div class="title">提高统计信息采样精度</div>
+      <div class="body">针对写入量大的关键表执行：<br>
+      <code>ALTER TABLE sku_multi_relation_XXXX STATS_SAMPLE_PAGES=200;</code><br>
+      并定期执行 <code>ANALYZE TABLE</code>，使优化器感知真实数据分布。</div>
+    </div>
+    <div class="rec-card p1">
+      <div class="pri">P1 · 本周内</div>
+      <div class="title">大批量任务错峰调度</div>
+      <div class="body">批量上架任务避开整点（00:00/12:00 等），错开到 00:05/00:15 等业务低谷时段。同时设置最大 QPS 限速（如 500 write/s per task）。</div>
+    </div>
+    <div class="rec-card p1">
+      <div class="pri">P1 · 本周内</div>
+      <div class="title">慢查询告警前置</div>
+      <div class="body">当 rs05 分片 max_lock_time > 30s 时提前告警，不等 CPU 飙高再处置。建议在 DMS 配置"慢查询锁等待时长"监控。</div>
+    </div>
+    <div class="rec-card p2">
+      <div class="pri">P2 · 迭代内</div>
+      <div class="title">UPDATE 改为 UPSERT 或批量合并</div>
+      <div class="body">当前每条 SKU-item 关联更新独立发一条 UPDATE，可考虑合并批次或改用 INSERT ... ON DUPLICATE KEY UPDATE，减少锁竞争次数。</div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════
+     8. 附录
+     ═══════════════════════════════════════ -->
+<div class="section-title">8 · 附录</div>
+<div class="card">
+  <h2>数据来源 & 诊断方法</h2>
+  <table>
+    <tr><th>数据</th><th>接口/方法</th></tr>
+    <tr><td>慢查询明细（36,957 条）</td><td>pangu <code>get-raw-slow-log</code>，入参用 UTC 时间，from 10.11.16.214:33071</td></tr>
+    <tr><td>表/索引统计信息</td><td>pangu <code>get-table-stats</code> + <code>get-index-stats</code>，connector=rs05 slave</td></tr>
+    <tr><td>EXPLAIN 执行计划</td><td>DMS <code>get-sql-explain</code>，ip=10.11.16.214:33071</td></tr>
+    <tr><td>GOC 告警 & process snapshot</td><td>DMS <code>get_mysql_calculator_analysis</code>，alarm_event_id=905300</td></tr>
+    <tr><td>innodb_stats 参数</td><td>DMS <code>instance/get-variables</code>，pattern=innodb_stats%</td></tr>
+  </table>
+
+  <h3>核心 SQL 样本（持锁者）</h3>
+<pre>
+-- 持锁者（query_time=439.1s, lock_time≈0, rows_examined=32236）
+-- Time: 2026-03-23T00:07:25.993355+08:00
+UPDATE `sku_multi_relation_0535`
+SET status = 1
+WHERE item_id IN ('6538f3afdbae1b000186d108')
+  AND sku_id IN ('67ffeed8f369b20001b46984','69273b5a3501090001f431b4',
+                  '693839867ca5630001b3f631','65a269634207d30001c9faac')
+  AND relation_type = 1
+  AND target_id IN ('69bd6f05c7be200001bff5fe','69bd6f0abc35dc00018580c0',
+                     '69bd6f0abc35dc00018580ba','69bd6f0a5f54800001326268')
+  AND status = 0;
+</pre>
+
+  <h3>核心 SQL 样本（等锁受害者）</h3>
+<pre>
+-- 等锁受害（query_time=418.5s, lock_time=194.4s, lock_ratio=91%）
+-- Time: 2026-03-23T00:06:xx+08:00
+INSERT INTO `sku_extend_info_0538`(item_id, sku_id, `key`, parent_key, `value`, `extension`)
+VALUES ('6538f3afdbae1b000186d108', '693839867ca5630001b3f631',
+        'some_key', 'parent_key', 'value_data', NULL)
+ON DUPLICATE KEY UPDATE `value` = VALUES(`value`);
+</pre>
+</div>
+
+</div><!-- /container -->
+
+<script>
+// ── 时间线柱状图 ──────────────────────────────────────────
+const tlData = [
+  {label:'00:00', count:3826,  maxQt:38.6},
+  {label:'00:01', count:4754,  maxQt:86.9},
+  {label:'00:02', count:4963,  maxQt:164.4},
+  {label:'00:03', count:3286,  maxQt:224.1},
+  {label:'00:04', count:3737,  maxQt:276.5},
+  {label:'00:05', count:2823,  maxQt:289.5},
+  {label:'00:06', count:4423,  maxQt:403.1},
+  {label:'00:07', count:9145,  maxQt:439.1},
+];
+const maxCount = Math.max(...tlData.map(d=>d.count));
+const maxQt    = Math.max(...tlData.map(d=>d.maxQt));
+const chartEl  = document.getElementById('tlChart');
+chartEl.innerHTML = tlData.map(d => {
+  const hCount = Math.round(d.count / maxCount * 120);
+  const hQt    = Math.round(d.maxQt  / maxQt   * 120);
+  const isHot  = d.count >= 5000;
+  return `
+  <div class="bar-group">
+    <div style="display:flex;align-items:flex-end;gap:2px;height:130px">
+      <div class="bar" style="background:${isHot?'#e53935':'#1e88e5'};height:${hCount}px;min-width:22px"
+           data-tip="${d.label}  慢查询 ${d.count.toLocaleString()} 条"></div>
+      <div class="bar" style="background:#ff8f00;height:${hQt}px;min-width:12px;opacity:.7"
+           data-tip="${d.label}  max_qt ${d.maxQt}s"></div>
+    </div>
+    <div class="bar-label">${d.label}</div>
+  </div>`;
+}).join('');
+
+// ── 慢查询 TOP SQL 水平条形图 ────────────────────────────
+const sqlData = [
+  {name:'UPDATE sku_multi_relation_0535 (×3批次,共572条)', avgQt:373, lockPct:2,  color:'#e53935'},
+  {name:'INSERT sku_extend_info_0538 (×7批次,共625条)',    avgQt:183, lockPct:91, color:'#7b1fa2'},
+  {name:'INSERT sku_feature_xxxx (×6分片,共628条)',         avgQt:168, lockPct:46, color:'#f57c00'},
+  {name:'INSERT meta.heartbeat (208条)',                   avgQt:194, lockPct:34, color:'#f57c00'},
+  {name:'COMMIT (497条)',                                  avgQt:53,  lockPct:0,  color:'#43a047'},
+];
+const maxAvgQt = Math.max(...sqlData.map(d=>d.avgQt));
+const barsEl = document.getElementById('sqlBars');
+barsEl.innerHTML = sqlData.map(d => {
+  const w = Math.round(d.avgQt / maxAvgQt * 100);
+  return `
+  <div class="sql-bar-row">
+    <div class="sql-bar-label" title="${d.name}">${d.name}</div>
+    <div class="sql-bar-track">
+      <div class="sql-bar-fill" style="width:${w}%;background:${d.color}">
+        ${d.avgQt}s
+      </div>
+    </div>
+    <div class="sql-bar-meta">lock% <strong>${d.lockPct}%</strong></div>
+  </div>`;
+}).join('');
+</script>
+</body>
+</html>
