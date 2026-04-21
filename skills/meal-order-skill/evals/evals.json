@@ -1,0 +1,69 @@
+{
+  "skill_name": "meal-order",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "帮我订明天午餐",
+      "expected_output": "执行查询可预订商户，展示菜单列表，并完成订餐流程",
+      "files": [],
+      "assertions": [
+        {
+          "name": "生成或检查CLI工具",
+          "type": "file_exists",
+          "target": "~/.config/meal-cli/meal.py"
+        },
+        {
+          "name": "执行reserve查询",
+          "type": "command_executed",
+          "pattern": "python meal.py reserve"
+        },
+        {
+          "name": "展示格式化菜单",
+          "type": "output_contains",
+          "pattern": "可预订|商户|菜品"
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "prompt": "看看今天有什么吃的",
+      "expected_output": "查询今日可预订的餐品并展示列表",
+      "files": [],
+      "assertions": [
+        {
+          "name": "执行reserve查询",
+          "type": "command_executed",
+          "pattern": "reserve"
+        },
+        {
+          "name": "返回JSON数据",
+          "type": "output_contains",
+          "pattern": "marchantList|goodsList"
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "prompt": "订左庭右院的麻辣牛肉",
+      "expected_output": "查找匹配的商户和菜品，执行一键订餐",
+      "files": [],
+      "assertions": [
+        {
+          "name": "模糊匹配商户名称",
+          "type": "output_contains",
+          "pattern": "左庭右院"
+        },
+        {
+          "name": "执行book命令",
+          "type": "command_executed",
+          "pattern": "python meal.py book"
+        },
+        {
+          "name": "订餐成功提示",
+          "type": "output_contains",
+          "pattern": "成功|订单|取餐"
+        }
+      ]
+    }
+  ]
+}

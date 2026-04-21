@@ -496,7 +496,7 @@
   </div>
   <div class="scene-item" onclick="switchScene('s3')">
     <div>节点3 · 诊断报告</div>
-    <div class="scene-item-sub">推理过程 + 动态 chip</div>
+    <div class="scene-item-sub">v4 新卡片 + AI 对话侧边栏</div>
   </div>
   <div class="scene-item" onclick="switchScene('s4')">
     <div>节点4 · 天级日报</div>
@@ -1000,68 +1000,96 @@
 
         <div class="time-sep">今天 14:32 <span style="font-size:10px;color:#aaa;margin-left:4px;">（诊断完成，约 4 分钟后推送）</span></div>
 
-        <!-- 消息2：独立诊断结果卡片 -->
+        <!-- 消息2：独立诊断结果卡片（v4 新设计） -->
         <div class="bot-row">
           <div class="bot-avatar red">🤖</div>
           <div>
             <div class="bot-name">XRay 告警机器人</div>
-            <!-- 诊断卡片与告警卡片无直接关联，需人工匹配 -->
-            <div onclick="openSidebar3()" style="background:#fff;border:1px solid #b7eb8f;border-radius:10px;overflow:hidden;box-shadow:0 2px 8px rgba(82,196,26,0.1);max-width:460px;cursor:pointer;transition:box-shadow 0.15s;" onmouseover="this.style.boxShadow='0 4px 16px rgba(82,196,26,0.22)'" onmouseout="this.style.boxShadow='0 2px 8px rgba(82,196,26,0.1)'">
-              <div style="padding:10px 14px;background:#f6ffed;border-bottom:1px solid #d9f7be;display:flex;align-items:center;gap:8px;">
+            <!-- v4 诊断卡片 -->
+            <div class="v4-card" style="background:#fff;border-radius:12px;overflow:hidden;box-shadow:0 2px 12px rgba(0,0,0,0.07);max-width:480px;cursor:pointer;" onclick="openSidebar3()">
+              <!-- 标题行 -->
+              <div style="background:#eaf5ee;padding:12px 16px;display:flex;align-items:center;gap:8px;">
                 <span style="font-size:14px;">🤖</span>
-                <div style="font-size:13px;font-weight:600;color:#389e0d;">AI 诊断结果</div>
-                <span style="font-size:11px;color:#999;margin-left:auto;">XPILOT · 连接池耗尽排障 SKILL</span>
+                <span style="font-size:14px;font-weight:700;color:#1a1a2e;flex:1;">针对 14:35 的 [P1] creator-service DB 连接池耗尽告警</span>
+                <span style="font-size:11px;font-weight:500;padding:2px 8px;border-radius:5px;background:#d5f0de;color:#237a45;">诊断完成</span>
+                <span style="font-size:11px;padding:2px 8px;border-radius:5px;background:#e8eaf5;color:#5566aa;cursor:pointer;" onclick="event.stopPropagation()">引用原消息</span>
               </div>
-              <div style="padding:12px 14px;display:flex;flex-direction:column;gap:10px;">
-                <!-- 关联告警（需人工匹配，标注体验问题） -->
-                <div style="background:#fff7e6;border:1px solid #ffd591;border-radius:5px;padding:7px 10px;font-size:11px;display:flex;align-items:center;gap:6px;">
-                  <span style="color:#d48806;">⚠️ 体验问题</span>
-                  <span style="color:#888;">此诊断结果对应上方「<strong style="color:#555;">creator-service DB 连接池耗尽</strong>」告警，请人工匹配</span>
+              <!-- 核心结论 -->
+              <div style="margin:10px 16px 0;background:#f5f8ff;border:1px solid #d6e4ff;border-radius:8px;padding:10px 14px 12px;">
+                <div style="font-size:11px;font-weight:600;color:#1677ff;margin-bottom:6px;letter-spacing:0.3px;">诊断结论</div>
+                <div style="font-size:13px;color:#1a1a2e;line-height:1.7;font-weight:500;">
+                  昨日 14:30 发布 v2.1.3 将 DB 连接池 maxPoolSize 从 20 降至 10，导致 db-writer 连接等待队列溢出，请求大规模超时。
                 </div>
-                <!-- 根因 -->
-                <div>
-                  <div style="font-size:11px;color:#bbb;margin-bottom:4px;">根因分析</div>
-                  <div style="font-size:13px;font-weight:600;color:#1a1a2e;">DB 连接池耗尽（主因）</div>
-                  <div style="margin-top:4px;display:flex;align-items:center;gap:6px;">
-                    <div style="height:6px;border-radius:3px;background:#52c41a;flex:1;max-width:160px;"></div>
-                    <span style="font-size:12px;color:#52c41a;font-weight:600;">置信度 87%</span>
+              </div>
+              <!-- 关键证据 -->
+              <div style="padding:0 16px 0;border-top:1px solid #f0f0f5;padding-top:12px;">
+                <div style="font-size:12px;font-weight:600;color:#999;margin-bottom:8px;letter-spacing:0.3px;">关键证据</div>
+                <div style="display:flex;flex-direction:column;gap:6px;">
+
+                  <!-- 变更 -->
+                  <div style="display:flex;gap:10px;align-items:flex-start;">
+                    <div style="width:36px;flex-shrink:0;font-size:11px;font-weight:600;color:#999;padding-top:9px;text-align:right;">变更</div>
+                    <div style="flex:1;background:#fffaf5;border-left:3px solid #fa8c16;border-radius:7px;padding:8px 12px;font-size:12px;color:#2a2d3e;line-height:1.65;">
+                      14:30 v2.1.3 发布，maxPoolSize 20→10，与连接池耗尽时间点强相关。
+                      <span style="display:inline-block;font-size:10px;font-weight:600;padding:1px 5px;border-radius:3px;background:#fff0d6;color:#c97b00;margin-left:5px;">最可疑</span>
+                    </div>
                   </div>
-                </div>
-                <!-- 关键发现 -->
-                <div style="background:#fafbff;border:1px solid #e8eaf5;border-radius:6px;padding:10px 12px;font-size:12px;display:flex;flex-direction:column;gap:5px;">
-                  <div style="font-weight:600;color:#555;margin-bottom:3px;">关键发现</div>
-                  <div style="display:flex;gap:6px;color:#666;"><span style="color:#ff4d4f;flex-shrink:0;">●</span><span>昨日 14:30 发布 v2.1.3，maxPoolSize 从 20 降至 10</span></div>
-                  <div style="display:flex;gap:6px;color:#666;"><span style="color:#ff4d4f;flex-shrink:0;">●</span><span>db-writer 连接等待队列 48/10，已溢出</span></div>
-                  <div style="display:flex;gap:6px;color:#666;"><span style="color:#fa8c16;flex-shrink:0;">●</span><span>RequestTimeoutException 占比 89%，3 小时内累计 2,847 次</span></div>
-                </div>
-                <!-- 处置建议 -->
-                <div style="font-size:12px;color:#555;">
-                  <div style="font-weight:600;color:#1a1a2e;margin-bottom:5px;">处置建议</div>
-                  <div style="display:flex;flex-direction:column;gap:4px;">
-                    <div style="display:flex;gap:6px;"><span style="color:#1677ff;flex-shrink:0;">①</span><span>回滚 v2.1.3 的 maxPoolSize 配置至 20</span></div>
-                    <div style="display:flex;gap:6px;"><span style="color:#1677ff;flex-shrink:0;">②</span><span>临时扩容连接池（maxPoolSize 设为 30）缓解排队</span></div>
+
+                  <!-- 指标 -->
+                  <div style="display:flex;gap:10px;align-items:flex-start;">
+                    <div style="width:36px;flex-shrink:0;font-size:11px;font-weight:600;color:#999;padding-top:9px;text-align:right;">指标</div>
+                    <div style="flex:1;background:#f5f6f8;border-radius:7px;padding:8px 12px;font-size:12px;color:#2a2d3e;line-height:1.65;">
+                      连接池使用率 94%→97%，db-writer 等待队列 48/10 溢出，RequestTimeoutException 3h 累计 2,847 次。
+                    </div>
                   </div>
+
+                  <!-- 影响 -->
+                  <div style="display:flex;gap:10px;align-items:flex-start;">
+                    <div style="width:36px;flex-shrink:0;font-size:11px;font-weight:600;color:#999;padding-top:9px;text-align:right;">影响</div>
+                    <div style="flex:1;background:#fff8f8;border-left:3px solid #ff4d4f;border-radius:7px;padding:8px 12px;font-size:12px;color:#2a2d3e;line-height:1.65;">
+                      失败率 12.3%（基线 <0.5%），db-writer-service 全量受影响，下游 redimageservice 级联超时。
+                    </div>
+                  </div>
+
+                  <!-- 异常 -->
+                  <div style="display:flex;gap:10px;align-items:flex-start;">
+                    <div style="width:36px;flex-shrink:0;font-size:11px;font-weight:600;color:#999;padding-top:9px;text-align:right;">异常</div>
+                    <div style="flex:1;background:#f5f6f8;border-radius:7px;padding:8px 12px;font-size:12px;color:#2a2d3e;line-height:1.65;">
+                      RequestTimeoutException 占比 89%，3h 内累计 2,847 次，集中于 db-writer 连接等待超时。
+                    </div>
+                  </div>
+
                 </div>
-                <!-- 反馈 -->
-                <div style="border-top:1px solid #f0f0f5;padding-top:8px;display:flex;align-items:center;gap:8px;" onclick="event.stopPropagation()">
-                  <span style="font-size:11px;color:#888;">诊断准确吗？</span>
-                  <span class="fb-btn fb-yes" onclick="fbYes('fb-st1')">👍 准确</span>
-                  <span class="fb-btn fb-no" onclick="fbNo('fb-st1')">👎 不准确</span>
-                  <span style="font-size:11px;color:#1677ff;margin-left:auto;cursor:pointer;" onclick="openSidebar3()">接着聊 →</span>
-                </div>
-                <div id="fb-st1-ask" style="display:none;"></div>
-                <div id="fb-st1-detail" style="display:none;border-top:1px dashed #ffd591;padding-top:8px;">
-                  <div style="font-size:11px;color:#888;margin-bottom:5px;">哪里不准确？</div>
-                  <div style="display:flex;flex-wrap:wrap;gap:5px;margin-bottom:7px;"><span class="fb-tag" onclick="toggleFbTag(this)">误报</span><span class="fb-tag" onclick="toggleFbTag(this)">根因错误</span><span class="fb-tag" onclick="toggleFbTag(this)">遗漏信息</span><span class="fb-tag" onclick="toggleFbTag(this)">其他</span></div>
-                  <div style="display:flex;gap:6px;"><input type="text" placeholder="补充说明（选填）" style="flex:1;font-size:11px;border:1px solid #e0e4ef;border-radius:4px;padding:4px 8px;outline:none;" onclick="event.stopPropagation()"><span class="fb-submit" onclick="fbSubmit('fb-st1')">提交</span></div>
-                </div>
-                <div id="fb-st1-done" style="display:none;font-size:11px;color:#52c41a;border-top:1px solid #f0f0f5;padding-top:7px;">✅ 已反馈，感谢！将用于 SKILL 优化</div>
+              </div>
+              <!-- 时间信息 -->
+              <div style="padding:8px 16px 2px;font-size:11px;color:#999;">
+                触发：<span style="color:#555;">14:35:02</span> 推送：<span style="color:#555;">14:35:18</span>
+              </div>
+              <!-- 底部按钮 -->
+              <div style="padding:14px 16px 8px;display:flex;gap:8px;flex-wrap:wrap;" onclick="event.stopPropagation()">
+                <button style="padding:8px 14px;border-radius:8px;font-size:12px;font-weight:500;background:#1677ff;color:#fff;border:none;cursor:pointer;" onclick="openSidebar3()">展开完整诊断</button>
+                <button style="padding:8px 14px;border-radius:8px;font-size:12px;font-weight:500;background:#fff;color:#555;border:1px solid #d0d4e8;cursor:pointer;">异常详情</button>
+                <button style="padding:8px 14px;border-radius:8px;font-size:12px;font-weight:500;background:#fff;color:#555;border:1px solid #d0d4e8;cursor:pointer;">事件详情</button>
+              </div>
+              <!-- 反馈行 -->
+              <div style="padding:8px 16px 14px;display:flex;align-items:center;gap:8px;" onclick="event.stopPropagation()">
+                <span style="font-size:12px;color:#bbb;">诊断是否有用？</span>
+                <span class="fb-btn fb-yes" style="font-size:12px;padding:3px 12px;border-radius:10px;border:1px solid #e0e4ef;background:#fff;color:#666;cursor:pointer;" onclick="fbYes('fb-st1')">👍 有用</span>
+                <span class="fb-btn fb-no" style="font-size:12px;padding:3px 12px;border-radius:10px;border:1px solid #e0e4ef;background:#fff;color:#666;cursor:pointer;" onclick="fbNo('fb-st1')">👎 没用</span>
               </div>
             </div>
           </div>
         </div>
 
-        <!-- 群里继续讨论 -->
+        <!-- 改进说明（标注在卡片旁边） -->
+        <div style="background:#f0faf2;border:1px solid #b7eb8f;border-radius:8px;padding:10px 14px;margin:8px 0 16px 0;font-size:11px;color:#2a6b2a;line-height:1.8;max-width:480px;">
+          <div style="font-weight:700;margin-bottom:4px;color:#389e0d;">v4 改进点</div>
+          <div>✅ 根因一句话结论（替代原始异常类型）</div>
+          <div>✅ 关键证据按诊断维度聚合（变更/指标/影响/异常）</div>
+          <div>✅ 变更标注「最可疑」，与异常时间线对齐</div>
+          <div>✅ 底部按钮：展开完整诊断 / 异常详情 / 事件详情</div>
+          <div>✅ 反馈行：👍/👎 直接收集诊断有效性</div>
+        </div>        <!-- 群里继续讨论 -->
         <div style="display:flex;gap:8px;padding:6px 0;align-items:flex-start;">
           <div style="width:28px;height:28px;border-radius:50%;background:#e0e0e0;display:flex;align-items:center;justify-content:center;font-size:13px;flex-shrink:0;">👤</div>
           <div>
@@ -1089,8 +1117,8 @@
       <div class="sp-head">
         <div class="sp-avatar">X</div>
         <div class="sp-head-info">
-          <div class="sp-title">AI 诊断对话</div>
-          <div class="sp-subtitle">redimageservice · 图片处理错误</div>
+          <div class="sp-title">AI 诊断对话 · creator-service</div>
+          <div class="sp-subtitle">DB 连接池耗尽 · 2026-04-20 14:35</div>
         </div>
         <div class="sp-close" onclick="closeSidebar3()">×</div>
       </div>
@@ -1105,22 +1133,21 @@
               <!-- 推理过程（可折叠） -->
               <div class="reasoning-toggle" id="rt3" onclick="toggleReasoning('r3','rt3')">
                 <span class="arrow">▶</span>
-                <span>查看推理过程（已执行 6 步）</span>
+                <span>查看推理过程（已执行 5 步）</span>
               </div>
               <div class="reasoning-body" id="r3">
-                <div class="reasoning-step"><span class="r-step-icon">①</span><span class="r-step-text">拉取 redimageservice 最近 1h 的错误日志 → <span class="r-step-result">发现 RequestTimeoutException 占比 89%</span></span></div>
-                <div class="reasoning-step"><span class="r-step-icon">②</span><span class="r-step-text">查询 JVM / GC 指标 → <span class="r-step-result">正常，排除内存问题</span></span></div>
-                <div class="reasoning-step"><span class="r-step-icon">③</span><span class="r-step-text">分析下游依赖 SLA → <span class="r-step-warn">db-writer-service 连接池等待队列 48/10，溢出</span></span></div>
-                <div class="reasoning-step"><span class="r-step-icon">④</span><span class="r-step-text">查询最近变更记录 → <span class="r-step-warn">昨日 14:30 发布 v2.1.3，maxPoolSize 20→10</span></span></div>
-                <div class="reasoning-step"><span class="r-step-icon">⑤</span><span class="r-step-text">检索历史相似故障 → <span class="r-step-result">匹配到 2 条，均为连接池配置变更引发</span></span></div>
-                <div class="reasoning-step"><span class="r-step-icon">⑥</span><span class="r-step-text">综合判断 → <span class="r-step-result">根因：连接池耗尽，置信度 87%，变更强相关</span></span></div>
+                <div class="reasoning-step"><span class="r-step-icon">①</span><span class="r-step-text">拉取 creator-service 近 1h 连接池指标 → <span class="r-step-warn">使用率 94%→97%，db-writer 等待队列 48/10 溢出</span></span></div>
+                <div class="reasoning-step"><span class="r-step-icon">②</span><span class="r-step-text">查异常类型 → <span class="r-step-warn">RequestTimeoutException 占比 89%，3h 累计 2,847 次</span></span></div>
+                <div class="reasoning-step"><span class="r-step-icon">③</span><span class="r-step-text">查变更记录 → <span class="r-step-warn">昨日 14:30 v2.1.3 发布，maxPoolSize 20→10，与异常时间强相关</span></span></div>
+                <div class="reasoning-step"><span class="r-step-icon">④</span><span class="r-step-text">排查下游依赖 → <span class="r-step-warn">redimageservice 级联超时，符合连接池溢出连锁反应</span></span></div>
+                <div class="reasoning-step"><span class="r-step-icon">⑤</span><span class="r-step-text">检索历史相似故障 → <span class="r-step-result">匹配 2 条，均为连接池配置变更引发</span></span></div>
               </div>
 
               <!-- 诊断结论 -->
               <div class="diag-card" style="margin-top:10px;">
                 <div class="diag-card-head">✅ 诊断结论</div>
                 <div class="diag-card-body">
-                  <div class="dr-row"><span class="dr-key">根因</span><span class="dr-val"><strong>连接池耗尽</strong>（DB 连接池等待队列溢出，请求大规模超时）</span></div>
+                  <div class="dr-row"><span class="dr-key">根因</span><span class="dr-val"><strong>DB 连接池耗尽</strong>（v2.1.3 将 maxPoolSize 从 20 降至 10，连接等待队列溢出）</span></div>
                   <div class="dr-row"><span class="dr-key">置信度</span><span class="dr-val"><span style="color:#52c41a;font-weight:600;">87%</span><div class="conf-bar"><div class="conf-fill" style="width:87%"></div></div></span></div>
                   <div class="dr-row"><span class="dr-key">失败率</span><span class="dr-val" style="color:#ff4d4f;font-weight:600;">12.3% <span style="color:#bbb;font-weight:400;">（基线 &lt;0.5%）</span></span></div>
                   <div class="dr-row"><span class="dr-key">关联变更</span><span class="dr-val" style="color:#fa8c16;">⚠ v2.1.3 maxPoolSize 20→10，昨日 14:30</span></div>
@@ -1128,9 +1155,8 @@
                     <span class="dr-key">建议</span>
                     <span class="dr-val">
                       <span style="background:#fffbe6;border:1px solid #ffe58f;border-radius:4px;padding:4px 8px;display:block;line-height:1.7;">
-                        1. 紧急回滚 maxPoolSize → 20<br>
-                        2. 确认 v2.1.3 配置变更是否误改<br>
-                        3. 为该配置添加变更告警
+                        <strong>P0</strong> 回滚 v2.1.3 的 maxPoolSize 配置至 20<br>
+                        <strong>P1</strong> 临时扩容连接池（maxPoolSize 设为 30）缓解排队
                       </span>
                     </span>
                   </div>
@@ -1140,18 +1166,18 @@
               <!-- 动态 chip（根据根因生成） -->
               <div style="font-size:11px;color:#bbb;margin-top:10px;margin-bottom:4px;">根据连接池根因，建议继续排查：</div>
               <div class="sp-chips">
-                <span class="sp-chip" onclick="sp3Send(this,'拉取失败请求 Logview')">拉取失败请求 Logview</span>
-                <span class="sp-chip" onclick="sp3Send(this,'查看 db-writer 连接池趋势')">查看 db-writer 连接池趋势</span>
+                <span class="sp-chip" onclick="sp3Send(this,'查看 v2.1.3 发布变更详情')">查看 v2.1.3 发布变更详情</span>
                 <span class="sp-chip" onclick="sp3Send(this,'生成回滚操作步骤')">生成回滚操作步骤</span>
+                <span class="sp-chip" onclick="sp3Send(this,'查看 db-writer 连接池趋势')">查看 db-writer 连接池趋势</span>
                 <span class="sp-chip" onclick="sp3Send(this,'生成排障报告')">生成排障报告</span>
               </div>
 
               <!-- 报告链接 -->
-              <div class="file-card" onclick="alert('模拟：打开 redimageservice 排障报告')">
+              <div class="file-card" onclick="alert('模拟：打开 creator-service 排障报告')">
                 <span style="font-size:20px;">📄</span>
                 <div class="file-card-info">
-                  <div class="file-card-name">redimageservice 连接池耗尽排障报告</div>
-                  <div class="file-card-meta">由 SKILL 自动生成 · 14:52 · 含链路 / 指标趋势 / 变更对比</div>
+                  <div class="file-card-name">creator-service 连接池耗尽排障报告</div>
+                  <div class="file-card-meta">由 SKILL 自动生成 · 14:41 · 含链路 / 指标趋势 / 变更对比</div>
                 </div>
                 <span style="font-size:12px;color:#1677ff;flex-shrink:0;">打开 →</span>
               </div>
@@ -1169,6 +1195,7 @@
       </div>
     </div>
   </div>
+</div></div>
 </div>
 
 <!-- ===== 节点4：天级日报 ===== -->
