@@ -1,5 +1,9 @@
 # Self-Improving: 执行规则与确认偏好
 
+## 🔴 模型偏好（2026-04-22 强制）
+- **必须使用 Claude**，任何情况不得使用 qwen 或其他模型
+- 默认：anthropic/claude-4.6-sonnet-google
+
 > 对应 Kimi Claw 的 `~/self-improving/memory.md`
 > 每次会话启动时必读（CRITICAL）
 
