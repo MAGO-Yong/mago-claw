@@ -2,29 +2,29 @@
 <html lang="zh-CN">
 <head>
 <meta charset="UTF-8">
-<title>2026 自驾旅行计划（最终版）</title>
+<title>2026 自驾旅行计划 V2（滇西南边境线）</title>
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
-  body { font-family: "PingFang SC", "Microsoft YaHei", "Noto Sans CJX SC", sans-serif; background: #f0f2f5; padding: 20px; }
+  body { font-family: "PingFang SC", "Microsoft YaHei", "Noto Sans CJK SC", sans-serif; background: #f0f2f5; padding: 20px; }
   .container { max-width: 1100px; margin: 0 auto; background: white; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 20px rgba(0,0,0,0.1); }
-  .header { background: linear-gradient(135deg, #1565c0, #6a1b9a); color: white; padding: 32px 40px; }
+  .header { background: linear-gradient(135deg, #1b5e20, #6a1b9a); color: white; padding: 32px 40px; }
   .header h1 { font-size: 26px; font-weight: 700; margin-bottom: 8px; }
   .header .subtitle { font-size: 12.5px; opacity: 0.85; line-height: 1.8; }
   .header .meta { margin-top: 12px; font-size: 13px; opacity: 0.9; display: flex; gap: 24px; flex-wrap: wrap; }
   .content { padding: 28px 32px; }
   .stats { display: flex; gap: 16px; margin-bottom: 24px; flex-wrap: wrap; }
-  .stat-card { flex: 1; min-width: 110px; background: linear-gradient(135deg, #e8eaf6, #f3e5f5); border-radius: 8px; padding: 14px 16px; text-align: center; }
-  .stat-num { font-size: 22px; font-weight: 700; color: #1a237e; }
+  .stat-card { flex: 1; min-width: 110px; background: linear-gradient(135deg, #e8f5e9, #f3e5f5); border-radius: 8px; padding: 14px 16px; text-align: center; }
+  .stat-num { font-size: 22px; font-weight: 700; color: #1b5e20; }
   .stat-label { font-size: 11px; color: #555; margin-top: 3px; }
-  .section-title { font-size: 16px; font-weight: 700; color: #1565c0; margin: 0 0 14px; padding-bottom: 6px; border-bottom: 2px solid #e8eaf6; }
+  .section-title { font-size: 16px; font-weight: 700; color: #1b5e20; margin: 0 0 14px; padding-bottom: 6px; border-bottom: 2px solid #e8f5e9; }
   table { width: 100%; border-collapse: collapse; font-size: 13px; }
-  th { background: #1565c0; color: white; padding: 10px 8px; text-align: left; font-weight: 600; font-size: 12px; }
-  td { padding: 9px 8px; border-bottom: 1px solid #e8eaf6; vertical-align: top; line-height: 1.6; }
-  tr:nth-child(even) td { background: #f8f9ff; }
+  th { background: #1b5e20; color: white; padding: 10px 8px; text-align: left; font-weight: 600; font-size: 12px; }
+  td { padding: 9px 8px; border-bottom: 1px solid #e8f5e9; vertical-align: top; line-height: 1.6; }
+  tr:nth-child(even) td { background: #f9fef9; }
   tr.warn td { background: #fff8e1 !important; }
   tr.rest td { background: #f1f8e9 !important; }
-  tr:hover td { background: #e3f2fd; }
-  .date { font-weight: 700; color: #1565c0; white-space: nowrap; }
+  tr:hover td { background: #e8f5e9; }
+  .date { font-weight: 700; color: #1b5e20; white-space: nowrap; }
   .warn .date { color: #e65100; }
   .rest .date { color: #2e7d32; }
   .week { color: #666; font-size: 12px; }
@@ -38,19 +38,20 @@
   .warning-box table td { background: white !important; border-bottom: 1px solid #ffe0b2; padding: 7px 8px; }
   .warning-box table tr:nth-child(even) td { background: #fff8f0 !important; }
   .tag { display: inline-block; padding: 1px 6px; border-radius: 3px; font-size: 11px; margin-right: 3px; }
-  .tag-drive { background: #e3f2fd; color: #1565c0; }
+  .tag-drive { background: #e8f5e9; color: #1b5e20; }
   .tag-rest { background: #f1f8e9; color: #2e7d32; }
   .tag-warn { background: #fff3e0; color: #e65100; }
+  .badge { display: inline-block; background: #6a1b9a; color: white; font-size: 10px; padding: 1px 5px; border-radius: 3px; margin-left: 4px; vertical-align: middle; }
 </style>
 </head>
 <body>
 <div class="container">
   <div class="header">
-    <h1>🚗 2026 自驾旅行计划（最终版）</h1>
-    <div class="subtitle">贵阳 → 安顺 → 兴义 → 蒙自 → 建水 → 沙溪 → 丽江 → 大理 → 保山 → 腾冲 → 大理 → 昆明 → 百色 → 柳州 → 桂林 → 永州 → 长沙 → 景德镇 → 上海</div>
+    <h1>🚗 2026 自驾旅行计划 V2 <span style="font-size:16px;opacity:0.8">滇西南边境线</span></h1>
+    <div class="subtitle">贵阳 → 安顺 → 兴义 → 蒙自 → 建水 → 孟连 → 普洱 → 临沧 → 腾冲 → 保山 → 大理 → 沙溪 → 昆明 → 百色 → 柳州 → 桂林 → 永州 → 长沙 → 景德镇 → 上海</div>
     <div class="meta">
-      <span>📅 5月2日（周六）～ 5月29日（周五）</span>
-      <span>🗓 共28天</span>
+      <span>📅 5月2日（周六）～ 5月30日（周六）</span>
+      <span>🗓 共29天</span>
       <span>✈ 贵阳飞机出发</span>
       <span>🏠 上海到家</span>
     </div>
@@ -58,10 +59,10 @@
 
   <div class="content">
     <div class="stats">
-      <div class="stat-card"><div class="stat-num">28</div><div class="stat-label">总天数</div></div>
-      <div class="stat-card"><div class="stat-num">18</div><div class="stat-label">驾驶日</div></div>
-      <div class="stat-card"><div class="stat-num">10</div><div class="stat-label">游玩日</div></div>
-      <div class="stat-card"><div class="stat-num">~5600</div><div class="stat-label">总公里数</div></div>
+      <div class="stat-card"><div class="stat-num">29</div><div class="stat-label">总天数</div></div>
+      <div class="stat-card"><div class="stat-num">20</div><div class="stat-label">驾驶日</div></div>
+      <div class="stat-card"><div class="stat-num">9</div><div class="stat-label">游玩日</div></div>
+      <div class="stat-card"><div class="stat-num">~6200</div><div class="stat-label">总公里数</div></div>
     </div>
 
     <div class="section-title">📅 完整行程表</div>
@@ -70,8 +71,8 @@
         <tr>
           <th style="width:55px">日期</th>
           <th style="width:40px">星期</th>
-          <th style="width:60px">类型</th>
-          <th style="width:220px">行程</th>
+          <th style="width:65px">类型</th>
+          <th style="width:240px">行程</th>
           <th style="width:110px">距离/时间</th>
           <th style="width:80px">住宿</th>
           <th>景点</th>
@@ -129,101 +130,109 @@
         <tr class="warn">
           <td class="date">5/8</td><td class="week">周五</td>
           <td><span class="tag tag-warn">⚠️长途</span></td>
-          <td class="route">🚗 建水 → 抚仙湖 → 沙溪</td>
-          <td class="dist">~530km / 7h</td>
-          <td class="hotel">沙溪</td>
-          <td class="spots">抚仙湖（孤山岛、界鱼石）、寺登街漫步。8点前出发！</td>
+          <td class="route">🚗 建水 → 孟连</td>
+          <td class="dist">~420km / 6h</td>
+          <td class="hotel">孟连</td>
+          <td class="spots">傍晚到达，南垒河散步。8点前出发！</td>
         </tr>
         <tr class="rest">
           <td class="date">5/9</td><td class="week">周六</td>
           <td><span class="tag tag-rest">游玩</span></td>
-          <td class="route">🎒 沙溪游玩</td>
+          <td class="route">🎒 孟连游玩</td>
           <td class="dist">—</td>
-          <td class="hotel">沙溪</td>
-          <td class="spots">石宝山、茶马古道骑行、黑潓江</td>
+          <td class="hotel">孟连</td>
+          <td class="spots">宣抚司署、大金塔、牛油果庄园、傣族古镇</td>
         </tr>
         <tr>
           <td class="date">5/10</td><td class="week">周日</td>
           <td><span class="tag tag-drive">驾驶</span></td>
-          <td class="route">🚗 沙溪 → 丽江</td>
-          <td class="dist">100km / 1.5h</td>
-          <td class="hotel">丽江</td>
-          <td class="spots">丽江古城、束河古镇、玉龙雪山远眺</td>
+          <td class="route">🚗 孟连 → 普洱</td>
+          <td class="dist">220km / 4.5h</td>
+          <td class="hotel">普洱</td>
+          <td class="spots">普洱茶山、茶马古道</td>
         </tr>
         <tr>
           <td class="date">5/11</td><td class="week">周一</td>
           <td><span class="tag tag-drive">驾驶</span></td>
-          <td class="route">🚗 丽江 → 大理</td>
-          <td class="dist">194km / 2.5h</td>
-          <td class="hotel">大理</td>
-          <td class="spots">崇圣寺三塔、大理古城漫步</td>
+          <td class="route">🚗 普洱 → 临沧</td>
+          <td class="dist">304km / 6h</td>
+          <td class="hotel">临沧</td>
+          <td class="spots">临沧古城、澜沧江观景</td>
         </tr>
-        <tr class="rest">
+        <tr class="warn">
           <td class="date">5/12</td><td class="week">周二</td>
-          <td><span class="tag tag-rest">游玩</span></td>
-          <td class="route">🎒 大理游玩</td>
-          <td class="dist">—</td>
-          <td class="hotel">大理</td>
-          <td class="spots">洱海骑行、双廊古镇</td>
+          <td><span class="tag tag-warn">⚠️长途</span></td>
+          <td class="route">🚗 临沧 → 腾冲</td>
+          <td class="dist">391km / 7.5h</td>
+          <td class="hotel">腾冲</td>
+          <td class="spots">8点前出发！山路较多</td>
         </tr>
         <tr class="rest">
           <td class="date">5/13</td><td class="week">周三</td>
           <td><span class="tag tag-rest">游玩</span></td>
-          <td class="route">🎒 大理游玩</td>
+          <td class="route">🎒 腾冲游玩</td>
           <td class="dist">—</td>
-          <td class="hotel">大理</td>
-          <td class="spots">苍山索道、喜洲古镇</td>
+          <td class="hotel">腾冲</td>
+          <td class="spots">和顺古镇、高黎贡山、热海</td>
         </tr>
-        <tr>
+        <tr class="rest">
           <td class="date">5/14</td><td class="week">周四</td>
-          <td><span class="tag tag-drive">驾驶</span></td>
-          <td class="route">🚗 大理 → 保山</td>
-          <td class="dist">174km / 2.8h</td>
-          <td class="hotel">保山</td>
-          <td class="spots">国殇园、易罗池、保山博物馆</td>
+          <td><span class="tag tag-rest">游玩</span></td>
+          <td class="route">🎒 腾冲游玩</td>
+          <td class="dist">—</td>
+          <td class="hotel">腾冲</td>
+          <td class="spots">火山地质公园、北海湿地、翡翠湖</td>
         </tr>
         <tr>
           <td class="date">5/15</td><td class="week">周五</td>
           <td><span class="tag tag-drive">驾驶</span></td>
-          <td class="route">🚗 保山 → 腾冲</td>
+          <td class="route">🚗 腾冲 → 保山</td>
           <td class="dist">144km / 2.4h</td>
-          <td class="hotel">腾冲</td>
-          <td class="spots">和顺古镇、热海</td>
+          <td class="hotel">保山</td>
+          <td class="spots">国殇园、易罗池</td>
         </tr>
-        <tr class="rest">
+        <tr>
           <td class="date">5/16</td><td class="week">周六</td>
-          <td><span class="tag tag-rest">游玩</span></td>
-          <td class="route">🎒 腾冲游玩</td>
-          <td class="dist">—</td>
-          <td class="hotel">腾冲</td>
-          <td class="spots">火山地质公园、北海湿地、高黎贡山</td>
+          <td><span class="tag tag-drive">驾驶</span></td>
+          <td class="route">🚗 保山 → 大理</td>
+          <td class="dist">174km / 2.8h</td>
+          <td class="hotel">大理</td>
+          <td class="spots">崇圣寺三塔、大理古城漫步</td>
         </tr>
         <tr class="rest">
           <td class="date">5/17</td><td class="week">周日</td>
           <td><span class="tag tag-rest">游玩</span></td>
-          <td class="route">🎒 腾冲游玩</td>
+          <td class="route">🎒 大理游玩</td>
           <td class="dist">—</td>
-          <td class="hotel">腾冲</td>
-          <td class="spots">翡翠湖、银杏村</td>
-        </tr>
-        <tr class="warn">
-          <td class="date">5/18</td><td class="week">周一</td>
-          <td><span class="tag tag-warn">⚠️长途</span></td>
-          <td class="route">🚗 腾冲 → 大理</td>
-          <td class="dist">313km / 4.6h</td>
           <td class="hotel">大理</td>
-          <td class="spots">洱海夕阳</td>
+          <td class="spots">洱海骑行、双廊古镇、苍山索道</td>
         </tr>
         <tr>
-          <td class="date">5/19</td><td class="week">周二</td>
+          <td class="date">5/18</td><td class="week">周一</td>
           <td><span class="tag tag-drive">驾驶</span></td>
-          <td class="route">🚗 大理 → 昆明</td>
-          <td class="dist">350km / 4h</td>
+          <td class="route">🚗 大理 → 沙溪</td>
+          <td class="dist">130km / 2h</td>
+          <td class="hotel">沙溪</td>
+          <td class="spots">寺登街、茶马古道</td>
+        </tr>
+        <tr class="rest">
+          <td class="date">5/19</td><td class="week">周二</td>
+          <td><span class="tag tag-rest">游玩</span></td>
+          <td class="route">🎒 沙溪游玩</td>
+          <td class="dist">—</td>
+          <td class="hotel">沙溪</td>
+          <td class="spots">石宝山、黑潓江骑行</td>
+        </tr>
+        <tr class="warn">
+          <td class="date">5/20</td><td class="week">周三</td>
+          <td><span class="tag tag-warn">⚠️长途</span></td>
+          <td class="route">🚗 沙溪 → 昆明</td>
+          <td class="dist">~480km / 6h</td>
           <td class="hotel">昆明</td>
           <td class="spots">翠湖公园、云南省博物馆</td>
         </tr>
         <tr class="warn">
-          <td class="date">5/20</td><td class="week">周三</td>
+          <td class="date">5/21</td><td class="week">周四</td>
           <td><span class="tag tag-warn">⚠️最长</span></td>
           <td class="route">🚗 昆明 → 百色</td>
           <td class="dist">590km / 7.5h</td>
@@ -231,7 +240,7 @@
           <td class="spots">全程最长驾驶日！7点前出发</td>
         </tr>
         <tr class="rest">
-          <td class="date">5/21</td><td class="week">周四</td>
+          <td class="date">5/22</td><td class="week">周五</td>
           <td><span class="tag tag-rest">游玩</span></td>
           <td class="route">🎒 百色游玩</td>
           <td class="dist">—</td>
@@ -239,7 +248,7 @@
           <td class="spots">百色起义纪念馆、靖西通灵大峡谷</td>
         </tr>
         <tr class="warn">
-          <td class="date">5/22</td><td class="week">周五</td>
+          <td class="date">5/23</td><td class="week">周六</td>
           <td><span class="tag tag-warn">⚠️长途</span></td>
           <td class="route">🚗 百色 → 柳州</td>
           <td class="dist">410km / 5h</td>
@@ -247,7 +256,7 @@
           <td class="spots">窑埠古镇、螺蛳粉</td>
         </tr>
         <tr>
-          <td class="date">5/23</td><td class="week">周六</td>
+          <td class="date">5/24</td><td class="week">周日</td>
           <td><span class="tag tag-drive">驾驶</span></td>
           <td class="route">🚗 柳州 → 桂林</td>
           <td class="dist">166km / 2.5h</td>
@@ -255,7 +264,7 @@
           <td class="spots">两江四湖夜游</td>
         </tr>
         <tr class="rest">
-          <td class="date">5/24</td><td class="week">周日</td>
+          <td class="date">5/25</td><td class="week">周一</td>
           <td><span class="tag tag-rest">游玩</span></td>
           <td class="route">🎒 桂林游玩</td>
           <td class="dist">—</td>
@@ -263,7 +272,7 @@
           <td class="spots">漓江竹筏、阳朔西街</td>
         </tr>
         <tr>
-          <td class="date">5/25</td><td class="week">周一</td>
+          <td class="date">5/26</td><td class="week">周二</td>
           <td><span class="tag tag-drive">驾驶</span></td>
           <td class="route">🚗 桂林 → 永州</td>
           <td class="dist">212km / 3.5h</td>
@@ -271,20 +280,12 @@
           <td class="spots">零陵古城、柳宗元纪念馆</td>
         </tr>
         <tr>
-          <td class="date">5/26</td><td class="week">周二</td>
+          <td class="date">5/27</td><td class="week">周三</td>
           <td><span class="tag tag-drive">驾驶</span></td>
           <td class="route">🚗 永州 → 长沙</td>
           <td class="dist">314km / 3.6h</td>
           <td class="hotel">长沙</td>
           <td class="spots">岳麓山、橘子洲</td>
-        </tr>
-        <tr class="rest">
-          <td class="date">5/27</td><td class="week">周三</td>
-          <td><span class="tag tag-rest">游玩</span></td>
-          <td class="route">🎒 长沙游玩</td>
-          <td class="dist">—</td>
-          <td class="hotel">长沙</td>
-          <td class="spots">湖南省博物馆（马王堆）、太平街</td>
         </tr>
         <tr class="warn">
           <td class="date">5/28</td><td class="week">周四</td>
@@ -294,8 +295,16 @@
           <td class="hotel">景德镇</td>
           <td class="spots">陶溪川、古窑民俗博览区</td>
         </tr>
-        <tr class="warn">
+        <tr class="rest">
           <td class="date">5/29</td><td class="week">周五</td>
+          <td><span class="tag tag-rest">游玩</span></td>
+          <td class="route">🎒 景德镇游玩</td>
+          <td class="dist">—</td>
+          <td class="hotel">景德镇</td>
+          <td class="spots">陶溪川夜市、御窑博物馆</td>
+        </tr>
+        <tr class="warn">
+          <td class="date">5/30</td><td class="week">周六</td>
           <td><span class="tag tag-warn">⚠️长途</span></td>
           <td class="route">🚗 景德镇 → 上海</td>
           <td class="dist">554km / 7h</td>
@@ -312,12 +321,13 @@
           <tr><th>日期</th><th>路段</th><th>距离</th><th>时间</th><th>提醒</th></tr>
         </thead>
         <tbody>
-          <tr><td>5/8 周五</td><td>建水→抚仙湖→沙溪</td><td>~530km</td><td>~7h</td><td>8点前出发，抚仙湖控制在2h内</td></tr>
-          <tr><td>5/18 周一</td><td>腾冲→大理</td><td>313km</td><td>4.6h</td><td>经保山高速</td></tr>
-          <tr><td>5/20 周三</td><td>昆明→百色</td><td>590km</td><td>7.5h</td><td>⚠️全程最长！7点前出发</td></tr>
-          <tr><td>5/22 周五</td><td>百色→柳州</td><td>410km</td><td>5h</td><td>经南宁方向</td></tr>
+          <tr><td>5/8 周五</td><td>建水→孟连</td><td>~420km</td><td>~6h</td><td>8点前出发，山区路段注意安全</td></tr>
+          <tr><td>5/12 周二</td><td>临沧→腾冲</td><td>391km</td><td>7.5h</td><td>8点前出发，山路较多</td></tr>
+          <tr><td>5/20 周三</td><td>沙溪→昆明</td><td>~480km</td><td>~6h</td><td>早出发，经大理高速</td></tr>
+          <tr><td>5/21 周四</td><td>昆明→百色</td><td>590km</td><td>7.5h</td><td>⚠️全程最长！7点前出发</td></tr>
+          <tr><td>5/23 周六</td><td>百色→柳州</td><td>410km</td><td>5h</td><td>经南宁方向</td></tr>
           <tr><td>5/28 周四</td><td>长沙→景德镇</td><td>500km</td><td>6h</td><td>沪昆→杭瑞高速</td></tr>
-          <tr><td>5/29 周五</td><td>景德镇→上海</td><td>554km</td><td>7h</td><td>最后一段，到家！</td></tr>
+          <tr><td>5/30 周六</td><td>景德镇→上海</td><td>554km</td><td>7h</td><td>最后一段，到家！</td></tr>
         </tbody>
       </table>
     </div>
