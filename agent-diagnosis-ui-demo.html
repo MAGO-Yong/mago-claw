@@ -1,0 +1,664 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Agent 诊断 UI Demo</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&family=Noto+Sans+SC:wght@300;400;500;600&display=swap');
+
+  :root {
+    --bg: #0d0f14;
+    --surface: #13161e;
+    --surface2: #1a1e2a;
+    --border: #252a38;
+    --border-light: #2e3447;
+    --text-primary: #e8eaf0;
+    --text-secondary: #8b909e;
+    --text-muted: #555b6e;
+    --accent: #4f7cff;
+    --accent-dim: rgba(79, 124, 255, 0.12);
+    --accent-glow: rgba(79, 124, 255, 0.25);
+    --success: #34c97a;
+    --success-dim: rgba(52, 201, 122, 0.1);
+    --warning: #f5a623;
+    --warning-dim: rgba(245, 166, 35, 0.1);
+    --running: #a78bfa;
+    --running-dim: rgba(167, 139, 250, 0.1);
+    --error: #ff5f5f;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text-primary);
+    font-family: 'Noto Sans SC', sans-serif;
+    font-weight: 400;
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+  }
+
+  .phone-frame {
+    width: 390px;
+    height: 780px;
+    background: var(--surface);
+    border-radius: 40px;
+    border: 1.5px solid var(--border);
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    box-shadow: 0 40px 120px rgba(0,0,0,0.6), 0 0 0 1px rgba(255,255,255,0.04) inset;
+    position: relative;
+  }
+
+  /* Top bar */
+  .top-bar {
+    padding: 14px 20px 10px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    border-bottom: 1px solid var(--border);
+    flex-shrink: 0;
+    background: var(--surface);
+  }
+
+  .top-bar .back-btn {
+    width: 28px; height: 28px;
+    border-radius: 8px;
+    background: var(--surface2);
+    border: 1px solid var(--border-light);
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer;
+    color: var(--text-secondary);
+    font-size: 13px;
+  }
+
+  .top-bar .title-group {
+    flex: 1;
+  }
+
+  .top-bar .title {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text-primary);
+    letter-spacing: -0.2px;
+  }
+
+  .top-bar .subtitle {
+    font-size: 11px;
+    color: var(--text-muted);
+    margin-top: 1px;
+  }
+
+  .status-dot {
+    width: 7px; height: 7px;
+    border-radius: 50%;
+    background: var(--success);
+    box-shadow: 0 0 6px var(--success);
+    margin-right: 5px;
+    display: inline-block;
+    animation: pulse 2s ease-in-out infinite;
+  }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 1; box-shadow: 0 0 6px var(--success); }
+    50% { opacity: 0.6; box-shadow: 0 0 10px var(--success); }
+  }
+
+  /* Chat area */
+  .chat-area {
+    flex: 1;
+    overflow-y: auto;
+    padding: 16px 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    scrollbar-width: none;
+  }
+  .chat-area::-webkit-scrollbar { display: none; }
+
+  /* User message */
+  .msg-user {
+    align-self: flex-end;
+    max-width: 75%;
+    background: var(--accent);
+    color: #fff;
+    padding: 10px 14px;
+    border-radius: 18px 18px 4px 18px;
+    font-size: 13.5px;
+    line-height: 1.5;
+    letter-spacing: -0.1px;
+  }
+
+  /* AI Step Group */
+  .step-group {
+    align-self: flex-start;
+    width: 100%;
+    max-width: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .step-item {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    overflow: hidden;
+    transition: border-color 0.2s;
+  }
+
+  .step-item.running {
+    border-color: var(--running);
+    box-shadow: 0 0 0 1px rgba(167,139,250,0.15);
+  }
+
+  .step-item.done {
+    border-color: var(--border);
+  }
+
+  .step-item.error {
+    border-color: var(--error);
+  }
+
+  .step-header {
+    padding: 10px 14px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    cursor: pointer;
+  }
+
+  .step-icon {
+    width: 28px; height: 28px;
+    border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+    font-size: 13px;
+  }
+
+  .step-icon.running {
+    background: var(--running-dim);
+    color: var(--running);
+  }
+  .step-icon.done {
+    background: var(--success-dim);
+    color: var(--success);
+  }
+  .step-icon.pending {
+    background: var(--border);
+    color: var(--text-muted);
+  }
+  .step-icon.warning {
+    background: var(--warning-dim);
+    color: var(--warning);
+  }
+
+  .step-label {
+    flex: 1;
+  }
+
+  .step-title {
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text-primary);
+    letter-spacing: -0.1px;
+  }
+
+  .step-meta {
+    font-size: 11px;
+    color: var(--text-muted);
+    margin-top: 2px;
+    font-family: 'JetBrains Mono', monospace;
+  }
+
+  .step-chevron {
+    color: var(--text-muted);
+    font-size: 11px;
+    transition: transform 0.2s;
+  }
+  .step-item.expanded .step-chevron {
+    transform: rotate(90deg);
+  }
+
+  /* Step detail */
+  .step-detail {
+    display: none;
+    padding: 0 14px 12px;
+    border-top: 1px solid var(--border);
+    margin-top: 0;
+  }
+  .step-item.expanded .step-detail {
+    display: block;
+  }
+
+  .tool-list {
+    margin-top: 8px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .tool-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 5px 8px;
+    background: var(--bg);
+    border-radius: 6px;
+    border: 1px solid var(--border);
+  }
+
+  .tool-name {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    color: var(--accent);
+  }
+
+  .tool-path {
+    font-size: 10.5px;
+    color: var(--text-muted);
+    flex: 1;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .tool-status {
+    font-size: 10px;
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-weight: 500;
+  }
+  .tool-status.ok {
+    background: var(--success-dim);
+    color: var(--success);
+  }
+  .tool-status.running {
+    background: var(--running-dim);
+    color: var(--running);
+  }
+
+  /* Narration text */
+  .narration {
+    font-size: 13px;
+    color: var(--text-secondary);
+    line-height: 1.6;
+    padding: 10px 14px;
+    background: var(--accent-dim);
+    border-left: 2px solid var(--accent);
+    border-radius: 0 10px 10px 0;
+    margin: 0;
+  }
+
+  /* AI reply bubble */
+  .ai-reply {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 4px 18px 18px 18px;
+    padding: 12px 14px;
+    font-size: 13.5px;
+    line-height: 1.65;
+    color: var(--text-primary);
+    max-width: 88%;
+    letter-spacing: -0.1px;
+  }
+
+  .ai-reply strong {
+    color: #fff;
+    font-weight: 600;
+  }
+
+  .ai-reply .tag {
+    display: inline-block;
+    background: var(--warning-dim);
+    color: var(--warning);
+    padding: 1px 6px;
+    border-radius: 4px;
+    font-size: 11px;
+    font-weight: 600;
+    font-family: 'JetBrains Mono', monospace;
+    margin: 0 2px;
+  }
+
+  .ai-reply .tag.green {
+    background: var(--success-dim);
+    color: var(--success);
+  }
+
+  /* Conclusion card */
+  .conclusion-card {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 14px;
+    width: 100%;
+  }
+
+  .conclusion-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 10px;
+  }
+
+  .conclusion-header .icon {
+    width: 30px; height: 30px;
+    background: var(--warning-dim);
+    border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 14px;
+  }
+
+  .conclusion-header .label {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-primary);
+  }
+
+  .conclusion-header .conf {
+    margin-left: auto;
+    font-size: 11px;
+    color: var(--warning);
+    background: var(--warning-dim);
+    padding: 2px 8px;
+    border-radius: 10px;
+    font-weight: 600;
+  }
+
+  .root-cause {
+    font-size: 12.5px;
+    color: var(--text-secondary);
+    line-height: 1.6;
+    margin-bottom: 10px;
+  }
+
+  .action-row {
+    display: flex;
+    gap: 8px;
+    margin-top: 4px;
+  }
+
+  .action-btn {
+    flex: 1;
+    padding: 8px 10px;
+    border-radius: 8px;
+    font-size: 12px;
+    font-weight: 500;
+    cursor: pointer;
+    border: none;
+    font-family: 'Noto Sans SC', sans-serif;
+    transition: opacity 0.15s;
+  }
+
+  .action-btn:hover { opacity: 0.85; }
+
+  .action-btn.primary {
+    background: var(--accent);
+    color: #fff;
+  }
+
+  .action-btn.secondary {
+    background: var(--surface);
+    color: var(--text-secondary);
+    border: 1px solid var(--border);
+  }
+
+  /* Typing indicator */
+  .typing {
+    display: flex;
+    align-items: center;
+    gap: 3px;
+    padding: 10px 14px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 4px 14px 14px 14px;
+    width: fit-content;
+  }
+
+  .typing span {
+    width: 5px; height: 5px;
+    background: var(--text-muted);
+    border-radius: 50%;
+    animation: blink 1.4s ease-in-out infinite;
+  }
+  .typing span:nth-child(2) { animation-delay: 0.2s; }
+  .typing span:nth-child(3) { animation-delay: 0.4s; }
+
+  @keyframes blink {
+    0%, 80%, 100% { opacity: 0.3; transform: scale(0.8); }
+    40% { opacity: 1; transform: scale(1); }
+  }
+
+  /* Running spinner */
+  @keyframes spin {
+    to { transform: rotate(360deg); }
+  }
+  .spinner {
+    width: 13px; height: 13px;
+    border: 1.5px solid var(--running-dim);
+    border-top-color: var(--running);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+    flex-shrink: 0;
+  }
+
+  /* Bottom input */
+  .bottom-bar {
+    padding: 10px 14px 14px;
+    border-top: 1px solid var(--border);
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    background: var(--surface);
+    flex-shrink: 0;
+  }
+
+  .input-box {
+    flex: 1;
+    background: var(--surface2);
+    border: 1px solid var(--border-light);
+    border-radius: 20px;
+    padding: 9px 14px;
+    color: var(--text-primary);
+    font-size: 13px;
+    font-family: 'Noto Sans SC', sans-serif;
+    outline: none;
+  }
+
+  .input-box::placeholder { color: var(--text-muted); }
+
+  .send-btn {
+    width: 34px; height: 34px;
+    background: var(--accent);
+    border: none;
+    border-radius: 50%;
+    color: #fff;
+    font-size: 14px;
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    transition: opacity 0.15s;
+  }
+  .send-btn:hover { opacity: 0.85; }
+
+  .time-label {
+    text-align: center;
+    font-size: 11px;
+    color: var(--text-muted);
+    margin: 4px 0 2px;
+  }
+</style>
+</head>
+<body>
+
+<div class="phone-frame">
+
+  <!-- Top bar -->
+  <div class="top-bar">
+    <div class="back-btn">‹</div>
+    <div class="title-group">
+      <div class="title"><span class="status-dot"></span>XRay 诊断助手</div>
+      <div class="subtitle">ark0 · 告警诊断 · 智能模式</div>
+    </div>
+  </div>
+
+  <!-- Chat -->
+  <div class="chat-area" id="chatArea">
+
+    <div class="time-label">11:24</div>
+
+    <!-- User message -->
+    <div class="msg-user">
+      ark0 新笔记占比告警，帮我诊断一下
+    </div>
+
+    <!-- Narration 1 -->
+    <div class="narration">
+      收到，正在初始化诊断上下文，并行拉取服务基线与告警事件详情…
+    </div>
+
+    <!-- Step 1: done, collapsed -->
+    <div class="step-group">
+      <div class="step-item done" onclick="toggleStep(this)">
+        <div class="step-header">
+          <div class="step-icon done">✓</div>
+          <div class="step-label">
+            <div class="step-title">Step 1 · 告警事件 + 服务信息</div>
+            <div class="step-meta">read ×2 · execute ×1 · 0.8s</div>
+          </div>
+          <div class="step-chevron">›</div>
+        </div>
+        <div class="step-detail">
+          <div class="tool-list">
+            <div class="tool-item">
+              <span class="tool-name">read_file</span>
+              <span class="tool-path">alarm-rule/ark0/newnote-ratio.yaml</span>
+              <span class="tool-status ok">OK</span>
+            </div>
+            <div class="tool-item">
+              <span class="tool-name">read_file</span>
+              <span class="tool-path">service-tree/ark0/meta.json</span>
+              <span class="tool-status ok">OK</span>
+            </div>
+            <div class="tool-item">
+              <span class="tool-name">execute</span>
+              <span class="tool-path">alarm-event-query · event_id=EVT-20240424-0032</span>
+              <span class="tool-status ok">OK</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Narration 2 -->
+    <div class="narration">
+      事件确认：新笔记占比周同比下跌 <strong>28%</strong>，触发时间 10:47。<br>
+      进入深度诊断——并行查异常堆栈 + RPC 指标…
+    </div>
+
+    <!-- Step 2: done -->
+    <div class="step-group">
+      <div class="step-item done" onclick="toggleStep(this)">
+        <div class="step-header">
+          <div class="step-icon done">✓</div>
+          <div class="step-label">
+            <div class="step-title">Step 2 · 异常堆栈 + RPC 指标</div>
+            <div class="step-meta">execute ×3 · 并行 · 1.4s</div>
+          </div>
+          <div class="step-chevron">›</div>
+        </div>
+        <div class="step-detail">
+          <div class="tool-list">
+            <div class="tool-item">
+              <span class="tool-name">execute</span>
+              <span class="tool-path">metric-query · ark0 · rpc_error_rate · 1h</span>
+              <span class="tool-status ok">OK</span>
+            </div>
+            <div class="tool-item">
+              <span class="tool-name">execute</span>
+              <span class="tool-path">metric-query · ark0 · new_note_ratio · 24h</span>
+              <span class="tool-status ok">OK</span>
+            </div>
+            <div class="tool-item">
+              <span class="tool-name">execute</span>
+              <span class="tool-path">xray-log-query · ark0 · ERROR · 10:40-11:00</span>
+              <span class="tool-status ok">OK</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Narration 3 -->
+    <div class="narration">
+      堆栈已拿到，RPC 错误率正常。<br>
+      日志有异常特征，正在查 Logview 分析根因…
+    </div>
+
+    <!-- Step 3: running -->
+    <div class="step-group">
+      <div class="step-item running expanded" onclick="toggleStep(this)">
+        <div class="step-header">
+          <div class="step-icon running">
+            <div class="spinner"></div>
+          </div>
+          <div class="step-label">
+            <div class="step-title">Step 3 · Logview 日志根因分析</div>
+            <div class="step-meta">execute ×1 · 进行中…</div>
+          </div>
+          <div class="step-chevron">›</div>
+        </div>
+        <div class="step-detail">
+          <div class="tool-list">
+            <div class="tool-item">
+              <span class="tool-name">execute</span>
+              <span class="tool-path">logview-query · ark0 · new_note_filter · 10:40-11:10</span>
+              <span class="tool-status running">进行中</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Conclusion card -->
+    <div class="conclusion-card">
+      <div class="conclusion-header">
+        <div class="icon">⚠️</div>
+        <div class="label">根因分析</div>
+        <div class="conf">置信度 87%</div>
+      </div>
+      <div class="root-cause">
+        上游 <strong>content-filter-v2</strong> 服务在 <strong>10:43</strong> 发布变更，导致新笔记过滤规则误收紧，命中率从 <span class="tag green">91%</span> 下降至 <span class="tag">63%</span>，触发新笔记占比告警。
+      </div>
+      <div class="action-row">
+        <button class="action-btn primary">一键回滚变更</button>
+        <button class="action-btn secondary">查看变更详情</button>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Bottom input -->
+  <div class="bottom-bar">
+    <input class="input-box" type="text" placeholder="继续追问…">
+    <button class="send-btn">↑</button>
+  </div>
+
+</div>
+
+<script>
+  function toggleStep(el) {
+    el.classList.toggle('expanded');
+  }
+
+  // Auto scroll to bottom
+  const area = document.getElementById('chatArea');
+  area.scrollTop = area.scrollHeight;
+</script>
+
+</body>
+</html>
