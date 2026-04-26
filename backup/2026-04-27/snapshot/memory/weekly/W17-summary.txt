@@ -1,0 +1,50 @@
+# 📈 2026-W17 成长报告摘要
+
+**生成时间**：2026-04-26 20:00 | **覆盖**：04-20（周一）~ 04-26（周日）
+
+---
+
+## 📌 本周重点
+
+1. **AI 诊断卡片 v4 确认可用** — v1→v4 仅 2 小时，核心决策：决策摘要定位 / 一句话根因 / 置信度 badge / 五维度聚合证据。Hi 卡片能力评估完成（侧边栏不可实现，需跳转 Web）
+2. **XRay Skills V2 PR 稿发布** — 4 新 Skill + 存量升级 + xray-cli AI-first 示例
+3. **5-6 月 OKR 定稿** — O+4KR+5 里程碑，卡点：M2（5/25）通用 Skill 准确率必须达线
+
+## ✅ 本周交付物
+
+| 文件 | 说明 |
+|------|------|
+| `diagnostic-card-redesign.html` | AI 诊断卡片 v4 原型 |
+| `diagnostic-card-design-spec.md` | 设计说明文档 |
+| REDoc: dd7e03140c... | 设计说明（个人空间） |
+| `xray-skills-v2-pr.md` | V2 PR 稿本地草稿 |
+| REDoc: 7c937a34b4... | V2 PR 稿正式文档 |
+| `2026-road-trip-v2.pdf` | 23天自驾旅行计划 |
+| `memory/weekly/2026-W17-growth-report.md` | 本周完整成长报告 |
+
+## 🧬 核心洞察
+
+- **方向确认→执行加速已验证**：W16 方向梳理，W17 全面产出
+- **OKR 是工作优先级过滤器**：O 的每个数字必须在 KR 中有承接（4/24 已发现典型不一致案例）
+- **周末零交互是规律**：连续两周确认，cron 不需要周末刷存在感
+
+## ⚠️ 遗留 P0（拖延 9 天）
+
+- execute_tool Span 框架层采集确认（最高杠杆，解阻双方向）
+- 告警诊断需求文档 v0.6+v0.2 合并归档（M1 窗口 4/28 启动的输入依赖）
+- xray-log-query P0 SKILL 修复
+
+## 📅 下周（W18/M1 启动）
+
+- M1 窗口 4/28-5/11 开启：通用 Skill 开发 + 广告/搜索 SOP 对齐 + 告警中心方案设计
+- 周一优先：execute_tool Span → 需求文档合并 → SKILL 修复
+
+## 🔧 系统状态
+
+- ✅ Git commit：7e5d0cb `weekly report: 2026-W17`
+- ⚠️ Git push：超时（容器网络限制，本地已提交）
+- ✅ MEMORY.md 已同步 W17 摘要
+- ✅ corrections.md 已有记录（3 条本周纠正）
+
+---
+*完整报告：`memory/weekly/2026-W17-growth-report.md`*
