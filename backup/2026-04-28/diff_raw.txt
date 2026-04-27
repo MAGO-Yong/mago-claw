@@ -1,0 +1,4 @@
+文件 backup/2026-04-27/snapshot/memory/corrections.md 和 backup/2026-04-28/snapshot/memory/corrections.md 不同
+只在 backup/2026-04-28/snapshot/memory/daily-digest 存在：2026-04-26.md
+只在 backup/2026-04-28/snapshot/memory/work-log 存在：2026-04-27.md
+文件 backup/2026-04-27/snapshot/MEMORY.md 和 backup/2026-04-28/snapshot/MEMORY.md 不同
