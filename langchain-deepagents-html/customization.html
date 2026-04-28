@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Customization（自定义）</title>
+  
+<style>
+  :root {
+    --bg: #ffffff;
+    --text: #1a1a2e;
+    --code-bg: #1e1e2e;
+    --code-text: #cdd6f4;
+    --link: #2563eb;
+    --border: #e2e8f0;
+    --thead-bg: #f8fafc;
+    --stripe-bg: #f8fafc;
+    --h1-color: #0f172a;
+    --h2-color: #1e293b;
+    --blockquote-bg: #f0f9ff;
+    --blockquote-border: #3b82f6;
+    --note-bg: #fefce8;
+    --note-border: #eab308;
+    --warning-bg: #fef2f2;
+    --warning-border: #ef4444;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #0f172a;
+      --text: #e2e8f0;
+      --code-bg: #1e1e2e;
+      --code-text: #cdd6f4;
+      --link: #60a5fa;
+      --border: #334155;
+      --thead-bg: #1e293b;
+      --stripe-bg: #1e293b;
+      --h1-color: #f8fafc;
+      --h2-color: #e2e8f0;
+      --blockquote-bg: #1e293b;
+      --blockquote-border: #3b82f6;
+      --note-bg: #422006;
+      --note-border: #eab308;
+      --warning-bg: #450a0a;
+      --warning-border: #ef4444;
+    }
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    line-height: 1.7;
+    color: var(--text);
+    background: var(--bg);
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 40px 20px 80px;
+  }
+  h1 { font-size: 2.2em; font-weight: 700; color: var(--h1-color); margin: 0 0 8px; padding-top: 20px; }
+  h2 { font-size: 1.6em; font-weight: 600; color: var(--h2-color); margin: 40px 0 16px; padding-bottom: 8px; border-bottom: 1px solid var(--border); }
+  h3 { font-size: 1.3em; font-weight: 600; color: var(--h2-color); margin: 30px 0 12px; }
+  h4 { font-size: 1.1em; font-weight: 600; margin: 24px 0 8px; }
+  p { margin: 12px 0; }
+  a { color: var(--link); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+  ul, ol { margin: 12px 0; padding-left: 24px; }
+  li { margin: 4px 0; }
+  li > ul, li > ol { margin: 4px 0; }
+  code {
+    font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, Courier, monospace;
+    background: var(--code-bg);
+    color: var(--code-text);
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-size: 0.9em;
+  }
+  pre {
+    background: var(--code-bg);
+    color: var(--code-text);
+    padding: 16px 20px;
+    border-radius: 8px;
+    overflow-x: auto;
+    margin: 16px 0;
+    font-size: 0.88em;
+    line-height: 1.5;
+  }
+  pre code {
+    background: none;
+    padding: 0;
+    color: inherit;
+    font-size: inherit;
+  }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 16px 0;
+    font-size: 0.95em;
+  }
+  th {
+    background: var(--thead-bg);
+    font-weight: 600;
+    text-align: left;
+    padding: 10px 14px;
+    border: 1px solid var(--border);
+  }
+  td {
+    padding: 10px 14px;
+    border: 1px solid var(--border);
+    vertical-align: top;
+  }
+  tr:nth-child(even) { background: var(--stripe-bg); }
+  blockquote {
+    border-left: 4px solid var(--blockquote-border);
+    background: var(--blockquote-bg);
+    padding: 12px 16px;
+    margin: 16px 0;
+    border-radius: 0 8px 8px 0;
+  }
+  blockquote blockquote { margin: 8px 0; }
+  hr { border: none; border-top: 2px solid var(--border); margin: 32px 0; }
+  .original-link {
+    font-size: 0.9em;
+    color: #64748b;
+    margin-bottom: 24px;
+  }
+  /* Syntax highlighting approximation */
+  pre code .comment { color: #6a9955; }
+  pre code .keyword { color: #c678dd; }
+  pre code .string { color: #98c379; }
+  pre code .function { color: #61afef; }
+  pre code .number { color: #d19a66; }
+  pre code .class-name { color: #e5c07b; }
+</style>
+
+</head>
+<body>
+<h1 id="customization">Customization（自定义）</h1>
+<blockquote>
+<p>原文：<a href="https://docs.langchain.com/oss/python/deepagents/customization">https://docs.langchain.com/oss/python/deepagents/customization</a></p>
+<p>自定义系统提示词（system prompt（系统提示词））、工具（tools（工具））、中间件（middleware（中间件））和内存（memory（内存）），以调整 deep agent（深度智能体）的行为。</p>
+</blockquote>
+<h2 id="system-prompt">System prompt（系统提示词）</h2>
+<p>你的自定义系统提示词会前置到内置系统提示词。使用它来定义 agent（智能体）的角色、行为和知识。</p>
+<pre class="codehilite"><code class="language-python">from deepagents import create_deep_agent
+
+agent = create_deep_agent(
+    model=&quot;google_genai:gemini-3.1-pro-preview&quot;,
+    system_prompt=(
+        &quot;你是一个专注于科学文献的研究助手。&quot;
+        &quot;始终引用来源。使用子智能体（subagents）对不同主题进行并行研究。&quot;
+    ),
+)
+</code></pre>
+
+<p><code>system_prompt</code> 参数是静态的，意味着它不会在每次调用时改变。对于某些用例，你可能需要动态提示词：例如告诉模型"你有管理员权限"与"你只有只读权限"，或注入用户偏好（如"用户偏好简洁回答"）。如果你的提示词依赖上下文或 <code>runtime.store</code>，请使用 <code>@dynamic_prompt</code> 来构建上下文感知指令。参见 <a href="/oss/python/langchain/context-engineering#system-prompt">LangChain 上下文工程指南</a> 获取示例。</p>
+<h2 id="tools">Tools（工具）</h2>
+<p>通过 <code>tools</code> 参数传递自定义工具。工具的描述（来自工具 schema（模式））会发送给模型。</p>
+<pre class="codehilite"><code class="language-python">from deepagents import create_deep_agent
+from langchain.tools import tool
+
+@tool(parse_docstring=True)
+def calculate(expression: str) -&gt; str:
+    &quot;&quot;&quot;计算数学表达式。
+
+    当用户需要进行数学运算时使用此工具。
+
+    Args:
+        expression: 要计算的数学表达式字符串
+    &quot;&quot;&quot;
+    return str(eval(expression))
+
+agent = create_deep_agent(
+    model=&quot;google_genai:gemini-3.1-pro-preview&quot;,
+    tools=[calculate],
+)
+</code></pre>
+
+<p>对于你提供的工具，确保提供清晰的名称、描述和参数描述。这些指导模型推理何时以及如何使用工具。在描述中包含<strong>何时</strong>使用该工具，并描述每个参数的作用。</p>
+<h3 id="middleware">通过中间件（Middleware）添加工具</h3>
+<p>你还可以添加 <a href="/oss/python/langchain/middleware">自定义中间件</a>，添加工具并追加自己的系统提示词指令。参见 <a href="/oss/python/langchain/middleware">LangChain 中间件文档</a> 获取详情。</p>
+<h2 id="memory">Memory（内存）</h2>
+<p>内存文件（<a href="https://agents.md/"><code>AGENTS.md</code></a>）提供持久化上下文，<strong>始终加载</strong>到系统提示词中。用于项目规范、用户偏好和应该应用于每次对话的关键指南：</p>
+<pre class="codehilite"><code class="language-python">agent = create_deep_agent(
+    model=&quot;google_genai:gemini-3.1-pro-preview&quot;,
+    memory=[&quot;/project/AGENTS.md&quot;, &quot;~/.deepagents/preferences.md&quot;],
+)
+</code></pre>
+
+<p>与 Skills（技能）不同，内存始终注入——没有渐进式披露（progressive disclosure（渐进式披露））。保持内存最小化以避免上下文过载；对详细工作流和领域特定内容使用 <a href="/oss/python/deepagents/skills">skills</a>。</p>
+<h3 id="_1">只读与可写内存</h3>
+<pre class="codehilite"><code class="language-python">agent = create_deep_agent(
+    model=&quot;google_genai:gemini-3.1-pro-preview&quot;,
+    memory=[
+        &quot;/project/AGENTS.md&quot;,         # 默认只读
+        &quot;~/.deepagents/preferences.md&quot;,  # 只读
+    ],
+)
+</code></pre>
+
+<p>参见 <a href="/oss/python/deepagents/customization#memory">Memory（内存）</a> 了解配置详情。</p>
+<h2 id="middleware_1">Middleware（中间件）</h2>
+<p>中间件允许你在 agent 执行前后运行自定义逻辑。用于添加工具、修改系统提示词或注入上下文。</p>
+<pre class="codehilite"><code class="language-python">from langchain.agents.middleware import AgentMiddleware, AgentState
+from typing import Any
+
+class MyMiddleware(AgentMiddleware[AgentState, Any, Any]):
+    def before_agent(self, state, runtime):
+        # 在 agent 执行前运行
+        pass
+
+    def after_agent(self, state, runtime, result):
+        # 在 agent 执行后运行
+        pass
+
+agent = create_deep_agent(
+    model=&quot;google_genai:gemini-3.1-pro-preview&quot;,
+    middleware=[MyMiddleware()],
+)
+</code></pre>
+</body>
+</html>

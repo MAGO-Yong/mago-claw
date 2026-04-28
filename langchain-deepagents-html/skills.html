@@ -1,0 +1,564 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Skills（技能）</title>
+  
+<style>
+  :root {
+    --bg: #ffffff;
+    --text: #1a1a2e;
+    --code-bg: #1e1e2e;
+    --code-text: #cdd6f4;
+    --link: #2563eb;
+    --border: #e2e8f0;
+    --thead-bg: #f8fafc;
+    --stripe-bg: #f8fafc;
+    --h1-color: #0f172a;
+    --h2-color: #1e293b;
+    --blockquote-bg: #f0f9ff;
+    --blockquote-border: #3b82f6;
+    --note-bg: #fefce8;
+    --note-border: #eab308;
+    --warning-bg: #fef2f2;
+    --warning-border: #ef4444;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #0f172a;
+      --text: #e2e8f0;
+      --code-bg: #1e1e2e;
+      --code-text: #cdd6f4;
+      --link: #60a5fa;
+      --border: #334155;
+      --thead-bg: #1e293b;
+      --stripe-bg: #1e293b;
+      --h1-color: #f8fafc;
+      --h2-color: #e2e8f0;
+      --blockquote-bg: #1e293b;
+      --blockquote-border: #3b82f6;
+      --note-bg: #422006;
+      --note-border: #eab308;
+      --warning-bg: #450a0a;
+      --warning-border: #ef4444;
+    }
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    line-height: 1.7;
+    color: var(--text);
+    background: var(--bg);
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 40px 20px 80px;
+  }
+  h1 { font-size: 2.2em; font-weight: 700; color: var(--h1-color); margin: 0 0 8px; padding-top: 20px; }
+  h2 { font-size: 1.6em; font-weight: 600; color: var(--h2-color); margin: 40px 0 16px; padding-bottom: 8px; border-bottom: 1px solid var(--border); }
+  h3 { font-size: 1.3em; font-weight: 600; color: var(--h2-color); margin: 30px 0 12px; }
+  h4 { font-size: 1.1em; font-weight: 600; margin: 24px 0 8px; }
+  p { margin: 12px 0; }
+  a { color: var(--link); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+  ul, ol { margin: 12px 0; padding-left: 24px; }
+  li { margin: 4px 0; }
+  li > ul, li > ol { margin: 4px 0; }
+  code {
+    font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, Courier, monospace;
+    background: var(--code-bg);
+    color: var(--code-text);
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-size: 0.9em;
+  }
+  pre {
+    background: var(--code-bg);
+    color: var(--code-text);
+    padding: 16px 20px;
+    border-radius: 8px;
+    overflow-x: auto;
+    margin: 16px 0;
+    font-size: 0.88em;
+    line-height: 1.5;
+  }
+  pre code {
+    background: none;
+    padding: 0;
+    color: inherit;
+    font-size: inherit;
+  }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 16px 0;
+    font-size: 0.95em;
+  }
+  th {
+    background: var(--thead-bg);
+    font-weight: 600;
+    text-align: left;
+    padding: 10px 14px;
+    border: 1px solid var(--border);
+  }
+  td {
+    padding: 10px 14px;
+    border: 1px solid var(--border);
+    vertical-align: top;
+  }
+  tr:nth-child(even) { background: var(--stripe-bg); }
+  blockquote {
+    border-left: 4px solid var(--blockquote-border);
+    background: var(--blockquote-bg);
+    padding: 12px 16px;
+    margin: 16px 0;
+    border-radius: 0 8px 8px 0;
+  }
+  blockquote blockquote { margin: 8px 0; }
+  hr { border: none; border-top: 2px solid var(--border); margin: 32px 0; }
+  .original-link {
+    font-size: 0.9em;
+    color: #64748b;
+    margin-bottom: 24px;
+  }
+  /* Syntax highlighting approximation */
+  pre code .comment { color: #6a9955; }
+  pre code .keyword { color: #c678dd; }
+  pre code .string { color: #98c379; }
+  pre code .function { color: #61afef; }
+  pre code .number { color: #d19a66; }
+  pre code .class-name { color: #e5c07b; }
+</style>
+
+</head>
+<body>
+<h1 id="skills">Skills（技能）</h1>
+<blockquote>
+<p>原文：<a href="https://docs.langchain.com/oss/python/deepagents/skills">https://docs.langchain.com/oss/python/deepagents/skills</a></p>
+<p>了解如何使用技能（skills（技能））扩展 deep agent（深度智能体）的能力。</p>
+</blockquote>
+<p>技能（Skills）是可复用的 agent（智能体）能力，提供专门的工作流和领域知识。</p>
+<p>你可以使用 <a href="https://agentskills.io/">Agent Skills</a> 为 deep agent 提供新能力和专业知识。关于提升 agent 在 LangChain 生态系统任务上性能的即用型技能，请参见 <a href="https://github.com/langchain-ai/langchain-skills">LangChain Skills</a> 仓库。</p>
+<p>Deep agent 技能遵循 <a href="https://agentskills.io/specification">Agent Skills 规范</a>。</p>
+<h2 id="_1">什么是技能</h2>
+<p>技能是文件夹目录，每个文件夹包含一个或多个文件，其中包含 agent 可使用的上下文：</p>
+<ul>
+<li>一个 <code>SKILL.md</code> 文件，包含技能的指令和元数据</li>
+<li>额外的脚本（可选）</li>
+<li>额外的参考信息，如文档（可选）</li>
+<li>额外的资源，如模板和其他资源（可选）</li>
+</ul>
+<blockquote>
+<p>任何额外的资源（脚本、文档、模板或其他资源）必须在 <code>SKILL.md</code> 文件中引用，并包含文件内容和使用方法的信息，以便 agent 可以决定何时使用它们。</p>
+</blockquote>
+<h2 id="_2">技能如何工作</h2>
+<p>当你创建 deep agent 时，你可以传入包含技能的目录列表。当 agent 启动时，它会读取每个 <code>SKILL.md</code> 文件的 frontmatter（前元数据）。</p>
+<p>当 agent 收到提示时，agent 会检查是否可以在完成提示时使用任何技能。如果找到匹配的提示，它会然后审查其余技能文件。这种仅在需要时才审查技能信息的模式称为<strong>渐进式披露（progressive disclosure（渐进式披露））</strong>。</p>
+<h2 id="_3">示例</h2>
+<p>你可能有一个技能文件夹，其中包含使用特定文档网站的技能，以及另一个搜索 arXiv 预印本研究论文库的技能：</p>
+<pre class="codehilite"><code>skills/
+├── langgraph-docs
+│   └── SKILL.md
+└── arxiv_search
+    ├── SKILL.md
+    └── arxiv_search.py # 用于搜索 arXiv 的代码
+</code></pre>
+
+<p><code>SKILL.md</code> 文件始终遵循相同的模式，以 frontmatter 中的元数据开头，后跟技能指令。</p>
+<p>以下示例展示了在提示时提供相关 langgraph 文档的技能：</p>
+<pre class="codehilite"><code class="language-md">---
+name: langgraph-docs
+description: 使用此技能获取 LangGraph 相关请求，以获取相关文档并提供准确、最新的指导。
+---
+
+# langgraph-docs
+
+## 概述
+
+此技能说明如何访问 LangGraph Python 文档，以帮助回答问题并指导实现。
+
+## 指令
+
+### 1. 获取文档索引
+
+使用 fetch_url 工具读取以下 URL：
+https://docs.langchain.com/llms.txt
+
+这提供了所有可用文档的结构化列表及描述。
+
+### 2. 选择相关文档
+
+根据问题，从索引中识别 2-4 个最相关的文档 URL。优先：
+- 实现问题的具体操作指南
+- 理解问题的核心概念页面
+- 端到端示例教程
+- API 详情的参考文档
+
+### 3. 获取选定的文档
+
+使用 fetch_url 工具读取选定的文档 URL。
+
+### 4. 提供准确指导
+
+阅读文档后，完成用户的请求。
+</code></pre>
+
+<p>更多示例技能，请参见 <a href="https://github.com/langchain-ai/deepagents/tree/main/libs/cli/examples/skills">Deep Agents 示例技能</a>。</p>
+<blockquote>
+<p><strong>重要</strong></p>
+<p>请参考完整的 <a href="https://agentskills.io/specification">Agent Skills 规范</a> 获取编写技能文件时的约束和最佳实践。特别是：</p>
+<ul>
+<li><code>description</code> 字段如果超过 1024 个字符会被截断。</li>
+<li>在 Deep Agents 中，<code>SKILL.md</code> 文件必须小于 10 MB。超过此限制的文件在技能加载时会被跳过。</li>
+</ul>
+</blockquote>
+<h3 id="_4">完整示例</h3>
+<p>以下示例展示了使用所有可用 frontmatter 字段的 <code>SKILL.md</code> 文件：</p>
+<pre class="codehilite"><code class="language-md">---
+name: langgraph-docs
+description: 使用此技能获取 LangGraph 相关请求，以获取相关文档并提供准确、最新的指导。
+license: MIT
+compatibility: 需要互联网访问以获取文档 URL
+metadata:
+  author: langchain
+  version: &quot;1.0&quot;
+allowed-tools: fetch_url
+---
+
+# langgraph-docs
+
+## 概述
+
+此技能说明如何访问 LangGraph Python 文档，以帮助回答问题并指导实现。
+
+## 指令
+
+### 1. 获取文档索引
+
+使用 fetch_url 工具读取以下 URL：
+https://docs.langchain.com/llms.txt
+
+这提供了所有可用文档的结构化列表及描述。
+
+### 2. 选择相关文档
+
+根据问题，从索引中识别 2-4 个最相关的文档 URL。优先：
+- 实现问题的具体操作指南
+- 理解问题的核心概念页面
+- 端到端示例教程
+- API 详情的参考文档
+
+### 3. 获取选定的文档
+
+使用 fetch_url 工具读取选定的文档 URL。
+
+### 4. 提供准确指导
+
+阅读文档后，完成用户的请求。
+</code></pre>
+
+<h2 id="_5">用法</h2>
+<p>创建 deep agent 时传入技能目录：</p>
+<pre class="codehilite"><code class="language-python">from urllib.request import urlopen
+from deepagents import create_deep_agent
+from deepagents.backends.utils import create_file_data
+from langgraph.checkpoint.memory import MemorySaver
+
+checkpointer = MemorySaver()
+
+skill_url = &quot;https://raw.githubusercontent.com/langchain-ai/deepagents/refs/heads/main/libs/cli/examples/skills/langgraph-docs/SKILL.md&quot;
+with urlopen(skill_url) as response:
+    skill_content = response.read().decode('utf-8')
+
+skills_files = {
+    &quot;/skills/langgraph-docs/SKILL.md&quot;: create_file_data(skill_content)
+}
+
+agent = create_deep_agent(
+    model=&quot;google_genai:gemini-3.1-pro-preview&quot;,
+    skills=[&quot;/skills/&quot;],
+    checkpointer=checkpointer,
+)
+
+result = agent.invoke(
+    {
+        &quot;messages&quot;: [
+            {
+                &quot;role&quot;: &quot;user&quot;,
+                &quot;content&quot;: &quot;What is langgraph?&quot;,
+            }
+        ],
+        # 为默认 StateBackend 的内存文件系统播种（虚拟路径必须以 &quot;/&quot; 开头）。
+        &quot;files&quot;: skills_files
+    },
+    config={&quot;configurable&quot;: {&quot;thread_id&quot;: &quot;12345&quot;}},
+)
+</code></pre>
+
+<p>使用 StoreBackend：</p>
+<pre class="codehilite"><code class="language-python">from urllib.request import urlopen
+from deepagents import create_deep_agent
+from deepagents.backends import StoreBackend
+from deepagents.backends.utils import create_file_data
+from langgraph.store.memory import InMemoryStore
+
+store = InMemoryStore()
+
+skill_url = &quot;https://raw.githubusercontent.com/langchain-ai/deepagents/refs/heads/main/libs/cli/examples/skills/langgraph-docs/SKILL.md&quot;
+with urlopen(skill_url) as response:
+    skill_content = response.read().decode('utf-8')
+
+store.put(
+    namespace=(&quot;filesystem&quot;,),
+    key=&quot;/skills/langgraph-docs/SKILL.md&quot;,
+    value=create_file_data(skill_content)
+)
+
+agent = create_deep_agent(
+    model=&quot;google_genai:gemini-3.1-pro-preview&quot;,
+    backend=StoreBackend(),
+    store=store,
+    skills=[&quot;/skills/&quot;]
+)
+
+result = agent.invoke(
+    {
+        &quot;messages&quot;: [
+            {
+                &quot;role&quot;: &quot;user&quot;,
+                &quot;content&quot;: &quot;What is langgraph?&quot;,
+            }
+        ]
+    },
+    config={&quot;configurable&quot;: {&quot;thread_id&quot;: &quot;12345&quot;}},
+)
+</code></pre>
+
+<p>使用 FilesystemBackend：</p>
+<pre class="codehilite"><code class="language-python">from deepagents import create_deep_agent
+from langgraph.checkpoint.memory import MemorySaver
+from deepagents.backends.filesystem import FilesystemBackend
+
+checkpointer = MemorySaver()
+
+agent = create_deep_agent(
+    model=&quot;google_genai:gemini-3.1-pro-preview&quot;,
+    backend=FilesystemBackend(root_dir=&quot;/Users/user/{project}&quot;),
+    skills=[&quot;/Users/user/{project}/skills/&quot;],
+    interrupt_on={
+        &quot;write_file&quot;: True,
+        &quot;read_file&quot;: False,
+        &quot;edit_file&quot;: True
+    },
+    checkpointer=checkpointer,
+)
+
+result = agent.invoke(
+    {
+        &quot;messages&quot;: [
+            {
+                &quot;role&quot;: &quot;user&quot;,
+                &quot;content&quot;: &quot;What is langgraph?&quot;,
+            }
+        ]
+    },
+    config={&quot;configurable&quot;: {&quot;thread_id&quot;: &quot;12345&quot;}},
+)
+</code></pre>
+
+<blockquote>
+<p><code>skills</code> 参数（类型 <code>list[str]</code>，可选）：技能源路径列表。路径必须使用正斜杠，且相对于后端的根目录。</p>
+<ul>
+<li>如果省略，不加载任何技能。</li>
+<li>使用 <code>StateBackend</code>（默认）时，通过 <code>invoke(files={...})</code> 提供技能文件。使用 <code>deepagents.backends.utils</code> 中的 <code>create_file_data()</code> 格式化文件内容；不支持原始字符串。</li>
+<li>使用 <code>FilesystemBackend</code> 时，技能从磁盘相对于后端的 <code>root_dir</code> 加载。</li>
+</ul>
+<p>后面的源覆盖前面的源，同名技能以后者为准。</p>
+<p>SDK 仅加载你在 <code>skills</code> 中传入的源。它不会自动扫描 CLI 目录如 <code>~/.deepagents/...</code> 或 <code>~/.agents/...</code>。</p>
+<p>关于 CLI 存储约定，请参见 <a href="/oss/python/deepagents/data-locations">应用数据</a>。</p>
+</blockquote>
+<h2 id="_6">源优先级</h2>
+<p>当多个技能源包含同名的技能时，<code>skills</code> 数组中后面列出的源中的技能优先（后者胜出）。这让你可以从不同来源分层加载技能。</p>
+<pre class="codehilite"><code class="language-python"># 如果两个源都包含名为 &quot;web-search&quot; 的技能，
+# &quot;/skills/project/&quot; 中的技能胜出（最后加载）。
+agent = create_deep_agent(
+    model=&quot;google_genai:gemini-3.1-pro-preview&quot;,
+    skills=[&quot;/skills/user/&quot;, &quot;/skills/project/&quot;],
+    ...
+)
+</code></pre>
+
+<h2 id="_7">子智能体的技能</h2>
+<p>当你使用 <a href="/oss/python/deepagents/subagents">subagents（子智能体）</a> 时，你可以配置每种类型可以访问哪些技能：</p>
+<ul>
+<li><strong>通用子智能体</strong>：当你向 <code>create_deep_agent</code> 传递 <code>skills</code> 时，自动继承主 agent 的技能。无需额外配置。</li>
+<li><strong>自定义子智能体</strong>：不继承主 agent 的技能。在每个子智能体定义中添加 <code>skills</code> 参数，包含该子智能体的技能源路径。</li>
+</ul>
+<p>技能状态完全隔离：主 agent 的技能对子智能体不可见，子智能体的技能对主 agent 不可见。</p>
+<pre class="codehilite"><code class="language-python">from deepagents import create_deep_agent
+
+research_subagent = {
+    &quot;name&quot;: &quot;researcher&quot;,
+    &quot;description&quot;: &quot;具有专门技能的研究助手&quot;,
+    &quot;system_prompt&quot;: &quot;你是一个研究员。&quot;,
+    &quot;tools&quot;: [web_search],
+    &quot;skills&quot;: [&quot;/skills/research/&quot;, &quot;/skills/web-search/&quot;],  # 子智能体专用技能
+}
+
+agent = create_deep_agent(
+    model=&quot;google_genai:gemini-3.1-pro-preview&quot;,
+    skills=[&quot;/skills/main/&quot;],  # 主 agent 和通用子智能体获得这些
+    subagents=[research_subagent],  # 研究者只获得自己的技能
+)
+</code></pre>
+
+<p>有关子智能体配置和技能继承的更多信息，请参见 <a href="/oss/python/deepagents/subagents">Subagents（子智能体）</a>。</p>
+<h2 id="agent">Agent 看到什么</h2>
+<p>配置技能后，"Skills System（技能系统）"部分会注入到 agent 的系统提示词中。Agent 使用此信息遵循三步流程：</p>
+<ol>
+<li><strong>匹配（Match）</strong>——当用户提示到达时，agent 检查是否有任何技能的描述与任务匹配。</li>
+<li><strong>读取（Read）</strong>——如果技能适用，agent 使用其技能列表中显示的路径读取完整的 <code>SKILL.md</code> 文件。</li>
+<li><strong>执行（Execute）</strong>——agent 遵循技能指令，并根据需要访问任何支持文件（脚本、模板、参考文档）。</li>
+</ol>
+<blockquote>
+<p>在 <code>SKILL.md</code> frontmatter 中编写清晰、具体的描述。Agent 仅基于描述决定是否使用技能——详细的描述带来更好的技能匹配。</p>
+</blockquote>
+<h2 id="_8">在沙箱中执行技能脚本</h2>
+<p>技能可以在 <code>SKILL.md</code> 文件旁边包含脚本，例如执行搜索或数据转换的 Python 文件。Agent 可以从任何后端<strong>读取</strong>这些脚本，但要<strong>执行</strong>它们，agent 需要访问 shell——只有 <a href="/oss/python/deepagents/sandboxes">沙箱后端</a> 提供。</p>
+<p>当你使用 <a href="https://reference.langchain.com/python/deepagents/backends/composite/CompositeBackend">CompositeBackend</a> 将技能路由到 <a href="https://reference.langchain.com/python/deepagents/backends/store/StoreBackend">StoreBackend</a> 进行持久化，同时使用沙箱作为默认后端时，技能文件存在于存储中，而非代码运行的沙箱中。为了让沙箱能够使用脚本，你必须使用 <a href="/oss/python/langchain/middleware/custom">自定义中间件</a> 在 agent 启动之前将技能脚本上传到沙箱中：</p>
+<pre class="codehilite"><code class="language-python">import asyncio
+from pathlib import Path
+from typing import Any
+
+from daytona import Daytona
+from deepagents import create_deep_agent
+from deepagents.backends import CompositeBackend, StoreBackend
+from deepagents.backends.utils import create_file_data
+from langchain.agents.middleware import AgentMiddleware, AgentState
+from langchain_daytona import DaytonaSandbox
+from langgraph.runtime import Runtime
+from langgraph.store.memory import InMemoryStore
+
+# 每个用户的相同技能包：一个共享存储命名空间。
+SKILLS_SHARED_NAMESPACE = (&quot;skills&quot;, &quot;builtin&quot;)
+
+
+class SkillSandboxSyncMiddleware(AgentMiddleware[AgentState, Any, Any]):
+    &quot;&quot;&quot;在每次 agent 运行之前，将共享技能文件从存储复制到沙箱中。&quot;&quot;&quot;
+
+    def __init__(self, backend: CompositeBackend) -&gt; None:
+        super().__init__()
+        self.backend = backend
+
+    async def abefore_agent(self, state: AgentState, runtime: Runtime[Any]) -&gt; None:
+        store = runtime.store
+
+        files: list[tuple[str, bytes]] = []
+        for item in await store.asearch(SKILLS_SHARED_NAMESPACE):
+            key = str(item.key)
+            if &quot;..&quot; in key or any(c in key for c in (&quot;*&quot;, &quot;?&quot;)):
+                msg = f&quot;Invalid key: {key}&quot;
+                raise ValueError(msg)
+            normalized = key if key.startswith(&quot;/&quot;) else f&quot;/{key}&quot;
+            # CompositeBackend 将路径路由并批量上传到正确的后端。
+            files.append((f&quot;/skills{normalized}&quot;, item.value[&quot;content&quot;].encode()))
+
+        if files:
+            await self.backend.aupload_files(files)
+
+
+async def seed_skill_store(store: InMemoryStore) -&gt; None:
+    &quot;&quot;&quot;将规范技能文件从磁盘加载到共享存储命名空间（部署时运行一次）。&quot;&quot;&quot;
+    skills_dir = Path(__file__).resolve().parent / &quot;skills&quot;
+    for file_path in sorted(p for p in skills_dir.rglob(&quot;*&quot;) if p.is_file()):
+        rel = file_path.relative_to(skills_dir).as_posix()
+        key = f&quot;/{rel}&quot;
+        await store.aput(
+            SKILLS_SHARED_NAMESPACE,
+            key,
+            create_file_data(file_path.read_text(encoding=&quot;utf-8&quot;)),
+        )
+
+
+async def main() -&gt; None:
+    store = InMemoryStore()
+    await seed_skill_store(store)
+
+    daytona = Daytona()
+    sandbox = daytona.create()
+    sandbox_backend = DaytonaSandbox(sandbox=sandbox)
+
+    backend = CompositeBackend(
+        default=sandbox_backend,
+        routes={
+            &quot;/skills/&quot;: StoreBackend(
+                store=store,
+                namespace=lambda _rt: SKILLS_SHARED_NAMESPACE,
+            ),
+        },
+    )
+
+    try:
+        agent = create_deep_agent(
+            model=&quot;google_genai:gemini-3.1-pro-preview&quot;,
+            backend=backend,
+            skills=[&quot;/skills/&quot;],
+            store=store,
+            middleware=[SkillSandboxSyncMiddleware(backend)],
+        )
+    finally:
+        sandbox.stop()
+
+
+if __name__ == &quot;__main__&quot;:
+    asyncio.run(main())
+</code></pre>
+
+<p>中间件的 <code>before_agent</code> 钩子在每次 agent 调用之前运行，从共享命名空间读取技能文件并上传到沙箱文件系统。同步完成后，agent 可以像沙箱中的任何其他文件一样使用 <code>execute</code> 工具执行脚本。</p>
+<h2 id="_9">技能与内存</h2>
+<p>技能（Skills）和 <a href="/oss/python/deepagents/customization#memory">内存</a>（<code>AGENTS.md</code> 文件）服务于不同目的：</p>
+<table>
+<thead>
+<tr>
+<th></th>
+<th>技能（Skills）</th>
+<th>内存（Memory）</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>目的</strong></td>
+<td>按需能力，通过渐进式披露发现</td>
+<td>启动时始终加载的持久化上下文</td>
+</tr>
+<tr>
+<td><strong>加载</strong></td>
+<td>仅在 agent 确定相关性时读取</td>
+<td>始终注入系统提示词</td>
+</tr>
+<tr>
+<td><strong>格式</strong></td>
+<td>命名目录中的 <code>SKILL.md</code></td>
+<td><code>AGENTS.md</code> 文件</td>
+</tr>
+<tr>
+<td><strong>分层</strong></td>
+<td>用户 → 项目（后者胜出）</td>
+<td>用户 → 项目（合并）</td>
+</tr>
+<tr>
+<td><strong>使用场景</strong></td>
+<td>指令是任务特定且可能较大的</td>
+<td>上下文始终相关（项目规范、偏好）</td>
+</tr>
+</tbody>
+</table>
+<h2 id="_10">何时使用技能和工具</h2>
+<p>以下是一些使用工具和技能的一般指南：</p>
+<ul>
+<li>当有大量上下文时，使用技能以减少系统提示词中的 token 数量。</li>
+<li>使用技能将能力打包成更大的操作，并提供超出单个工具描述的额外上下文。</li>
+<li>如果 agent 无法访问文件系统，则使用工具。</li>
+</ul>
+</body>
+</html>

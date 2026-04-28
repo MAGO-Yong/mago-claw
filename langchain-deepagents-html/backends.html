@@ -1,0 +1,613 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Backends（后端）</title>
+  
+<style>
+  :root {
+    --bg: #ffffff;
+    --text: #1a1a2e;
+    --code-bg: #1e1e2e;
+    --code-text: #cdd6f4;
+    --link: #2563eb;
+    --border: #e2e8f0;
+    --thead-bg: #f8fafc;
+    --stripe-bg: #f8fafc;
+    --h1-color: #0f172a;
+    --h2-color: #1e293b;
+    --blockquote-bg: #f0f9ff;
+    --blockquote-border: #3b82f6;
+    --note-bg: #fefce8;
+    --note-border: #eab308;
+    --warning-bg: #fef2f2;
+    --warning-border: #ef4444;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #0f172a;
+      --text: #e2e8f0;
+      --code-bg: #1e1e2e;
+      --code-text: #cdd6f4;
+      --link: #60a5fa;
+      --border: #334155;
+      --thead-bg: #1e293b;
+      --stripe-bg: #1e293b;
+      --h1-color: #f8fafc;
+      --h2-color: #e2e8f0;
+      --blockquote-bg: #1e293b;
+      --blockquote-border: #3b82f6;
+      --note-bg: #422006;
+      --note-border: #eab308;
+      --warning-bg: #450a0a;
+      --warning-border: #ef4444;
+    }
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    line-height: 1.7;
+    color: var(--text);
+    background: var(--bg);
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 40px 20px 80px;
+  }
+  h1 { font-size: 2.2em; font-weight: 700; color: var(--h1-color); margin: 0 0 8px; padding-top: 20px; }
+  h2 { font-size: 1.6em; font-weight: 600; color: var(--h2-color); margin: 40px 0 16px; padding-bottom: 8px; border-bottom: 1px solid var(--border); }
+  h3 { font-size: 1.3em; font-weight: 600; color: var(--h2-color); margin: 30px 0 12px; }
+  h4 { font-size: 1.1em; font-weight: 600; margin: 24px 0 8px; }
+  p { margin: 12px 0; }
+  a { color: var(--link); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+  ul, ol { margin: 12px 0; padding-left: 24px; }
+  li { margin: 4px 0; }
+  li > ul, li > ol { margin: 4px 0; }
+  code {
+    font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, Courier, monospace;
+    background: var(--code-bg);
+    color: var(--code-text);
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-size: 0.9em;
+  }
+  pre {
+    background: var(--code-bg);
+    color: var(--code-text);
+    padding: 16px 20px;
+    border-radius: 8px;
+    overflow-x: auto;
+    margin: 16px 0;
+    font-size: 0.88em;
+    line-height: 1.5;
+  }
+  pre code {
+    background: none;
+    padding: 0;
+    color: inherit;
+    font-size: inherit;
+  }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 16px 0;
+    font-size: 0.95em;
+  }
+  th {
+    background: var(--thead-bg);
+    font-weight: 600;
+    text-align: left;
+    padding: 10px 14px;
+    border: 1px solid var(--border);
+  }
+  td {
+    padding: 10px 14px;
+    border: 1px solid var(--border);
+    vertical-align: top;
+  }
+  tr:nth-child(even) { background: var(--stripe-bg); }
+  blockquote {
+    border-left: 4px solid var(--blockquote-border);
+    background: var(--blockquote-bg);
+    padding: 12px 16px;
+    margin: 16px 0;
+    border-radius: 0 8px 8px 0;
+  }
+  blockquote blockquote { margin: 8px 0; }
+  hr { border: none; border-top: 2px solid var(--border); margin: 32px 0; }
+  .original-link {
+    font-size: 0.9em;
+    color: #64748b;
+    margin-bottom: 24px;
+  }
+  /* Syntax highlighting approximation */
+  pre code .comment { color: #6a9955; }
+  pre code .keyword { color: #c678dd; }
+  pre code .string { color: #98c379; }
+  pre code .function { color: #61afef; }
+  pre code .number { color: #d19a66; }
+  pre code .class-name { color: #e5c07b; }
+</style>
+
+</head>
+<body>
+<h1 id="backends">Backends（后端）</h1>
+<blockquote>
+<p>原文：<a href="https://docs.langchain.com/oss/python/deepagents/backends">https://docs.langchain.com/oss/python/deepagents/backends</a></p>
+<p>选择和配置 Deep Agents 的文件系统后端。你可以指定不同路由到不同后端、实现虚拟文件系统以及强制执行策略。</p>
+</blockquote>
+<p>Deep Agents 通过 <code>ls</code>、<code>read_file</code>、<code>write_file</code>、<code>edit_file</code>、<code>glob</code> 和 <code>grep</code> 等工具向 agent（智能体）暴露文件系统接口。这些工具通过可插拔的后端运行。<code>read_file</code> 工具在所有后端上原生支持图像文件（<code>.png</code>、<code>.jpg</code>、<code>.jpeg</code>、<code>.gif</code>、<code>.webp</code>），将其作为多模态内容块返回。</p>
+<p>沙箱和 <a href="https://reference.langchain.com/python/deepagents/backends/local_shell/LocalShellBackend"><code>LocalShellBackend</code></a> 还提供 <code>execute</code> 工具。</p>
+<p>本页解释如何：<br />
+- <a href="#指定后端">选择后端</a><br />
+- <a href="#路由到不同后端">将不同路径路由到不同后端</a><br />
+- <a href="#使用虚拟文件系统">实现你自己的虚拟文件系统</a>（如 S3 或 Postgres）<br />
+- <a href="#权限">设置文件系统访问权限</a><br />
+- <a href="#协议参考">遵守后端协议</a></p>
+<h2 id="_1">快速开始</h2>
+<p>以下是几个可直接与 deep agent（深度智能体）配合使用的预构建文件系统后端：</p>
+<table>
+<thead>
+<tr>
+<th>内置后端</th>
+<th>描述</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><a href="#statebackend-临时">默认（StateBackend）</a></td>
+<td><code>agent = create_deep_agent(model="google_genai:gemini-3.1-pro-preview")</code>临时存储在状态中。agent 的默认文件系统后端存储在 <code>langgraph</code> 状态中。注意：此文件系统仅对<strong>单个线程</strong>持久。</td>
+</tr>
+<tr>
+<td><a href="#filesystembackend-本地磁盘">本地文件系统持久化</a></td>
+<td><code>agent = create_deep_agent(model="google_genai:gemini-3.1-pro-preview", backend=FilesystemBackend(root_dir="/Users/nh/Desktop/"))</code>使 deep agent 能够访问本地机器的文件系统。你可以指定 agent 可访问的根目录。注意：提供的 <code>root_dir</code> 必须是绝对路径。</td>
+</tr>
+<tr>
+<td><a href="#storebackend-langgraph-存储">持久化存储（LangGraph store）</a></td>
+<td><code>agent = create_deep_agent(model="google_genai:gemini-3.1-pro-preview", backend=StoreBackend())</code>使 agent 能够访问<strong>跨线程持久</strong>的长期存储。适用于存储跨多次执行适用的长期记忆或指令。</td>
+</tr>
+<tr>
+<td><a href="/oss/python/deepagents/sandboxes">沙箱</a></td>
+<td><code>agent = create_deep_agent(model="google_genai:gemini-3.1-pro-preview", backend=sandbox)</code>在隔离环境中执行代码。沙箱提供文件系统工具加上用于运行 shell 命令的 <code>execute</code> 工具。可选择 Modal、Daytona、Deno 或本地 VFS。</td>
+</tr>
+<tr>
+<td><a href="#localshellbackend-本地-shell">本地 Shell</a></td>
+<td><code>agent = create_deep_agent(model="google_genai:gemini-3.1-pro-preview", backend=LocalShellBackend(root_dir=".", env={"PATH": "/usr/bin:/bin"}))</code>直接在主机上执行文件系统和 shell。无隔离——仅在受控开发环境中使用。参见下方<a href="#localshellbackend-本地-shell">安全注意事项</a>。</td>
+</tr>
+<tr>
+<td><a href="#compositebackend-路由器">复合后端（Composite）</a></td>
+<td>默认临时，<code>/memories/</code> 持久。Composite 后端最为灵活。你可以指定文件系统中的不同路径指向不同的后端。参见下方复合路由获取可直接粘贴的示例。</td>
+</tr>
+</tbody>
+</table>
+<h2 id="_2">内置后端</h2>
+<h3 id="statebackend">StateBackend（临时）</h3>
+<pre class="codehilite"><code class="language-python"># 默认情况下提供 StateBackend
+agent = create_deep_agent(model=&quot;google_genai:gemini-3.1-pro-preview&quot;)
+
+# 底层实现如下
+from deepagents.backends import StateBackend
+
+agent = create_deep_agent(
+    model=&quot;google_genai:gemini-3.1-pro-preview&quot;,
+    backend=StateBackend()
+)
+</code></pre>
+
+<p><strong>工作原理：</strong><br />
+- 通过 <a href="https://reference.langchain.com/python/deepagents/backends/state/StateBackend"><code>StateBackend</code></a> 将文件存储在当前线程的 LangGraph agent 状态中。<br />
+- 通过检查点在同一线程的多个 agent 回合间持久。</p>
+<p><strong>适用场景：</strong><br />
+- 供 agent 写入中间结果的暂存区。<br />
+- 自动淘汰大型工具输出，agent 可逐段读回。</p>
+<p>注意：此后端在 supervisor agent（主管智能体）和 subagents（子智能体）之间共享，子智能体写入的任何文件在该子智能体执行完成后仍将保留在 LangGraph agent 状态中。这些文件将继续对 supervisor agent 和其他子智能体可用。</p>
+<h3 id="filesystembackend">FilesystemBackend（本地磁盘）</h3>
+<p><a href="https://reference.langchain.com/python/deepagents/backends/filesystem/FilesystemBackend"><code>FilesystemBackend</code></a> 在可配置的根目录下读写真实文件。</p>
+<blockquote>
+<p>⚠️ 此后端赋予 agent 直接的文件系统读写访问权限。请谨慎使用，且仅在适当的环境中使用。</p>
+<p><strong>适用场景：</strong><br />
+- 本地开发 CLI（编码助手、开发工具）<br />
+- CI/CD 流水线（参见下方安全注意事项）</p>
+<p><strong>不适用场景：</strong><br />
+- Web 服务器或 HTTP API——请改用 <code>StateBackend</code>、<code>StoreBackend</code> 或 <a href="/oss/python/deepagents/sandboxes">沙箱后端</a></p>
+<p><strong>安全风险：</strong><br />
+- Agent 可读取任何可访问的文件，包括密钥（API 密钥、凭据、<code>.env</code> 文件）<br />
+- 结合网络工具时，密钥可能通过 SSRF 攻击被外泄<br />
+- 文件修改是永久且不可逆的</p>
+<p><strong>推荐防护措施：</strong><br />
+1. 启用 <a href="/oss/python/deepagents/human-in-the-loop">Human-in-the-Loop（人在回路中）中间件</a> 审查敏感操作。<br />
+2. 从可访问的文件系统路径中排除密钥（尤其在 CI/CD 中）。<br />
+3. 对需要文件系统交互的生产环境使用 <a href="/oss/python/deepagents/sandboxes">沙箱后端</a>。<br />
+4. <strong>始终</strong>使用 <code>virtual_mode=True</code> 配合 <code>root_dir</code> 以启用基于路径的访问限制（阻止 <code>..</code>、<code>~</code> 和根目录外的绝对路径）。注意默认值（<code>virtual_mode=False</code>）即使设置了 <code>root_dir</code> 也不提供安全保障。</p>
+</blockquote>
+<pre class="codehilite"><code class="language-python">from deepagents.backends import FilesystemBackend
+
+agent = create_deep_agent(
+    model=&quot;google_genai:gemini-3.1-pro-preview&quot;,
+    backend=FilesystemBackend(root_dir=&quot;.&quot;, virtual_mode=True)
+)
+</code></pre>
+
+<p><strong>工作原理：</strong><br />
+- 在可配置的 <code>root_dir</code> 下读写真实文件。<br />
+- 可选择设置 <code>virtual_mode=True</code> 以在 <code>root_dir</code> 下沙箱化和规范化路径。<br />
+- 使用安全路径解析，尽可能防止不安全的符号链接遍历，可使用 ripgrep 实现快速 <code>grep</code>。</p>
+<p><strong>适用场景：</strong><br />
+- 本地机器上的项目<br />
+- CI 沙箱<br />
+- 挂载的持久卷</p>
+<h3 id="localshellbackend-shell">LocalShellBackend（本地 Shell）</h3>
+<blockquote>
+<p>⚠️ 此后端赋予 agent 直接的文件系统读写访问权限<strong>以及</strong>在主机上不受限制的 shell 执行权限。请极其谨慎地使用，且仅在适当的环境中使用。</p>
+<p><strong>适用场景：</strong><br />
+- 本地开发 CLI（编码助手、开发工具）<br />
+- 你信任 agent 代码的个人开发环境<br />
+- 具有适当密钥管理的 CI/CD 流水线</p>
+<p><strong>不适用场景：</strong><br />
+- 生产环境（如 Web 服务器、API、多租户系统）<br />
+- 处理不可信用户输入或执行不可信代码</p>
+<p><strong>安全风险：</strong><br />
+- Agent 可以<strong>任意 shell 命令</strong>以你的用户权限执行<br />
+- Agent 可读取任何可访问文件，包括密钥<br />
+- 密钥可能暴露<br />
+- 文件修改和命令执行是<strong>永久且不可逆</strong>的<br />
+- 命令直接在主机系统上运行<br />
+- 命令可能消耗无限制的 CPU、内存、磁盘</p>
+<p><strong>推荐防护措施：</strong><br />
+1. 启用 <a href="/oss/python/deepagents/human-in-the-loop">Human-in-the-Loop（人在回路中）中间件</a> 在执行前审查和批准操作。<strong>强烈建议</strong>。<br />
+2. 仅在专用开发环境中运行。切勿在共享或生产系统上使用。<br />
+3. 对需要 shell 执行的生产环境使用 <a href="/oss/python/deepagents/sandboxes">沙箱后端</a>。</p>
+<p><strong>注意：</strong> 启用 shell 访问后，<code>virtual_mode=True</code> 不提供安全保障，因为命令可访问系统上的任何路径。</p>
+</blockquote>
+<pre class="codehilite"><code class="language-python">from deepagents.backends import LocalShellBackend
+
+agent = create_deep_agent(
+    model=&quot;google_genai:gemini-3.1-pro-preview&quot;,
+    backend=LocalShellBackend(root_dir=&quot;.&quot;, env={&quot;PATH&quot;: &quot;/usr/bin:/bin&quot;})
+)
+</code></pre>
+
+<p><strong>工作原理：</strong><br />
+- 扩展 <code>FilesystemBackend</code>，添加 <code>execute</code> 工具用于在主机上运行 shell 命令。<br />
+- 使用 <code>subprocess.run(shell=True)</code> 直接在机器上运行命令，无沙箱。<br />
+- 支持 <code>timeout</code>（默认 120 秒）、<code>max_output_bytes</code>（默认 100,000）、<code>env</code> 和 <code>inherit_env</code>。<br />
+- Shell 命令使用 <code>root_dir</code> 作为工作目录，但可访问系统上的任何路径。</p>
+<h3 id="storebackendlanggraph">StoreBackend（LangGraph 存储）</h3>
+<pre class="codehilite"><code class="language-python">from langgraph.store.memory import InMemoryStore
+from deepagents.backends import StoreBackend
+
+agent = create_deep_agent(
+    model=&quot;google_genai:gemini-3.1-pro-preview&quot;,
+    backend=StoreBackend(
+        namespace=lambda ctx: (ctx.runtime.context.user_id,),
+    ),
+    store=InMemoryStore()  # 适用于本地开发；部署到 LangSmith 时省略
+)
+</code></pre>
+
+<blockquote>
+<p>部署到 <a href="/langsmith/deployment">LangSmith Deployment</a> 时，省略 <code>store</code> 参数。平台会自动为你的 agent 配置存储。</p>
+<p><code>namespace</code> 参数控制数据隔离。对于多用户部署，始终设置 <a href="/oss/python/deepagents/backends#namespace-factories">namespace 工厂</a> 以按用户或租户隔离数据。</p>
+</blockquote>
+<p><strong>工作原理：</strong><br />
+- <a href="https://reference.langchain.com/python/deepagents/backends/store/StoreBackend"><code>StoreBackend</code></a> 将文件存储在运行时提供的 LangGraph <a href="https://reference.langchain.com/python/langchain-core/stores/BaseStore"><code>BaseStore</code></a> 中，实现跨线程持久存储。</p>
+<p><strong>适用场景：</strong><br />
+- 已配置 LangGraph 存储时（例如 Redis、Postgres 或 <a href="https://reference.langchain.com/python/langchain-core/stores/BaseStore"><code>BaseStore</code></a> 背后的云实现）。<br />
+- 通过 <a href="/langsmith/deployment">LangSmith Deployment</a> 部署 agent 时（自动为 agent 配置存储）。</p>
+<h4 id="namespace">Namespace 工厂</h4>
+<p>Namespace 工厂控制 <code>StoreBackend</code> 在何处读写数据。它接收 LangGraph <a href="https://reference.langchain.com/python/langgraph/runtime/Runtime"><code>Runtime</code></a> 并返回用作存储命名空间的字符串元组。使用 namespace 工厂来隔离用户、租户或 assistant 之间的数据。</p>
+<p>构建 <code>StoreBackend</code> 时将 namespace 工厂传递给 <code>namespace</code> 参数：</p>
+<pre class="codehilite"><code class="language-python">NamespaceFactory = Callable[[Runtime], tuple[str, ...]]
+</code></pre>
+
+<p><code>Runtime</code> 提供：<br />
+- <code>rt.context</code> — 通过 LangGraph <a href="https://langchain-ai.github.io/langgraph/concepts/runtime/">context schema</a> 传递的用户提供上下文（例如 <code>user_id</code>）<br />
+- <code>rt.server_info</code> — 在 LangGraph Server 上运行时的服务器特定元数据（assistant ID、graph ID、认证用户）<br />
+- <code>rt.execution_info</code> — 执行身份信息（线程 ID、运行 ID、检查点 ID）</p>
+<blockquote>
+<p><code>Runtime</code> 参数在 <code>deepagents&gt;=0.5.2</code> 中可用。早期 0.5.x 版本传递的是 <code>BackendContext</code>——参见下方<a href="#从-backendcontext-迁移">从 <code>BackendContext</code> 迁移</a>。<code>rt.server_info</code> 和 <code>rt.execution_info</code> 需要 <code>deepagents&gt;=0.5.0</code>。</p>
+</blockquote>
+<p><strong>常见 namespace 模式：</strong></p>
+<pre class="codehilite"><code class="language-python">from deepagents.backends import StoreBackend
+
+# 每用户：每个用户获得独立的存储
+backend = StoreBackend(
+    namespace=lambda rt: (rt.server_info.user.identity,),
+)
+
+# 每 assistant：同一 assistant 的所有用户共享存储
+backend = StoreBackend(
+    namespace=lambda rt: (
+        rt.server_info.assistant_id,
+    ),
+)
+
+# 每线程：存储限定在单个对话内
+backend = StoreBackend(
+    namespace=lambda rt: (
+        rt.execution_info.thread_id,
+    ),
+)
+</code></pre>
+
+<p>你可以组合多个组件创建更细粒度的范围——例如 <code>(user_id, thread_id)</code> 实现每用户每对话隔离，或追加后缀如 <code>"filesystem"</code> 以在相同范围使用多个存储命名空间时消歧。</p>
+<p>Namespace 组件只能包含字母数字字符、连字符、下划线、点、<code>@</code>、<code>+</code>、冒号和波浪号。通配符（<code>*</code>、<code>?</code>）被拒绝以防止 glob 注入。</p>
+<blockquote>
+<p><code>namespace</code> 参数在 v0.5.0 中将变为<strong>必需</strong>。新代码请始终显式设置。</p>
+<p>未提供 namespace 工厂时，旧版默认使用 LangGraph 配置元数据中的 <code>assistant_id</code>。这意味着同一 <a href="/langsmith/assistants">assistant</a> 的所有用户共享相同存储。对于多用户<a href="/oss/python/deepagents/going-to-production">投入生产</a>，始终提供 namespace 工厂。</p>
+</blockquote>
+<h3 id="compositebackend">CompositeBackend（路由器）</h3>
+<pre class="codehilite"><code class="language-python">from deepagents import create_deep_agent
+from deepagents.backends import CompositeBackend, StateBackend, StoreBackend
+from langgraph.store.memory import InMemoryStore
+
+agent = create_deep_agent(
+    model=&quot;google_genai:gemini-3.1-pro-preview&quot;,
+    backend=CompositeBackend(
+        default=StateBackend(),
+        routes={
+            &quot;/memories/&quot;: StoreBackend(),
+        }
+    ),
+    store=InMemoryStore()  # Store 传递给 create_deep_agent，而非 backend
+)
+</code></pre>
+
+<p><strong>工作原理：</strong><br />
+- <a href="https://reference.langchain.com/python/deepagents/backends/composite/CompositeBackend"><code>CompositeBackend</code></a> 根据路径前缀将文件操作路由到不同后端。<br />
+- 在列表和搜索结果中保留原始路径前缀。</p>
+<p><strong>适用场景：</strong><br />
+- 当你希望 agent 同时拥有临时和跨线程存储时，<code>CompositeBackend</code> 允许你同时提供 <code>StateBackend</code> 和 <code>StoreBackend</code><br />
+- 当你有多个信息源希望作为单个文件系统提供给 agent 时<br />
+  - 例如：长期记忆存储在 <code>/memories/</code> 下的一个 Store 中，同时有一个自定义后端在 <code>/docs/</code> 下提供文档</p>
+<h2 id="_3">指定后端</h2>
+<ul>
+<li>将后端实例传递给 <code>create_deep_agent(model=..., backend=...)</code>。文件系统中间件将其用于所有工具。</li>
+<li>后端必须实现 <code>BackendProtocol</code>（例如 <code>StateBackend()</code>、<code>FilesystemBackend(root_dir=".")</code>、<code>StoreBackend()</code>）。</li>
+<li>如果省略，默认为 <code>StateBackend()</code>。</li>
+</ul>
+<h2 id="_4">路由到不同后端</h2>
+<p>将命名空间的不同部分路由到不同后端。常用于持久化 <code>/memories/*</code> 而保持其他所有内容为临时。</p>
+<pre class="codehilite"><code class="language-python">from deepagents import create_deep_agent
+from deepagents.backends import CompositeBackend, StateBackend, FilesystemBackend
+
+agent = create_deep_agent(
+    model=&quot;google_genai:gemini-3.1-pro-preview&quot;,
+    backend=CompositeBackend(
+        default=StateBackend(),
+        routes={
+            &quot;/memories/&quot;: FilesystemBackend(root_dir=&quot;/deepagents/myagent&quot;, virtual_mode=True),
+        },
+    )
+)
+</code></pre>
+
+<p>行为：<br />
+- <code>/workspace/plan.md</code> → <code>StateBackend</code>（临时）<br />
+- <code>/memories/agent.md</code> → <code>/deepagents/myagent</code> 下的 <code>FilesystemBackend</code><br />
+- <code>ls</code>、<code>glob</code>、<code>grep</code> 聚合结果并显示原始路径前缀。</p>
+<p>注意：<br />
+- 更长的前缀优先（例如路由 <code>"/memories/projects/"</code> 可覆盖 <code>"/memories/"</code>）。<br />
+- 对于 StoreBackend 路由，确保通过 <code>create_deep_agent(model=..., store=...)</code> 提供 store 或由平台配置。</p>
+<h2 id="_5">使用虚拟文件系统</h2>
+<p>构建自定义后端，将远程或数据库文件系统（如 S3 或 Postgres）投射到工具命名空间。</p>
+<p>设计指南：<br />
+- 路径是绝对的（<code>/x/y.txt</code>）。决定如何将它们映射到你的存储键/行。<br />
+- 高效实现 <code>ls</code> 和 <code>glob</code>（服务器端过滤，否则本地过滤）。<br />
+- 对于外部持久化（S3、Postgres 等），在 write/edit 结果中返回 <code>files_update=None</code>（Python）或省略 <code>filesUpdate</code>（JS）——只有内存状态后端需要返回文件更新字典。<br />
+- 使用 <code>ls</code> 和 <code>glob</code> 作为方法名。<br />
+- 返回带 <code>error</code> 字段的结构化结果类型（不要抛出异常）。</p>
+<h2 id="_6">权限</h2>
+<p>使用 <a href="/oss/python/deepagents/permissions">permissions（权限）</a> 以声明式控制 agent 可读写哪些文件和目录。权限应用于内置文件系统工具，在后端被调用之前评估。</p>
+<pre class="codehilite"><code class="language-python">from deepagents import create_deep_agent, FilesystemPermission
+
+agent = create_deep_agent(
+    model=&quot;google_genai:gemini-3.1-pro-preview&quot;,
+    backend=CompositeBackend(
+        default=StateBackend(),
+        routes={
+            &quot;/memories/&quot;: StoreBackend(
+                namespace=lambda rt: (rt.server_info.user.identity,),
+            ),
+            &quot;/policies/&quot;: StoreBackend(
+                namespace=lambda rt: (rt.context.org_id,),
+            ),
+        },
+    ),
+    permissions=[
+        FilesystemPermission(
+            operations=[&quot;write&quot;],
+            paths=[&quot;/policies/**&quot;],
+            mode=&quot;deny&quot;,
+        ),
+    ],
+)
+</code></pre>
+
+<p>有关完整选项集（包括规则排序、子智能体权限和复合后端交互），请参见<a href="/oss/python/deepagents/permissions">权限指南</a>。</p>
+<h2 id="_7">添加策略钩子</h2>
+<p>对于超出基于路径的允许/拒绝规则的自定义验证逻辑（速率限制、审计日志、内容检查），通过子类化或包装后端来强制执行企业规则。</p>
+<p>在选定前缀下阻止写入/编辑（子类化）：</p>
+<pre class="codehilite"><code class="language-python">from deepagents.backends.filesystem import FilesystemBackend
+from deepagents.backends.protocol import WriteResult, EditResult
+
+class GuardedBackend(FilesystemBackend):
+    def __init__(self, *, deny_prefixes: list[str], **kwargs):
+        super().__init__(**kwargs)
+        self.deny_prefixes = [p if p.endswith(&quot;/&quot;) else p + &quot;/&quot; for p in deny_prefixes]
+
+    def write(self, file_path: str, content: str) -&gt; WriteResult:
+        if any(file_path.startswith(p) for p in self.deny_prefixes):
+            return WriteResult(error=f&quot;Writes are not allowed under {file_path}&quot;)
+        return super().write(file_path, content)
+
+    def edit(self, file_path: str, old_string: str, new_string: str, replace_all: bool = False) -&gt; EditResult:
+        if any(file_path.startswith(p) for p in self.deny_prefixes):
+            return EditResult(error=f&quot;Edits are not allowed under {file_path}&quot;)
+        return super().edit(file_path, old_string, new_string, replace_all)
+</code></pre>
+
+<p>通用包装器（适用于任何后端）：</p>
+<pre class="codehilite"><code class="language-python">from deepagents.backends.protocol import (
+    BackendProtocol, WriteResult, EditResult, LsResult, ReadResult, GrepResult, GlobResult,
+)
+
+class PolicyWrapper(BackendProtocol):
+    def __init__(self, inner: BackendProtocol, deny_prefixes: list[str] | None = None):
+        self.inner = inner
+        self.deny_prefixes = [p if p.endswith(&quot;/&quot;) else p + &quot;/&quot; for p in (deny_prefixes or [])]
+
+    def _deny(self, path: str) -&gt; bool:
+        return any(path.startswith(p) for p in self.deny_prefixes)
+
+    def ls(self, path: str) -&gt; LsResult:
+        return self.inner.ls(path)
+
+    def read(self, file_path: str, offset: int = 0, limit: int = 2000) -&gt; ReadResult:
+        return self.inner.read(file_path, offset=offset, limit=limit)
+    def grep(self, pattern: str, path: str | None = None, glob: str | None = None) -&gt; GrepResult:
+        return self.inner.grep(pattern, path, glob)
+    def glob(self, pattern: str, path: str = &quot;/&quot;) -&gt; GlobResult:
+        return self.inner.glob(pattern, path)
+    def write(self, file_path: str, content: str) -&gt; WriteResult:
+        if self._deny(file_path):
+            return WriteResult(error=f&quot;Writes are not allowed under {file_path}&quot;)
+        return self.inner.write(file_path, content)
+    def edit(self, file_path: str, old_string: str, new_string: str, replace_all: bool = False) -&gt; EditResult:
+        if self._deny(file_path):
+            return EditResult(error=f&quot;Edits are not allowed under {file_path}&quot;)
+        return self.inner.edit(file_path, old_string, new_string, replace_all)
+</code></pre>
+
+<h2 id="_8">从后端工厂迁移</h2>
+<blockquote>
+<p>后端工厂模式自 <code>deepagents</code> 0.5.0 起<strong>已弃用</strong>。请直接传递预构造的后端实例而非工厂函数。</p>
+</blockquote>
+<p>以前，<code>StateBackend</code> 和 <code>StoreBackend</code> 等后端需要接收运行时对象的工厂函数，因为它们需要运行时上下文（状态、存储）来操作。后端现在通过 LangGraph 的 <code>get_config()</code>、<code>get_store()</code> 和 <code>get_runtime()</code> 助手在内部解析此上下文，因此你可以直接传递实例。</p>
+<h3 id="_9">变更内容</h3>
+<table>
+<thead>
+<tr>
+<th>之前（已弃用）</th>
+<th>之后</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>backend=lambda rt: StateBackend(rt)</code></td>
+<td><code>backend=StateBackend()</code></td>
+</tr>
+<tr>
+<td><code>backend=lambda rt: StoreBackend(rt)</code></td>
+<td><code>backend=StoreBackend()</code></td>
+</tr>
+<tr>
+<td><code>backend=lambda rt: CompositeBackend(default=StateBackend(rt), ...)</code></td>
+<td><code>backend=CompositeBackend(default=StateBackend(), ...)</code></td>
+</tr>
+</tbody>
+</table>
+<h3 id="api">已弃用的 API</h3>
+<table>
+<thead>
+<tr>
+<th>已弃用</th>
+<th>替代方案</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>在 <code>create_deep_agent</code> 中传递可调用对象给 <code>backend=</code></td>
+<td>直接传递后端实例</td>
+</tr>
+<tr>
+<td><code>StateBackend(runtime)</code> 的 <code>runtime</code> 构造函数参数</td>
+<td><code>StateBackend()</code>（无需参数）</td>
+</tr>
+<tr>
+<td><code>StoreBackend(runtime)</code> 的 <code>runtime</code> 构造函数参数</td>
+<td><code>StoreBackend()</code> 或 <code>StoreBackend(namespace=..., store=...)</code></td>
+</tr>
+<tr>
+<td><code>WriteResult</code> 和 <code>EditResult</code> 上的 <code>files_update</code> 字段</td>
+<td>状态写入现在由后端内部处理</td>
+</tr>
+<tr>
+<td>中间件 write/edit 工具中的 <code>Command</code> 包装</td>
+<td>工具返回纯字符串；无需 <code>Command(update=...)</code></td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p>工厂模式在运行时仍然有效，但会发出弃用警告。请在下一个大版本之前更新代码以使用直接实例。</p>
+</blockquote>
+<h3 id="_10">迁移示例</h3>
+<pre class="codehilite"><code class="language-python"># 之前（已弃用）
+from deepagents import create_deep_agent
+from deepagents.backends import CompositeBackend, StateBackend, StoreBackend
+
+agent = create_deep_agent(
+    model=&quot;google_genai:gemini-3.1-pro-preview&quot;,
+    backend=lambda rt: CompositeBackend(
+        default=StateBackend(rt),
+        routes={&quot;/memories/&quot;: StoreBackend(rt, namespace=lambda rt: (rt.server_info.user.identity,))},
+    ),
+)
+
+# 之后
+agent = create_deep_agent(
+    model=&quot;google_genai:gemini-3.1-pro-preview&quot;,
+    backend=CompositeBackend(
+        default=StateBackend(),
+        routes={&quot;/memories/&quot;: StoreBackend(namespace=lambda rt: (rt.server_info.user.identity,))},
+    ),
+)
+</code></pre>
+
+<h3 id="backendcontext">从 <code>BackendContext</code> 迁移</h3>
+<p>在 <code>deepagents&gt;=0.5.2</code>（Python）和 <code>deepagents&gt;=1.9.1</code>（TypeScript）中，namespace 工厂直接接收 LangGraph <a href="https://reference.langchain.com/python/langgraph/runtime/Runtime"><code>Runtime</code></a>，而非 <code>BackendContext</code> 包装器。旧的 <code>BackendContext</code> 形式仍通过向后兼容的 <code>.runtime</code> 和 <code>.state</code> 访问器工作，但这些访问器会发出弃用警告，并将在 <code>deepagents&gt;=0.7</code> 中移除。</p>
+<p><strong>变更内容：</strong><br />
+- 工厂参数现在是 <code>Runtime</code>，而非 <code>BackendContext</code>。<br />
+- 移除 <code>.runtime</code> 访问器——例如 <code>ctx.runtime.context.user_id</code> 变为 <code>rt.server_info.user.identity</code>。<br />
+- <code>ctx.state</code> 没有直接替代方案。命名空间信息应该是只读且在运行生命周期内稳定的，而状态是可变的且随步骤变化——从中派生命名空间可能导致数据最终在不一致的键下。如果你的用例需要读取 agent 状态，请<a href="https://github.com/langchain-ai/deepagents/issues">提交 issue</a>。</p>
+<pre class="codehilite"><code class="language-python"># 之前（已弃用，在 v0.7 中移除）
+StoreBackend(
+    namespace=lambda ctx: (ctx.runtime.context.user_id,),
+)
+
+# 之后
+StoreBackend(
+    namespace=lambda rt: (rt.server_info.user.identity,),
+)
+</code></pre>
+
+<h2 id="_11">协议参考</h2>
+<p>后端必须实现 <a href="https://reference.langchain.com/python/deepagents/backends/protocol/BackendProtocol"><code>BackendProtocol</code></a>。</p>
+<p>必需方法：</p>
+<ul>
+<li><code>ls(path: str) -&gt; LsResult</code></li>
+<li>返回条目，至少包含 <code>path</code>。包含 <code>is_dir</code>、<code>size</code>、<code>modified_at</code>（如可用）。按 <code>path</code> 排序以确保输出确定性。</li>
+<li><code>read(file_path: str, offset: int = 0, limit: int = 2000) -&gt; ReadResult</code></li>
+<li>成功时返回文件数据。文件不存在时返回 <code>ReadResult(error="Error: File '/x' not found")</code>。</li>
+<li><code>grep(pattern: str, path: Optional[str] = None, glob: Optional[str] = None) -&gt; GrepResult</code></li>
+<li>返回结构化匹配。出错时返回 <code>GrepResult(error="...")</code>（不要抛出异常）。</li>
+<li><code>glob(pattern: str, path: str = "/") -&gt; GlobResult</code></li>
+<li>返回匹配文件为 <code>FileInfo</code> 条目（无匹配返回空列表）。</li>
+<li><code>write(file_path: str, content: str) -&gt; WriteResult</code></li>
+<li>仅创建。冲突时返回 <code>WriteResult(error=...)</code>。成功时设置 <code>path</code>，对于状态后端设置 <code>files_update={...}</code>；外部后端应使用 <code>files_update=None</code>。</li>
+<li><code>edit(file_path: str, old_string: str, new_string: str, replace_all: bool = False) -&gt; EditResult</code></li>
+<li>强制执行 <code>old_string</code> 唯一性，除非 <code>replace_all=True</code>。找不到时返回错误。成功时包含 <code>occurrences</code>。</li>
+</ul>
+<p>支持类型：<br />
+- <code>LsResult(error, entries)</code> — <code>entries</code> 成功时为 <code>list[FileInfo]</code>，失败时为 <code>None</code>。<br />
+- <code>ReadResult(error, file_data)</code> — <code>file_data</code> 成功时为 <code>FileData</code> 字典，失败时为 <code>None</code>。<br />
+- <code>GrepResult(error, matches)</code> — <code>matches</code> 成功时为 <code>list[GrepMatch]</code>，失败时为 <code>None</code>。<br />
+- <code>GlobResult(error, matches)</code> — <code>matches</code> 成功时为 <code>list[FileInfo]</code>，失败时为 <code>None</code>。<br />
+- <code>WriteResult(error, path, files_update)</code><br />
+- <code>EditResult(error, path, files_update, occurrences)</code><br />
+- <code>FileInfo</code> 字段：<code>path</code>（必需），可选 <code>is_dir</code>、<code>size</code>、<code>modified_at</code>。<br />
+- <code>GrepMatch</code> 字段：<code>path</code>、<code>line</code>、<code>text</code>。<br />
+- <code>FileData</code> 字段：<code>content</code>（str）、<code>encoding</code>（<code>"utf-8"</code> 或 <code>"base64"</code>）、<code>created_at</code>、<code>modified_at</code>。</p>
+</body>
+</html>

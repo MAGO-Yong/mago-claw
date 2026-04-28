@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Human-in-the-loop（人在回路中）</title>
+  
+<style>
+  :root {
+    --bg: #ffffff;
+    --text: #1a1a2e;
+    --code-bg: #1e1e2e;
+    --code-text: #cdd6f4;
+    --link: #2563eb;
+    --border: #e2e8f0;
+    --thead-bg: #f8fafc;
+    --stripe-bg: #f8fafc;
+    --h1-color: #0f172a;
+    --h2-color: #1e293b;
+    --blockquote-bg: #f0f9ff;
+    --blockquote-border: #3b82f6;
+    --note-bg: #fefce8;
+    --note-border: #eab308;
+    --warning-bg: #fef2f2;
+    --warning-border: #ef4444;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #0f172a;
+      --text: #e2e8f0;
+      --code-bg: #1e1e2e;
+      --code-text: #cdd6f4;
+      --link: #60a5fa;
+      --border: #334155;
+      --thead-bg: #1e293b;
+      --stripe-bg: #1e293b;
+      --h1-color: #f8fafc;
+      --h2-color: #e2e8f0;
+      --blockquote-bg: #1e293b;
+      --blockquote-border: #3b82f6;
+      --note-bg: #422006;
+      --note-border: #eab308;
+      --warning-bg: #450a0a;
+      --warning-border: #ef4444;
+    }
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    line-height: 1.7;
+    color: var(--text);
+    background: var(--bg);
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 40px 20px 80px;
+  }
+  h1 { font-size: 2.2em; font-weight: 700; color: var(--h1-color); margin: 0 0 8px; padding-top: 20px; }
+  h2 { font-size: 1.6em; font-weight: 600; color: var(--h2-color); margin: 40px 0 16px; padding-bottom: 8px; border-bottom: 1px solid var(--border); }
+  h3 { font-size: 1.3em; font-weight: 600; color: var(--h2-color); margin: 30px 0 12px; }
+  h4 { font-size: 1.1em; font-weight: 600; margin: 24px 0 8px; }
+  p { margin: 12px 0; }
+  a { color: var(--link); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+  ul, ol { margin: 12px 0; padding-left: 24px; }
+  li { margin: 4px 0; }
+  li > ul, li > ol { margin: 4px 0; }
+  code {
+    font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, Courier, monospace;
+    background: var(--code-bg);
+    color: var(--code-text);
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-size: 0.9em;
+  }
+  pre {
+    background: var(--code-bg);
+    color: var(--code-text);
+    padding: 16px 20px;
+    border-radius: 8px;
+    overflow-x: auto;
+    margin: 16px 0;
+    font-size: 0.88em;
+    line-height: 1.5;
+  }
+  pre code {
+    background: none;
+    padding: 0;
+    color: inherit;
+    font-size: inherit;
+  }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 16px 0;
+    font-size: 0.95em;
+  }
+  th {
+    background: var(--thead-bg);
+    font-weight: 600;
+    text-align: left;
+    padding: 10px 14px;
+    border: 1px solid var(--border);
+  }
+  td {
+    padding: 10px 14px;
+    border: 1px solid var(--border);
+    vertical-align: top;
+  }
+  tr:nth-child(even) { background: var(--stripe-bg); }
+  blockquote {
+    border-left: 4px solid var(--blockquote-border);
+    background: var(--blockquote-bg);
+    padding: 12px 16px;
+    margin: 16px 0;
+    border-radius: 0 8px 8px 0;
+  }
+  blockquote blockquote { margin: 8px 0; }
+  hr { border: none; border-top: 2px solid var(--border); margin: 32px 0; }
+  .original-link {
+    font-size: 0.9em;
+    color: #64748b;
+    margin-bottom: 24px;
+  }
+  /* Syntax highlighting approximation */
+  pre code .comment { color: #6a9955; }
+  pre code .keyword { color: #c678dd; }
+  pre code .string { color: #98c379; }
+  pre code .function { color: #61afef; }
+  pre code .number { color: #d19a66; }
+  pre code .class-name { color: #e5c07b; }
+</style>
+
+</head>
+<body>
+<h1 id="human-in-the-loop">Human-in-the-loop（人在回路中）</h1>
+<blockquote>
+<p>原文：<a href="https://docs.langchain.com/oss/python/deepagents/human-in-the-loop">https://docs.langchain.com/oss/python/deepagents/human-in-the-loop</a></p>
+<p>在 agent（智能体）采取行动之前进行人工审批。</p>
+</blockquote>
+<p>Deep agents（深度智能体）通过 LangGraph 的内置中断系统支持 <strong>human-in-the-loop（人在回路中，HITL）</strong>。当 agent 尝试执行需要审批的操作时，执行暂停，等待人工决定后再继续。</p>
+<h2 id="_1">快速开始</h2>
+<p>在 <code>create_deep_agent</code> 中使用 <code>interrupt_on</code> 参数指定哪些工具调用应触发中断：</p>
+<pre class="codehilite"><code class="language-python">from deepagents import create_deep_agent
+from deepagents.middleware.hitl import HumanInTheLoopMiddleware
+from langgraph.checkpoint.memory import MemorySaver
+
+agent = create_deep_agent(
+    model=&quot;google_genai:gemini-3.1-pro-preview&quot;,
+    middleware=[
+        HumanInTheLoopMiddleware(
+            rules=[
+                {&quot;tools&quot;: &quot;write_file&quot;},
+                {&quot;tools&quot;: &quot;edit_file&quot;},
+                {&quot;tools&quot;: &quot;execute&quot;},
+            ],
+        ),
+    ],
+    checkpointer=MemorySaver(),
+)
+</code></pre>
+
+<p>你需要配置一个 <code>checkpointer</code>（检查点）来持久化 agent 状态，以便在中断和恢复之间保存。</p>
+<h2 id="humanintheloopmiddleware">HumanInTheLoopMiddleware 选项</h2>
+<p>每条规则支持以下字段：</p>
+<table>
+<thead>
+<tr>
+<th>字段</th>
+<th>类型</th>
+<th>默认</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>tools</code></td>
+<td><code>str \| list[str]</code></td>
+<td>必需</td>
+<td>应触发中断的工具名称。支持通配符（<code>"*"</code> 表示全部）。</td>
+</tr>
+<tr>
+<td><code>decisions</code></td>
+<td><code>list[str]</code></td>
+<td><code>["approve", "edit", "reject"]</code></td>
+<td>人工可做的决定类型。</td>
+</tr>
+<tr>
+<td><code>description</code></td>
+<td><code>str</code></td>
+<td><code>""</code></td>
+<td>在审批提示中显示的人类可读描述。</td>
+</tr>
+</tbody>
+</table>
+<p>决定类型：<br />
+- <strong><code>"approve"</code></strong> — 使用原始参数执行工具。<br />
+- <strong><code>"edit"</code></strong> — 修改参数后再执行。<br />
+- <strong><code>"reject"</code></strong> — 跳过工具调用，向 agent 返回拒绝响应。</p>
+<h2 id="_2">示例</h2>
+<h3 id="_3">特定工具</h3>
+<pre class="codehilite"><code class="language-python">from deepagents.middleware.hitl import HumanInTheLoopMiddleware
+
+middleware = HumanInTheLoopMiddleware(
+    rules=[
+        {&quot;tools&quot;: [&quot;write_file&quot;, &quot;edit_file&quot;], &quot;decisions&quot;: [&quot;approve&quot;, &quot;reject&quot;]},
+        {&quot;tools&quot;: &quot;execute&quot;, &quot;description&quot;: &quot;Shell execution — review before running&quot;},
+    ],
+)
+</code></pre>
+
+<h3 id="_4">所有工具</h3>
+<pre class="codehilite"><code class="language-python">middleware = HumanInTheLoopMiddleware(
+    rules=[
+        {&quot;tools&quot;: &quot;*&quot;, &quot;decisions&quot;: [&quot;approve&quot;, &quot;reject&quot;]},
+    ],
+)
+</code></pre>
+
+<h3 id="_5">多个规则</h3>
+<pre class="codehilite"><code class="language-python">middleware = HumanInTheLoopMiddleware(
+    rules=[
+        {&quot;tools&quot;: &quot;write_file&quot;, &quot;decisions&quot;: [&quot;approve&quot;]},
+        {&quot;tools&quot;: &quot;edit_file&quot;, &quot;decisions&quot;: [&quot;approve&quot;, &quot;edit&quot;]},
+        {&quot;tools&quot;: &quot;execute&quot;, &quot;decisions&quot;: [&quot;approve&quot;, &quot;edit&quot;, &quot;reject&quot;]},
+    ],
+)
+</code></pre>
+
+<h2 id="cli">与 CLI 一起使用</h2>
+<p>Deep Agents CLI 内置 HITL 支持。在交互模式中，可能具有破坏性的操作（写入文件、编辑、执行 shell 命令）需要确认。</p>
+<p>使用 <code>-y</code> 或 <code>--auto-approve</code> 跳过审批：</p>
+<pre class="codehilite"><code class="language-bash">deepagents -y
+# 或
+deepagents --auto-approve
+</code></pre>
+
+<h2 id="hitl">高级：可编程 HITL</h2>
+<p>你可以实现自定义审批逻辑，而非对所有调用统一要求审批：</p>
+<pre class="codehilite"><code class="language-python">from deepagents.middleware.hitl import HumanInTheLoopMiddleware, HitlDecision
+
+def should_interrupt(tool_call):
+    &quot;&quot;&quot;仅在写入敏感文件时中断&quot;&quot;&quot;
+    if tool_call.get(&quot;name&quot;) == &quot;write_file&quot;:
+        args = tool_call.get(&quot;args&quot;, {})
+        path = args.get(&quot;path&quot;, &quot;&quot;)
+        return &quot;/secrets/&quot; in path or &quot;.env&quot; in path
+    return False
+
+middleware = HumanInTheLoopMiddleware(
+    rules=[
+        {
+            &quot;tools&quot;: [&quot;write_file&quot;, &quot;edit_file&quot;],
+            &quot;should_interrupt&quot;: should_interrupt,
+            &quot;description&quot;: &quot;Review writes to sensitive paths&quot;,
+        },
+    ],
+)
+</code></pre>
+
+<p><code>should_interrupt</code> 函数接收工具调用字典并返回 <code>bool</code>。仅在返回 <code>True</code> 时触发中断。</p>
+</body>
+</html>

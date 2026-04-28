@@ -1,0 +1,310 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Deep Agents 概览 - LangChain 文档翻译</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif; background: #f5f5f5; color: #1a1a1a; line-height: 1.8; }
+  .container { max-width: 900px; margin: 0 auto; background: white; border-radius: 8px; box-shadow: 0 2px 12px rgba(0,0,0,0.08); margin-top: 40px; margin-bottom: 40px; }
+  .header { background: linear-gradient(135deg, #1e3a5f, #4a2d8a); color: white; padding: 36px 40px; border-radius: 8px 8px 0 0; }
+  .header h1 { font-size: 24px; font-weight: 700; margin-bottom: 8px; }
+  .header .subtitle { font-size: 14px; opacity: 0.85; }
+  .header .source { margin-top: 8px; font-size: 12px; opacity: 0.7; }
+  .header .source a { color: #93c5fd; text-decoration: none; }
+  .content { padding: 32px 40px; }
+  h2 { font-size: 20px; font-weight: 700; color: #1e3a5f; margin: 28px 0 12px; padding-bottom: 8px; border-bottom: 2px solid #e5e7eb; }
+  h3 { font-size: 17px; font-weight: 600; color: #374151; margin: 24px 0 10px; }
+  p { margin: 12px 0; color: #374151; }
+  ul, ol { margin: 12px 0; padding-left: 24px; }
+  li { margin: 6px 0; color: #374151; }
+  a { color: #2563eb; text-decoration: none; }
+  a:hover { text-decoration: underline; }
+  pre { background: #1e1e2e; color: #cdd6f4; padding: 16px 20px; border-radius: 6px; overflow-x: auto; margin: 14px 0; font-size: 13.5px; line-height: 1.6; }
+  code { background: #f3f4f6; color: #dc2626; padding: 2px 6px; border-radius: 3px; font-size: 0.9em; font-family: "JetBrains Mono", "Fira Code", monospace; }
+  pre code { background: none; color: inherit; padding: 0; }
+  table { width: 100%; border-collapse: collapse; margin: 16px 0; font-size: 14px; }
+  th { background: #1e3a5f; color: white; padding: 10px 12px; text-align: left; font-weight: 600; }
+  td { padding: 9px 12px; border-bottom: 1px solid #e5e7eb; }
+  tr:nth-child(even) td { background: #f9fafb; }
+  .card-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 16px; margin: 20px 0; }
+  .card { border: 1px solid #e5e7eb; border-radius: 8px; padding: 18px 20px; background: #fafafa; }
+  .card h4 { font-size: 15px; color: #1e3a5f; margin-bottom: 6px; }
+  .card p { font-size: 13px; color: #6b7280; margin: 0; }
+  .tag { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 12px; font-weight: 600; margin-right: 4px; }
+  .tag-blue { background: #dbeafe; color: #1d4ed8; }
+  .tag-purple { background: #ede9fe; color: #7c3aed; }
+  .tip-box { background: #eff6ff; border-left: 4px solid #3b82f6; border-radius: 4px; padding: 14px 18px; margin: 16px 0; }
+  .note-box { background: #fefce8; border-left: 4px solid #eab308; border-radius: 4px; padding: 14px 18px; margin: 16px 0; }
+  .footer { padding: 20px 40px; border-top: 1px solid #e5e7eb; font-size: 12px; color: #9ca3af; text-align: center; }
+</style>
+</head>
+<body>
+<div class="container">
+  <div class="header">
+    <h1>🚀 Deep Agents 概览</h1>
+    <div class="subtitle">构建可以规划、使用子智能体（subagent），并利用文件系统处理复杂任务的智能体</div>
+    <div class="source">原文：<a href="https://docs.langchain.com/oss/python/deepagents/overview" target="_blank">https://docs.langchain.com/oss/python/deepagents/overview</a></div>
+  </div>
+
+  <div class="content">
+    <p>开始构建由大语言模型（LLM）驱动的智能体和应用的最简单方式——内置任务规划、用于上下文管理的文件系统、子智能体派发（subagent-spawning）和长期记忆能力。</p>
+    <p>你可以将 deep agents 用于任何任务，包括复杂的、多步骤的任务。</p>
+
+    <div class="tip-box">
+      我们将 <code>deepagents</code> 视为一个「<strong>智能体容器（agent harness）</strong>」。它与其他智能体框架使用相同的核心工具调用循环，但内置了更多工具和能力。
+    </div>
+
+    <p><a href="https://pypi.org/project/deepagents/" target="_blank"><code>deepagents</code></a> 是一个独立库，构建在 <a href="https://docs.langchain.com/oss/python/langchain/" target="_blank">LangChain</a> 的核心智能体构建块之上。它使用 <a href="https://docs.langchain.com/oss/python/langgraph/" target="_blank">LangGraph</a> 运行时来实现持久化执行、流式传输、人在回路（human-in-the-loop）等功能。</p>
+
+    <h2><code>deepagents</code> 仓库包含：</h2>
+    <ul>
+      <li><strong>Deep Agents SDK</strong>：一个用于构建可以处理任何任务的智能体的软件包</li>
+      <li><a href="https://docs.langchain.com/oss/python/deepagents/cli" target="_blank"><strong>Deep Agents CLI</strong></a>：一个基于 Deep Agents SDK 构建的终端编码智能体</li>
+      <li><a href="https://docs.langchain.com/oss/python/deepagents/acp" target="_blank"><strong>ACP 集成</strong></a>：一个 Agent Client Protocol 连接器，用于在 Zed 等代码编辑器中使用 deep agents</li>
+    </ul>
+
+    <p><a href="https://docs.langchain.com/oss/python/langchain/" target="_blank">LangChain</a> 是一个框架，为你的智能体提供核心构建块。要了解更多关于 LangChain、LangGraph 和 Deep Agents 之间的区别，请参阅<a href="https://docs.langchain.com/oss/python/concepts/products" target="_blank">框架、运行时和容器（Frameworks, runtimes, and harnesses）</a>。</p>
+
+    <h2>创建 Deep Agent</h2>
+
+    <h3>Google</h3>
+    <pre><code># pip install -qU deepagents langchain-google-genai
+from deepagents import create_deep_agent
+
+def get_weather(city: str) -> str:
+    """获取给定城市的天气。"""
+    return f"{city} 永远是晴天！"
+
+agent = create_deep_agent(
+    model="google_genai:gemini-3.1-pro-preview",
+    tools=[get_weather],
+    system_prompt="你是一个有帮助的助手",
+)
+
+# 运行智能体
+agent.invoke(
+    {"messages": [{"role": "user", "content": "sf 的天气怎么样"}]}
+)</code></pre>
+
+    <h3>OpenAI</h3>
+    <pre><code># pip install -qU deepagents langchain-openai
+from deepagents import create_deep_agent
+
+def get_weather(city: str) -> str:
+    """获取给定城市的天气。"""
+    return f"{city} 永远是晴天！"
+
+agent = create_deep_agent(
+    model="openai:gpt-5.4",
+    tools=[get_weather],
+    system_prompt="你是一个有帮助的助手",
+)
+
+# 运行智能体
+agent.invoke(
+    {"messages": [{"role": "user", "content": "sf 的天气怎么样"}]}
+)</code></pre>
+
+    <h3>Anthropic</h3>
+    <pre><code># pip install -qU deepagents langchain-anthropic
+from deepagents import create_deep_agent
+
+def get_weather(city: str) -> str:
+    """获取给定城市的天气。"""
+    return f"{city} 永远是晴天！"
+
+agent = create_deep_agent(
+    model="anthropic:claude-sonnet-4-6",
+    tools=[get_weather],
+    system_prompt="你是一个有帮助的助手",
+)
+
+# 运行智能体
+agent.invoke(
+    {"messages": [{"role": "user", "content": "sf 的天气怎么样"}]}
+)</code></pre>
+
+    <h3>OpenRouter</h3>
+    <pre><code># pip install -qU deepagents langchain-openrouter
+from deepagents import create_deep_agent
+
+def get_weather(city: str) -> str:
+    """获取给定城市的天气。"""
+    return f"{city} 永远是晴天！"
+
+agent = create_deep_agent(
+    model="openrouter:anthropic/claude-sonnet-4-6",
+    tools=[get_weather],
+    system_prompt="你是一个有帮助的助手",
+)
+
+# 运行智能体
+agent.invoke(
+    {"messages": [{"role": "user", "content": "sf 的天气怎么样"}]}
+)</code></pre>
+
+    <h3>Fireworks</h3>
+    <pre><code># pip install -qU deepagents langchain-fireworks
+from deepagents import create_deep_agent
+
+def get_weather(city: str) -> str:
+    """获取给定城市的天气。"""
+    return f"{city} 永远是晴天！"
+
+agent = create_deep_agent(
+    model="fireworks:accounts/fireworks/models/qwen3p5-397b-a17b",
+    tools=[get_weather],
+    system_prompt="你是一个有帮助的助手",
+)
+
+# 运行智能体
+agent.invoke(
+    {"messages": [{"role": "user", "content": "sf 的天气怎么样"}]}
+)</code></pre>
+
+    <h3>Baseten</h3>
+    <pre><code># pip install -qU deepagents langchain-baseten
+from deepagents import create_deep_agent
+
+def get_weather(city: str) -> str:
+    """获取给定城市的天气。"""
+    return f"{city} 永远是晴天！"
+
+agent = create_deep_agent(
+    model="baseten:zai-org/GLM-5",
+    tools=[get_weather],
+    system_prompt="你是一个有帮助的助手",
+)
+
+# 运行智能体
+agent.invoke(
+    {"messages": [{"role": "user", "content": "sf 的天气怎么样"}]}
+)</code></pre>
+
+    <h3>Ollama</h3>
+    <pre><code># pip install -qU deepagents langchain-ollama
+from deepagents import create_deep_agent
+
+def get_weather(city: str) -> str:
+    """获取给定城市的天气。"""
+    return f"{city} 永远是晴天！"
+
+agent = create_deep_agent(
+    model="ollama:devstral-2",
+    tools=[get_weather],
+    system_prompt="你是一个有帮助的助手",
+)
+
+# 运行智能体
+agent.invoke(
+    {"messages": [{"role": "user", "content": "sf 的天气怎么样"}]}
+)</code></pre>
+
+    <p>请参阅<a href="https://docs.langchain.com/oss/python/deepagents/quickstart/" target="_blank">快速开始（Quickstart）</a>和<a href="https://docs.langchain.com/oss/python/deepagents/customization/" target="_blank">自定义指南（Customization guide）</a>，开始使用 Deep Agents 构建你自己的智能体和应用。</p>
+
+    <div class="tip-box">
+      💡 使用 <a href="https://smith.langchain.com/" target="_blank">LangSmith</a> 来追踪请求、调试智能体行为并评估输出。设置 <code>LANGSMITH_TRACING=true</code> 和你的 API 密钥即可开始。
+    </div>
+
+    <h2>何时使用 Deep Agents</h2>
+    <p>当你想构建能够执行以下操作的智能体时，使用 <strong>Deep Agents SDK</strong>：</p>
+    <ul>
+      <li><strong>处理复杂的多步骤任务</strong>，需要规划和分解</li>
+      <li><strong>管理大量上下文</strong>，通过文件系统工具和<a href="https://docs.langchain.com/oss/python/deepagents/context-engineering#summarization" target="_blank">摘要（summarization）</a>功能</li>
+      <li><strong>切换文件系统后端</strong>，以使用内存状态、本地磁盘、持久化存储、<a href="https://docs.langchain.com/oss/python/deepagents/sandboxes" target="_blank">沙箱（sandboxes）</a>或<a href="https://docs.langchain.com/oss/python/deepagents/backends" target="_blank">自定义后端</a></li>
+      <li><strong>执行 shell 命令</strong>，通过 <code>execute</code> 工具在使用 <a href="https://docs.langchain.com/oss/python/deepagents/sandboxes" target="_blank">沙箱后端</a> 时</li>
+      <li><strong>委派工作</strong>给专门的子智能体（subagent）以实现上下文隔离</li>
+      <li><strong>跨对话和线程持久化记忆</strong></li>
+      <li><strong>通过声明式 <a href="https://docs.langchain.com/oss/python/deepagents/permissions" target="_blank">权限规则</a></strong>控制文件系统访问，限制智能体可以读取或写入哪些文件</li>
+      <li><strong>需要人工审批</strong>敏感操作，通过 <a href="https://docs.langchain.com/oss/python/deepagents/human-in-the-loop" target="_blank">人在回路（human-in-the-loop）</a>工作流</li>
+      <li><strong>使用任何支持工具调用的模型</strong>——在前沿模型和开源模型之间 <a href="https://docs.langchain.com/oss/python/deepagents/models" target="_blank">提供商无关（provider agnostic）</a></li>
+    </ul>
+
+    <p>对于构建更简单的智能体，可以考虑使用 LangChain 的 <a href="https://docs.langchain.com/oss/python/langchain/agents" target="_blank"><code>create_agent</code></a> 或构建自定义的 <a href="https://docs.langchain.com/oss/python/langgraph/overview" target="_blank">LangGraph</a> 工作流。</p>
+
+    <h2>核心能力</h2>
+
+    <h3>📋 规划与任务分解</h3>
+    <p>Deep Agents 内置了 <a href="https://docs.langchain.com/oss/python/langchain/middleware/built-in#to-do-list" target="_blank"><code>write_todos</code></a> 工具，使智能体能够将复杂任务分解为离散的步骤、跟踪进度，并在新信息出现时调整计划。</p>
+
+    <h3>✂️ 上下文管理</h3>
+    <p>文件系统工具（<a href="https://docs.langchain.com/oss/python/deepagents/harness#virtual-filesystem-access" target="_blank"><code>ls</code></a>、<a href="https://docs.langchain.com/oss/python/deepagents/harness#virtual-filesystem-access" target="_blank"><code>read_file</code></a>、<a href="https://docs.langchain.com/oss/python/deepagents/harness#virtual-filesystem-access" target="_blank"><code>write_file</code></a>、<a href="https://docs.langchain.com/oss/python/deepagents/harness#virtual-filesystem-access" target="_blank"><code>edit_file</code></a>）允许智能体将大量上下文卸载到内存或文件系统存储中，防止上下文窗口溢出，并支持可变长度的工具结果。自动摘要功能会在上下文窗口变长时压缩较早的对话消息，使智能体在长时间会话中保持有效性。</p>
+
+    <h3>💻 Shell 执行</h3>
+    <p>使用 <a href="https://docs.langchain.com/oss/python/deepagents/sandboxes" target="_blank">沙箱后端</a> 时，智能体获得一个 <code>execute</code> 工具，可以运行 shell 命令来执行测试、构建、git 操作和系统任务。沙箱后端提供隔离，使智能体可以执行代码而不影响你的主机系统。</p>
+
+    <h3>🔌 可插拔文件系统后端</h3>
+    <p>虚拟文件系统由 <a href="https://docs.langchain.com/oss/python/deepagents/backends" target="_blank">可插拔后端</a> 驱动，你可以根据用例进行切换。可选方案包括：内存状态、本地磁盘、LangGraph 存储（跨线程持久化）、<a href="https://docs.langchain.com/oss/python/deepagents/sandboxes" target="_sandbox">沙箱</a>（用于隔离代码执行：Modal、Daytona、Deno），或通过复合路由组合多个后端。你也可以实现自己的自定义后端。</p>
+
+    <h3>👥 子智能体派发（Subagent Spawning）</h3>
+    <p>内置的 <code>task</code> 工具使智能体能够派发专门的子智能体（subagent）以实现上下文隔离。这保持了主智能体的上下文干净，同时仍然可以在特定子任务上深入探索。</p>
+
+    <h3>💾 长期记忆</h3>
+    <p>使用 LangGraph 的 <a href="https://docs.langchain.com/oss/python/langgraph/persistence#memory-store" target="_blank">Memory Store</a> 扩展智能体的跨线程持久记忆。智能体可以从之前的对话中保存和检索信息。</p>
+
+    <h3>🔒 文件系统权限</h3>
+    <p>声明 <a href="https://docs.langchain.com/oss/python/deepagents/permissions" target="_blank">权限规则</a> 来控制智能体可以读取或写入哪些文件和目录。子智能体可以继承或覆盖父级的规则。</p>
+
+    <h3>👤 人在回路（Human-in-the-loop）</h3>
+    <p>使用 LangGraph 的中断功能为敏感工具操作配置 <a href="https://docs.langchain.com/oss/python/deepagents/human-in-the-loop" target="_blank">人工审批</a>。控制在执行前哪些工具需要确认。</p>
+
+    <h3>🧩 技能（Skills）</h3>
+    <p>通过可复用的 <a href="https://docs.langchain.com/oss/python/deepagents/skills" target="_blank">技能（skills）</a>扩展智能体，提供专门的工作流、领域知识和自定义指令。</p>
+
+    <h3>🪄 智能默认值</h3>
+    <p>自带经过优化的系统提示，教会模型如何有效使用其工具——在行动之前先规划、验证工作、管理上下文。根据需要自定义或替换默认值。</p>
+
+    <h2>开始使用</h2>
+
+    <div class="card-grid">
+      <div class="card">
+        <h4>🚀 快速开始（Quickstart）</h4>
+        <p>构建你的第一个 deep agent</p>
+      </div>
+      <div class="card">
+        <h4>⚙️ 自定义（Customization）</h4>
+        <p>了解自定义选项</p>
+      </div>
+      <div class="card">
+        <h4>🖥️ 模型（Models）</h4>
+        <p>配置模型和提供商</p>
+      </div>
+      <div class="card">
+        <h4>🔌 后端（Backends）</h4>
+        <p>选择和配置可插拔的文件系统后端</p>
+      </div>
+      <div class="card">
+        <h4>📦 沙箱（Sandboxes）</h4>
+        <p>在隔离环境中执行代码</p>
+      </div>
+      <div class="card">
+        <h4>🔒 权限（Permissions）</h4>
+        <p>通过权限规则控制文件系统访问</p>
+      </div>
+      <div class="card">
+        <h4>👤 人在回路（Human-in-the-loop）</h4>
+        <p>为敏感操作配置审批</p>
+      </div>
+      <div class="card">
+        <h4>💻 CLI</h4>
+        <p>使用 Deep Agents 命令行界面</p>
+      </div>
+      <div class="card">
+        <h4>🔗 ACP</h4>
+        <p>通过 ACP 在代码编辑器中使用 deep agents</p>
+      </div>
+      <div class="card">
+        <h4>📖 API 参考</h4>
+        <p>查看 <code>deepagents</code> API 参考文档</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="footer">
+    翻译自 LangChain 官方文档 · <a href="https://docs.langchain.com/oss/python/deepagents/overview" target="_blank">原文链接</a>
+  </div>
+</div>
+</body>
+</html>

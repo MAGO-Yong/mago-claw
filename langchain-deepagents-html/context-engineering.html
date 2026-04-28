@@ -1,0 +1,403 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Context engineering in Deep Agents（Deep Agents 中的上下文工程）</title>
+  
+<style>
+  :root {
+    --bg: #ffffff;
+    --text: #1a1a2e;
+    --code-bg: #1e1e2e;
+    --code-text: #cdd6f4;
+    --link: #2563eb;
+    --border: #e2e8f0;
+    --thead-bg: #f8fafc;
+    --stripe-bg: #f8fafc;
+    --h1-color: #0f172a;
+    --h2-color: #1e293b;
+    --blockquote-bg: #f0f9ff;
+    --blockquote-border: #3b82f6;
+    --note-bg: #fefce8;
+    --note-border: #eab308;
+    --warning-bg: #fef2f2;
+    --warning-border: #ef4444;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #0f172a;
+      --text: #e2e8f0;
+      --code-bg: #1e1e2e;
+      --code-text: #cdd6f4;
+      --link: #60a5fa;
+      --border: #334155;
+      --thead-bg: #1e293b;
+      --stripe-bg: #1e293b;
+      --h1-color: #f8fafc;
+      --h2-color: #e2e8f0;
+      --blockquote-bg: #1e293b;
+      --blockquote-border: #3b82f6;
+      --note-bg: #422006;
+      --note-border: #eab308;
+      --warning-bg: #450a0a;
+      --warning-border: #ef4444;
+    }
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    line-height: 1.7;
+    color: var(--text);
+    background: var(--bg);
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 40px 20px 80px;
+  }
+  h1 { font-size: 2.2em; font-weight: 700; color: var(--h1-color); margin: 0 0 8px; padding-top: 20px; }
+  h2 { font-size: 1.6em; font-weight: 600; color: var(--h2-color); margin: 40px 0 16px; padding-bottom: 8px; border-bottom: 1px solid var(--border); }
+  h3 { font-size: 1.3em; font-weight: 600; color: var(--h2-color); margin: 30px 0 12px; }
+  h4 { font-size: 1.1em; font-weight: 600; margin: 24px 0 8px; }
+  p { margin: 12px 0; }
+  a { color: var(--link); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+  ul, ol { margin: 12px 0; padding-left: 24px; }
+  li { margin: 4px 0; }
+  li > ul, li > ol { margin: 4px 0; }
+  code {
+    font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, Courier, monospace;
+    background: var(--code-bg);
+    color: var(--code-text);
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-size: 0.9em;
+  }
+  pre {
+    background: var(--code-bg);
+    color: var(--code-text);
+    padding: 16px 20px;
+    border-radius: 8px;
+    overflow-x: auto;
+    margin: 16px 0;
+    font-size: 0.88em;
+    line-height: 1.5;
+  }
+  pre code {
+    background: none;
+    padding: 0;
+    color: inherit;
+    font-size: inherit;
+  }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 16px 0;
+    font-size: 0.95em;
+  }
+  th {
+    background: var(--thead-bg);
+    font-weight: 600;
+    text-align: left;
+    padding: 10px 14px;
+    border: 1px solid var(--border);
+  }
+  td {
+    padding: 10px 14px;
+    border: 1px solid var(--border);
+    vertical-align: top;
+  }
+  tr:nth-child(even) { background: var(--stripe-bg); }
+  blockquote {
+    border-left: 4px solid var(--blockquote-border);
+    background: var(--blockquote-bg);
+    padding: 12px 16px;
+    margin: 16px 0;
+    border-radius: 0 8px 8px 0;
+  }
+  blockquote blockquote { margin: 8px 0; }
+  hr { border: none; border-top: 2px solid var(--border); margin: 32px 0; }
+  .original-link {
+    font-size: 0.9em;
+    color: #64748b;
+    margin-bottom: 24px;
+  }
+  /* Syntax highlighting approximation */
+  pre code .comment { color: #6a9955; }
+  pre code .keyword { color: #c678dd; }
+  pre code .string { color: #98c379; }
+  pre code .function { color: #61afef; }
+  pre code .number { color: #d19a66; }
+  pre code .class-name { color: #e5c07b; }
+</style>
+
+</head>
+<body>
+<h1 id="context-engineering-in-deep-agentsdeep-agents">Context engineering in Deep Agents（Deep Agents 中的上下文工程）</h1>
+<blockquote>
+<p>原文：<a href="https://docs.langchain.com/oss/python/deepagents/context-engineering">https://docs.langchain.com/oss/python/deepagents/context-engineering</a></p>
+<p>控制你的 deep agent（深度智能体）可以访问哪些上下文，以及如何在长时间运行的任务中管理上下文。</p>
+</blockquote>
+<p>上下文工程（Context engineering（上下文工程））是以正确的格式提供正确的信息和工具，使你的 deep agent 能够可靠地完成任务。</p>
+<p>Deep agents 可以访问多种类型的上下文。有些来源在 agent 启动时提供；其他来源在运行时变得可用，例如用户输入。Deep agents 包含内置机制来管理长时间运行会话的上下文。</p>
+<p>本页概述你的 deep agent 可以访问和管理的不同类型上下文。</p>
+<blockquote>
+<p>刚接触上下文工程？请参见<a href="/oss/python/concepts/context">概念概述</a>了解不同类型的上下文及其使用时机。</p>
+</blockquote>
+<h2 id="_1">上下文类型</h2>
+<table>
+<thead>
+<tr>
+<th>上下文类型</th>
+<th>你控制的内容</th>
+<th>范围</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong><a href="#输入上下文">输入上下文</a></strong></td>
+<td>启动时进入 agent 提示词的内容（系统提示词、内存、技能）</td>
+<td>静态，每次运行应用</td>
+</tr>
+<tr>
+<td><strong><a href="#运行时上下文">运行时上下文</a></strong></td>
+<td>调用时传入的静态配置（用户元数据、API 密钥、连接）</td>
+<td>每次运行，传播到子智能体</td>
+</tr>
+<tr>
+<td><strong><a href="#上下文压缩">上下文压缩</a></strong></td>
+<td>内置的卸载和摘要，以保持上下文在窗口限制内</td>
+<td>自动，接近限制时触发</td>
+</tr>
+<tr>
+<td><strong><a href="#使用子智能体进行上下文隔离">上下文隔离</a></strong></td>
+<td>使用子智能体隔离繁重工作，仅将结果返回主 agent</td>
+<td>每个子智能体，委托时</td>
+</tr>
+<tr>
+<td><strong><a href="#长期内存">长期内存</a></strong></td>
+<td>使用虚拟文件系统在跨线程持久存储</td>
+<td>跨对话持久</td>
+</tr>
+</tbody>
+</table>
+<h2 id="_2">输入上下文</h2>
+<p>输入上下文是在启动时提供给 deep agent 并成为其系统提示词一部分的信息。最终提示词由几个来源组成：</p>
+<ul>
+<li><strong>系统提示词（System prompt）</strong>：你提供的自定义指令加上内置 agent 指导。</li>
+<li><strong>内存（Memory）</strong>：配置后始终加载的持久 <code>AGENTS.md</code> 文件。</li>
+<li><strong>技能（Skills）</strong>：相关时加载的按需能力（渐进式披露）。</li>
+<li><strong>工具提示词（Tool prompts）</strong>：使用内置工具或自定义工具的指令。</li>
+</ul>
+<h3 id="_3">系统提示词</h3>
+<p>你的自定义系统提示词会前置到内置系统提示词，后者包含关于规划、文件系统工具和子智能体的指导。使用它来定义 agent 的角色、行为和知识：</p>
+<pre class="codehilite"><code class="language-python">from deepagents import create_deep_agent
+
+agent = create_deep_agent(
+    model=&quot;google_genai:gemini-3.1-pro-preview&quot;,
+    system_prompt=(
+        &quot;你是一个专注于科学文献的研究助手。&quot;
+        &quot;始终引用来源。使用子智能体（subagents）对不同主题进行并行研究。&quot;
+    ),
+)
+</code></pre>
+
+<p><code>system_prompt</code> 参数是静态的，意味着它不随每次调用而变化。对于某些用例，你可能需要动态提示词：例如告诉模型"你有管理员权限"与"你只有只读权限"，或从<a href="#长期内存">长期内存</a>注入用户偏好（如"用户偏好简洁回答"）。如果你的提示词依赖上下文或 <code>runtime.store</code>，请使用 <code>@dynamic_prompt</code> 构建上下文感知指令。你的中间件可以读取 <code>request.runtime.context</code> 和 <code>request.runtime.store</code>。</p>
+<p>仅当工具单独使用上下文或 <code>runtime.store</code> 时，你<strong>不</strong>需要中间件；工具直接接收 <a href="https://reference.langchain.com/python/langchain/tools/#langchain.tools.ToolRuntime">ToolRuntime</a> 对象（包括 <code>runtime.context</code> 和 <code>runtime.store</code>）。仅当工具应打包系统提示词更新时才添加中间件。</p>
+<h3 id="_4">内存</h3>
+<p>内存文件（<a href="https://agents.md/"><code>AGENTS.md</code></a>）提供<strong>始终加载</strong>到系统提示词中的持久上下文。用于项目规范、用户偏好和应应用于每次对话的关键指南：</p>
+<pre class="codehilite"><code class="language-python">agent = create_deep_agent(
+    model=&quot;google_genai:gemini-3.1-pro-preview&quot;,
+    memory=[&quot;/project/AGENTS.md&quot;, &quot;~/.deepagents/preferences.md&quot;],
+)
+</code></pre>
+
+<p>与技能不同，内存始终注入——没有渐进式披露。保持内存最小化以避免上下文过载；对详细工作流和领域特定内容使用 <a href="/oss/python/deepagents/skills">技能</a>。</p>
+<h3 id="_5">技能</h3>
+<p>技能提供<strong>按需</strong>能力。Agent 在启动时读取每个 <code>SKILL.md</code> 的 frontmatter，然后仅在确定技能相关时加载完整的技能内容。这减少了 token 使用，同时仍然提供专门的工作流：</p>
+<pre class="codehilite"><code class="language-python">agent = create_deep_agent(
+    model=&quot;google_genai:gemini-3.1-pro-preview&quot;,
+    skills=[&quot;/skills/research/&quot;, &quot;/skills/web-search/&quot;],
+)
+</code></pre>
+
+<p>保持每个技能专注于单个工作流或领域；宽泛或重叠的技能会稀释相关性并在加载时膨胀上下文。在技能内部，保持主要内容简洁，并将详细的参考资料移至技能文件中引用的单独文件。将始终相关的约定放在<a href="#内存">内存</a>中。</p>
+<h3 id="_6">工具提示词</h3>
+<p><a href="/oss/python/langchain/tools">工具</a>提示词是指引模型如何使用工具的指令。所有工具都暴露元数据（通常是模式（schema（模式））和描述），模型在其提示词中看到。你通过 <code>tools</code> 参数传递的工具将该工具元数据（模式和描述）暴露给模型。Deep agent 的内置工具打包在中间件中，通常还会用更多这些工具指导更新系统提示词。</p>
+<p><strong>内置工具</strong>——添加 harness 能力（规划、文件系统、子智能体）的中间件自动将工具特定指令追加到系统提示词，创建解释如何有效使用这些工具的工具提示词：</p>
+<ul>
+<li>规划提示词——<code>write_todos</code> 维护结构化任务列表的指令</li>
+<li>文件系统提示词——<code>ls</code>、<code>read_file</code>、<code>write_file</code>、<code>edit_file</code>、<code>glob</code>、<code>grep</code> 的文档（使用沙箱后端时加上 <code>execute</code>）</li>
+<li>子智能体提示词——使用 <code>task</code> 工具委托工作的指导</li>
+<li>Human-in-the-loop 提示词——在指定工具调用时暂停的用法（当 <code>interrupt_on</code> 设置时）</li>
+<li>本地上下文提示词——当前目录和项目信息（仅 CLI）</li>
+</ul>
+<p><strong>你提供的工具</strong>——通过 <code>tools</code> 参数传递的工具获取其描述（来自工具模式）发送给模型。你也可以添加<a href="/oss/python/langchain/middleware">自定义中间件</a>，添加工具并追加自己的系统提示词指令。</p>
+<p>对于你提供的工具，确保提供清晰的名称、描述和参数描述。这些指导模型推理何时以及如何使用工具。在描述中包含<strong>何时</strong>使用该工具，并描述每个参数的作用。</p>
+<pre class="codehilite"><code class="language-python">@tool(parse_docstring=True)
+def search_orders(
+    user_id: str,
+    status: str,
+    limit: int = 10
+) -&gt; str:
+    &quot;&quot;&quot;按状态搜索用户订单。
+
+    当用户询问订单历史或想检查订单状态时使用。始终过滤提供的状态。
+
+    Args:
+        user_id: 用户的唯一标识符
+        status: 订单状态：'pending'、'shipped' 或 'delivered'
+        limit: 要返回的最大结果数
+    &quot;&quot;&quot;
+    # 实现
+    ...
+</code></pre>
+
+<h3 id="_7">完整的系统提示词</h3>
+<p>Deep agent 的系统消息——模型在运行开始时接收的组装好的系统提示词——由以下部分组成：</p>
+<ol>
+<li>自定义 <code>system_prompt</code>（如果提供）</li>
+<li><a href="https://github.com/langchain-ai/deepagents/blob/e18e9dcd0e6edc72c0a4a5b76ae752c4bc539752/libs/deepagents/deepagents/graph.py#L37">基础 agent 提示词</a></li>
+<li>待办列表提示词：如何使用待办列表进行规划的指令</li>
+<li>内存提示词：<code>AGENTS.md</code> + 内存使用指南（仅在提供 <code>memory</code> 时）</li>
+<li>技能提示词：技能位置 + 带有 frontmatter 信息的技能列表 + 用法（仅在提供技能时）</li>
+<li>虚拟文件系统提示词（文件系统 + 执行工具文档，如适用）</li>
+<li>子智能体提示词：Task 工具用法</li>
+<li>用户提供的中间件提示词（如果提供自定义中间件）</li>
+<li>Human-in-the-loop 提示词（当 <code>interrupt_on</code> 设置时）</li>
+</ol>
+<h2 id="_8">运行时上下文</h2>
+<p>运行时上下文是你在调用 agent 时传入的每次运行配置。它不会自动包含在模型提示词中；模型仅在某工具、中间件或其他逻辑读取它并将其添加到消息或系统提示词时才看到它。将运行时上下文用于用户元数据（ID、偏好、角色）、API 密钥、数据库连接、功能标志或工具和 harness 需要的其他值。</p>
+<p>使用 <code>context_schema</code> 定义该数据的形状：使用 <code>dataclasses.dataclass</code> 或 <code>typing.TypedDict</code> 类。通过 <strong><code>context</code></strong> 参数传递值给 <code>invoke</code> / <code>ainvoke</code>。</p>
+<p>在工具内部，从注入的 <a href="https://reference.langchain.com/python/langchain/tools/#langchain.tools.ToolRuntime">ToolRuntime</a> 读取上下文：</p>
+<pre class="codehilite"><code class="language-python">from dataclasses import dataclass
+from deepagents import create_deep_agent
+from langchain.tools import tool, ToolRuntime
+
+@dataclass
+class Context:
+    user_id: str
+    api_key: str
+
+@tool
+def fetch_user_data(query: str, runtime: ToolRuntime[Context]) -&gt; str:
+    &quot;&quot;&quot;获取当前用户的数据。&quot;&quot;&quot;
+    user_id = runtime.context.user_id
+    return f&quot;Data for user {user_id}: {query}&quot;
+
+agent = create_deep_agent(
+    model=&quot;google_genai:gemini-3.1-pro-preview&quot;,
+    tools=[fetch_user_data],
+    context_schema=Context,
+)
+
+result = agent.invoke(
+    {&quot;messages&quot;: [{&quot;role&quot;: &quot;user&quot;, &quot;content&quot;: &quot;Get my recent activity&quot;}]},
+    context=Context(user_id=&quot;user-123&quot;, api_key=&quot;sk-...&quot;),
+)
+</code></pre>
+
+<p>运行时上下文<strong>传播到所有子智能体</strong>。当子智能体运行时，它接收与父级相同的运行时上下文。</p>
+<h2 id="_9">上下文压缩</h2>
+<p>长时间运行的任务会产生大量工具输出和长对话历史。上下文压缩在保留与任务相关细节的同时减少 agent 工作内存中的信息大小。以下技术是确保传递给 LLM 的上下文保持在上下文窗口限制内的内置机制：</p>
+<h3 id="offloading">卸载（Offloading）</h3>
+<p>Deep agents 使用<a href="/oss/python/deepagents/harness#virtual-filesystem-access">内置文件系统工具</a>自动卸载内容并在需要时搜索和检索该卸载的内容。当工具调用输入或结果超过 token 阈值（默认 20,000）时发生内容卸载：</p>
+<ol>
+<li>
+<p><strong>工具调用输入超过 20,000 token</strong>：文件写入和编辑操作在 agent 对话历史中留下包含完整文件内容的工具调用。由于这些内容已持久化到文件系统，通常是冗余的。当会话上下文超过模型可用窗口的 85% 时，deep agents 截断旧的工具调用，用磁盘上文件的指针替换它们，减少活跃上下文的大小。</p>
+</li>
+<li>
+<p><strong>工具调用结果超过 20,000 token</strong>：此时，deep agent 将响应卸载到配置的后端，并用文件路径引用和前 10 行预览替换它。然后 agent 可以根据需要重新读取或搜索内容。</p>
+</li>
+</ol>
+<h3 id="summarization">摘要（Summarization）</h3>
+<p>当上下文大小超过模型的上下文窗口限制（例如 <code>max_input_tokens</code> 的 85%），且没有更多上下文符合卸载条件时，deep agent 会摘要消息历史。</p>
+<p>此过程有两个组件：</p>
+<ul>
+<li><strong>上下文内摘要</strong>：LLM 生成会话的结构化摘要，包括会话意图、创建的工件和下一步——这替换了 agent 工作内存中的完整对话历史。</li>
+<li><strong>文件系统持久化</strong>：完整的原始对话消息作为规范记录写入文件系统。</li>
+</ul>
+<p>这种双管齐下的方法确保 agent 保持对其目标和进展的认识（通过摘要），同时保留在需要时恢复具体细节的能力（通过文件系统搜索）。</p>
+<p><strong>配置：</strong><br />
+- 在模型的 <code>max_input_tokens</code> 的 85% 时触发，来自其<a href="/oss/python/langchain/models#model-profiles">模型配置文件</a><br />
+- 保留 10% 的 token 作为近期上下文<br />
+- 如果模型配置文件不可用，回退到 170,000 token 触发 / 保留 6 条消息<br />
+- 如果任何模型调用引发标准 <a href="https://reference.langchain.com/python/langchain-core/exceptions/ContextOverflowError">ContextOverflowError</a>，deep agent 立即回退到摘要并使用摘要 + 近期保留的消息重试<br />
+- 旧消息由模型摘要</p>
+<blockquote>
+<p>Agent 的<a href="/oss/python/deepagents/streaming#llm-tokens">流式 token</a> 通常包括摘要步骤生成的 token。你可以使用其关联的元数据过滤这些 token：</p>
+<p><code>python
+for chunk in agent.stream(
+    {"messages": [...]},
+    stream_mode="messages",
+    version="v2",
+):
+    token, metadata = chunk["data"]
+    if metadata.get("lc_source") == "summarization":
+        continue
+    else:
+        ...</code></p>
+</blockquote>
+<h2 id="_10">使用子智能体进行上下文隔离</h2>
+<p>子智能体解决了<strong>上下文膨胀问题</strong>。当主 agent 使用具有大输出的工具（网络搜索、文件读取、数据库查询）时，上下文窗口迅速填满。子智能体隔离这些工作——主 agent 仅接收最终结果，而非产生结果的数十次工具调用。你还可以将每个子智能体与主 agent 分开配置（例如模型、工具、系统提示词和技能）。</p>
+<p><strong>工作原理：</strong><br />
+- 主 agent 有 <code>task</code> 工具来委托工作<br />
+- 子智能体使用自己的全新上下文运行<br />
+- 子智能体自主执行直到完成<br />
+- 子智能体向主 agent 返回单个最终报告<br />
+- 主 agent 的上下文保持干净</p>
+<p><strong>最佳实践：</strong></p>
+<ol>
+<li>
+<p><strong>委托复杂任务</strong>：对多步骤工作使用子智能体，以免混乱主 agent 的上下文。</p>
+</li>
+<li>
+<p><strong>保持子智能体响应简洁</strong>：指导子智能体返回摘要，而非原始数据：</p>
+</li>
+</ol>
+<p><code>python
+   research_subagent = {
+       "name": "researcher",
+       "description": "对主题进行研究",
+       "system_prompt": """你是一个研究助手。
+       重要：仅返回基本摘要（500 字以内）。
+       不要包含原始搜索结果或详细的工具输出。""",
+       "tools": [web_search],
+   }</code></p>
+<ol>
+<li><strong>对大型数据使用文件系统</strong>：子智能体可以将结果写入文件；主 agent 读取它需要的内容。</li>
+</ol>
+<h2 id="_11">长期内存</h2>
+<p>使用默认文件系统时，你的 deep agent 将其工作内存文件存储在 agent 状态中，这仅在线程内持久。长期内存使你的 deep agent 能够跨不同线程和对话持久信息。Deep agents 可以使用长期内存来存储用户偏好、累积知识、研究进展或任何应在单次会话之外持久的信息。</p>
+<p>要使用长期内存，你必须使用 <code>CompositeBackend</code>，将特定路径（通常是 <code>/memories/</code>）路由到 LangGraph Store，后者提供持久的跨线程持久化。<code>CompositeBackend</code> 是一个混合存储系统，其中一些文件无限期持久，而另一些则限定在单个线程内。</p>
+<pre class="codehilite"><code class="language-python">from deepagents import create_deep_agent
+from deepagents.backends import CompositeBackend, StateBackend, StoreBackend
+from langgraph.store.memory import InMemoryStore
+
+def make_backend(runtime):
+    return CompositeBackend(
+        default=StateBackend(runtime),
+        routes={&quot;/memories/&quot;: StoreBackend(runtime)},
+    )
+
+agent = create_deep_agent(
+    model=&quot;google_genai:gemini-3.1-pro-preview&quot;,
+    store=InMemoryStore(),
+    backend=make_backend,
+    system_prompt=&quot;&quot;&quot;当用户告诉你他们的偏好时，将它们保存到
+    /memories/user_preferences.txt，以便你在未来对话中记住它们。&quot;&quot;&quot;,
+)
+</code></pre>
+
+<p>你不需要预先填充 <code>/memories/</code> 中的文件。你提供后端配置、存储和系统提示指令，告诉 agent <em>保存什么</em>和<em>保存到哪里</em>。例如，你可以提示 agent 将偏好存储在 <code>/memories/preferences.txt</code> 中。路径开始时为空，当用户分享值得记住的信息时，agent 使用其文件系统工具（<code>write_file</code>、<code>edit_file</code>）按需创建文件。</p>
+<p>要预播种内存，在 LangSmith 上部署时使用 <a href="/langsmith/custom-store">Store API</a>。</p>
+<h2 id="_12">最佳实践</h2>
+<ol>
+<li><strong>从正确的输入上下文开始</strong>——保持内存最小化，用于始终相关的约定；对特定于任务的能力使用聚焦的技能。</li>
+<li><strong>利用子智能体进行繁重工作</strong>——将多步骤、输出密集的任务委托给子智能体，以保持主 agent 的上下文干净。</li>
+<li><strong>在配置中调整子智能体输出</strong>——如果你在调试时注意到子智能体生成长输出，你可以在子智能体的 <code>system_prompt</code> 中添加指导，要求创建摘要和综合发现。</li>
+<li><strong>使用文件系统</strong>——将大输出持久化到文件（例如子智能体写入或<a href="#卸载">自动卸载</a>），以便活跃上下文保持较小；模型可以在需要细节时使用 <code>read_file</code> 和 <code>grep</code> 拉入片段。</li>
+<li><strong>记录长期内存结构</strong>——告诉 agent <code>/memories/</code> 中有什么以及如何使用它。</li>
+<li><strong>为工具传递运行时上下文</strong>——对工具需要的用户元数据、API 密钥和其他静态配置使用 <code>context</code>。</li>
+</ol>
+</body>
+</html>

@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Permissions（权限）</title>
+  
+<style>
+  :root {
+    --bg: #ffffff;
+    --text: #1a1a2e;
+    --code-bg: #1e1e2e;
+    --code-text: #cdd6f4;
+    --link: #2563eb;
+    --border: #e2e8f0;
+    --thead-bg: #f8fafc;
+    --stripe-bg: #f8fafc;
+    --h1-color: #0f172a;
+    --h2-color: #1e293b;
+    --blockquote-bg: #f0f9ff;
+    --blockquote-border: #3b82f6;
+    --note-bg: #fefce8;
+    --note-border: #eab308;
+    --warning-bg: #fef2f2;
+    --warning-border: #ef4444;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #0f172a;
+      --text: #e2e8f0;
+      --code-bg: #1e1e2e;
+      --code-text: #cdd6f4;
+      --link: #60a5fa;
+      --border: #334155;
+      --thead-bg: #1e293b;
+      --stripe-bg: #1e293b;
+      --h1-color: #f8fafc;
+      --h2-color: #e2e8f0;
+      --blockquote-bg: #1e293b;
+      --blockquote-border: #3b82f6;
+      --note-bg: #422006;
+      --note-border: #eab308;
+      --warning-bg: #450a0a;
+      --warning-border: #ef4444;
+    }
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    line-height: 1.7;
+    color: var(--text);
+    background: var(--bg);
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 40px 20px 80px;
+  }
+  h1 { font-size: 2.2em; font-weight: 700; color: var(--h1-color); margin: 0 0 8px; padding-top: 20px; }
+  h2 { font-size: 1.6em; font-weight: 600; color: var(--h2-color); margin: 40px 0 16px; padding-bottom: 8px; border-bottom: 1px solid var(--border); }
+  h3 { font-size: 1.3em; font-weight: 600; color: var(--h2-color); margin: 30px 0 12px; }
+  h4 { font-size: 1.1em; font-weight: 600; margin: 24px 0 8px; }
+  p { margin: 12px 0; }
+  a { color: var(--link); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+  ul, ol { margin: 12px 0; padding-left: 24px; }
+  li { margin: 4px 0; }
+  li > ul, li > ol { margin: 4px 0; }
+  code {
+    font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, Courier, monospace;
+    background: var(--code-bg);
+    color: var(--code-text);
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-size: 0.9em;
+  }
+  pre {
+    background: var(--code-bg);
+    color: var(--code-text);
+    padding: 16px 20px;
+    border-radius: 8px;
+    overflow-x: auto;
+    margin: 16px 0;
+    font-size: 0.88em;
+    line-height: 1.5;
+  }
+  pre code {
+    background: none;
+    padding: 0;
+    color: inherit;
+    font-size: inherit;
+  }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 16px 0;
+    font-size: 0.95em;
+  }
+  th {
+    background: var(--thead-bg);
+    font-weight: 600;
+    text-align: left;
+    padding: 10px 14px;
+    border: 1px solid var(--border);
+  }
+  td {
+    padding: 10px 14px;
+    border: 1px solid var(--border);
+    vertical-align: top;
+  }
+  tr:nth-child(even) { background: var(--stripe-bg); }
+  blockquote {
+    border-left: 4px solid var(--blockquote-border);
+    background: var(--blockquote-bg);
+    padding: 12px 16px;
+    margin: 16px 0;
+    border-radius: 0 8px 8px 0;
+  }
+  blockquote blockquote { margin: 8px 0; }
+  hr { border: none; border-top: 2px solid var(--border); margin: 32px 0; }
+  .original-link {
+    font-size: 0.9em;
+    color: #64748b;
+    margin-bottom: 24px;
+  }
+  /* Syntax highlighting approximation */
+  pre code .comment { color: #6a9955; }
+  pre code .keyword { color: #c678dd; }
+  pre code .string { color: #98c379; }
+  pre code .function { color: #61afef; }
+  pre code .number { color: #d19a66; }
+  pre code .class-name { color: #e5c07b; }
+</style>
+
+</head>
+<body>
+<h1 id="permissions">Permissions（权限）</h1>
+<blockquote>
+<p>原文：<a href="https://docs.langchain.com/oss/python/deepagents/permissions">https://docs.langchain.com/oss/python/deepagents/permissions</a></p>
+<p>使用文件系统权限规则控制 agent（智能体）对文件和目录的访问。</p>
+</blockquote>
+<p>文件系统权限为 agent（智能体）可读写哪些路径提供<strong>声明式控制</strong>。与中间件中的命令式策略（策略钩子）不同，文件系统权限是声明性的：你指定允许/拒绝哪些操作和哪些路径，权限系统为你强制执行。</p>
+<p>它们用于实现诸如"agent 可以写入 <code>/workspace</code> 但不能写入 <code>/secrets</code>"或"所有子智能体对 <code>/public/*</code> 有只读权限"等场景。</p>
+<h2 id="_1">快速开始</h2>
+<p>将 <a href="https://reference.langchain.com/python/deepagents/permissions/FilesystemPermission"><code>FilesystemPermission</code></a> 对象列表传递给 <code>create_deep_agent</code> 上的 <code>permissions</code> 参数：</p>
+<pre class="codehilite"><code class="language-python">from deepagents import create_deep_agent, FilesystemPermission
+
+agent = create_deep_agent(
+    model=&quot;google_genai:gemini-3.1-pro-preview&quot;,
+    permissions=[
+        FilesystemPermission(
+            operations=[&quot;write&quot;, &quot;edit&quot;],
+            paths=[&quot;/workspace/**&quot;],
+        ),
+        FilesystemPermission(
+            operations=[&quot;read&quot;, &quot;write&quot;, &quot;edit&quot;],
+            paths=[&quot;/secrets/**&quot;],
+            mode=&quot;deny&quot;,
+        ),
+    ],
+)
+</code></pre>
+
+<p>在此配置中，agent 可以对 <code>/workspace</code> 中的文件执行 <code>write</code> 和 <code>edit</code> 操作，但会被阻止对 <code>/secrets</code> 目录执行任何操作。</p>
+<blockquote>
+<p>权限应用于<strong>内置文件系统工具</strong>（<code>read_file</code>、<code>write_file</code>、<code>edit_file</code>、<code>ls</code>、<code>glob</code>、<code>grep</code>）。要控制 <code>execute</code> 工具的权限，请改用中间件（例如 <a href="/oss/python/deepagents/human-in-the-loop"><code>HumanInTheLoopMiddleware</code></a>）。</p>
+</blockquote>
+<h2 id="filesystempermission">FilesystemPermission 选项</h2>
+<p>每个权限由以下字段定义：</p>
+<table>
+<thead>
+<tr>
+<th>字段</th>
+<th>类型</th>
+<th>默认</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>operations</code></td>
+<td><code>list[Literal["read", "write", "edit"]]</code></td>
+<td>必需</td>
+<td>此规则适用的操作。</td>
+</tr>
+<tr>
+<td><code>paths</code></td>
+<td><code>list[str]</code></td>
+<td>必需</td>
+<td>此规则适用的路径。支持 <code>**</code> glob 模式。必须使用绝对路径。</td>
+</tr>
+<tr>
+<td><code>mode</code></td>
+<td><code>Literal["allow", "deny"]</code></td>
+<td><code>"allow"</code></td>
+<td>权限模式。使用 <code>"deny"</code> 阻止特定操作。</td>
+</tr>
+<tr>
+<td><code>description</code></td>
+<td><code>str</code></td>
+<td><code>""</code></td>
+<td>规则的人类可读描述。当向 agent 解释权限限制时用于上下文。</td>
+</tr>
+<tr>
+<td><code>agents</code></td>
+<td><code>Literal["supervisor", "subagent"]</code></td>
+<td><code>"supervisor"</code></td>
+<td>此规则适用的 agent。使用 <code>"subagent"</code> 来限制规则仅对子智能体生效。</td>
+</tr>
+</tbody>
+</table>
+<h2 id="_2">规则排序</h2>
+<p>规则按<strong>顺序评估</strong>——第一条匹配的规则生效。将拒绝规则放在允许规则之前以实现更严格的限制，或在允许规则之后放置拒绝规则以创建例外。</p>
+<pre class="codehilite"><code class="language-python">permissions=[
+    # 允许对整个 workspace 的读写
+    FilesystemPermission(operations=[&quot;read&quot;, &quot;write&quot;], paths=[&quot;/workspace/**&quot;]),
+    # 但在 config 子目录中只允许读
+    FilesystemPermission(operations=[&quot;write&quot;], paths=[&quot;/workspace/config/**&quot;], mode=&quot;deny&quot;),
+]
+</code></pre>
+
+<h2 id="_3">子智能体权限</h2>
+<p>默认情况下，权限应用于 supervisor agent（主管智能体）。使用 <code>agents="subagent"</code> 将规则限定到子智能体：</p>
+<pre class="codehilite"><code class="language-python">permissions=[
+    # Supervisor 可以读写一切
+    FilesystemPermission(operations=[&quot;read&quot;, &quot;write&quot;, &quot;edit&quot;], paths=[&quot;/**&quot;]),
+    # 子智能体只能读取 /public 和 /workspace
+    FilesystemPermission(
+        operations=[&quot;read&quot;, &quot;write&quot;],
+        paths=[&quot;/public/**&quot;, &quot;/workspace/**&quot;],
+        agents=&quot;subagent&quot;,
+    ),
+]
+</code></pre>
+
+<p>使用子智能体权限来：<br />
+- 将子智能体限制在文件系统的特定部分<br />
+- 允许子智能体写入暂存区但防止覆盖关键文件<br />
+- 为每个子智能体创建不同的权限范围</p>
+<h2 id="_4">与复合后端交互</h2>
+<p>权限评估应用于后端解析文件路径<strong>之前</strong>。当使用 <a href="/oss/python/deepagents/backends#compositebackend-路由器"><code>CompositeBackend</code></a> 时，权限规则针对 agent 看到的原始路径进行评估。</p>
+<pre class="codehilite"><code class="language-python">from deepagents import create_deep_agent
+from deepagents.backends import CompositeBackend, StateBackend, StoreBackend
+from deepagents.permissions import FilesystemPermission
+
+agent = create_deep_agent(
+    model=&quot;google_genai:gemini-3.1-pro-preview&quot;,
+    backend=CompositeBackend(
+        default=StateBackend(),
+        routes={&quot;/memories/&quot;: StoreBackend()},
+    ),
+    permissions=[
+        # 此规则应用于 agent 看到的 &quot;/memories/&quot; 前缀
+        FilesystemPermission(
+            operations=[&quot;write&quot;],
+            paths=[&quot;/memories/readonly/**&quot;],
+            mode=&quot;deny&quot;,
+        ),
+    ],
+)
+</code></pre>
+
+<p>权限不知道后端路由——它只看到 agent 请求的路径。路由仍然决定哪个后端处理操作。</p>
+</body>
+</html>

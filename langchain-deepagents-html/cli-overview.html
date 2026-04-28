@@ -1,0 +1,922 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Deep Agents CLI</title>
+  
+<style>
+  :root {
+    --bg: #ffffff;
+    --text: #1a1a2e;
+    --code-bg: #1e1e2e;
+    --code-text: #cdd6f4;
+    --link: #2563eb;
+    --border: #e2e8f0;
+    --thead-bg: #f8fafc;
+    --stripe-bg: #f8fafc;
+    --h1-color: #0f172a;
+    --h2-color: #1e293b;
+    --blockquote-bg: #f0f9ff;
+    --blockquote-border: #3b82f6;
+    --note-bg: #fefce8;
+    --note-border: #eab308;
+    --warning-bg: #fef2f2;
+    --warning-border: #ef4444;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #0f172a;
+      --text: #e2e8f0;
+      --code-bg: #1e1e2e;
+      --code-text: #cdd6f4;
+      --link: #60a5fa;
+      --border: #334155;
+      --thead-bg: #1e293b;
+      --stripe-bg: #1e293b;
+      --h1-color: #f8fafc;
+      --h2-color: #e2e8f0;
+      --blockquote-bg: #1e293b;
+      --blockquote-border: #3b82f6;
+      --note-bg: #422006;
+      --note-border: #eab308;
+      --warning-bg: #450a0a;
+      --warning-border: #ef4444;
+    }
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    line-height: 1.7;
+    color: var(--text);
+    background: var(--bg);
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 40px 20px 80px;
+  }
+  h1 { font-size: 2.2em; font-weight: 700; color: var(--h1-color); margin: 0 0 8px; padding-top: 20px; }
+  h2 { font-size: 1.6em; font-weight: 600; color: var(--h2-color); margin: 40px 0 16px; padding-bottom: 8px; border-bottom: 1px solid var(--border); }
+  h3 { font-size: 1.3em; font-weight: 600; color: var(--h2-color); margin: 30px 0 12px; }
+  h4 { font-size: 1.1em; font-weight: 600; margin: 24px 0 8px; }
+  p { margin: 12px 0; }
+  a { color: var(--link); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+  ul, ol { margin: 12px 0; padding-left: 24px; }
+  li { margin: 4px 0; }
+  li > ul, li > ol { margin: 4px 0; }
+  code {
+    font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, Courier, monospace;
+    background: var(--code-bg);
+    color: var(--code-text);
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-size: 0.9em;
+  }
+  pre {
+    background: var(--code-bg);
+    color: var(--code-text);
+    padding: 16px 20px;
+    border-radius: 8px;
+    overflow-x: auto;
+    margin: 16px 0;
+    font-size: 0.88em;
+    line-height: 1.5;
+  }
+  pre code {
+    background: none;
+    padding: 0;
+    color: inherit;
+    font-size: inherit;
+  }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 16px 0;
+    font-size: 0.95em;
+  }
+  th {
+    background: var(--thead-bg);
+    font-weight: 600;
+    text-align: left;
+    padding: 10px 14px;
+    border: 1px solid var(--border);
+  }
+  td {
+    padding: 10px 14px;
+    border: 1px solid var(--border);
+    vertical-align: top;
+  }
+  tr:nth-child(even) { background: var(--stripe-bg); }
+  blockquote {
+    border-left: 4px solid var(--blockquote-border);
+    background: var(--blockquote-bg);
+    padding: 12px 16px;
+    margin: 16px 0;
+    border-radius: 0 8px 8px 0;
+  }
+  blockquote blockquote { margin: 8px 0; }
+  hr { border: none; border-top: 2px solid var(--border); margin: 32px 0; }
+  .original-link {
+    font-size: 0.9em;
+    color: #64748b;
+    margin-bottom: 24px;
+  }
+  /* Syntax highlighting approximation */
+  pre code .comment { color: #6a9955; }
+  pre code .keyword { color: #c678dd; }
+  pre code .string { color: #98c379; }
+  pre code .function { color: #61afef; }
+  pre code .number { color: #d19a66; }
+  pre code .class-name { color: #e5c07b; }
+</style>
+
+</head>
+<body>
+<h1 id="deep-agents-cli">Deep Agents CLI</h1>
+<blockquote>
+<p>原文：<a href="https://docs.langchain.com/oss/python/deepagents/cli/overview">https://docs.langchain.com/oss/python/deepagents/cli/overview</a></p>
+<p>基于 Deep Agents SDK 构建的终端编码 agent（智能体）。</p>
+</blockquote>
+<p>Deep Agents CLI 是一个基于 <a href="/oss/python/deepagents/quickstart">Deep Agents SDK</a> 构建的开源终端编码 agent。它保留持久化内存、跨会话维护上下文、学习项目规范、使用可自定义的技能（skills（技能）），并在执行代码时带有审批控制。</p>
+<p>Deep Agents CLI 内置以下能力：</p>
+<ul>
+<li><strong>文件操作</strong> — 读取、写入和编辑文件，使 agent 能够管理和修改代码和文档。</li>
+<li><strong>Shell 执行</strong> — 执行命令来运行测试、构建项目、管理依赖和与版本控制交互。</li>
+<li><strong>网络搜索</strong> — 搜索网络以获取最新信息和文档（需要 Tavily API 密钥）。</li>
+<li><strong>HTTP 请求</strong> — 向 API 和外部服务发出 HTTP 请求，用于数据获取和集成任务。</li>
+<li><strong>任务规划和跟踪</strong> — 将复杂任务分解为离散步骤并跟踪进度。</li>
+<li><strong>内存存储和检索</strong> — 跨会话存储和检索信息，使 agent 能够记住项目规范和学习到的模式。</li>
+<li><strong>上下文压缩和卸载</strong> — 摘要旧对话消息并将原始消息卸载到存储，在长时间会话期间释放上下文窗口空间。</li>
+<li><strong>Human-in-the-loop（人在回路中）</strong> — 要求人工审批敏感工具操作。</li>
+<li><strong>技能</strong> — 通过自定义专业知识和指令扩展 agent 能力。</li>
+<li><strong><a href="/oss/python/deepagents/cli/mcp-tools">MCP 工具</a></strong> — 从 <a href="https://modelcontextprotocol.io/">Model Context Protocol</a> 服务器加载外部工具。</li>
+<li><strong><a href="/oss/python/deepagents/cli/overview#tracing-with-langsmith">Tracing（追踪）</a></strong> — 在 LangSmith 中追踪 agent 操作，用于可观测性和调试。</li>
+</ul>
+<h2 id="_1">内置工具</h2>
+<p>Agent 附带以下内置工具，无需配置即可使用：</p>
+<table>
+<thead>
+<tr>
+<th>工具</th>
+<th>描述</th>
+<th>Human-in-the-Loop</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>ls</code></td>
+<td>列出文件和目录</td>
+<td>-</td>
+</tr>
+<tr>
+<td><code>read_file</code></td>
+<td>读取文件内容；对选定模型支持多模态内容</td>
+<td>-</td>
+</tr>
+<tr>
+<td><code>write_file</code></td>
+<td>创建或覆盖文件</td>
+<td>必需1</td>
+</tr>
+<tr>
+<td><code>edit_file</code></td>
+<td>对现有文件进行针对性编辑</td>
+<td>必需1</td>
+</tr>
+<tr>
+<td><code>glob</code></td>
+<td>查找匹配模式的文件</td>
+<td>-</td>
+</tr>
+<tr>
+<td><code>grep</code></td>
+<td>跨文件搜索文本模式</td>
+<td>-</td>
+</tr>
+<tr>
+<td><code>execute</code></td>
+<td>本地或在远程沙箱中执行 shell 命令</td>
+<td>必需1</td>
+</tr>
+<tr>
+<td><code>web_search</code></td>
+<td>使用 Tavily 搜索网络</td>
+<td>必需1</td>
+</tr>
+<tr>
+<td><code>fetch_url</code></td>
+<td>获取网页并转换为 Markdown</td>
+<td>必需1</td>
+</tr>
+<tr>
+<td><code>task</code></td>
+<td>将工作委托给子智能体并行执行</td>
+<td>必需1</td>
+</tr>
+<tr>
+<td><code>ask_user</code></td>
+<td>向用户提出自由形式或多项选择题</td>
+<td>-</td>
+</tr>
+<tr>
+<td><code>compact_conversation</code></td>
+<td>摘要旧消息，将原始消息卸载到后端存储，并在上下文中用摘要替换</td>
+<td>混合2</td>
+</tr>
+<tr>
+<td><code>write_todos</code></td>
+<td>为复杂工作创建和管理任务列表</td>
+<td>-</td>
+</tr>
+</tbody>
+</table>
+<p>1：可能具有破坏性的操作在执行前需要用户审批。要跳过人工审批，你可以切换自动审批（shift+tab）或使用以下选项启动：</p>
+<pre class="codehilite"><code class="language-bash">deepagents -y
+# 或
+deepagents --auto-approve
+</code></pre>
+
+<blockquote>
+<p>以非交互方式运行 CLI 时（通过 <code>-n</code> 或管道 stdin），即使使用 <code>-y</code>/<code>--auto-approve</code>，shell 执行默认也被禁用。使用 <code>-S</code>/<code>--shell-allow-list</code> 来允许特定命令（如 <code>-S "pytest,git,make"</code>）、<code>recommended</code> 获取安全默认值，或 <code>all</code> 允许任何命令。也支持 <code>DEEPAGENTS_CLI_SHELL_ALLOW_LIST</code> 环境变量。参见<a href="#非交互模式和管道">非交互模式和管道</a>获取详情。</p>
+</blockquote>
+<p>2：当 token 使用超过模型感知阈值时，CLI 会在后台自动卸载对话。卸载通过 LLM 摘要旧消息，并将原始消息弹出到存储（<code>/conversation_history/{thread_id}.md</code>），在上下文中用摘要替换它们。Agent 仍可从卸载的文件中检索完整历史（如果需要）。<code>compact_conversation</code> 工具让 agent（或你）按需触发卸载。作为工具调用时，默认需要用户审批。</p>
+<blockquote>
+<p><a href="https://youtu.be/IrnacLa9PJc?si=3yUnPbxnm2yaqVQb">观看演示视频</a> 了解 Deep Agents CLI 的工作方式。</p>
+<p>Deep Agents CLI 在 Windows 上不受官方支持。Windows 用户可以尝试在 <a href="https://learn.microsoft.com/en-us/windows/wsl/install">Windows Subsystem for Linux (WSL)</a> 下运行。</p>
+</blockquote>
+<h2 id="_2">快速开始</h2>
+<h3 id="1">1. 设置模型凭据</h3>
+<p>将你的提供商 API 密钥导出为环境变量，或添加到 <code>~/.deepagents/.env</code>：</p>
+<pre class="codehilite"><code class="language-bash"># OpenAI
+export OPENAI_API_KEY=&quot;your-api-key&quot;
+
+# Anthropic
+export ANTHROPIC_API_KEY=&quot;your-api-key&quot;
+
+# Google
+export GOOGLE_API_KEY=&quot;your-api-key&quot;
+</code></pre>
+
+<blockquote>
+<p>为避免在每个终端会话中设置密钥，将它们添加到 <code>~/.deepagents/.env</code>。参见<a href="/oss/python/deepagents/cli/configuration#environment-variables">环境变量</a>。</p>
+</blockquote>
+<p>CLI 可与任何支持工具调用的 LLM 配合使用。OpenAI、Anthropic 和 Google 默认安装。对于其他提供商（Ollama、Groq、xAI 等），参见<a href="#提供商">提供商</a>。</p>
+<h3 id="2">2. 安装并运行</h3>
+<p>OpenAI、Anthropic 和 Google 默认包含。其他提供商（Ollama、Groq、xAI 等）作为可选额外组件安装——参见<a href="#提供商">提供商</a>获取详情。</p>
+<pre class="codehilite"><code class="language-bash"># 使用安装脚本
+curl -LsSf https://raw.githubusercontent.com/langchain-ai/deepagents/refs/heads/main/libs/cli/scripts/install.sh | bash
+
+# 可选额外组件
+DEEPAGENTS_EXTRAS=&quot;ollama,groq&quot; curl -LsSf https://raw.githubusercontent.com/langchain-ai/deepagents/refs/heads/main/libs/cli/scripts/install.sh | bash
+
+# 或使用 uv
+uv tool install 'deepagents-cli[ollama,groq]'
+</code></pre>
+
+<pre class="codehilite"><code class="language-bash">deepagents
+</code></pre>
+
+<h3 id="3-agent">3. 给 agent 一个任务</h3>
+<pre class="codehilite"><code class="language-txt">Create a Python script that prints &quot;Hello, World!&quot;
+</code></pre>
+
+<p>Agent 在修改文件之前会提出带有 diff 的更改供你审批。</p>
+<h3 id="4-tracing">4. 启用 Tracing（可选）</h3>
+<p>要在 LangSmith 中查看 agent 操作、工具调用和决策，将以下内容添加到 <code>~/.deepagents/.env</code> 或在 shell 中导出变量：</p>
+<pre class="codehilite"><code class="language-bash">LANGSMITH_TRACING=true
+LANGSMITH_API_KEY=lsv2_...
+LANGSMITH_PROJECT=optional-project-name  # 指定项目名称或默认为 &quot;deepagents-cli&quot;
+</code></pre>
+
+<h2 id="_3">提供商</h2>
+<p>OpenAI、Anthropic 和 Google 开箱即含。其他提供商分别安装，因此你只拉取需要的内容。</p>
+<pre class="codehilite"><code class="language-bash"># 向现有安装添加额外提供商
+uv tool install deepagents-cli --with langchain-xai
+</code></pre>
+
+<p>有关支持的提供商完整列表，请参见<a href="/oss/python/deepagents/cli/providers">模型提供商</a>。</p>
+<h2 id="_4">交互模式</h2>
+<p>像聊天界面一样自然地输入。Agent 将使用其内置工具、技能和内存来帮助你完成任务。</p>
+<h3 id="_5">斜杠命令</h3>
+<p>在 CLI 会话中使用这些命令：</p>
+<ul>
+<li><code>/model</code> — 切换模型或打开交互式模型选择器。参见<a href="#切换模型">切换模型</a>获取详情</li>
+<li><code>/agents</code> — 在预配置的 agent 之间热切换，无需重新启动。参见<a href="#切换-agents">切换 agent</a>获取详情</li>
+<li><code>/remember [context]</code> — 审查对话并更新内存和技能。可选择传递额外上下文</li>
+<li><code>/skill: [args]</code> — 按名称直接调用技能。技能的 <code>SKILL.md</code> 指令连同你提供的任何参数一起注入提示词</li>
+<li><code>/skill-creator [args]</code> — 创建有效 agent 技能的指南</li>
+<li><code>/offload</code>（别名 <code>/compact</code>）— 通过将消息卸载到存储并带有摘要占位符来释放上下文窗口空间。Agent 可在需要时从卸载文件中检索完整历史</li>
+<li><code>/tokens</code> — 显示当前上下文窗口 token 使用量细分</li>
+<li><code>/clear</code> — 清除对话历史并开始新线程</li>
+<li><code>/threads</code> — 浏览和恢复之前的对话线程</li>
+<li><code>/mcp</code> — 显示活跃的 MCP 服务器和工具</li>
+<li><code>/reload</code> — 重新读取 <code>.env</code> 文件、刷新配置并重新发现技能，无需重启。对话状态保留。参见<a href="/oss/python/deepagents/cli/configuration#deepagents_cli_-prefix"><code>DEEPAGENTS_CLI_</code> 前缀</a>获取覆盖行为</li>
+<li><code>/theme</code> — 打开交互式主题选择器以切换颜色主题。可使用内置主题和任何<a href="/oss/python/deepagents/cli/configuration#themes">用户定义主题</a></li>
+<li><code>/update</code> — 内联检查和安装 CLI 更新。检测你的安装方法（uv、Homebrew、pip）并运行相应的升级命令</li>
+<li><code>/auto-update</code> — 切换自动更新的开关</li>
+<li><code>/trace</code> — 在 LangSmith 中打开当前线程（需要 <code>LANGSMITH_API_KEY</code>）</li>
+<li><code>/editor</code> — 在外部编辑器（<code>$VISUAL</code> / <code>$EDITOR</code>）中打开当前提示词。参见<a href="/oss/python/deepagents/cli/configuration#external-editor">外部编辑器</a></li>
+<li><code>/changelog</code> — 在浏览器中打开 CLI 变更日志</li>
+<li><code>/docs</code> — 在浏览器中打开文档</li>
+<li><code>/feedback</code> — 打开 GitHub issues 页面提交 bug 报告或功能请求</li>
+<li><code>/version</code> — 显示已安装的 <code>deepagents-cli</code> 和 SDK 版本</li>
+<li><code>/help</code> — 显示帮助和可用命令</li>
+<li><code>/quit</code> — 退出 CLI</li>
+</ul>
+<h3 id="shell">Shell 命令</h3>
+<p>输入 <code>!</code> 进入 shell 模式，然后输入你的命令。</p>
+<pre class="codehilite"><code class="language-bash">git status
+npm test
+ls -la
+</code></pre>
+
+<h3 id="_6">键盘快捷键</h3>
+<p><strong>通用</strong></p>
+<table>
+<thead>
+<tr>
+<th>快捷键</th>
+<th>操作</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>Enter</code></td>
+<td>提交提示词</td>
+</tr>
+<tr>
+<td><code>Shift+Enter</code>、<code>Ctrl+J</code>、<code>Alt+Enter</code> 或 <code>Ctrl+Enter</code></td>
+<td>插入新行</td>
+</tr>
+<tr>
+<td><code>Ctrl+A</code></td>
+<td>选择输入中的所有文本</td>
+</tr>
+<tr>
+<td><code>@filename</code></td>
+<td>自动补全文件并注入内容</td>
+</tr>
+<tr>
+<td><code>Shift+Tab</code> 或 <code>Ctrl+T</code></td>
+<td>切换自动审批</td>
+</tr>
+<tr>
+<td><code>Ctrl+U</code></td>
+<td>删除到行首</td>
+</tr>
+<tr>
+<td><code>Ctrl+X</code></td>
+<td>在外部编辑器中打开提示词</td>
+</tr>
+<tr>
+<td><code>Ctrl+O</code></td>
+<td>展开/折叠最近的工具输出</td>
+</tr>
+<tr>
+<td><code>Escape</code></td>
+<td>中断当前操作</td>
+</tr>
+<tr>
+<td><code>Ctrl+C</code></td>
+<td>中断或退出</td>
+</tr>
+<tr>
+<td><code>Ctrl+D</code></td>
+<td>退出</td>
+</tr>
+</tbody>
+</table>
+<h2 id="_7">非交互模式和管道</h2>
+<p>使用 <code>-n</code> 运行单个任务，无需启动交互式 UI：</p>
+<pre class="codehilite"><code class="language-bash">deepagents -n &quot;Write a Python script that prints hello world&quot;
+</code></pre>
+
+<p>你也可以通过 stdin 管道输入。当输入是管道时，CLI 自动以非交互方式运行：</p>
+<pre class="codehilite"><code class="language-bash">echo &quot;Explain this code&quot; | deepagents
+cat error.log | deepagents -n &quot;What's causing this error?&quot;
+git diff | deepagents -n &quot;Review these changes&quot;
+git diff | deepagents --skill code-review -n 'summarize changes'
+</code></pre>
+
+<p>当将管道输入与 <code>-n</code> 或 <code>-m</code> 结合时，管道内容先出现，后面是你传递给标志的文本。</p>
+<blockquote>
+<p>最大管道输入大小为 10 MiB。</p>
+</blockquote>
+<p>非交互模式下，shell 执行默认禁用。使用 <code>-S</code>/<code>--shell-allow-list</code> 启用特定命令（如 <code>-S "pytest,git,make"</code>）、<code>recommended</code> 获取安全默认值，或 <code>all</code> 允许任何命令。</p>
+<h3 id="-max-turns">使用 <code>--max-turns</code> 限制回合数</h3>
+<p>CI/CD 流水线中长时间运行或行为不当的 agent 可能无限循环。<code>--max-turns N</code> 给操作者一个硬性上限，无需触碰 SDK 内部：</p>
+<pre class="codehilite"><code class="language-bash">deepagents -n &quot;fix the failing tests&quot; --max-turns 10
+</code></pre>
+
+<p><code>N</code> 必须是正整数，并覆盖否则限制失控循环的内部安全默认值。超出预算时退出码为 124（匹配 GNU <code>timeout</code>），因此 CI 可以区分预算命中和一般故障。需要 <code>-n</code> 或管道 stdin；否则退出码为 2。</p>
+<h3 id="_8">清洁输出和缓冲</h3>
+<p>使用 <code>-q</code> 获取适合管道传输到其他命令的清洁输出，使用 <code>--no-stream</code> 在写入 stdout 之前缓冲完整响应（而非流式）：</p>
+<pre class="codehilite"><code class="language-bash">deepagents -n &quot;Generate a .gitignore for Python&quot; -q &gt; .gitignore
+deepagents -n &quot;List dependencies&quot; -q --no-stream | sort
+</code></pre>
+
+<p>在非交互模式下，agent 被指示做出合理假设并自主进行，而非提出澄清问题。它也偏向非交互式命令变体（如 <code>npm init -y</code>、<code>apt-get install -y</code>）。</p>
+<h3 id="shell_1">Shell 执行示例</h3>
+<pre class="codehilite"><code class="language-bash"># 允许特定命令（针对列表验证）
+deepagents -n &quot;Run the tests and fix failures&quot; -S &quot;pytest,git,make&quot;
+
+# 使用精选的安全命令列表
+deepagents -n &quot;Build the project&quot; -S recommended
+
+# 允许任何 shell 命令
+deepagents -n &quot;Fix the build&quot; -S all
+</code></pre>
+
+<blockquote>
+<p><strong>谨慎使用。</strong> <code>-S all</code>（或 <code>--shell-allow-list all</code>）让 agent 在无人工确认的情况下执行任意 shell 命令。</p>
+</blockquote>
+<h2 id="_9">启动时运行命令</h2>
+<p>使用 <code>--startup-cmd</code> 在会话接受第一个提示词之前运行一次 shell 命令。输出在会话顶部显示，方便在输入第一个提示词之前检查 <code>git status</code>、列出文件或验证环境设置。</p>
+<pre class="codehilite"><code class="language-bash"># 交互模式：在第一个提示词之前显示 git status
+deepagents --startup-cmd &quot;git status&quot;
+
+# 与初始提示词组合——命令先运行，然后提交提示词
+deepagents --startup-cmd &quot;ls -la&quot; -m &quot;Summarize what's in this directory&quot;
+
+# 非交互模式：在任务运行之前查看环境状态
+deepagents --startup-cmd &quot;git diff --stat&quot; -n &quot;Review these changes&quot;
+</code></pre>
+
+<p>命令在任何 <code>-m</code> 提示词或 <code>--skill</code> 调用分发之前运行，并尊重你的 shell 环境。非零退出和超时发出警告但不中止会话。非交互模式下，命令有 60 秒超时。</p>
+<blockquote>
+<p>输出<strong>不</strong>注入 agent 的消息历史——LLM 看不到它。要将命令输出交给 agent，改为通过 stdin 管道输入（如 <code>git diff | deepagents -n "Review these changes"</code>）。</p>
+</blockquote>
+<h2 id="_10">切换模型</h2>
+<p>你可以在会话期间使用 <code>/model</code> 命令切换模型，无需重启 CLI，或在启动时使用 <code>--model</code> 标志：</p>
+<pre class="codehilite"><code class="language-txt">&gt; /model anthropic:claude-opus-4-6
+&gt; /model openai:gpt-5.4
+</code></pre>
+
+<pre class="codehilite"><code class="language-bash">deepagents --model openai:gpt-5.4
+</code></pre>
+
+<p>运行 <code>/model</code> 打开交互式模型选择器，按提供商分组显示可用模型。</p>
+<p>有关切换模型、设置默认值和添加自定义模型提供商的完整详情，请参见<a href="/oss/python/deepagents/cli/providers">模型提供商</a>。</p>
+<h3 id="_11">交互式模型选择器</h3>
+<p>选择器为高亮模型显示详细页脚，包含上下文窗口大小、输入模式（文本、图像、音频、PDF、视频）和能力（推理、工具调用、结构化输出）。</p>
+<p>被 <code>--profile-override</code> 或 <code>config.toml</code> 覆盖的值用黄色 <code>*</code> 前缀标记。</p>
+<h3 id="_12">模型参数</h3>
+<p>在会话中间切换时，使用 <code>--model-params</code> 传递额外模型构造函数参数：</p>
+<pre class="codehilite"><code class="language-txt">&gt; /model --model-params '{&quot;temperature&quot;: 0.7}' anthropic:claude-opus-4-7
+&gt; /model --model-params '{&quot;temperature&quot;: 0.7}'  # 打开选择器，将参数应用于所选模型
+</code></pre>
+
+<p>这些是会话级覆盖，具有最高优先级，覆盖配置文件 <code>params</code> 中的值。<code>--model-params</code> 不能与 <code>--default</code> 组合使用。</p>
+<h2 id="agents">切换 agents</h2>
+<p>运行 <code>/agents</code> 打开 agent 选择器并在 <code>~/.deepagents/</code> 中的 agent 之间热切换，无需重新启动。切换会重置对话线程并刷新技能发现。选择会被持久化，因此下次裸 <code>deepagents</code> 启动时继续同一 agent。<code>-a</code>/<code>--agent</code> 始终覆盖；<code>-r</code>/<code>--resume</code> 恢复线程的原始 agent。</p>
+<h2 id="_13">配置</h2>
+<p>CLI 将所有配置存储在 <code>~/.deepagents/</code> 下。在该目录中，每个 agent 获得自己的子目录（默认：<code>agent</code>）：</p>
+<table>
+<thead>
+<tr>
+<th>路径</th>
+<th>用途</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>~/.deepagents/config.toml</code></td>
+<td>模型默认值、提供商设置、构造函数参数、配置文件覆盖、主题、更新设置、MCP 信任存储</td>
+</tr>
+<tr>
+<td><code>~/.deepagents/.env</code></td>
+<td>全局 API 密钥和密钥。参见<a href="/oss/python/deepagents/cli/configuration#environment-variables">配置</a></td>
+</tr>
+<tr>
+<td><code>~/.deepagents/hooks.json</code></td>
+<td>生命周期事件钩子（会话开始/结束、任务完成等）</td>
+</tr>
+<tr>
+<td><code>~/.deepagents//</code></td>
+<td>每个 agent 的内存、技能和对话线程</td>
+</tr>
+<tr>
+<td><code>.deepagents/</code>（项目根目录）</td>
+<td>项目特定的内存和技能，在 git 仓库内运行时加载</td>
+</tr>
+</tbody>
+</table>
+<pre class="codehilite"><code class="language-bash"># 列出所有配置的 agent
+deepagents agents list
+</code></pre>
+
+<p>有关完整参考——包括 <code>config.toml</code> 模式、提供商参数、配置文件覆盖和钩子配置——请参见<a href="/oss/python/deepagents/cli/configuration">配置</a>。</p>
+<h2 id="_14">内存</h2>
+<p>自定义任何 agent 有两种主要方式：</p>
+<ul>
+<li><strong>内存（Memory）</strong>：跨会话持久的 <code>AGENTS.md</code> 文件和自动保存的内存。用于一般编码风格、偏好和学习到的规范。</li>
+<li><strong>技能（Skills）</strong>：全局和项目特定的上下文、规范、指南或指令。用于仅在执行特定任务时需要的上下文。</li>
+</ul>
+<p>使用 <code>/remember</code> 明确提示 agent 从当前对话更新其内存和技能。</p>
+<h3 id="_15">自动内存</h3>
+<p>当你使用 agent 时，它会自动使用 memory-first 协议将信息存储在 <code>~/.deepagents//memories/</code> 中，作为 Markdown 文件：</p>
+<ol>
+<li><strong>研究</strong>：在开始任务之前搜索相关上下文</li>
+<li><strong>响应</strong>：在执行期间不确定时检查内存</li>
+<li><strong>学习</strong>：自动保存新信息供未来会话使用</li>
+</ol>
+<p>Agent 按主题组织内存，使用描述性文件名：</p>
+<pre class="codehilite"><code>~/.deepagents/backend-dev/memories/
+├── api-conventions.md
+├── database-schema.md
+└── deployment-process.md
+</code></pre>
+
+<p>当你教 agent 规范时：</p>
+<pre class="codehilite"><code class="language-bash">deepagents --agent backend-dev
+&gt; Our API uses snake_case and includes created_at/updated_at timestamps
+</code></pre>
+
+<p>它会在未来会话中记住：</p>
+<pre class="codehilite"><code class="language-bash">&gt; Create a /users endpoint
+# 无需提示即可应用规范
+</code></pre>
+
+<h3 id="agentsmd">AGENTS.md 文件</h3>
+<p><a href="https://agents.md/"><code>AGENTS.md</code> 文件</a> 提供在会话开始时始终加载的持久上下文：</p>
+<ul>
+<li><strong>全局</strong>：<code>~/.deepagents//AGENTS.md</code> — 每次会话加载。</li>
+<li><strong>项目</strong>：任何 git 项目根目录中的 <code>.deepagents/AGENTS.md</code> — 当 CLI 在该项目内运行时加载。</li>
+</ul>
+<p>两个文件都在启动时追加到系统提示词中。</p>
+<p>Agent 可能在回答项目特定问题或当你引用过去工作或模式时读取其内存文件。</p>
+<p>当你提供关于它应该如何行为的信息、对其工作的反馈或记住某些内容的指令时，它会更新 <code>AGENTS.md</code>。当它从你的交互中识别模式或偏好时，也会更新其内存。</p>
+<p>要添加更多结构化的项目知识到额外内存文件中，将它们添加到 <code>.deepagents/</code> 并在 <code>AGENTS.md</code> 文件中引用它们。你必须在 <code>AGENTS.md</code> 文件中引用额外文件，这样 agent 才能知道它们。额外文件不会在启动时读取，但 agent 可以在需要时引用和更新它们。</p>
+<p><strong>全局 <code>AGENTS.md</code></strong>（<code>~/.deepagents/agent/AGENTS.md</code>）：<br />
+- 你的个性、风格和通用编码偏好<br />
+- 基调和沟通风格<br />
+- 通用编码偏好（格式化、类型提示等）<br />
+- 适用于所有地方的工具使用模式<br />
+- 不随项目变化的工作流和方法论</p>
+<p><strong>项目 <code>AGENTS.md</code></strong>（项目根目录中的 <code>.deepagents/AGENTS.md</code>）：<br />
+- 项目特定上下文和规范<br />
+- 项目架构和设计模式<br />
+- 此代码库特定的编码规范<br />
+- 测试策略和部署流程<br />
+- 团队指南和项目结构</p>
+<h2 id="_16">使用技能</h2>
+<p>技能是可复用的 agent 能力，提供专门的工作流和领域知识。你可以使用 <a href="/oss/python/deepagents/skills">技能</a> 为 deep agent 提供新能力和专业知识。Deep agent 技能遵循 <a href="https://agentskills.io/">Agent Skills 标准</a>。添加技能后，你的 deep agent 会自动使用它们并在使用 agent 和提供额外信息时更新它们。</p>
+<p>使用 <code>/remember</code> 明确提示 agent 从当前对话更新技能和内存。</p>
+<h3 id="_17">添加技能</h3>
+<ol>
+<li>创建技能：</li>
+</ol>
+<pre class="codehilite"><code class="language-bash"># 用户技能（存储在 ~/.deepagents//skills/）
+deepagents skills create test-skill
+
+# 项目技能（存储在 .deepagents/skills/）
+deepagents skills create test-skill --project
+</code></pre>
+
+<p>这会生成：</p>
+<pre class="codehilite"><code>skills/
+└── test-skill
+    └── SKILL.md
+</code></pre>
+
+<ol>
+<li>
+<p>打开生成的 <code>SKILL.md</code> 并编辑文件以包含你的指令。</p>
+</li>
+<li>
+<p>可选择添加额外的脚本或其他资源到 <code>test-skill</code> 文件夹。有关更多信息，请参见<a href="/oss/python/deepagents/skills#example">示例</a>。</p>
+</li>
+</ol>
+<p>你也可以直接将现有技能复制到 agent 的文件夹：</p>
+<pre class="codehilite"><code class="language-bash">mkdir -p ~/.deepagents//skills
+cp -r examples/skills/web-research ~/.deepagents//skills/
+</code></pre>
+
+<h3 id="_18">安装社区技能</h3>
+<p>你可以使用 Vercel 的 <a href="https://github.com/vercel-labs/skills">Skills CLI</a> 等工具在你的环境中安装社区 <a href="https://agentskills.io/">Agent Skills</a>，并使它们对你的 deep agent 可用：</p>
+<pre class="codehilite"><code class="language-bash"># 全局安装技能
+npx skills add vercel-labs/agent-skills --skill web-design-guidelines -a deepagents -g -y
+
+# 列出已安装的技能
+npx skills ls -a deepagents -g
+</code></pre>
+
+<p>全局安装（<code>-g</code>）将技能符号链接到 <code>~/.deepagents/agent/skills/</code>——默认 agent 的用户级技能目录。项目级安装（省略 <code>-g</code>）将技能放在相对于当前目录的 <code>.deepagents/skills/</code> 中，使它们对在该项目中运行的任何 agent 可用，无论 agent 名称如何。</p>
+<blockquote>
+<p>全局安装仅针对默认 <code>agent</code> 目录。如果你使用自定义命名的 agent，请使用项目级安装或手动将技能符号链接到 <code>~/.deepagents/{your-agent}/skills/</code>。</p>
+</blockquote>
+<h3 id="_19">技能发现</h3>
+<p>启动时，CLI 从 Deep Agents 和共享别名目录发现技能：</p>
+<pre class="codehilite"><code>~/.deepagents//skills/
+~/.agents/skills/
+.deepagents/skills/
+.agents/skills/
+~/.claude/skills/          （实验性）
+.claude/skills/            （实验性）
+</code></pre>
+
+<p>当存在重复技能名称时，后优先级的目录覆盖前面的目录（参见<a href="/oss/python/deepagents/data-locations#skills">应用数据</a>）。</p>
+<p>对于项目特定技能，项目的根文件夹必须有 <code>.git</code> 文件夹。当你在项目文件夹内任何位置启动 CLI 时，CLI 会通过检查包含的 <code>.git</code> 文件夹找到项目的根文件夹。</p>
+<p>对于每个技能，CLI 从 <code>SKILL.md</code> 文件的 frontmatter 读取名称和描述。当你使用 CLI 时，如果任务与技能描述匹配，agent 会读取技能文件并遵循其指令。</p>
+<p>你也可以直接使用 <code>/skill: [args]</code> 调用技能。技能发现在启动时和 <code>/reload</code> 时运行。</p>
+<h3 id="_20">从命令行调用技能</h3>
+<p>使用 <code>--skill</code> 在启动时调用技能，无需交互式输入斜杠命令：</p>
+<pre class="codehilite"><code class="language-bash"># 打开 TUI 并立即运行技能
+deepagents --skill code-review
+
+# 向技能传递请求
+deepagents --skill code-review -m 'review the auth module'
+
+# 管道内容到技能
+cat diff.txt | deepagents --skill code-review
+
+# 管道内容并添加请求
+cat diff.txt | deepagents --skill code-review -m 'focus on security'
+</code></pre>
+
+<p><code>--skill</code> 也可以在非交互模式下工作：</p>
+<pre class="codehilite"><code class="language-bash"># 无头运行技能
+deepagents --skill code-review -n 'review this patch'
+
+# 静默模式（仅 agent 输出到 stdout）
+deepagents --skill code-review -n 'review this patch' -q
+</code></pre>
+
+<blockquote>
+<p><code>--skill</code> 配合 <code>--quiet</code> 或 <code>--no-stream</code> 需要 <code>-n</code>（非交互模式）。</p>
+</blockquote>
+<h3 id="_21">列出技能</h3>
+<pre class="codehilite"><code class="language-bash"># 列出所有用户技能
+deepagents skills list
+
+# 列出项目技能
+deepagents skills list --project
+
+# 获取特定技能的详情
+deepagents skills info test-skill
+deepagents skills info test-skill --project
+</code></pre>
+
+<h2 id="_22">子智能体</h2>
+<p>将自定义 <a href="/oss/python/deepagents/subagents">subagents（子智能体）</a> 定义为 Markdown 文件，以便 CLI agent 可以将专门任务委托给它们。每个子智能体位于自己的文件夹中，带有 <code>AGENTS.md</code> 文件：</p>
+<pre class="codehilite"><code>.deepagents/agents/{subagent-name}/AGENTS.md   # 项目级
+~/.deepagents/{agent}/agents/{subagent-name}/AGENTS.md  # 用户级
+</code></pre>
+
+<p>项目子智能体覆盖同名的用户子智能体（参见<a href="/oss/python/deepagents/data-locations#subagents">优先级规则</a>）。</p>
+<p>Frontmatter 需要 <code>name</code> 和 <code>description</code>（与 <a href="/oss/python/deepagents/subagents#subagent-dictionary-based"><code>SubAgent</code> 字典规范</a> 相同）。Markdown 主体成为子智能体的 <code>system_prompt</code>。除了基础规范外，<code>AGENTS.md</code> 文件还支持可选的 <code>model</code> frontmatter 字段，为此子智能体覆盖主 agent 的模型。使用 <code>provider:model-name</code> 格式（如 <code>anthropic:claude-opus-4-6</code>、<code>openai:gpt-5.4</code>）。省略则继承主 agent 的模型。</p>
+<blockquote>
+<p>其他 <code>SubAgent</code> 字段（<code>tools</code>、<code>middleware</code>、<code>interrupt_on</code>、<code>skills</code>）目前无法通过 <code>AGENTS.md</code> frontmatter 配置——以这种方式定义的自定义子智能体继承主 agent 的工具。直接使用 SDK 获取完整控制。</p>
+</blockquote>
+<h3 id="_23">文件格式</h3>
+<p>子智能体 <code>AGENTS.md</code> 文件使用 YAML frontmatter，后跟 Markdown 主体：</p>
+<pre class="codehilite"><code class="language-markdown">---
+name: researcher
+description: 在编写内容之前在网上研究主题
+model: anthropic:claude-haiku-4-5-20251001
+---
+
+你是一个具有网络搜索访问权限的研究助手。
+
+## 你的流程
+1. 搜索相关信息
+2. 清晰总结发现
+</code></pre>
+
+<h3 id="_24">示例：成本优化的子智能体</h3>
+<p>对简单委托任务使用更便宜、更快的模型，同时保持主 agent 使用更强大的模型：</p>
+<pre class="codehilite"><code class="language-markdown">---
+name: general-purpose
+description: 用于研究和多步任务的通用 agent
+model: anthropic:claude-haiku-4-5-20251001
+---
+
+你是一个通用助手。高效完成任务并返回简洁的摘要。
+</code></pre>
+
+<p>这覆盖了内置的通用子智能体，将所有委托任务路由到更便宜的模型。参见<a href="/oss/python/deepagents/subagents#override-the-general-purpose-subagent">覆盖通用子智能体</a>获取更多信息。</p>
+<h2 id="mcp">使用 MCP 工具</h2>
+<p>使用外部 <a href="https://modelcontextprotocol.io/">MCP (Model Context Protocol)</a> 服务器的工具扩展 CLI。在项目的根目录放置 <code>.mcp.json</code>，CLI 会自动发现它。参见 <a href="/oss/python/deepagents/cli/mcp-tools">MCP 工具指南</a> 获取配置格式、自动发现和故障排除。</p>
+<h2 id="_25">使用远程沙箱</h2>
+<p>CLI 使用 <a href="/oss/python/deepagents/sandboxes#sandbox-as-tool-pattern">沙箱即工具</a> 模式：CLI 进程（LLM 循环、内存、工具分发）在你的机器上运行，但 agent 工具调用（<code>read_file</code>、<code>write_file</code>、<code>execute</code> 等）目标指向远程沙箱，而非本地文件系统。要将文件传入沙箱，使用<a href="#设置脚本">设置脚本</a>或提供商的文件传输 API（参见<a href="/oss/python/deepagents/sandboxes#working-with-files">处理文件</a>）。</p>
+<p>有关沙箱架构、集成模式和安全最佳实践的深入了解，请参见 <a href="/oss/python/deepagents/sandboxes">Sandboxes（沙箱）</a>。</p>
+<blockquote>
+<p>LangSmith 沙箱支持默认包含在 CLI 中。AgentCore、Modal、Daytona 和 Runloop 需要安装额外组件。</p>
+</blockquote>
+<h3 id="_26">安装提供商依赖</h3>
+<pre class="codehilite"><code class="language-bash"># LangSmith — 安装 deepagents-cli 时默认包含，无需额外安装
+
+# Daytona
+uv tool install deepagents-cli --with langchain-daytona
+
+# Modal
+uv tool install deepagents-cli --with langchain-modal
+
+# Runloop
+uv tool install deepagents-cli --with langchain-runloop
+
+# AgentCore
+uv tool install deepagents-cli --with langchain-agentcore-codeinterpreter
+</code></pre>
+
+<h3 id="_27">设置提供商凭据</h3>
+<pre class="codehilite"><code class="language-bash"># LangSmith
+export LANGSMITH_API_KEY=&quot;your-key&quot;
+
+# Daytona
+export DAYTONA_API_KEY=&quot;your-key&quot;
+
+# Modal
+modal setup
+
+# Runloop
+export RUNLOOP_API_KEY=&quot;your-key&quot;
+
+# AgentCore
+export AWS_ACCESS_KEY_ID=&quot;your-key&quot;
+export AWS_SECRET_ACCESS_KEY=&quot;your-secret&quot;
+export AWS_SESSION_TOKEN=&quot;session-token&quot;
+export AWS_REGION=&quot;us-west-2&quot;
+</code></pre>
+
+<h3 id="cli">使用沙箱运行 CLI</h3>
+<pre class="codehilite"><code class="language-bash"># LangSmith
+deepagents --sandbox langsmith
+
+# Daytona
+deepagents --sandbox daytona
+
+# Modal
+deepagents --sandbox modal
+
+# Runloop
+deepagents --sandbox runloop
+
+# AgentCore
+deepagents --sandbox agentcore
+</code></pre>
+
+<h3 id="_28">沙箱标志</h3>
+<table>
+<thead>
+<tr>
+<th>标志</th>
+<th>描述</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>--sandbox TYPE</code></td>
+<td>要使用的沙箱提供商：<code>langsmith</code>、<code>agentcore</code>、<code>modal</code>、<code>daytona</code> 或 <code>runloop</code>（默认：<code>none</code>）</td>
+</tr>
+<tr>
+<td><code>--sandbox-id ID</code></td>
+<td>通过 ID 重用现有沙箱而非创建新的。跳过创建和清理。请参阅你的沙箱文档</td>
+</tr>
+<tr>
+<td><code>--sandbox-setup PATH</code></td>
+<td>创建时在沙箱内运行的设置脚本路径</td>
+</tr>
+</tbody>
+</table>
+<p>示例：</p>
+<pre class="codehilite"><code class="language-bash"># 创建新的 Daytona 沙箱
+deepagents --sandbox daytona
+
+# 重用现有沙箱（跳过创建和清理）
+deepagents --sandbox runloop --sandbox-id dbx_abc123
+
+# 在沙箱创建后运行设置脚本
+deepagents --sandbox modal --sandbox-setup ./setup.sh
+</code></pre>
+
+<h3 id="_29">设置脚本</h3>
+<p>使用 <code>--sandbox-setup</code> 在创建后在沙箱内运行 shell 脚本。这对于克隆仓库、安装依赖和配置环境变量很有用。</p>
+<pre class="codehilite"><code class="language-bash">#!/bin/bash
+set -e
+
+# 使用 GitHub token 克隆仓库
+git clone https://x-access-token:${GITHUB_TOKEN}@github.com/username/repo.git $HOME/workspace
+cd $HOME/workspace
+
+# 使环境变量持久化
+cat &gt;&gt; ~/.bashrc  沙箱隔离代码执行，但 agent 仍然容易受到不可信输入的提示词注入攻击。使用人工审批、短期密钥和仅可信的设置脚本。参见[安全注意事项](/oss/python/deepagents/sandboxes#security-considerations)获取详情。
+
+## 使用 LangSmith Tracing
+
+启用 [LangSmith](https://smith.langchain.com/) 追踪以在 LangSmith 项目中查看 agent 操作、工具调用和决策。
+
+将你的追踪密钥添加到 `~/.deepagents/.env`，以便在每个会话中启用追踪，无需每次导出：
+
+```bash
+LANGSMITH_TRACING=true
+LANGSMITH_API_KEY=lsv2_...
+LANGSMITH_PROJECT=optional-project-name  # 指定项目名称或默认为 &quot;deepagents-cli&quot;
+</code></pre>
+
+<p>要为特定项目覆盖，在项目目录中添加相同的密钥到 <code>.env</code>。参见<a href="/oss/python/deepagents/cli/configuration#environment-variables">环境变量</a>获取完整加载顺序。</p>
+<p>你也可以将这些设置为 shell 环境变量。Shell 导出始终优先于 <code>.env</code> 值，因此这是临时覆盖或测试的好选项：</p>
+<pre class="codehilite"><code class="language-bash">export LANGSMITH_TRACING=false
+</code></pre>
+
+<p>配置后，CLI 显示带有 LangSmith 项目链接的状态行。在支持的终端中，点击链接直接打开它。你也可以使用 <code>/trace</code> 打印 URL 并在浏览器中打开它。</p>
+<pre class="codehilite"><code class="language-sh">✓ LangSmith tracing: 'my-project'
+</code></pre>
+
+<h3 id="agent">将 agent 追踪与应用追踪分离</h3>
+<p>当从 LangChain 应用程序以编程方式调用 CLI 时（例如作为<a href="#非交互模式和管道">非交互模式</a>中的子进程），你的应用程序和 CLI 都产生 LangSmith 追踪。默认情况下，这些都落在同一项目中。</p>
+<p>要将 CLI 追踪发送到专用项目，设置 <code>DEEPAGENTS_CLI_LANGSMITH_PROJECT</code>：</p>
+<pre class="codehilite"><code class="language-bash">DEEPAGENTS_CLI_LANGSMITH_PROJECT=my-deep-agent-execution
+</code></pre>
+
+<p>然后为你的父应用程序的追踪配置 <code>LANGSMITH_PROJECT</code>：</p>
+<pre class="codehilite"><code class="language-bash">LANGSMITH_PROJECT=my-app-traces
+</code></pre>
+
+<p>这保持你的应用级可观测性干净，同时仍在单独项目中捕获 agent 的内部执行。</p>
+<p>你也可以使用 <a href="/oss/python/deepagents/cli/configuration#deepagents_cli_-prefix"><code>DEEPAGENTS_CLI_</code> 前缀</a>将 LangSmith 凭据限定到 CLI（如 <code>DEEPAGENTS_CLI_LANGSMITH_API_KEY</code>）。</p>
+<h2 id="_30">命令参考</h2>
+<pre class="codehilite"><code class="language-bash"># 使用特定的 agent 配置
+deepagents --agent mybot
+
+# 使用特定的模型（提供商:模型格式或自动检测）
+deepagents --model anthropic:claude-opus-4-7
+deepagents --model gpt-5.4
+
+# 自动审批工具使用（跳过人在回路中提示）
+deepagents -y
+</code></pre>
+
+<h3 id="_31">命令行选项</h3>
+<table>
+<thead>
+<tr>
+<th>选项</th>
+<th>描述</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>-a</code>, <code>--agent NAME</code></td>
+<td>使用命名 agent，具有单独的内存。覆盖 <code>config.toml</code> 中的 <code>[agents].recent</code>。默认：<code>agent</code>（或如果设置了 <code>[agents].recent</code> 则为最近使用的 agent）</td>
+</tr>
+<tr>
+<td><code>-M</code>, <code>--model MODEL</code></td>
+<td>使用特定模型（<code>provider:model</code>）</td>
+</tr>
+<tr>
+<td><code>--model-params JSON</code></td>
+<td>作为 JSON 字符串传递给模型的额外参数（如 <code>'{"temperature": 0.7}'</code>）</td>
+</tr>
+<tr>
+<td><code>--default-model [MODEL]</code></td>
+<td>设置默认模型</td>
+</tr>
+<tr>
+<td><code>--clear-default-model</code></td>
+<td>清除默认模型</td>
+</tr>
+<tr>
+<td><code>-r</code>, <code>--resume [ID]</code></td>
+<td>恢复会话：<code>-r</code> 表示最近，<code>-r</code> 表示特定线程</td>
+</tr>
+<tr>
+<td><code>-m</code>, <code>--message TEXT</code></td>
+<td>会话启动时自动提交的初始提示词（交互模式）</td>
+</tr>
+<tr>
+<td><code>--skill NAME</code></td>
+<td>启动时调用技能</td>
+</tr>
+<tr>
+<td><code>--startup-cmd CMD</code></td>
+<td>启动时运行的 shell 命令，在第一个提示词之前。输出呈现在转录中供参考，但<strong>不</strong>添加到 agent 的消息历史。非零退出和超时发出警告但不中止；非交互模式应用 60 秒超时。参见<a href="#启动时运行命令">启动时运行命令</a></td>
+</tr>
+<tr>
+<td><code>-n</code>, <code>--non-interactive TEXT</code></td>
+<td>非交互方式运行单个任务并退出。除非设置 <code>--shell-allow-list</code>，否则 shell 被禁用</td>
+</tr>
+<tr>
+<td><code>--max-turns N</code></td>
+<td>非交互模式下限制 agent 回合数。超出预算时退出码 124</td>
+</tr>
+<tr>
+<td><code>-S</code>, <code>--shell-allow-list LIST</code></td>
+<td>非交互模式下允许的 shell 命令（<code>-S "pytest,git"</code>、<code>recommended</code> 或 <code>all</code>）</td>
+</tr>
+<tr>
+<td><code>-y</code>, <code>--auto-approve</code></td>
+<td>跳过所有工具的人类审批</td>
+</tr>
+<tr>
+<td><code>-q</code>, <code>--quiet</code></td>
+<td>清洁输出到 stdout（无 UI 渲染）</td>
+</tr>
+<tr>
+<td><code>--no-stream</code></td>
+<td>缓冲完整响应后再写入 stdout</td>
+</tr>
+</tbody>
+</table>
+</body>
+</html>

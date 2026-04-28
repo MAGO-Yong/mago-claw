@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Quickstart（快速入门）</title>
+  
+<style>
+  :root {
+    --bg: #ffffff;
+    --text: #1a1a2e;
+    --code-bg: #1e1e2e;
+    --code-text: #cdd6f4;
+    --link: #2563eb;
+    --border: #e2e8f0;
+    --thead-bg: #f8fafc;
+    --stripe-bg: #f8fafc;
+    --h1-color: #0f172a;
+    --h2-color: #1e293b;
+    --blockquote-bg: #f0f9ff;
+    --blockquote-border: #3b82f6;
+    --note-bg: #fefce8;
+    --note-border: #eab308;
+    --warning-bg: #fef2f2;
+    --warning-border: #ef4444;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #0f172a;
+      --text: #e2e8f0;
+      --code-bg: #1e1e2e;
+      --code-text: #cdd6f4;
+      --link: #60a5fa;
+      --border: #334155;
+      --thead-bg: #1e293b;
+      --stripe-bg: #1e293b;
+      --h1-color: #f8fafc;
+      --h2-color: #e2e8f0;
+      --blockquote-bg: #1e293b;
+      --blockquote-border: #3b82f6;
+      --note-bg: #422006;
+      --note-border: #eab308;
+      --warning-bg: #450a0a;
+      --warning-border: #ef4444;
+    }
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    line-height: 1.7;
+    color: var(--text);
+    background: var(--bg);
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 40px 20px 80px;
+  }
+  h1 { font-size: 2.2em; font-weight: 700; color: var(--h1-color); margin: 0 0 8px; padding-top: 20px; }
+  h2 { font-size: 1.6em; font-weight: 600; color: var(--h2-color); margin: 40px 0 16px; padding-bottom: 8px; border-bottom: 1px solid var(--border); }
+  h3 { font-size: 1.3em; font-weight: 600; color: var(--h2-color); margin: 30px 0 12px; }
+  h4 { font-size: 1.1em; font-weight: 600; margin: 24px 0 8px; }
+  p { margin: 12px 0; }
+  a { color: var(--link); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+  ul, ol { margin: 12px 0; padding-left: 24px; }
+  li { margin: 4px 0; }
+  li > ul, li > ol { margin: 4px 0; }
+  code {
+    font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, Courier, monospace;
+    background: var(--code-bg);
+    color: var(--code-text);
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-size: 0.9em;
+  }
+  pre {
+    background: var(--code-bg);
+    color: var(--code-text);
+    padding: 16px 20px;
+    border-radius: 8px;
+    overflow-x: auto;
+    margin: 16px 0;
+    font-size: 0.88em;
+    line-height: 1.5;
+  }
+  pre code {
+    background: none;
+    padding: 0;
+    color: inherit;
+    font-size: inherit;
+  }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 16px 0;
+    font-size: 0.95em;
+  }
+  th {
+    background: var(--thead-bg);
+    font-weight: 600;
+    text-align: left;
+    padding: 10px 14px;
+    border: 1px solid var(--border);
+  }
+  td {
+    padding: 10px 14px;
+    border: 1px solid var(--border);
+    vertical-align: top;
+  }
+  tr:nth-child(even) { background: var(--stripe-bg); }
+  blockquote {
+    border-left: 4px solid var(--blockquote-border);
+    background: var(--blockquote-bg);
+    padding: 12px 16px;
+    margin: 16px 0;
+    border-radius: 0 8px 8px 0;
+  }
+  blockquote blockquote { margin: 8px 0; }
+  hr { border: none; border-top: 2px solid var(--border); margin: 32px 0; }
+  .original-link {
+    font-size: 0.9em;
+    color: #64748b;
+    margin-bottom: 24px;
+  }
+  /* Syntax highlighting approximation */
+  pre code .comment { color: #6a9955; }
+  pre code .keyword { color: #c678dd; }
+  pre code .string { color: #98c379; }
+  pre code .function { color: #61afef; }
+  pre code .number { color: #d19a66; }
+  pre code .class-name { color: #e5c07b; }
+</style>
+
+</head>
+<body>
+<h1 id="quickstart">Quickstart（快速入门）</h1>
+<blockquote>
+<p>原文：<a href="https://docs.langchain.com/oss/python/deepagents/quickstart">https://docs.langchain.com/oss/python/deepagents/quickstart</a></p>
+<p>在几分钟内构建你的第一个 deep agent（深度智能体）。</p>
+</blockquote>
+<h2 id="installation">Installation（安装）</h2>
+<pre class="codehilite"><code class="language-bash">pip install deepagents
+# 或
+uv add deepagents
+</code></pre>
+
+<h2 id="agent">创建你的第一个 agent（智能体）</h2>
+<p>Deep agents（深度智能体）是内置了 filesystem access（文件系统访问）、planning（规划）和 subagent（子智能体）能力的 agents（智能体）。它们能够执行多步骤的编码任务——例如 plan → implement → run tests → fix（规划 → 实现 → 运行测试 → 修复）。</p>
+<pre class="codehilite"><code class="language-python">from deepagents import create_deep_agent
+from langchain_anthropic import ChatAnthropic
+
+model = ChatAnthropic(model=&quot;claude-sonnet-4-6&quot;)
+agent = create_deep_agent(model=model)
+</code></pre>
+
+<h3 id="agent_1">调用 agent</h3>
+<pre class="codehilite"><code class="language-python">from langchain_core.messages import HumanMessage
+
+result = agent.invoke({
+    &quot;messages&quot;: [HumanMessage(content=&quot;创建一个 hello.py 脚本，打印 Hello, World!&quot;)]
+})
+print(result[&quot;messages&quot;][-1].content)
+</code></pre>
+
+<h3 id="_1">启用检查点（持久化）</h3>
+<p>添加一个 checkpointer（检查点）来跨对话持久化状态：</p>
+<pre class="codehilite"><code class="language-python">from deepagents import create_deep_agent
+from langgraph.checkpoint.memory import MemorySaver
+
+agent = create_deep_agent(
+    model=model,
+    checkpointer=MemorySaver(),
+)
+
+config = {&quot;configurable&quot;: {&quot;thread_id&quot;: &quot;session-1&quot;}}
+result = agent.invoke(
+    {&quot;messages&quot;: [{&quot;role&quot;: &quot;user&quot;, &quot;content&quot;: &quot;创建一个 greet.py 脚本&quot;}]},
+    config=config,
+)
+</code></pre>
+
+<p>使用相同的 <code>thread_id</code>（线程 ID）来恢复对话。</p>
+<h2 id="_2">核心概念</h2>
+<p>Deep agents（深度智能体）有四个核心支柱：</p>
+<ol>
+<li><strong>System prompt（系统提示词）</strong> — 控制 agent 的角色和行为</li>
+<li><strong>Tools（工具）</strong> — agent 可以采取的行动，如文件系统操作和代码执行</li>
+<li><strong>Subagents（子智能体）</strong> — 将任务委托给专门的智能体</li>
+<li><strong>Backends（后端）</strong> — agent 可以读写的存储层</li>
+</ol>
+<h2 id="_3">下一步</h2>
+<ul>
+<li><a href="/oss/python/deepagents/customization">Customization（自定义）</a> — 自定义提示词、工具和中间件</li>
+<li><a href="/oss/python/deepagents/models">Models（模型）</a> — 模型配置和切换</li>
+<li><a href="/oss/python/deepagents/backends">Backends（后端）</a> — 文件系统和远程存储</li>
+<li><a href="/oss/python/deepagents/sandboxes">Sandboxes（沙箱）</a> — 远程代码执行</li>
+<li><a href="/oss/python/deepagents/permissions">Permissions（权限）</a> — 控制文件系统访问</li>
+</ul>
+</body>
+</html>
