@@ -2,16 +2,29 @@
 name: hi-search
 version: 1.0.0
 description: hi 官方信息搜索 Skill。当用户需要查找员工/同事联系方式、通过业务方向/项目名/功能点找人找部门、搜索 Hi 群聊、搜索 REDoc 文档或文档空间、搜索 Hi 应用时，必须使用此 skill。适用于按邮箱、姓名、薯名精确查询，以及通过自然语言语义化搜索负责人、部门和账号的场景。也覆盖以下场景：搜索 REDoc 空间下的文档列表、查找负责某个后台系统/接口/项目的人
-metadata: { 'openclaw': { 'requires': { 'bins': ["bun"] } } }
+metadata: { 'openclaw': { 'requires': { 'bins': ["node", "hi"] } } }
 ---
 
-# hi-search
-
-技能核心能力通过 CLI 提供，在执行 CLI 命令时，**禁止**猜测命令用法：
+技能核心能力通过 CLI 提供，在执行 CLI 命令时，必须查看运行命令的参数，**禁止**猜测命令用法：
 
 ```bash
-bunx @xhs/hi-cli@0.2.15 search --help              # 所有命令概览
+# 查看具体命令的参数、示例和输出格式
+hi search --help
 ```
+
+# 环境准备
+
+若执行 `hi` 命令时提示 `command not found`，通过以下任一方式全局安装：
+
+```bash
+# 方式一：npm
+npm install -g @xhs/hi-cli
+
+# 方式二：bun
+bun install -g @xhs/hi-cli
+```
+
+# 最佳实践
 
 ## 技能使用方式
 

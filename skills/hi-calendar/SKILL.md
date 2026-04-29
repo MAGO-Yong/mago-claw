@@ -2,21 +2,29 @@
 name: hi-calendar
 version: 1.0.0
 description: hi 官方日历与会议室 Skill。当用户需要获取、管理日程（包括循环日程），管理专注时间，预约会议室、查询空闲会议室、取消会议、添加参会人、关联腾讯会议，或跨时区定会等会议操作时，必须使用此 skill。覆盖以下场景：查看日程安排、安排周会、和其他时区的同事约会议
-metadata: { 'openclaw': { 'requires': { 'bins': ["bun"] } } }
+metadata: { 'openclaw': { 'requires': { 'bins': ["node", "hi"] } } }
 ---
 
-# hi-calendar
-
-先读 CLI help，再用下面这些补充规则。
+技能核心能力通过 CLI 提供，在执行 CLI 命令时，必须查看运行命令的参数，**禁止**猜测命令用法：
 
 ```bash
-bunx @xhs/hi-cli@0.2.15 calendar --help
-
 # 查看具体命令的参数、示例和输出格式
-bunx @xhs/hi-cli@0.2.15 calendar:<method> --help
+hi calendar --help
 ```
 
-以下是 `--help` 中没有的约束和指引：
+# 环境准备
+
+若执行 `hi` 命令时提示 `command not found`，通过以下任一方式全局安装：
+
+```bash
+# 方式一：npm
+npm install -g @xhs/hi-cli
+
+# 方式二：bun
+bun install -g @xhs/hi-cli
+```
+
+# 最佳实践指引
 
 ## 时间处理
 
@@ -27,7 +35,7 @@ bunx @xhs/hi-cli@0.2.15 calendar:<method> --help
 
 ## 通用策略
 
-- **幂等**：每个创建操作须单独调用 `generate-operate-code` 获取新的 operateCode，不同操作之间不得共用。同一操作失败重试时复用同一 operateCode，最多 3 次
+- **幂等**：每个创建操作须单独调用 `utils:generate-operate-code` 获取新的 operateCode，不同操作之间不得共用。同一操作失败重试时复用同一 operateCode，最多 3 次
 - **参会人确认**：通过 `search:employee` 查找参会人时，若存在多个同名人员，须向用户确认具体是哪一位
 - **区域选择**：`areaId` 禁止猜测或默认，必须让用户明确选择。用户仅提供会议室名称/关键词但未指定区域时，先询问具体区域
 

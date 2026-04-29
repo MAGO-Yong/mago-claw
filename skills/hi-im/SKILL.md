@@ -1,37 +1,35 @@
 ---
 name: hi-im
 version: 1.0.0
-description: hi 官方即时通讯 Skill。当用户需要上传文件到 Hi、发送图片/文档到群聊、或通过 Hi 即时通讯服务分享任何本地文件时，必须使用此 skill
-metadata: { 'openclaw': { 'requires': { 'bins': ["bun"] } } }
+description: hi 官方即时通讯 Skill。当用户需要上传文件或图片到 Hi 时，必须使用此 skill
+metadata: { 'openclaw': { 'requires': { 'bins': ["node", "hi"] } } }
 ---
 
-# hi-im
+# 环境准备
 
-上传文件到 Hi 即时通讯服务。
-
-## 错误处理
-
-若接口调用失败，必要时可重试，但**最多自动重试 3 次**（含首次调用）。
-
-## 发现命令
-
-**在调用任何命令前，先用 `--help` 查询可用命令和参数，不要猜测 flag 名称。**
+若执行 `hi` 命令时提示 `command not found`，通过以下任一方式全局安装：
 
 ```bash
-# 列出所有 im 子命令
-bunx @xhs/hi-cli@0.2.15 im --help
+# 方式一：npm
+npm install -g @xhs/hi-cli
 
-# 查看具体命令的参数（含输出格式）
-bunx @xhs/hi-cli@0.2.15 im:<method> --help
+# 方式二：bun
+bun install -g @xhs/hi-cli
 ```
+
+技能核心能力通过 CLI 提供，在执行 CLI 命令时，必须查看运行命令的参数，**禁止**猜测命令用法：
+
+```bash
+# 查看具体命令的参数、示例和输出格式
+hi im --help
+```
+
+# 基础规则
 
 ## 文件上传
 
 ### 限制
 
-- 文件大小上限 **30 MB**，超出会被拒绝。
-- 文件路径必须是**本地绝对路径**或相对于当前工作目录的路径。
-
-### 输出
-
-上传成功后返回 `fileId` 和 `fileUrl`，可直接用于 IM 消息发送或文档嵌入等后续操作。
+- 文件大小上限 **30 MB**，超出会被拒绝
+- 文件路径必须是**本地绝对路径**或相对于当前工作目录的路径
+- 上传失败时，最多重试 3 次

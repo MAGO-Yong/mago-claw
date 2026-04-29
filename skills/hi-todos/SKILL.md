@@ -2,30 +2,29 @@
 name: hi-todos
 version: 1.0.0
 description: hi 官方待办任务 Skill。当用户需要创建待办/任务/Todo、查看任务列表、完成任务、关闭任务或查询任务详情时，必须使用此 skill。可以覆盖以下场景：建个 todo、看看我的任务、修改 deadline
-metadata: { 'openclaw': { 'requires': { 'bins': ["bun"] } } }
+metadata: { 'openclaw': { 'requires': { 'bins': ["node", "hi"] } } }
 ---
 
-# hi-todos
-
-创建和管理待办任务。
-
-## 错误处理
-
-- **可重试** 最多 3 次（包含首次）
-
-## 发现命令
-
-**在调用任何命令前，先用 `--help` 查询可用命令和参数，不要猜测 flag 名称。**
+技能核心能力通过 CLI 提供，在执行 CLI 命令时，必须查看运行命令的参数，**禁止**猜测命令用法：
 
 ```bash
-# 列出所有 todos 子命令
-bunx @xhs/hi-cli@0.2.15 todos --help
-
-# 查看具体命令的参数（含输出格式）
-bunx @xhs/hi-cli@0.2.15 todos:<method> --help
+# 查看具体命令的参数、示例和输出格式
+hi todos --help
 ```
 
-以下是 `--help` 中没有的约束和指引。
+# 环境准备
+
+若执行 `hi` 命令时提示 `command not found`，通过以下任一方式全局安装：
+
+```bash
+# 方式一：npm
+npm install -g @xhs/hi-cli
+
+# 方式二：bun
+bun install -g @xhs/hi-cli
+```
+
+# 最佳实践
 
 ## 时间参数
 
@@ -40,7 +39,7 @@ bunx @xhs/hi-cli@0.2.15 todos:<method> --help
 
 ### create
 
-- **幂等**：每次新建任务须单独调用 `todos:generate-operate-code` 获取新的 `operateCode`，不同任务之间不得共用。同一任务因网络失败重试时复用同一 `operateCode`，最多重试 3 次
+- **幂等**：每次新建任务须单独调用 `utils:generate-operate-code` 获取新的 `operateCode`，不同任务之间不得共用。同一任务因网络失败重试时复用同一 `operateCode`，最多重试 3 次
 - **参与人确认**：通过 `search:employee` 查找参与人时，若存在多个同名人员，须向用户确认具体是哪一位
 - **时区查询**：处理含自然语言时间的待办创建或截止时间修改时，可用 `calendar:get-timezone` 查询用户当前时区和本地时间；`timeZoneIana` 缺失时不得静默假设，须向用户询问所在时区
 - **写时间前置条件**：凡是 create、update-task 这类会写入或修改 `deadline` 的操作，只要用户输入不是已经带 offset 的完整 ISO 8601，就必须先完成用户时区查询与确认，再继续整理时间和执行写操作

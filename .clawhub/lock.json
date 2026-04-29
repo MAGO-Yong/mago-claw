@@ -47,43 +47,43 @@
     },
     "calendar": {
       "version": "1.0.8",
-      "installedAt": 1776754713172
+      "installedAt": 1777472147843
     },
     "summarize": {
       "version": "1.0.0",
-      "installedAt": 1776754713712
+      "installedAt": 1777472148360
     },
     "docx": {
       "version": "1.0.0",
-      "installedAt": 1776754714283
+      "installedAt": 1777472148893
     },
     "pptx": {
       "version": "1.0.0",
-      "installedAt": 1776754714860
+      "installedAt": 1777472149447
     },
     "xlsx": {
       "version": "1.0.0",
-      "installedAt": 1776754715418
+      "installedAt": 1777472150236
     },
     "hi-docs": {
-      "version": "1.0.8",
-      "installedAt": 1776754715906
+      "version": "1.0.10",
+      "installedAt": 1777472150759
     },
     "hi-im": {
-      "version": "1.0.7",
-      "installedAt": 1776754726967
+      "version": "1.0.9",
+      "installedAt": 1777472151271
     },
     "hi-search": {
-      "version": "1.0.9",
-      "installedAt": 1776754727496
+      "version": "1.0.11",
+      "installedAt": 1777472151755
     },
     "hi-todos": {
-      "version": "1.0.8",
-      "installedAt": 1776754727991
+      "version": "1.0.10",
+      "installedAt": 1777472152230
     },
     "hi-calendar": {
-      "version": "1.0.7",
-      "installedAt": 1776754728489
+      "version": "1.0.9",
+      "installedAt": 1777472152715
     },
     "ones-assistant": {
       "version": "1.0.6",
