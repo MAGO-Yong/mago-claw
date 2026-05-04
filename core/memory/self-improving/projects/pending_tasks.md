@@ -10,7 +10,7 @@
 
 ## 待跟进
 
-- [ ] 2026-04-18 确认 execute_tool Span 框架层采集现状（MaaS/Agent框架），更新可观测规范第五章 | 来源：可观测规范编写讨论 | ⚠️ 拖延 15 天
+- [ ] 2026-04-18 确认 execute_tool Span 框架层采集现状（MaaS/Agent框架），更新可观测规范第五章 | 来源：可观测规范编写讨论 | ⚠️ 拖延 17 天
 - [ ] 2026-04-29 obs-token 云效流水线创建（mahengyang/obs-token），Agent 已给 3 方案，待确认语言栈和项目类型 | 来源：Webchat 会话 | 状态：待用户回复
 - [ ] 2026-04-29 LangChain Deep Agents 学习笔记收集，协作机制已建立 | 来源：Hi 会话 | 状态：用户学习中，无卡点输入
 
