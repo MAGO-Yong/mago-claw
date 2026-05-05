@@ -1,31 +1,15 @@
-# Daily Backup Diff: 2026-05-03 vs 2026-05-02
-Generated at: 2026-05-03 02:01:22 CST
+# Diff: 2026-05-04 → 2026-05-06
 
-## Core Files Diff
+## 新增文件
+- `memory/daily-digest/2026-05-04.md` — 5月4日每日摘要
+- `memory/work-log/2026-05-05.md` — 5月5日工作日志
 
-### MEMORY.md: 无变化 ✅
+## 变更文件
+无
 
-### SOUL.md: 无变化 ✅
+## 删除文件
+无
 
-### AGENTS.md: 无变化 ✅
-
-### ROUTING.md: 无变化 ✅
-
-### IDENTITY.md: 昨日无备份记录
-
-### USER.md: 昨日无备份记录
-
-### TOOLS.md: 昨日无备份记录
-
-### HEARTBEAT.md: 昨日无备份记录
-
-## Memory Directory Changes
-
-### New files today:
-(none)
-
-### Modified files:
-(none)
-
-### Deleted files:
-(none)
+## 摘要
+对比基准: backup/2026-05-04/snapshot/（最新可用备份，2026-05-05 无备份）
+本次新增 2 个记忆文件，核心配置无变更。
