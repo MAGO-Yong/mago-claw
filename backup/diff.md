@@ -1,15 +1,16 @@
-# Diff: 2026-05-04 → 2026-05-06
+# Daily Diff: 2026-05-07 vs 2026-05-06
 
-## 新增文件
-- `memory/daily-digest/2026-05-04.md` — 5月4日每日摘要
-- `memory/work-log/2026-05-05.md` — 5月5日工作日志
+## Changes
 
-## 变更文件
+### 新增文件
+- `memory/daily-digest/2026-05-05.md` — 新增每日摘要
+- `memory/work-log/2026-05-06.md` — 新增工作日志
+
+### 修改文件
 无
 
-## 删除文件
+### 删除文件
 无
 
 ## 摘要
-对比基准: backup/2026-05-04/snapshot/（最新可用备份，2026-05-05 无备份）
-本次新增 2 个记忆文件，核心配置无变更。
+今日仅有 2 个新增文件，核心文件（MEMORY.md、SOUL.md、AGENTS.md、ROUTING.md）均无变更。
