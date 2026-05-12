@@ -1,142 +1,267 @@
 ---
 name: rec-new-note-diagnosis
-description: 推荐系统外流新笔记下跌自动诊断（渐进式 v4.0）。支持三条路径：Fast（无 GATE 快速结论）/ Standard（2个GATE，Step 0-4）/ Deep（4个GATE，Step 0-6 + 结论自检）。支持断点续诊（--resume）和全自动无人值守（--auto）。当用户说"新笔记诊断"、"新笔记下跌了"、"外流新笔记量不对"、"帮我看看新笔记链路"时触发。
+description: "推荐系统外流新笔记下跌诊断。当用户说"新笔记诊断"、"新笔记下跌了"、"外流新笔记量不对"、"帮我看看新笔记链路"、"新笔记数据异常"、"新笔记占比下降"时，主动按 SOP 步骤逐一排查推荐外流新笔记链路，不用人工确认，一查到底，给出每步的诊断结论，最终汇总异常点和建议。SOP 文档：https://docs.xiaohongshu.com/doc/431589c956b59ffde7ddff305505e8c2"
 ---
 
-# rec-new-note-diagnosis v4.0
+# 推荐外流新笔记下跌诊断
 
-推荐系统外流新笔记下跌自动诊断技能（渐进式 + 无人值守）。
+## 概述
 
-## 触发条件
+本 Skill 用于诊断推荐系统**外流新笔记**链路的异常，使用 `xray-metrics-query` 按照标准 SOP 逐步排查，无需用户手动贴文档链接。
 
-- "新笔记诊断"
-- "新笔记下跌了"
-- "外流新笔记量不对"
-- "帮我看看新笔记链路"
-- "新笔记数据异常"
-- "新笔记占比下降"
+SOP 原文：[外流新笔记下跌故障排查 SOP](https://docs.xiaohongshu.com/doc/431589c956b59ffde7ddff305505e8c2)
 
-## 三条诊断路径
+---
 
-| 路径 | 触发条件 | GATE数 | 覆盖步骤 |
-|------|---------|-------|---------|
-| 🟢 **Fast Path** | 跌幅<5%，watchlist 0命中 | 无 | Step 0 + Step 1-2（T0定位+变更查询） |
-| 🟡 **Standard Path** | 跌幅5-15%，命中Medium/High | A + B | Step 0-4 |
-| 🔴 **Deep Path** | 跌幅>15% / Critical命中 / 矛盾判断 | A+B+C+D | Step 0-6 + 自检 |
+## 触发场景
 
-路径由 Step 0 指标数据和 watchlist 命中情况**自动决定**，也可手动强制：
+用户说以下任意关键词时启动本 Skill：
 
-```bash
-python3 scripts/diagnose.py --fast    # 强制 Fast Path
-python3 scripts/diagnose.py --deep    # 强制 Deep Path
-python3 scripts/diagnose.py --auto    # 全自动，跳过所有 GATE
-```
+- 新笔记诊断 / 新笔记下跌 / 新笔记数量异常 / 新笔记链路
+- 外流新笔记 / 推荐新笔记 / 新内容占比
+- "帮我看看新笔记" / "新笔记有没有问题"
 
-## 使用方法
+---
 
-```bash
-# 标准用法（自动分诊）
-python3 skills/rec-homefeed-newnote-diagnosis/scripts/diagnose.py
+## 核心约定
 
-# 全自动无人值守
-python3 skills/rec-homefeed-newnote-diagnosis/scripts/diagnose.py --auto
+### 执行原则
 
-# 查看历史诊断会话
-python3 skills/rec-homefeed-newnote-diagnosis/scripts/diagnose.py --list-sessions
+**不用人工确认，一查到底** — 检测到异常后自动按决策树完成全链路排查，无需中途询问用户。
 
-# 从上次断点恢复
-python3 skills/rec-homefeed-newnote-diagnosis/scripts/diagnose.py --resume sessions/2026-04-02_10-36.json
+### 数据查询方法
 
-# 独立分诊（已有跌幅数据时快速判断路径）
-python3 skills/rec-homefeed-newnote-diagnosis/scripts/triage.py \
-  --drop-1h -18.5 --drop-24h 1.5 --watchlist-hits 2 --hit-levels high,medium
+- **核心工具**：`xray-metrics-query`
+- **核心方法**：三时点对比（当前值 / -1d / -7d）
+- **分桶策略**：
+  - 6 小时窗口：`step=300s`（5 分钟）
+  - 1 天窗口：`step=600s`（10 分钟）
+- **聚合分析**：计算 avg / max / min / std / p95，综合判断，避免单点波动干扰
 
-# 对已完成的诊断做结论自检
-python3 skills/rec-homefeed-newnote-diagnosis/scripts/conclusion_review.py \
-  --session sessions/2026-04-02_10-36.json
-```
+### PromQL 大小写警告（极其重要）
 
-## GATE 指令说明
+> ⚠️ **永远不要依赖 `web_fetch` 读取 Redoc 文档的结果来执行 PromQL**。
+> `web_fetch` 会将文档内容强制小写，导致 PromQL 标签值失真。
+> 以下大小写已经过人工校验，以本文件为准，严格按原样使用。
 
-在每个 GATE 暂停时，可输入以下指令：
+| 步骤 | 关键大小写规范 |
+|------|--------------|
+| Step 2.1 | `subPhase="after"`（P 大写） |
+| Step 3.1 | `name` 标签值全大写，如 `DSSM_MODEL_BASE`、`MLLM_CLUSTER_MLP_1W`、`ES`、`FOLLOW` 等 |
+| Step 4.1 | `reason_type=~"DSSM_LOW_ENGAGE"`（全大写） |
+| Step 4.2 | `type=~"MLLM_CLUSTER_MLP_1W"`（全大写），datasource=`vms-recommend` |
+| Step 5.1 | `reason_type=~"DSSM_MODEL_BASE"`（全大写），datasource=`vms-recommend`（非 vms-search） |
+| Step 5.2 | datasource=`vms-search`（omega 指标） |
+| Step 6.2 | 指标名驼峰 `postnotescanner_SingleShardTableScanner_scanSingleShard_needRetryTaskNumber`，`code="NOTE_SPAM"`/`"COMPLETED"`，`biz` 值全大写 |
+| Step 6.3 | `endpoint=~"newNote\|editNote"`（驼峰） |
 
-| 指令 | 说明 |
-|------|------|
-| `/continue` | 继续下一个诊断阶段 |
-| `/skip-deep` | 跳过深度排查，输出当前结论（仅 GATE A 可用）|
-| `/go-deep` | 升级为 Deep Path（若当前为 Standard Path）|
-| `/save` | 保存当前状态并退出，稍后用 `--resume` 恢复 |
+---
 
-GATE 等待超时（默认300s）后自动继续，等价于 `/continue`。
-
-## 目录结构
+## 排查路径总览
 
 ```
-rec-homefeed-newnote-diagnosis/
-├── SKILL.md                        # 本文件
-├── agents/
-│   ├── triage-prompt.md            # 分诊 Agent 提示词（路径决策规则）
-│   ├── diagnosis-prompt.md         # 深度诊断 Agent 提示词（Evidence 铁律）
-│   └── conclusion-reviewer.md      # 结论审查 Agent 提示词（上下文隔离）
-├── rules/
-│   ├── rec-context.md              # 推荐系统拓扑（始终加载）
-│   └── sre-redlines.md             # 止损操作红线（始终加载）
-├── knowledge/
-│   ├── index.md                    # 知识索引（触发条件 → 对应文件）
-│   ├── index-switch.md             # 索引切换知识（Step 5 前加载）
-│   ├── data-flow.md                # 数据流知识（Step 6 前加载）
-│   └── gradual-failure-cases.md    # 渐进式故障案例（视频/混排变更时加载）
-├── sessions/                       # 诊断会话快照（断点续诊）
-├── scripts/
-│   ├── diagnose.py                 # 主入口（v4.0 渐进式路由）
-│   ├── triage.py                   # 独立分诊脚本
-│   ├── session_manager.py          # 会话快照管理
-│   └── conclusion_review.py        # 结论自检脚本
-└── references/                     # 核心参考文档（不变）
-    ├── sop.md                      # SOP 方法论（v3.9）
-    ├── config-watchlist.json       # 高风险配置清单（v4.0）
-    ├── promql-collection.json      # PromQL 查询语句
-    ├── decision-tree.json          # 诊断决策树
-    └── appendix.md                 # 历史故障案例库
+确认异常 → 定位阶段 → 召回排查 → 根因分析 → 索引排查 → 内容供给
 ```
 
-## 依赖 Skills
+---
 
-### 必需依赖
+## 诊断流程（严格按 SOP 执行）
 
-| Skill | 说明 | 安装命令 |
-|-------|------|---------|
-| `xray_metrics_query` | 查询 XRay 监控指标（Prometheus/VictoriaMetrics） | `openclaw skill install xray_metrics_query` |
-| `xray_changevent_query` | 查询 XRay 变更事件（Apollo 配置 + 实验变更） | `openclaw skill install xray_changevent_query` |
-| `index-switch-check` | 检查索引切换状态（RIS/Omega） | `openclaw skill install index-switch-check` |
+> 全程严格使用 SOP 文档原样 PromQL，不修改字母大小写。
+> 每步给出明确结论：✅ 正常 / ❌ 异常 / ⚠️ 需关注。
 
-> **SSO 登录态**：直接读取 `/home/node/.token/sso_token.json`（由 OpenClaw 自动维护），无需额外安装 skill。
+### Step 1：确认异常 — 外流新笔记量/占比是否真实下跌
 
-### 可选依赖
+使用 `xray-metrics-query` 查询外流新笔记整体指标，做三时点对比（当前 / -1d / -7d）。
 
-| Skill | 说明 | 安装命令 |
-|-------|------|---------|
-| `hi-redoc-curd` | 上传诊断报告到 Redoc | `openclaw skill install hi-redoc-curd` |
+确认以下问题：
+- 新笔记**绝对量**还是**占比**下跌，还是两者都有？
+- 影响**全场景**还是**特定场景**？
 
-### 快速安装
+若指标确认下跌，进入 Step 2。
 
-**一键安装所有依赖：**
-```bash
-openclaw skill install xray_metrics_query xray_changevent_query index-switch-check
+---
+
+### Step 2：定位阶段 — 定位下跌发生在链路哪个阶段
+
+#### Step 2.1：分阶段漏斗对比
+
+查询各阶段新笔记量，使用：
+- `subPhase="after"`（注意：P 大写）
+
+对召回后、粗排后、精排后、重排后各阶段分别做三时点对比，找到量开始明显下跌的阶段。
+
+**决策**：
+- 召回阶段已下跌 → 进入 Step 3（召回排查）
+- 召回正常，粗排/精排后下跌 → 进入 Step 4（根因分析）
+- 精排正常，重排后下跌 → 重排策略或业务干预问题，联系推荐策略同学
+
+---
+
+### Step 3：召回排查 — 各路召回通道逐一检查
+
+#### Step 3.1：各召回通道量对比
+
+查询各路召回通道新笔记量，`name` 标签值使用**全大写**，如：
+- `DSSM_MODEL_BASE`
+- `MLLM_CLUSTER_MLP_1W`
+- `ES`
+- `FOLLOW`
+- （其他通道参考 SOP 原文完整列表）
+
+三时点对比，找出掉量或掉零的通道。
+
+**决策**：
+- 某通道掉零或大幅下降 → 该通道异常，进入 Step 4/5 进一步定位根因
+- 所有通道均匀下降 → 可能是供给侧问题，进入 Step 6（内容供给）
+
+---
+
+### Step 4：根因分析 — 召回下跌的具体原因
+
+#### Step 4.1：DSSM 低交互过滤量排查
+
+查询 DSSM 低交互被过滤的笔记量：
+- `reason_type=~"DSSM_LOW_ENGAGE"`（全大写）
+
+若该项数值大幅上升，说明新笔记因低交互被过滤增多，可能是模型分数问题或阈值调整。
+
+#### Step 4.2：MLLM 模型召回量排查
+
+查询 MLLM 模型召回新笔记量：
+- `type=~"MLLM_CLUSTER_MLP_1W"`（全大写）
+- datasource=`vms-recommend`
+
+三时点对比，确认该路召回是否正常。
+
+**决策**：
+- DSSM_LOW_ENGAGE 过滤量上升 → 联系推荐策略（quota/策略配置问题）
+- MLLM 召回量下降 → 进入 Step 5（索引排查）
+
+---
+
+### Step 5：索引排查 — 召回依赖的索引是否异常
+
+#### Step 5.1：DSSM 索引新笔记量
+
+查询 DSSM 索引中新笔记存量：
+- `reason_type=~"DSSM_MODEL_BASE"`（全大写）
+- datasource=`vms-recommend`（注意：不是 vms-search）
+
+#### Step 5.2：Omega 索引新笔记量
+
+查询 omega 索引新笔记存量：
+- datasource=`vms-search`
+
+#### Step 5.3：索引表切换判断
+
+> ⚠️ **当前能力缺口**："索引表是否切换"的判断需 darwin 平台提供 skills 支持，**当前正在开发中**。
+> 遇到此类情况请联系**索引侧同学**人工确认。
+
+**决策**：
+- 索引量正常，但召回量下降 → 索引切换或配置问题，联系索引侧同学
+- 索引量本身下降 → 进入 Step 6（内容供给）
+
+---
+
+### Step 6：内容供给 — 新笔记生产侧是否出现问题
+
+#### Step 6.1：新笔记整体入库量
+
+查询新笔记入库总量，三时点对比，确认是否供给侧整体下降。
+
+#### Step 6.2：审核积压排查
+
+查询审核积压指标：
+- 指标名（驼峰）：`postnotescanner_SingleShardTableScanner_scanSingleShard_needRetryTaskNumber`
+- `code="NOTE_SPAM"` / `code="COMPLETED"`
+- `biz` 值使用**全大写**
+
+若积压量显著上升，说明审核延迟导致新笔记无法及时入库。
+
+#### Step 6.3：发布 QPS 排查
+
+查询新笔记发布接口 QPS：
+- `endpoint=~"newNote|editNote"`（注意驼峰，不是全小写）
+
+若 QPS 大幅下降，说明用户发布行为减少（供给侧问题）。
+
+**决策**：
+- 审核积压上升 → 联系社区安审
+- 发布 QPS 下降 → 联系社区发布链路
+- 转码延迟 → 联系社区安审
+
+---
+
+## 诊断报告模板
+
+```
+## 外流新笔记下跌诊断报告（{date}）
+
+### 现象确认
+- 时间范围：xxx
+- 下跌类型：绝对量 / 占比 / 两者
+- 影响场景：全场景 / 特定场景（xxx）
+
+### 链路各阶段排查
+| 阶段 | 结论 | 数据详情（当前 / -1d / -7d） |
+|------|------|--------------------------|
+| 召回后 | ✅/❌/⚠️ | xxx / xxx / xxx |
+| 粗排后 | ✅/❌/⚠️ | xxx / xxx / xxx |
+| 精排后 | ✅/❌/⚠️ | xxx / xxx / xxx |
+| 重排后 | ✅/❌/⚠️ | xxx / xxx / xxx |
+
+### 召回通道排查（如适用）
+| 通道 | 结论 | 数据详情 |
+|------|------|---------|
+| DSSM_MODEL_BASE | ✅/❌/⚠️ | xxx |
+| MLLM_CLUSTER_MLP_1W | ✅/❌/⚠️ | xxx |
+| ES | ✅/❌/⚠️ | xxx |
+| FOLLOW | ✅/❌/⚠️ | xxx |
+
+### 根因分析（如适用）
+| 检查项 | 结论 | 数据详情 |
+|--------|------|---------|
+| DSSM_LOW_ENGAGE 过滤量 | ✅/❌/⚠️ | xxx |
+| MLLM 召回量 | ✅/❌/⚠️ | xxx |
+
+### 索引排查（如适用）
+| 检查项 | 结论 | 数据详情 |
+|--------|------|---------|
+| DSSM 索引新笔记量 | ✅/❌/⚠️ | xxx |
+| Omega 索引新笔记量 | ✅/❌/⚠️ | xxx |
+| 索引表切换 | ⚠️ 需人工确认 | 联系索引侧同学 |
+
+### 内容供给排查（如适用）
+| 检查项 | 结论 | 数据详情 |
+|--------|------|---------|
+| 新笔记入库量 | ✅/❌/⚠️ | xxx |
+| 审核积压量 | ✅/❌/⚠️ | xxx |
+| 发布 QPS | ✅/❌/⚠️ | xxx |
+
+### 根因判断
+- 疑似根因：xxx
+- 置信度：高 / 中 / 低
+
+### 建议动作 & 联系人
+- xxx → 联系 xxx
 ```
 
-**检查依赖是否完整：**
-```bash
-python3 skills/rec-homefeed-newnote-diagnosis/scripts/check_dependencies.py
-```
+---
 
-运行诊断脚本时会自动检查依赖，缺失时会提示安装命令。
+## 联系人
 
-## 核心设计原则（v4.0）
+| 问题类型 | 联系人 |
+|---------|-------|
+| 索引切换 / 消息流问题 | 索引侧同学（darwin skills 开发中） |
+| 召回 quota / 策略配置问题 | 推荐策略 |
+| 审核积压 / 转码延迟 | 社区安审 |
+| 发布 QPS 异常 | 社区发布链路 |
 
-1. **渐进式复杂度**：简单问题不承担复杂流程的成本
-2. **Evidence 铁律**：每个判断必须有数据出处（数值+时间点）
-3. **GATE 机制**：每阶段完成后暂停确认，避免方向跑偏
-4. **知识按需加载**：根据分诊结果和故障类型，只加载对应 knowledge/ 文件
-5. **断点续诊**：会话状态持久化到 sessions/，支持中断后恢复
-6. **结论自检**：Deep Path 完成后，用隔离上下文验证结论自洽性
+---
+
+## 参考资料
+
+- SOP 原文：[外流新笔记下跌故障排查 SOP](https://docs.xiaohongshu.com/doc/431589c956b59ffde7ddff305505e8c2)
+- 关键工具：`xray-metrics-query`
+- 待建设：darwin 索引切换判断 skill（Step 5.3）

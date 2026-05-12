@@ -1,0 +1,541 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>需求看板</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@300;400;500;700&family=JetBrains+Mono:wght@400;600&display=swap');
+
+  :root {
+    --bg: #f4f6fb;
+    --surface: #ffffff;
+    --surface2: #f8f9fc;
+    --border: #e4e8f0;
+    --text: #1a2035;
+    --text-muted: #8896b0;
+    --text-dim: #5a6a85;
+    --p0: #e53e3e;
+    --p0-bg: #fff5f5;
+    --p0-border: #feb2b2;
+    --p1: #d97706;
+    --p1-bg: #fffbeb;
+    --p1-border: #fcd34d;
+    --p2: #2563eb;
+    --p2-bg: #eff6ff;
+    --p2-border: #bfdbfe;
+    --done: #059669;
+    --done-bg: #ecfdf5;
+    --done-border: #a7f3d0;
+    --shelved: #9ca3af;
+    --shelved-bg: #f9fafb;
+    --shelved-border: #e5e7eb;
+    --accent: #4f46e5;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Noto Sans SC', sans-serif;
+    min-height: 100vh;
+    padding: 32px 28px;
+  }
+
+  /* Header */
+  .header {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    margin-bottom: 36px;
+    padding-bottom: 20px;
+    border-bottom: 2px solid var(--border);
+  }
+  .header-left h1 {
+    font-size: 26px;
+    font-weight: 700;
+    letter-spacing: -0.5px;
+    color: var(--text);
+  }
+  .header-left p {
+    color: var(--text-muted);
+    font-size: 12px;
+    margin-top: 4px;
+    font-family: 'JetBrains Mono', monospace;
+  }
+  .stats {
+    display: flex;
+    gap: 12px;
+  }
+  .stat {
+    text-align: center;
+    background: var(--surface);
+    border: 1.5px solid var(--border);
+    border-radius: 10px;
+    padding: 8px 16px;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.05);
+  }
+  .stat-num {
+    font-size: 20px;
+    font-weight: 700;
+    font-family: 'JetBrains Mono', monospace;
+  }
+  .stat-label { font-size: 11px; color: var(--text-muted); margin-top: 2px; }
+  .stat.p0 .stat-num { color: var(--p0); }
+  .stat.p1 .stat-num { color: var(--p1); }
+  .stat.p2 .stat-num { color: var(--p2); }
+  .stat.total .stat-num { color: var(--accent); }
+
+  /* Direction */
+  .direction { margin-bottom: 48px; }
+  .direction-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 16px;
+  }
+  .direction-tag {
+    font-size: 11px;
+    font-family: 'JetBrains Mono', monospace;
+    color: var(--accent);
+    background: #eef2ff;
+    border: 1px solid #c7d2fe;
+    border-radius: 4px;
+    padding: 2px 8px;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+  }
+  .direction-title {
+    font-size: 17px;
+    font-weight: 600;
+    color: var(--text);
+  }
+
+  /* Parent req summary */
+  .req-summary {
+    background: var(--surface);
+    border: 1.5px solid var(--border);
+    border-radius: 12px;
+    padding: 16px 20px;
+    margin-bottom: 20px;
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    flex-wrap: wrap;
+    box-shadow: 0 1px 6px rgba(0,0,0,0.05);
+  }
+  .req-summary-id {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--accent);
+    white-space: nowrap;
+  }
+  .req-summary-title { font-size: 14px; font-weight: 600; flex: 1; }
+  .req-summary-meta { display: flex; gap: 8px; flex-wrap: wrap; }
+  .meta-tag {
+    font-size: 11px;
+    padding: 3px 10px;
+    border-radius: 20px;
+    white-space: nowrap;
+  }
+  .meta-tag.green { background: var(--done-bg); color: var(--done); border: 1px solid var(--done-border); }
+  .meta-tag.blue { background: var(--p2-bg); color: var(--p2); border: 1px solid var(--p2-border); }
+
+  /* Kanban */
+  .kanban {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 16px;
+  }
+  .column {
+    background: var(--surface);
+    border: 1.5px solid var(--border);
+    border-radius: 12px;
+    padding: 16px;
+    box-shadow: 0 1px 6px rgba(0,0,0,0.04);
+  }
+  .column-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 14px;
+    padding-bottom: 10px;
+    border-bottom: 1.5px solid var(--border);
+  }
+  .column-title {
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.8px;
+    text-transform: uppercase;
+    font-family: 'JetBrains Mono', monospace;
+  }
+  .col-p0 .column-title { color: var(--p0); }
+  .col-p1 .column-title { color: var(--p1); }
+  .col-p2 .column-title { color: var(--p2); }
+  .col-count {
+    font-size: 11px;
+    font-family: 'JetBrains Mono', monospace;
+    color: var(--text-muted);
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 1px 8px;
+  }
+
+  /* Cards */
+  .card {
+    background: var(--surface2);
+    border-radius: 9px;
+    padding: 12px 14px;
+    margin-bottom: 10px;
+    border: 1.5px solid var(--border);
+    border-left: 3px solid transparent;
+    transition: box-shadow 0.15s, transform 0.15s;
+  }
+  .card:hover { box-shadow: 0 4px 16px rgba(0,0,0,0.08); transform: translateY(-1px); }
+  .col-p0 .card { border-left-color: var(--p0); }
+  .col-p1 .card { border-left-color: var(--p1); }
+  .col-p2 .card { border-left-color: var(--p2); }
+
+  .card-id {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    color: var(--text-muted);
+    margin-bottom: 5px;
+  }
+  .card-title {
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text);
+    line-height: 1.45;
+    margin-bottom: 7px;
+  }
+  .card-desc {
+    font-size: 11px;
+    color: var(--text-dim);
+    line-height: 1.55;
+    margin-bottom: 10px;
+  }
+  .card-footer { display: flex; align-items: center; gap: 6px; }
+
+  /* Priority badge */
+  .badge {
+    font-size: 10px;
+    font-family: 'JetBrains Mono', monospace;
+    border-radius: 4px;
+    padding: 2px 7px;
+    font-weight: 600;
+  }
+  .badge-p0 { background: var(--p0-bg); color: var(--p0); border: 1px solid var(--p0-border); }
+  .badge-p1 { background: var(--p1-bg); color: var(--p1); border: 1px solid var(--p1-border); }
+  .badge-p2 { background: var(--p2-bg); color: var(--p2); border: 1px solid var(--p2-border); }
+
+  /* Status selector */
+  .status-select {
+    font-size: 11px;
+    font-family: 'Noto Sans SC', sans-serif;
+    border-radius: 5px;
+    padding: 2px 6px;
+    border: 1px solid var(--border);
+    background: white;
+    color: var(--text-dim);
+    cursor: pointer;
+    outline: none;
+    appearance: none;
+    -webkit-appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%238896b0'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 6px center;
+    padding-right: 20px;
+    transition: border-color 0.15s;
+  }
+  .status-select:hover { border-color: var(--accent); }
+  .status-select:focus { border-color: var(--accent); box-shadow: 0 0 0 2px rgba(79,70,229,0.12); }
+
+  .status-select.s-pending   { color: #e53e3e; background-color: #fff5f5; border-color: #feb2b2; }
+  .status-select.s-inprogress { color: #d97706; background-color: #fffbeb; border-color: #fcd34d; }
+  .status-select.s-done      { color: #059669; background-color: #ecfdf5; border-color: #a7f3d0; }
+  .status-select.s-shelved   { color: #6b7280; background-color: #f9fafb; border-color: #e5e7eb; }
+
+  .updated {
+    text-align: right;
+    font-size: 11px;
+    color: var(--text-muted);
+    font-family: 'JetBrains Mono', monospace;
+    margin-top: 36px;
+  }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-left">
+    <h1>📋 需求看板</h1>
+    <p>requirements-board · <span id="last-updated">2026-05-12</span></p>
+  </div>
+  <div class="stats">
+    <div class="stat total"><div class="stat-num" id="stat-total">10</div><div class="stat-label">总计</div></div>
+    <div class="stat p0"><div class="stat-num">3</div><div class="stat-label">P0</div></div>
+    <div class="stat p1"><div class="stat-num">3</div><div class="stat-label">P1</div></div>
+    <div class="stat p2"><div class="stat-num">4</div><div class="stat-label">P2</div></div>
+  </div>
+</div>
+
+<div class="direction">
+  <div class="direction-header">
+    <span class="direction-tag">大方向</span>
+    <span class="direction-title">AI 应用评估</span>
+  </div>
+
+  <div class="req-summary">
+    <div class="req-summary-id">REQ-001</div>
+    <div class="req-summary-title">XRay AI 观测 & 评估 与 REDNA 页面融合</div>
+    <div class="req-summary-meta">
+      <span class="meta-tag green">✅ 前端已排期</span>
+      <span class="meta-tag green">✅ Langfuse 接口已有</span>
+    </div>
+  </div>
+
+  <div class="kanban">
+
+    <!-- P0 -->
+    <div class="column col-p0">
+      <div class="column-header">
+        <span class="column-title">P0 · 立即推进</span>
+        <span class="col-count">3</span>
+      </div>
+
+      <div class="card" id="card-001-1">
+        <div class="card-id">REQ-001-1</div>
+        <div class="card-title">ARKAI 监控 / AI 链路 / AI 评估嵌入 REDNA</div>
+        <div class="card-desc">将 XRay 侧 AI 观测页面嵌入 REDNA，需前端配合，现有页面同步优化</div>
+        <div class="card-footer">
+          <span class="badge badge-p0">P0</span>
+          <select class="status-select s-pending" onchange="updateStatus(this)">
+            <option value="pending" selected>🔴 待评审</option>
+            <option value="inprogress">🟡 进行中</option>
+            <option value="done">🟢 已完成</option>
+            <option value="shelved">⚫ 已搁置</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="card" id="card-001-2">
+        <div class="card-id">REQ-001-2</div>
+        <div class="card-title">REDNA 空间/Agent 与 Langfuse 空间自动同步</div>
+        <div class="card-desc">创建空间/Agent 时自动同步 Langfuse，嵌入页面时自动联动对应空间</div>
+        <div class="card-footer">
+          <span class="badge badge-p0">P0</span>
+          <select class="status-select s-pending" onchange="updateStatus(this)">
+            <option value="pending" selected>🔴 待评审</option>
+            <option value="inprogress">🟡 进行中</option>
+            <option value="done">🟢 已完成</option>
+            <option value="shelved">⚫ 已搁置</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="card" id="card-001-3">
+        <div class="card-id">REQ-001-3</div>
+        <div class="card-title">数据集支持 CSV / JSONL 上传</div>
+        <div class="card-desc">评估数据集支持通过 CSV 或 JSONL 格式批量上传</div>
+        <div class="card-footer">
+          <span class="badge badge-p0">P0</span>
+          <select class="status-select s-pending" onchange="updateStatus(this)">
+            <option value="pending" selected>🔴 待评审</option>
+            <option value="inprogress">🟡 进行中</option>
+            <option value="done">🟢 已完成</option>
+            <option value="shelved">⚫ 已搁置</option>
+          </select>
+        </div>
+      </div>
+    </div>
+
+    <!-- P1 -->
+    <div class="column col-p1">
+      <div class="column-header">
+        <span class="column-title">P1 · 跟进中</span>
+        <span class="col-count">3</span>
+      </div>
+
+      <div class="card" id="card-001-4">
+        <div class="card-id">REQ-001-4</div>
+        <div class="card-title">创建评估器支持选择 REDNA 模型</div>
+        <div class="card-desc">评判模型来源支持选择 REDNA 侧已有模型，不限于平台预置</div>
+        <div class="card-footer">
+          <span class="badge badge-p1">P1</span>
+          <select class="status-select s-pending" onchange="updateStatus(this)">
+            <option value="pending" selected>🔴 待评审</option>
+            <option value="inprogress">🟡 进行中</option>
+            <option value="done">🟢 已完成</option>
+            <option value="shelved">⚫ 已搁置</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="card" id="card-001-6a">
+        <div class="card-id">REQ-001-6a</div>
+        <div class="card-title">评估实验 AI 总结能力</div>
+        <div class="card-desc">评估完成后由 AI 提供整体总结，含每条数据的得分和理由</div>
+        <div class="card-footer">
+          <span class="badge badge-p1">P1</span>
+          <select class="status-select s-pending" onchange="updateStatus(this)">
+            <option value="pending" selected>🔴 待评审</option>
+            <option value="inprogress">🟡 进行中</option>
+            <option value="done">🟢 已完成</option>
+            <option value="shelved">⚫ 已搁置</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="card" id="card-001-8">
+        <div class="card-id">REQ-001-8</div>
+        <div class="card-title">发起评估任务 & 获取结论的 SKILL/CLI 能力</div>
+        <div class="card-desc">提供 SKILL 和 CLI 接口，支持 Agent Native 方式发起评估、获取结论</div>
+        <div class="card-footer">
+          <span class="badge badge-p1">P1</span>
+          <select class="status-select s-pending" onchange="updateStatus(this)">
+            <option value="pending" selected>🔴 待评审</option>
+            <option value="inprogress">🟡 进行中</option>
+            <option value="done">🟢 已完成</option>
+            <option value="shelved">⚫ 已搁置</option>
+          </select>
+        </div>
+      </div>
+    </div>
+
+    <!-- P2 -->
+    <div class="column col-p2">
+      <div class="column-header">
+        <span class="column-title">P2 · 排期中</span>
+        <span class="col-count">4</span>
+      </div>
+
+      <div class="card" id="card-001-5">
+        <div class="card-id">REQ-001-5</div>
+        <div class="card-title">同一 Query 不同版本 Agent 评估结果对比</div>
+        <div class="card-desc">手动指定不同版本 Agent，对同一 query 跑评估并横向对比</div>
+        <div class="card-footer">
+          <span class="badge badge-p2">P2</span>
+          <select class="status-select s-pending" onchange="updateStatus(this)">
+            <option value="pending" selected>🔴 待评审</option>
+            <option value="inprogress">🟡 进行中</option>
+            <option value="done">🟢 已完成</option>
+            <option value="shelved">⚫ 已搁置</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="card" id="card-001-6b">
+        <div class="card-id">REQ-001-6b</div>
+        <div class="card-title">多轮会话回放功能</div>
+        <div class="card-desc">支持对 Agent 多轮会话进行完整回放</div>
+        <div class="card-footer">
+          <span class="badge badge-p2">P2</span>
+          <select class="status-select s-pending" onchange="updateStatus(this)">
+            <option value="pending" selected>🔴 待评审</option>
+            <option value="inprogress">🟡 进行中</option>
+            <option value="done">🟢 已完成</option>
+            <option value="shelved">⚫ 已搁置</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="card" id="card-001-7">
+        <div class="card-id">REQ-001-7</div>
+        <div class="card-title">Agent 单环节回放功能</div>
+        <div class="card-desc">支持对 Agent 执行链路中某个具体环节单独回放与调试</div>
+        <div class="card-footer">
+          <span class="badge badge-p2">P2</span>
+          <select class="status-select s-pending" onchange="updateStatus(this)">
+            <option value="pending" selected>🔴 待评审</option>
+            <option value="inprogress">🟡 进行中</option>
+            <option value="done">🟢 已完成</option>
+            <option value="shelved">⚫ 已搁置</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="card" id="card-001-9">
+        <div class="card-id">REQ-001-9</div>
+        <div class="card-title">Prompt 调试与评估任务联动</div>
+        <div class="card-desc">改 Prompt → 自动触发评估任务 → 查结果，实现自动化评估闭环</div>
+        <div class="card-footer">
+          <span class="badge badge-p2">P2</span>
+          <select class="status-select s-pending" onchange="updateStatus(this)">
+            <option value="pending" selected>🔴 待评审</option>
+            <option value="inprogress">🟡 进行中</option>
+            <option value="done">🟢 已完成</option>
+            <option value="shelved">⚫ 已搁置</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="card" id="card-001-10">
+        <div class="card-id">REQ-001-10</div>
+        <div class="card-title">AI 生成评估数据集</div>
+        <div class="card-desc">通过 AI 自动生成评估数据集，减少人工构造测试用例成本</div>
+        <div class="card-footer">
+          <span class="badge badge-p2">P2</span>
+          <select class="status-select s-pending" onchange="updateStatus(this)">
+            <option value="pending" selected>🔴 待评审</option>
+            <option value="inprogress">🟡 进行中</option>
+            <option value="done">🟢 已完成</option>
+            <option value="shelved">⚫ 已搁置</option>
+          </select>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<div class="updated">最后更新：<span id="update-time">2026-05-12</span> · 共 <span id="req-count">10</span> 项需求</div>
+
+<script>
+  // Load saved statuses from localStorage
+  document.querySelectorAll('.status-select').forEach(sel => {
+    const card = sel.closest('.card');
+    const id = card ? card.id : null;
+    if (id) {
+      const saved = localStorage.getItem('status_' + id);
+      if (saved) {
+        sel.value = saved;
+        applyStatusClass(sel, saved);
+      }
+    }
+  });
+
+  function updateStatus(sel) {
+    const val = sel.value;
+    applyStatusClass(sel, val);
+    const card = sel.closest('.card');
+    if (card) {
+      localStorage.setItem('status_' + card.id, val);
+    }
+    // Update timestamp
+    const now = new Date();
+    const ts = now.getFullYear() + '-' +
+      String(now.getMonth()+1).padStart(2,'0') + '-' +
+      String(now.getDate()).padStart(2,'0') + ' ' +
+      String(now.getHours()).padStart(2,'0') + ':' +
+      String(now.getMinutes()).padStart(2,'0');
+    document.getElementById('update-time').textContent = ts;
+  }
+
+  function applyStatusClass(sel, val) {
+    sel.className = 'status-select';
+    const map = {
+      pending: 's-pending',
+      inprogress: 's-inprogress',
+      done: 's-done',
+      shelved: 's-shelved'
+    };
+    if (map[val]) sel.classList.add(map[val]);
+  }
+</script>
+
+</body>
+</html>

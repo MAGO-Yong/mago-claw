@@ -182,6 +182,9 @@ class NewNoteDiagnosis:
             self.start_time = datetime.fromisoformat(env_start)
         else:
             self.start_time = self.end_time - timedelta(hours=6)
+
+        # 置信基准（Step 0.2 确定后，所有后续步骤统一使用）
+        self._confidence_baseline = None  # {"label": "7d+14d均值", "offsets": [7, 14]}
     
     def _load_config_from_tree(self):
         """从决策树加载配置，合并到默认配置"""
@@ -253,6 +256,130 @@ class NewNoteDiagnosis:
                     return emoji, risk_desc, pattern
         
         return "➖", "", ""  # 无风险
+
+    # ─────────────────────────────────────────────────────────
+    # Step 0.2: 基准置信度校验（SOP 强制）
+    # ─────────────────────────────────────────────────────────
+    def _baseline_confidence_check(self, metric_label, current_values, baseline_data_map):
+        """SOP Step 0.2 基准置信度校验（三条基准线互检）。
+
+        Args:
+            metric_label: 指标名称（如 "1H新笔记占比"）
+            current_values: list[float] 当前时段数据点值
+            baseline_data_map: {"1d": [v1..], "7d": [v1..], "14d": [v1..]}
+
+        Returns:
+            {
+                "baseline_averages": {"1d": avg1, "7d": avg7, "14d": avg14},
+                "confidence_status": {"1d": "置信✅", "7d": "不置信❌", "14d": "置信✅"},
+                "confidence_reasons": {"7d": "与其余基准均值偏差 >15%"},
+                "confidence_mean": 0.XX,
+                "confidence_offsets": [1, 14],
+                "confidence_label": "1d+14d均值",
+                "current_mean": 0.XX,
+                "vs_confidence_pct": -X.X,
+                "judgment": "异常" | "可疑" | "正常",
+            }
+        """
+        # 计算各基准均值
+        baseline_avgs = {}
+        for label, vals in baseline_data_map.items():
+            clean = [v for v in vals if v is not None and v > 0]
+            baseline_avgs[label] = sum(clean) / len(clean) if clean else 0
+
+        # 排序基准均值用于检测异常基准
+        sorted_baselines = sorted(
+            [(label, avg) for label, avg in baseline_avgs.items() if avg > 0],
+            key=lambda x: x[1]
+        )
+
+        if len(sorted_baselines) < 2:
+            # 有效基准不足2条，直接返回
+            confidence_status = {
+                label: "置信✅" if avg > 0 else "不置信❌ 无数据"
+                for label, avg in baseline_avgs.items()
+            }
+            confidence_mean = sum(baseline_avgs.values()) / max(len([v for v in baseline_avgs.values() if v > 0]), 1)
+            confidence_offsets = [int(label[:-1]) for label in baseline_avgs if baseline_avgs[label] > 0]
+            return {
+                "baseline_averages": baseline_avgs,
+                "confidence_status": confidence_status,
+                "confidence_reasons": {},
+                "confidence_mean": confidence_mean,
+                "confidence_offsets": confidence_offsets,
+                "confidence_label": "全部均值" if confidence_offsets else "无基准",
+                "current_mean": 0,
+                "vs_confidence_pct": 0,
+                "judgment": "可疑",
+            }
+
+        # 检测不置信基准：使用中位数法，避免互相剔除的 bug
+        # 算法：先算所有基准的中位数，找出与中位数偏差最大的那条；
+        # 若偏差 >15% 则将其标记为不置信，其余全部置信。
+        # 这样避免了用 other_mean 互相比较时高离群值拉高均值、导致正常值也被剔除的问题。
+        confidence_status = {}
+        confidence_reasons = {}
+        excluded_labels = set()
+
+        all_avgs = [avg for _, avg in sorted_baselines]
+        mid_idx = len(all_avgs) // 2
+        median_val = all_avgs[mid_idx]  # 中位数（sorted_baselines 已排序）
+
+        for label_i, avg_i in sorted_baselines:
+            if median_val > 0:
+                deviation = abs(avg_i - median_val) / median_val * 100
+                if deviation > 15:
+                    excluded_labels.add(label_i)
+                    confidence_status[label_i] = "不置信❌"
+                    direction = "偏高" if avg_i > median_val else "偏低"
+                    confidence_reasons[label_i] = f"与基准中位数偏差 {deviation:.1f}%（{direction}），可能受活动/故障/节假日影响"
+                else:
+                    confidence_status[label_i] = "置信✅"
+
+        # 计算置信基准均值
+        confidence_avgs = {l: a for l, a in baseline_avgs.items() if l not in excluded_labels and a > 0}
+        if confidence_avgs:
+            confidence_mean = sum(confidence_avgs.values()) / len(confidence_avgs)
+            confidence_offsets = [int(l[:-1]) for l in confidence_avgs.keys()]
+            confidence_label = " + ".join(f"{l}" for l in confidence_avgs.keys()) + "均值"
+        else:
+            # 全部不置信，用绝对值判断
+            confidence_mean = sum(baseline_avgs.values()) / len(baseline_avgs)
+            confidence_offsets = [int(l[:-1]) for l in baseline_avgs.keys() if baseline_avgs[l] > 0]
+            confidence_label = "全部不置信，仅看绝对值"
+
+        current_mean = sum(current_values) / len(current_values) if current_values else 0
+        vs_confidence_pct = ((current_mean - confidence_mean) / confidence_mean * 100) if confidence_mean > 0 else 0
+
+        # 判定
+        anomaly_threshold = self.config['thresholds']['anomaly_drop_pct']
+        if vs_confidence_pct < -anomaly_threshold:
+            judgment = "异常"
+        elif vs_confidence_pct < 0:
+            judgment = "可疑"
+        else:
+            judgment = "正常"
+
+        return {
+            "baseline_averages": baseline_avgs,
+            "confidence_status": confidence_status,
+            "confidence_reasons": confidence_reasons,
+            "confidence_mean": confidence_mean,
+            "confidence_offsets": confidence_offsets,
+            "confidence_label": confidence_label,
+            "current_mean": current_mean,
+            "vs_confidence_pct": vs_confidence_pct,
+            "judgment": judgment,
+        }
+
+    def _get_baseline_offset_timedelta(self) -> timedelta:
+        """获取置信基准对应的时间偏移（用于 Step 2/3 等需要 offset 对比的场景）。"""
+        if self._confidence_baseline:
+            offsets = self._confidence_baseline.get("confidence_offsets", [1])
+            # 用最短的偏移（实时性最强）作为 offset
+            min_offset = min(offsets) if offsets else 1
+            return timedelta(days=min_offset)
+        return timedelta(days=1)  # 默认 -1d
 
     def run(self):
         print()
@@ -672,42 +799,96 @@ class NewNoteDiagnosis:
             print()
 
     # ─────────────────────────────────────────────────────────
-    # Step 1: 新笔记占比（详细对比数据 + 返回异常时间）
+    # Step 1: 新笔记占比（详细对比数据 + 基准置信度校验）
     # ─────────────────────────────────────────────────────────
     def _step1_anomaly(self):
         print(SEP)
-        print("Step 1: 新笔记曝光占比下跌（详细数据对比 + 时间戳）")
+        print("Step 1: 新笔记曝光占比下跌（基准置信度校验 + 详细数据对比）")
         print(SEP)
         print()
 
         step1 = self.promql.get("steps", {}).get("step1", {}).get("queries", {})
         anomaly_time = None  # 用于记录异常时间点
 
-        # 1H新笔记
-        print("【1.1】1小时新笔记占比对比（带完整时间戳）")
+        # ── Step 0.2: 基准置信度校验（SOP 强制） ──
+        print("【Step 0.2】基准置信度校验（-1d / -7d / -14d）")
         print(SEP2)
-        
-        promql_1h      = step1.get("1h_current",    {}).get("promql")
-        promql_1h_base = step1.get("1h_offset_1d",  {}).get("promql")
-        cur_1h  = self._query_raw(promql_1h,      self.start_time, self.end_time)
-        base_1h = self._query_raw(promql_1h_base, self.start_time, self.end_time)
-        
+
+        # 查询当前值和三条基准线
+        for label, promql_key, base_key in [
+            ("1H新笔记占比", "1h_current", ["1h_offset_1d", "1h_offset_7d", "1h_offset_14d"]),
+            ("24H新笔记占比", "24h_current", ["24h_offset_1d", "24h_offset_7d", "24h_offset_14d"]),
+        ]:
+            cur_promql = step1.get(promql_key, {}).get("promql")
+            cur_data = self._query_raw(cur_promql, self.start_time, self.end_time)
+
+            # 提取当前值
+            cur_vals = [float(v[1]) for row in (cur_data or []) for v in row.get("values", []) if v and v[1]]
+            if not cur_vals:
+                print(f"  {label}: ⚠️ 当前数据缺失，跳过置信度校验")
+                continue
+
+            # 查询三条基准线
+            baseline_data_map = {}
+            for bk in base_key:
+                base_promql = step1.get(bk, {}).get("promql")
+                base_data = self._query_raw(base_promql, self.start_time, self.end_time)
+                base_vals = [float(v[1]) for row in (base_data or []) for v in row.get("values", []) if v and v[1]]
+                offset_label = bk.split("_")[-1]  # "1d" / "7d" / "14d"
+                baseline_data_map[offset_label] = base_vals
+
+            # 执行置信度校验
+            result = self._baseline_confidence_check(label, cur_vals, baseline_data_map)
+
+            # 打印基准校验结果
+            print(f"\n  {label} - 基准置信度校验：")
+            for offset_label in ["1d", "7d", "14d"]:
+                avg = result["baseline_averages"].get(offset_label, 0)
+                status = result["confidence_status"].get(offset_label, "N/A")
+                reason = result["confidence_reasons"].get(offset_label, "")
+                print(f"    -{offset_label}  均值: {avg:.4f}  [{status}]")
+                if reason:
+                    print(f"           原因: {reason}")
+            print(f"  → 置信基准均值: {result['confidence_mean']:.4f}（基于 {result['confidence_label']}）")
+            print(f"  → 今日均值: {result['current_mean']:.4f}，vs 置信基准：{result['vs_confidence_pct']:+.1f}%")
+            print(f"  → 判定：{'🔴' if result['judgment'] == '异常' else '🟠' if result['judgment'] == '可疑' else '🟢'} {result['judgment']}")
+
+            # 存储置信基准供后续步骤使用
+            if label == "1H新笔记占比":
+                self._confidence_baseline = result
+                self._confidence_baseline_1h = result
+            else:
+                self._confidence_baseline_24h = result
+
+        print()
+
+        # ── Step 1.1: 1H新笔记（vs 置信基准） ──
+        print("【1.1】1小时新笔记占比对比（vs 置信基准）")
+        print(SEP2)
+
+        promql_1h = step1.get("1h_current", {}).get("promql")
+        cur_1h = self._query_raw(promql_1h, self.start_time, self.end_time)
+
+        # 使用置信基准的 offset 查询
+        base_offset_1h = self._get_baseline_offset_timedelta()
+        base_1h = self._query_raw(promql_1h, self.start_time - base_offset_1h, self.end_time - base_offset_1h)
+
         result_1h = self._print_metric_comparison("1H新笔记占比", cur_1h, base_1h)
         if result_1h and result_1h.get('anomaly_time'):
             anomaly_time = result_1h['anomaly_time']
         print()
 
-        # 24H新笔记
-        print("【1.2】24小时新笔记占比对比（带完整时间戳）")
+        # ── Step 1.2: 24H新笔记（vs 置信基准） ──
+        print("【1.2】24小时新笔记占比对比（vs 置信基准）")
         print(SEP2)
-        
-        promql_24h      = step1.get("24h_current",   {}).get("promql")
-        promql_24h_base = step1.get("24h_offset_1d", {}).get("promql")
-        cur_24h  = self._query_raw(promql_24h,      self.start_time, self.end_time)
-        base_24h = self._query_raw(promql_24h_base, self.start_time, self.end_time)
-        
+
+        promql_24h = step1.get("24h_current", {}).get("promql")
+        cur_24h = self._query_raw(promql_24h, self.start_time, self.end_time)
+
+        base_offset_24h = self._get_baseline_offset_timedelta()
+        base_24h = self._query_raw(promql_24h, self.start_time - base_offset_24h, self.end_time - base_offset_24h)
+
         result_24h = self._print_metric_comparison("24H新笔记占比", cur_24h, base_24h)
-        # 如果1H没有异常但24H有异常，用24H的异常时间
         if not anomaly_time and result_24h and result_24h.get('anomaly_time'):
             anomaly_time = result_24h['anomaly_time']
         print()
@@ -894,10 +1075,11 @@ class NewNoteDiagnosis:
             promql = "sum by (phase) (rate(new_note_cnt_sum{application=\"arkfeedx\",env=\"prod\",type=\"1h\",subPhase=\"after\"}[1m]))/sum by (phase) (rate(note_size_cnt_sum{application=\"arkfeedx\",env=\"prod\",subPhase=\"after\"}[1m]))"
 
         current = self._query_raw(promql, self.start_time, self.end_time)
-        # 用时间偏移实现昨天对比：查询同样的 PromQL，但时间窗口向前移1天
+        # 使用置信基准的时间偏移（SOP Step 0.2 确定）
+        baseline_offset = self._get_baseline_offset_timedelta()
         baseline = self._query_raw(promql,
-                                   self.start_time - timedelta(days=1),
-                                   self.end_time   - timedelta(days=1))
+                                   self.start_time - baseline_offset,
+                                   self.end_time   - baseline_offset)
 
         if not current:
             print(f"⚠️ 查询失败，无法获取阶段数据")
@@ -978,10 +1160,11 @@ class NewNoteDiagnosis:
             promql = "sum by (name) (rate(recall_num_exp_sum{application=\"arkfeedx\",env=\"prod\"}[1m]))"
 
         current  = self._query_raw(promql, self.start_time, self.end_time)
-        # 昨天同期：统一用时间窗口偏移，不依赖字符串替换
-        baseline = self._query_raw(promql_base or promql,
-                                   self.start_time - timedelta(days=1),
-                                   self.end_time   - timedelta(days=1))
+        # 使用置信基准的时间偏移（SOP Step 0.2 确定），而非固定 -1d
+        baseline_offset = self._get_baseline_offset_timedelta()
+        baseline = self._query_raw(promql,
+                                   self.start_time - baseline_offset,
+                                   self.end_time   - baseline_offset)
 
         if not current:
             print(f"⚠️ 查询失败")
@@ -1100,10 +1283,11 @@ class NewNoteDiagnosis:
         promql = self.promql.get("steps", {}).get("step2_5", {}).get("queries", {}).get("note_age", {}).get("promql")
         if promql:
             current = self._query_raw(promql, self.start_time, self.end_time)
-            # baseline - 使用正确的时间窗口偏移（而非字符串替换）
+            # baseline - 使用置信基准偏移
+            baseline_offset = self._get_baseline_offset_timedelta()
             baseline = self._query_raw(promql, 
-                                       self.start_time - timedelta(days=1),
-                                       self.end_time - timedelta(days=1))
+                                       self.start_time - baseline_offset,
+                                       self.end_time - baseline_offset)
             
             if current and baseline:
                 for row in current:
@@ -1155,6 +1339,12 @@ class NewNoteDiagnosis:
         print("  笔记年龄变老 → Step 5 索引排查")
         print("  quota变化    → 联系推荐策略团队")
         print()
+
+        # ── Step-level check（Step 4 根因结论后）────────────
+        self._step_check(
+            "Step4/根因分析",
+            query_systems=None,
+        )
 
     # ─────────────────────────────────────────────────────────
     # Step 5: 索引排查（详细）
@@ -1281,6 +1471,12 @@ class NewNoteDiagnosis:
         print("  索引正常      → Step 6 内容供给排查")
         print()
 
+        # ── Step-level check（Step 5 索引结论后）────────────
+        self._step_check(
+            "Step5/索引排查",
+            query_systems=None,
+        )
+
     # ─────────────────────────────────────────────────────────
     # Step 6: 内容供给（详细）
     # ─────────────────────────────────────────────────────────
@@ -1352,6 +1548,12 @@ class NewNoteDiagnosis:
 
         print("【SOP结束】")
         print()
+
+        # ── Step-level check（Step 6 内容供给结论后）────────
+        self._step_check(
+            "Step6/内容供给",
+            query_systems=None,
+        )
 
     # ─────────────────────────────────────────────────────────
     # 工具方法
@@ -1835,15 +2037,16 @@ class ProgressiveDiagnosisRunner:
     # ─────────────────────────────────────────────────────────
 
     def _output_conclusion(self) -> int:
-        print(f"\n{'='*60}")
+        """输出诊断结论（对齐 SOP 第九节格式）"""
+        print(f"\n{'='*76}")
         print("📋 诊断结论")
-        print(f"{'='*60}")
+        print(f"{'='*76}")
 
-        # 从 diagnosis 对象获取已收集的发现
         drop_1h = getattr(self.diagnosis, "_last_drop_1h_pct", None)
         drop_24h = getattr(self.diagnosis, "_last_drop_24h_pct", None)
         watchlist_hits = getattr(self.diagnosis, "_watchlist_hits", [])
 
+        # ── 指标摘要 ──
         print()
         if drop_1h is not None:
             status = "🔴 异常" if drop_1h < -10 else "🟠 关注" if drop_1h < -5 else "🟢 正常"
@@ -1852,34 +2055,85 @@ class ProgressiveDiagnosisRunner:
             status = "🔴 异常" if drop_24h < -10 else "🟠 关注" if drop_24h < -5 else "🟢 正常"
             print(f"【24H新笔记曝光占比】{drop_24h:+.1f}%  {status}")
 
+        # ── 基准置信度校验摘要 ──
+        conf_1h = getattr(self.diagnosis, "_confidence_baseline_1h", None)
+        if conf_1h:
+            print(f"\n【基准置信度校验】")
+            for offset_label in ["1d", "7d", "14d"]:
+                avg = conf_1h["baseline_averages"].get(offset_label, 0)
+                status = conf_1h["confidence_status"].get(offset_label, "N/A")
+                print(f"  -{offset_label}  均值: {avg:.4f}  [{status}]")
+            print(f"  → 置信基准均值: {conf_1h['confidence_mean']:.4f}（基于 {conf_1h['confidence_label']}）")
+
+        # ── 变更摘要 ──
         if watchlist_hits:
             print(f"\n【高风险变更】共命中 {len(watchlist_hits)} 条：")
             for h in watchlist_hits:
                 emoji = {"critical": "🔴", "high": "🟠", "medium": "🟡"}.get(h.get("level", "low"), "⚪")
-                print(f"  {emoji} {h.get('time', '?')}  {h.get('key', '?')}")
+                print(f"  {emoji} {h.get('time', '?')}  {h.get('key', '?')} ({h.get('level', '?')})")
         else:
             print("\n【变更】watchlist 无高风险命中")
 
-        print()
-        print("【止损建议】")
+        # ── 根因定位 ──
+        print(f"\n{'━'*76}")
+        print("【根因定位】")
         if watchlist_hits:
             critical = [h for h in watchlist_hits if h.get("level") == "critical"]
             high = [h for h in watchlist_hits if h.get("level") == "high"]
             if critical:
-                print("  🔴 立即回滚以下 Critical 级变更（需人工确认）：")
+                print("  🔴 高度可疑变更：")
                 for h in critical:
                     print(f"     - {h.get('key', '?')} @ {h.get('time', '?')}")
+            elif high:
+                print("  🟠 可疑变更：")
+                for h in high:
+                    print(f"     - {h.get('key', '?')} @ {h.get('time', '?')}")
+        else:
+            print("  未命中 watchlist 高风险变更，建议按 SOP Step 3-6 继续深挖。")
+
+        # ── 止损建议 ──
+        print(f"\n【止损建议】")
+        if watchlist_hits:
+            critical = [h for h in watchlist_hits if h.get("level") == "critical"]
+            high = [h for h in watchlist_hits if h.get("level") == "high"]
+            if critical:
+                print("  🔴 建议立即回滚以下 Critical 级变更（需人工确认）：")
+                for h in critical:
+                    print(f"     - {h.get('key', '?')} @ {h.get('time', '?')}")
+                print("  回滚后验证 PromQL：")
+                print("    avg(avg_over_time(rt_new_one_hour_new_note_imp_ratio{data_source=\"holo_rawtracker\",overview=\"true\"}[5m]))")
             elif high:
                 print("  🟠 建议回滚以下 High 级变更并观察恢复情况（需人工确认）：")
                 for h in high:
                     print(f"     - {h.get('key', '?')} @ {h.get('time', '?')}")
         else:
-            print("  无高风险变更，建议继续观察。")
+            print("  无高风险变更，建议继续观察。若指标持续下跌，检查索引切换和数据流。")
 
-        print()
-        print(f"【后续监控】")
+        # ── 影响范围 ──
+        print(f"\n【影响范围】")
+        print("  Zone: alhz1 / alsh1-gray / qcnj2 / rcsh1 / alhz1-3 / alhz1-4 / qcnj2-3 / qcnj2-4 / rcsh1-5")
+        print("  链路: snscontentpresentation(~85%) + bootestribe(~15%)")
+
+        # ── 后续监控 ──
+        print(f"\n{'━'*76}")
+        print("【后续监控】")
         print("  指标：rt_new_one_hour_new_note_imp_ratio{data_source=\"holo_rawtracker\",overview=\"true\"}")
         print("  阈值：绝对值 < 0.065 → ⚠️ 警戒  |  < 0.060 → 🔴 立即回滚")
+        print("  发布后 18-24h 持续跟踪：18:00 下跌>5% 密切跟踪 → 22:00 跌破0.065 警觉 → 23:00 跌破0.060 立即回滚")
+
+        # ── 建议下一步 ──
+        print(f"\n【建议下一步】")
+        if not watchlist_hits and drop_1h is not None and drop_1h < -10:
+            print("  1. 执行 Step 3 召回渠道分析，定位异常渠道")
+            print("  2. 检查索引切换状态（dssm_inst_v1_oo_1day）")
+            print("  3. 检查数据流 Flink 延迟和 Kafka lag")
+            print("  4. 检查内容池新笔记数是否正常")
+        elif watchlist_hits:
+            print("  1. 确认变更时序与异常起始时间的相关性")
+            print("  2. 评估回滚风险和影响面")
+            print("  3. 回滚后观察 1H/24H 新笔记指标是否回升")
+        else:
+            print("  1. 继续观察，暂无止损操作")
 
         if self.session:
             self.session.complete()

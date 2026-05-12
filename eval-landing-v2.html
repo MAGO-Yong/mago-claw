@@ -1,0 +1,793 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI 应用评估 · X-RAY</title>
+<style>
+:root {
+  --primary: #1677FF;
+  --purple: #722ED1;
+  --green: #52C41A;
+  --orange: #FA8C16;
+  --text: #1A1A2E;
+  --text-secondary: #5A6782;
+  --bg: #F8F9FC;
+  --card: #FFFFFF;
+  --border: #E8EDF5;
+  --gradient: linear-gradient(135deg, #1677FF 0%, #722ED1 100%);
+  --gradient-light: linear-gradient(135deg, #EBF4FF 0%, #F5EEFF 100%);
+}
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Helvetica Neue", Arial, sans-serif;
+  background: var(--bg); color: var(--text); line-height: 1.7;
+}
+
+/* ── Hero ── */
+.hero {
+  background: var(--gradient);
+  padding: 80px 24px 88px;
+  text-align: center; position: relative; overflow: hidden;
+}
+.hero::before {
+  content: ''; position: absolute; inset: 0;
+  background: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none'%3E%3Cg fill='%23ffffff' fill-opacity='0.04'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
+}
+.hero-badge {
+  display: inline-flex; align-items: center; gap: 6px;
+  background: rgba(255,255,255,0.15); border: 1px solid rgba(255,255,255,0.25);
+  border-radius: 20px; padding: 4px 14px;
+  font-size: 12px; color: #fff; letter-spacing: 0.5px; margin-bottom: 24px;
+}
+.hero-badge span { width: 6px; height: 6px; border-radius: 50%; background: #52C41A; display: inline-block; }
+.hero h1 {
+  font-size: clamp(26px, 4.5vw, 44px); font-weight: 700; color: #fff;
+  line-height: 1.25; margin-bottom: 20px;
+}
+.hero .subtitle {
+  font-size: 16px; color: rgba(255,255,255,0.8);
+  max-width: 580px; margin: 0 auto 40px; line-height: 1.8;
+}
+.hero-questions {
+  display: flex; flex-direction: column; gap: 10px;
+  max-width: 600px; margin: 0 auto 40px; text-align: left;
+}
+.hero-q {
+  background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2);
+  border-radius: 10px; padding: 12px 18px;
+  font-size: 14px; color: rgba(255,255,255,0.9); line-height: 1.6;
+}
+.hero-q::before { content: '› '; opacity: 0.6; }
+.hero-cta {
+  display: inline-flex; align-items: center; gap: 8px;
+  background: #fff; color: var(--primary);
+  padding: 13px 30px; border-radius: 26px;
+  font-size: 15px; font-weight: 600; text-decoration: none;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+}
+
+/* ── Layout ── */
+.section { max-width: 960px; margin: 0 auto; padding: 72px 24px; }
+.white-bg { background: #fff; border-top: 1px solid var(--border); }
+.section-label {
+  font-size: 11px; font-weight: 700; letter-spacing: 2px;
+  color: var(--primary); text-transform: uppercase; margin-bottom: 10px;
+}
+.section-title { font-size: clamp(20px, 3vw, 30px); font-weight: 700; color: var(--text); margin-bottom: 12px; }
+.section-desc { font-size: 15px; color: var(--text-secondary); max-width: 700px; margin-bottom: 48px; line-height: 1.8; }
+
+/* ── 误解模块 ── */
+.misconception-list { display: flex; flex-direction: column; gap: 16px; }
+.misconception-item {
+  border-radius: 14px; overflow: hidden;
+  border: 1.5px solid var(--border);
+  display: grid; grid-template-columns: 200px 1fr;
+}
+@media(max-width:640px) { .misconception-item { grid-template-columns: 1fr; } }
+.misconception-wrong {
+  background: #FFF1F0; border-right: 1.5px solid #ffccc7;
+  padding: 20px 22px; display: flex; flex-direction: column; justify-content: center;
+}
+.misconception-wrong .label { font-size: 10px; font-weight: 700; letter-spacing: 1px; color: #cf1322; margin-bottom: 6px; }
+.misconception-wrong p { font-size: 13px; color: #820014; font-weight: 600; line-height: 1.5; }
+.misconception-right { background: var(--card); padding: 20px 24px; display: flex; flex-direction: column; justify-content: center; }
+.misconception-right .label { font-size: 10px; font-weight: 700; letter-spacing: 1px; color: var(--primary); margin-bottom: 6px; }
+.misconception-right p { font-size: 13px; color: var(--text-secondary); line-height: 1.7; }
+.misconception-right strong { color: var(--text); }
+
+/* ── 代价表格 ── */
+.cost-table { width: 100%; border-collapse: collapse; border-radius: 14px; overflow: hidden; border: 1px solid var(--border); }
+.cost-table thead th { background: var(--gradient-light); padding: 14px 20px; text-align: left; font-size: 13px; font-weight: 700; color: var(--text-secondary); }
+.cost-table thead th:first-child { color: var(--text); }
+.cost-table tbody td { padding: 14px 20px; font-size: 13px; border-top: 1px solid var(--border); vertical-align: top; line-height: 1.65; }
+.cost-table tbody td:first-child { font-weight: 600; color: var(--text); }
+.cost-table tbody td:last-child { color: var(--text-secondary); }
+.cost-table tbody tr:last-child td { background: #FFF7E6; }
+.cost-table tbody tr:last-child td:first-child { color: var(--orange); }
+.cost-table tbody tr:last-child td:last-child { color: #7C5900; font-weight: 500; }
+
+/* ── 生命周期卡片 ── */
+.lifecycle-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px; }
+@media(max-width:640px) { .lifecycle-grid { grid-template-columns: 1fr; } }
+.lc-card { border-radius: 18px; overflow: hidden; border: 1.5px solid var(--border); background: var(--card); }
+.lc-header { padding: 20px 24px 16px; display: flex; align-items: flex-start; gap: 14px; }
+.lc-phase {
+  flex-shrink: 0; width: 36px; height: 36px; border-radius: 10px;
+  background: var(--gradient); color: #fff; font-size: 13px; font-weight: 800;
+  display: flex; align-items: center; justify-content: center; margin-top: 2px;
+}
+.lc-header-text h3 { font-size: 15px; font-weight: 700; margin-bottom: 3px; }
+.lc-header-text .lc-scene { font-size: 12px; color: var(--text-secondary); }
+.lc-body { padding: 0 24px 22px; }
+.lc-situation {
+  background: #F8F9FC; border-radius: 10px; padding: 12px 15px; margin-bottom: 14px;
+  font-size: 13px; color: var(--text-secondary); line-height: 1.7;
+  border-left: 3px solid var(--border);
+}
+.lc-situation strong { color: var(--text); display: block; font-size: 12px; margin-bottom: 4px; }
+.lc-path-label { font-size: 11px; font-weight: 700; letter-spacing: 1px; color: var(--primary); margin-bottom: 8px; }
+.lc-flow { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 14px; align-items: center; }
+.lc-flow-step {
+  background: var(--gradient-light); border: 1px solid #c9dcff;
+  border-radius: 6px; padding: 4px 10px;
+  font-size: 12px; color: var(--primary); font-weight: 600; white-space: nowrap;
+}
+.lc-flow-arrow { color: var(--text-secondary); font-size: 12px; }
+.lc-key { font-size: 12px; color: var(--text-secondary); line-height: 1.7; border-top: 1px solid var(--border); padding-top: 12px; }
+.lc-key strong { color: var(--text); }
+
+/* ── 飞轮 ── */
+.flywheel-box {
+  background: linear-gradient(135deg, #0D1B35 0%, #1a0a32 100%);
+  border-radius: 20px; padding: 40px; text-align: center; margin-top: 32px;
+}
+.flywheel-box h3 { font-size: 17px; font-weight: 700; color: #fff; margin-bottom: 10px; }
+.flywheel-box > p { font-size: 13px; color: rgba(255,255,255,0.6); margin-bottom: 36px; }
+.flywheel-diagram { display: flex; align-items: center; justify-content: center; flex-wrap: wrap; gap: 4px; }
+.fw-node {
+  background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.15);
+  border-radius: 12px; padding: 14px 18px; min-width: 130px; text-align: center;
+}
+.fw-node .fw-phase { font-size: 10px; font-weight: 700; letter-spacing: 1px; color: rgba(255,255,255,0.45); margin-bottom: 4px; }
+.fw-node .fw-name { font-size: 13px; font-weight: 700; color: #fff; margin-bottom: 3px; }
+.fw-node .fw-method { font-size: 11px; color: rgba(255,255,255,0.5); }
+.fw-arrow { font-size: 18px; color: rgba(255,255,255,0.3); padding: 0 8px; }
+.flywheel-note {
+  margin-top: 28px; padding: 16px 20px;
+  background: rgba(22,119,255,0.15); border: 1px solid rgba(22,119,255,0.3);
+  border-radius: 10px; font-size: 13px; color: rgba(255,255,255,0.8); line-height: 1.7;
+}
+.flywheel-note strong { color: #fff; }
+
+/* ── 评估粒度 ── */
+.eval-type-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+@media(max-width:640px){ .eval-type-grid { grid-template-columns: 1fr; } }
+.eval-type-card { border-radius: 16px; overflow: hidden; border: 1.5px solid var(--border); background: var(--card); }
+.eval-type-header { padding: 20px 24px; display: flex; align-items: center; gap: 14px; color: #fff; }
+.eval-type-icon { font-size: 14px; opacity: 0.85; flex-shrink: 0; font-family: monospace; background: rgba(255,255,255,0.15); padding: 4px 8px; border-radius: 6px; }
+.eval-type-name { font-size: 16px; font-weight: 700; }
+.eval-type-sub { font-size: 12px; opacity: 0.75; margin-top: 2px; }
+.eval-type-body { padding: 20px 24px; display: flex; flex-direction: column; gap: 14px; }
+.eval-scenario { background: var(--bg); border-radius: 8px; padding: 12px 14px; font-size: 13px; color: var(--text-secondary); line-height: 1.65; }
+.eval-scenario-label { font-size: 10px; font-weight: 700; letter-spacing: 1px; color: var(--primary); margin-bottom: 5px; }
+.eval-check-list { display: flex; flex-direction: column; gap: 6px; }
+.eval-check { font-size: 12px; line-height: 1.6; padding: 7px 12px; border-radius: 6px; }
+.eval-check.yes { background: #F6FFED; color: #389E0D; }
+.eval-check.no { background: #FFF7E6; color: #874D00; }
+.eval-example { background: var(--bg); border-radius: 8px; padding: 14px; }
+.eval-example-label { font-size: 10px; font-weight: 700; letter-spacing: 1px; color: var(--purple); margin-bottom: 6px; }
+.eval-example p { font-size: 12px; color: var(--text-secondary); line-height: 1.7; }
+.eval-full { grid-column: 1 / -1; }
+.eval-full-body { padding: 20px 24px; display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+@media(max-width:640px){ .eval-full-body { grid-template-columns: 1fr; } }
+
+/* ReAct chain */
+.react-chain { display: flex; flex-direction: column; gap: 2px; margin-top: 10px; }
+.react-step { border-radius: 8px; padding: 8px 12px; display: flex; align-items: center; gap: 10px; background: var(--card); }
+.react-step-name { font-size: 11px; font-weight: 700; letter-spacing: 0.5px; border-radius: 4px; padding: 2px 8px; flex-shrink: 0; }
+.react-thought { background: #EBF4FF; color: #1677FF; }
+.react-action { background: #F5EEFF; color: #722ED1; }
+.react-obs { background: #F6FFED; color: #389E0D; }
+.react-step-q { font-size: 12px; color: var(--text-secondary); line-height: 1.5; }
+.react-arrow { text-align: center; color: var(--text-secondary); font-size: 13px; padding: 2px 0 2px 20px; }
+
+/* ── 评估器与数据 ── */
+.two-col-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 32px; }
+@media(max-width:720px){ .two-col-grid { grid-template-columns: 1fr; } }
+.col-title { font-size: 14px; font-weight: 700; color: var(--text); margin-bottom: 16px; padding-bottom: 10px; border-bottom: 2px solid var(--gradient-light); }
+.judger-cards { display: flex; flex-direction: column; gap: 14px; }
+.judger-card { border: 1.5px solid var(--border); border-radius: 14px; padding: 18px 20px; background: var(--card); }
+.judger-header { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; }
+.judger-tag { font-size: 12px; font-weight: 700; padding: 3px 10px; border-radius: 6px; }
+.judger-badge { font-size: 11px; color: var(--green); background: #F6FFED; padding: 2px 8px; border-radius: 4px; font-weight: 600; }
+.judger-desc { font-size: 13px; color: var(--text-secondary); line-height: 1.7; margin-bottom: 10px; }
+.judger-pros-cons { display: flex; flex-direction: column; gap: 6px; font-size: 12px; color: var(--text-secondary); line-height: 1.6; }
+.pc-label { font-size: 11px; font-weight: 700; padding: 1px 6px; border-radius: 4px; margin-right: 4px; }
+.pc-label.good { background: #F6FFED; color: #389E0D; }
+.pc-label.warn { background: #FFF7E6; color: #874D00; }
+.judger-note { margin-top: 14px; font-size: 12px; color: var(--text-secondary); padding: 12px 14px; background: var(--bg); border-radius: 8px; line-height: 1.7; border-left: 3px solid var(--border); }
+
+.data-src-cards { display: flex; flex-direction: column; gap: 12px; margin-bottom: 16px; }
+.data-src-card { border: 1.5px solid var(--border); border-radius: 12px; padding: 16px 18px; background: var(--card); display: flex; gap: 14px; align-items: flex-start; }
+.data-src-icon { width: 36px; height: 36px; border-radius: 9px; display: flex; align-items: center; justify-content: center; font-size: 16px; flex-shrink: 0; color: #fff; }
+.data-src-name { font-size: 14px; font-weight: 700; margin-bottom: 5px; }
+.data-src-desc { font-size: 12px; color: var(--text-secondary); line-height: 1.7; margin-bottom: 7px; }
+.data-src-tag { font-size: 11px; color: var(--primary); background: #EBF4FF; padding: 2px 8px; border-radius: 4px; display: inline-block; }
+
+.dim-box { border: 1.5px solid var(--border); border-radius: 12px; padding: 16px 18px; background: var(--card); }
+.dim-box-title { font-size: 13px; font-weight: 700; margin-bottom: 6px; }
+.dim-box-note { font-size: 12px; color: var(--text-secondary); margin-bottom: 12px; line-height: 1.6; }
+.dim-tags { display: flex; flex-direction: column; gap: 10px; }
+.dim-group-label { font-size: 11px; font-weight: 700; color: var(--text-secondary); letter-spacing: 0.5px; margin-bottom: 5px; }
+.dim-tag-row { display: flex; flex-wrap: wrap; gap: 6px; }
+.dim-tag { font-size: 12px; background: var(--gradient-light); border: 1px solid #c9dcff; color: var(--primary); padding: 3px 10px; border-radius: 6px; }
+.dim-tag-purple { background: #F5EEFF; border-color: #d3b8f5; color: var(--purple); }
+
+/* ── 快速开始 ── */
+.start-cards { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 24px; }
+@media(max-width:640px){ .start-cards { grid-template-columns: 1fr; } }
+.start-card { border: 1.5px solid var(--border); border-radius: 16px; padding: 24px; background: var(--card); display: flex; flex-direction: column; gap: 16px; }
+.start-card-header { display: flex; gap: 14px; align-items: flex-start; }
+.start-num { width: 32px; height: 32px; border-radius: 9px; background: var(--gradient); color: #fff; font-size: 15px; font-weight: 800; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+.start-title { font-size: 14px; font-weight: 700; margin-bottom: 3px; }
+.start-desc { font-size: 12px; color: var(--text-secondary); }
+.start-steps { padding-left: 18px; display: flex; flex-direction: column; gap: 8px; }
+.start-steps li { font-size: 13px; color: var(--text-secondary); line-height: 1.65; }
+.start-steps li::marker { color: var(--primary); font-weight: 700; }
+.start-link { font-size: 13px; color: var(--primary); font-weight: 600; text-decoration: none; margin-top: auto; }
+.start-link:hover { text-decoration: underline; }
+
+.pitfall-box { background: #FFFBE6; border: 1.5px solid #FFE58F; border-radius: 14px; padding: 20px 24px; }
+.pitfall-title { font-size: 14px; font-weight: 700; color: #874D00; margin-bottom: 10px; }
+.pitfall-box > p { font-size: 13px; color: #613400; line-height: 1.7; }
+.pitfall-check { margin-top: 12px; background: #fff; border-radius: 8px; padding: 12px 14px; font-size: 12px; color: var(--text-secondary); line-height: 1.7; border-left: 3px solid #FA8C16; }
+</style>
+</head>
+<body>
+
+<!-- ════════════════════════════════════
+     HERO
+════════════════════════════════════ -->
+<section class="hero">
+  <div class="hero-badge"><span></span> X-RAY · AI 应用评估 · 正式上线</div>
+  <h1>你的 Agent 今天<br>表现得好不好，你知道吗？</h1>
+  <p class="subtitle">
+    Agent 的输出是模型、工具、知识库和多轮交互的综合结果。<br>
+    任何一个环节出问题，最终输出都会出错——但你用什么来判断？
+  </p>
+  <div class="hero-questions">
+    <div class="hero-q">用户问了问题，Agent 调了工具、查了知识库、生成了回答——但不知道哪一步出了问题，只知道结果不对</div>
+    <div class="hero-q">改了一版 Prompt，感觉变好了，但不知道工具调用有没有劣化，也说不清楚到底好在哪</div>
+    <div class="hero-q">上线两周了，Agent 真实运行时的完整链路，从来没有系统性地看过</div>
+  </div>
+  <a href="https://docs.xiaohongshu.com/doc/10bd82c9c1bedd01879a3d78dfed4b26" class="hero-cta">📖 查看完整使用手册</a>
+</section>
+
+
+<!-- ════════════════════════════════════
+     SECTION 1：认知建立
+════════════════════════════════════ -->
+<div class="white-bg">
+<section class="section">
+  <div class="section-label">认知建立</div>
+  <div class="section-title">评估是什么，以及三个常见误解</div>
+  <p class="section-desc">
+    评估的定义是：用可量化的方式，持续回答「Agent 在真实场景里的综合表现是否符合预期」。评估关注的不是底层模型的通用能力，而是 Agent 在真实业务输入、工具定义、知识库内容和上下文条件下的实际表现——这是模型、工具、知识库三个维度的综合结果。
+  </p>
+  <div class="misconception-list">
+
+    <div class="misconception-item">
+      <div class="misconception-wrong">
+        <div class="label">误解 01</div>
+        <p>评估是测模型能力</p>
+      </div>
+      <div class="misconception-right">
+        <div class="label">实际上</div>
+        <p>评估的对象是 <strong>Agent 在特定业务场景下的综合表现</strong>，而不是底层模型的通用能力。同一个模型，换一批工具定义或知识库内容，评估结论可能完全不同。模型能力的基准测试无法替代业务场景的评估。</p>
+      </div>
+    </div>
+
+    <div class="misconception-item">
+      <div class="misconception-wrong">
+        <div class="label">误解 02</div>
+        <p>评估就是人工打分</p>
+      </div>
+      <div class="misconception-right">
+        <div class="label">实际上</div>
+        <p>人工是评估流程的<strong>最终确认环节</strong>，而不是主要手段。正确路径是：自动化机制从大量请求中把问题样本筛选出来，人工只处理被筛出的部分。没有自动化前置，人工评估的成本难以持续，覆盖面也极为有限。</p>
+      </div>
+    </div>
+
+    <div class="misconception-item">
+      <div class="misconception-wrong">
+        <div class="label">误解 03</div>
+        <p>有通用评估器可以直接用</p>
+      </div>
+      <div class="misconception-right">
+        <div class="label">实际上</div>
+        <p>不存在对任意 Agent 都准确的通用评估器。不同业务对「好」的定义不同：客服 Agent 关注问题解决率，RAG Agent 关注检索相关性，Tool Agent 关注工具调用的参数准确性。<strong>业务 owner 需要自行梳理评估维度并孵化出适合自身场景的评估器</strong>——平台提供框架和执行机制，评估标准由业务侧定义。</p>
+      </div>
+    </div>
+
+  </div>
+</section>
+</div>
+
+
+<!-- ════════════════════════════════════
+     SECTION 2：不做评估的代价
+════════════════════════════════════ -->
+<section class="section">
+  <div class="section-label">问题定义</div>
+  <div class="section-title">不做系统性评估，你在用什么替代它</div>
+  <p class="section-desc">这些做法在早期可以运转，但随着 Agent 复杂度和流量规模增长，代价会快速放大。</p>
+
+  <table class="cost-table">
+    <thead>
+      <tr>
+        <th style="width:30%">当前做法</th>
+        <th>实际代价</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>人工抽查几条对话，觉得还行就上线</td>
+        <td>Agent 一次请求可能经历多个节点（LLM 调用 / 工具调用 / RAG 检索），人工无法系统性覆盖完整链路。边界场景的问题持续漏过，直到用户投诉才被发现。</td>
+      </tr>
+      <tr>
+        <td>凭经验判断「新版好像比旧版好」</td>
+        <td>工具调用准确率可能在某次迭代中下降，RAG 检索质量可能在某次知识库更新后劣化。没有可量化的对比基准，迭代方向的正确性无法被验证，优化效果无法被复现。</td>
+      </tr>
+      <tr>
+        <td>发现 bad case 后存入飞书文档</td>
+        <td>下次迭代后，这个问题是否被修复？同类问题是否再次出现？没有自动化的回归机制，只能依赖人工记忆追踪，覆盖面和可靠性均无法保证。</td>
+      </tr>
+      <tr>
+        <td>从未系统性查看过 Agent 的完整对话链路</td>
+        <td>这是最容易被忽略的盲区：Agent 在真实运行时经历了什么——用户的完整输入、每次工具调用的参数和返回、每次 LLM 调用的实际 Prompt 和输出、最终给用户的回复——没有一个地方可以系统性地看到这些内容。</td>
+      </tr>
+    </tbody>
+  </table>
+</section>
+
+
+<!-- ════════════════════════════════════
+     SECTION 3：Agent 全周期评估地图
+════════════════════════════════════ -->
+<div class="white-bg">
+<section class="section">
+  <div class="section-label">评估地图</div>
+  <div class="section-title">评估贯穿 Agent 开发的全周期</div>
+  <p class="section-desc">
+    评估不是「上线时做一次」的动作，而是贯穿 Agent 从开发到持续运营全周期的机制。不同阶段面临的问题不同，对应的评估路径也不同。
+  </p>
+
+  <div class="lifecycle-grid">
+
+    <div class="lc-card">
+      <div class="lc-header">
+        <div class="lc-phase">01</div>
+        <div class="lc-header-text">
+          <h3>开发阶段</h3>
+          <div class="lc-scene">有 bad case，验证修复是否有效</div>
+        </div>
+      </div>
+      <div class="lc-body">
+        <div class="lc-situation">
+          <strong>典型处境</strong>
+          Agent 还未上线或刚完成一次迭代。手上有已知问题样本，修改了 Prompt、工具实现或知识库后，需要验证改动是否真正解决了问题，以及有没有引入新的劣化。
+        </div>
+        <div class="lc-path-label">评估路径</div>
+        <div class="lc-flow">
+          <span class="lc-flow-step">整理 bad case 数据集</span>
+          <span class="lc-flow-arrow">→</span>
+          <span class="lc-flow-step">配置评估器</span>
+          <span class="lc-flow-arrow">→</span>
+          <span class="lc-flow-step">离线回放</span>
+          <span class="lc-flow-arrow">→</span>
+          <span class="lc-flow-step">对比版本得分</span>
+        </div>
+        <div class="lc-key">
+          <strong>关键价值：</strong>bad case 从「存在文档里」变成「可重复自动验证的回归集」，每次迭代后跑一遍，修复验证才真正形成闭环。
+        </div>
+      </div>
+    </div>
+
+    <div class="lc-card">
+      <div class="lc-header">
+        <div class="lc-phase">02</div>
+        <div class="lc-header-text">
+          <h3>上线前</h3>
+          <div class="lc-scene">建立质量基线，再灰度放量</div>
+        </div>
+      </div>
+      <div class="lc-body">
+        <div class="lc-situation">
+          <strong>典型处境</strong>
+          Agent 准备上线或扩大灰度范围。需要在真实流量进入之前，确认整体效果处于可接受范围，并明确知道哪些场景存在风险——不是凭感觉，而是有数据支撑。
+        </div>
+        <div class="lc-path-label">评估路径</div>
+        <div class="lc-flow">
+          <span class="lc-flow-step">整理代表性样本集</span>
+          <span class="lc-flow-arrow">→</span>
+          <span class="lc-flow-step">定义评估维度</span>
+          <span class="lc-flow-arrow">→</span>
+          <span class="lc-flow-step">离线评估</span>
+          <span class="lc-flow-arrow">→</span>
+          <span class="lc-flow-step">查看得分分布</span>
+        </div>
+        <div class="lc-key">
+          <strong>关键价值：</strong>上线前明确知道哪些场景还有问题、哪些风险是可接受的，比在真实流量中被动发现问题的排查成本低得多。
+        </div>
+      </div>
+    </div>
+
+    <div class="lc-card">
+      <div class="lc-header">
+        <div class="lc-phase">03</div>
+        <div class="lc-header-text">
+          <h3>上线后</h3>
+          <div class="lc-scene">持续监控，自动发现 bad case</div>
+        </div>
+      </div>
+      <div class="lc-body">
+        <div class="lc-situation">
+          <strong>典型处境</strong>
+          Agent 已在运行，每天有真实用户请求。某个工具最近开始频繁调用失败、某类 query 的 RAG 召回质量在下滑、某次模型升级后某个场景悄悄劣化——这些问题不会主动暴露，需要持续监控机制来发现。
+        </div>
+        <div class="lc-path-label">评估路径</div>
+        <div class="lc-flow">
+          <span class="lc-flow-step">X-RAY 采集完整链路</span>
+          <span class="lc-flow-arrow">→</span>
+          <span class="lc-flow-step">自动周期评估</span>
+          <span class="lc-flow-arrow">→</span>
+          <span class="lc-flow-step">实验报告</span>
+          <span class="lc-flow-arrow">→</span>
+          <span class="lc-flow-step">低分样本自动入库</span>
+        </div>
+        <div class="lc-key">
+          <strong>关键价值一：</strong>配置一次，持续自动运行，问题样本自动沉淀。<br>
+          <strong>关键价值二：</strong>X-RAY 采集的链路数据本身就是价值——这里是系统性查看 Agent 完整对话链路的唯一入口。
+        </div>
+      </div>
+    </div>
+
+    <div class="lc-card">
+      <div class="lc-header">
+        <div class="lc-phase">04</div>
+        <div class="lc-header-text">
+          <h3>版本迭代</h3>
+          <div class="lc-scene">验证每次改动有没有引入劣化</div>
+        </div>
+      </div>
+      <div class="lc-body">
+        <div class="lc-situation">
+          <strong>典型处境</strong>
+          Agent 在持续迭代：Prompt 在调整、工具在更新、模型版本在升级、知识库在扩充。每次改动都可能在解决一个问题的同时引入新的问题，需要在发布前进行回归验证。
+        </div>
+        <div class="lc-path-label">评估路径</div>
+        <div class="lc-flow">
+          <span class="lc-flow-step">复用已有数据集</span>
+          <span class="lc-flow-arrow">→</span>
+          <span class="lc-flow-step">迭代后重新跑评估</span>
+          <span class="lc-flow-arrow">→</span>
+          <span class="lc-flow-step">对比版本得分变化</span>
+        </div>
+        <div class="lc-key">
+          <strong>关键价值：</strong>数据集随线上 bad case 的持续回流而不断积累，回归验证的覆盖面越来越广，数据集越跑越有价值。
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <div class="flywheel-box">
+    <h3>四个阶段构成一个数据飞轮</h3>
+    <p>线上发现的 bad case 自动沉淀为离线数据集，离线数据集支撑下一轮迭代的回归验证，形成持续运转的评估闭环。</p>
+    <div class="flywheel-diagram">
+      <div class="fw-node">
+        <div class="fw-phase">开发 / 上线前</div>
+        <div class="fw-name">离线评估</div>
+        <div class="fw-method">bad case 数据集 + 回放</div>
+      </div>
+      <div class="fw-arrow">→</div>
+      <div class="fw-node">
+        <div class="fw-phase">上线后</div>
+        <div class="fw-name">在线持续监控</div>
+        <div class="fw-method">真实链路 + 自动抽样</div>
+      </div>
+      <div class="fw-arrow">→</div>
+      <div class="fw-node">
+        <div class="fw-phase">持续积累</div>
+        <div class="fw-name">数据集回流</div>
+        <div class="fw-method">低分样本自动写入</div>
+      </div>
+      <div class="fw-arrow">↩</div>
+    </div>
+    <div class="flywheel-note">
+      <strong>核心认知：</strong>评估体系的价值不是来自某一次跑出来的报告，而是来自这个飞轮持续转动后积累的数据资产——越跑，覆盖的场景越全，验证越可靠。
+    </div>
+  </div>
+
+</section>
+</div>
+
+
+<!-- ════════════════════════════════════
+     SECTION 4：三种评估粒度
+════════════════════════════════════ -->
+<section class="section">
+  <div class="section-label">评估粒度</div>
+  <div class="section-title">三种评估粒度，对应不同的诊断深度</div>
+  <p class="section-desc">
+    根据需要定位问题的精度选择评估粒度。粒度越细，能发现的问题越具体，配置成本也相应增加。通常从结果评估开始建立基线，再按需引入节点评估或轨迹评估。
+  </p>
+
+  <div class="eval-type-grid">
+
+    <div class="eval-type-card">
+      <div class="eval-type-header" style="background: linear-gradient(135deg,#1677FF,#389BFF);">
+        <div class="eval-type-icon">入 → 出</div>
+        <div>
+          <div class="eval-type-name">结果评估</div>
+          <div class="eval-type-sub">只看最终输入和输出</div>
+        </div>
+      </div>
+      <div class="eval-type-body">
+        <div class="eval-scenario">
+          <div class="eval-scenario-label">适用场景</div>
+          建立质量基线、上线前验收、持续监控整体效果水位
+        </div>
+        <div class="eval-check-list">
+          <div class="eval-check yes">✓ 能发现：回答幻觉、答非所问、格式错误、安全违规</div>
+          <div class="eval-check no">✗ 发现不了：具体是哪个节点出了问题</div>
+        </div>
+        <div class="eval-example">
+          <div class="eval-example-label">典型案例</div>
+          <p>用户问「帮我查最近三个月消费记录」，Agent 经历了多次工具调用和 LLM 推理后返回结果。结果评估只判断最终回复是否准确完整——适合快速建立整体质量感知，不需要深入链路细节。</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="eval-type-card">
+      <div class="eval-type-header" style="background: linear-gradient(135deg,#722ED1,#9B59D3);">
+        <div class="eval-type-icon">入 → ● → 出</div>
+        <div>
+          <div class="eval-type-name">节点评估（单 SPAN）</div>
+          <div class="eval-type-sub">拆开每个执行节点单独评估</div>
+        </div>
+      </div>
+      <div class="eval-type-body">
+        <div class="eval-scenario">
+          <div class="eval-scenario-label">适用场景</div>
+          已知问题出在某个具体环节，需要精确定位和持续监控该节点的质量
+        </div>
+        <div class="eval-check-list">
+          <div class="eval-check yes">✓ 能发现：某次 LLM 调用输出质量下降、工具参数传错、RAG 检索未召回正确内容</div>
+          <div class="eval-check no">✗ 发现不了：步骤之间的逻辑因果关系是否合理</div>
+        </div>
+        <div class="eval-example">
+          <div class="eval-example-label">典型案例</div>
+          <p>Agent 在调用搜索工具时，生成的查询参数质量参差不齐。单独对「工具调用 SPAN」做评估，判断每次生成的 query 是否准确覆盖了用户意图——只聚焦这一个节点，不需要看整条链路。</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="eval-type-card eval-full">
+      <div class="eval-type-header" style="background: linear-gradient(135deg,#0D1B35,#1a3a5c);">
+        <div class="eval-type-icon">T → A → O → T → A → O</div>
+        <div>
+          <div class="eval-type-name">轨迹评估</div>
+          <div class="eval-type-sub">评估 Agent 内部执行逻辑的合理性——步骤之间的因果关系是否成立</div>
+        </div>
+      </div>
+      <div class="eval-full-body">
+        <div style="display:flex;flex-direction:column;gap:14px;">
+          <div class="eval-scenario">
+            <div class="eval-scenario-label">适用场景</div>
+            链路较长、结果时好时坏、但无法定位具体问题环节的深度诊断
+          </div>
+          <div class="eval-check-list">
+            <div class="eval-check yes">✓ 能发现：逻辑断裂点（Observation 未被下一步 Thought 有效利用）、意图在传递中被稀释、冗余执行步骤</div>
+            <div class="eval-check no">✗ 注意：这是诊断工具，适合定位问题根因，不建议作为常规全量监控手段</div>
+          </div>
+        </div>
+        <div class="eval-example">
+          <div class="eval-example-label">评估方式：将 ReAct 轨迹拆解为「因果对」逐对判断</div>
+          <div class="react-chain">
+            <div class="react-step">
+              <span class="react-step-name react-thought">Thought</span>
+              <span class="react-step-q">推理结论是否被后续 Action 忠实执行？</span>
+            </div>
+            <div class="react-arrow">↓</div>
+            <div class="react-step">
+              <span class="react-step-name react-action">Action</span>
+              <span class="react-step-q">工具调用结果是否被正确解析为有效信号？</span>
+            </div>
+            <div class="react-arrow">↓</div>
+            <div class="react-step">
+              <span class="react-step-name react-obs">Observation</span>
+              <span class="react-step-q">本步结果是否被下一步 Thought 有效利用？</span>
+            </div>
+          </div>
+          <p style="margin-top:10px;font-size:12px;color:var(--text-secondary);">任意一个因果对判断为 No，即为逻辑断裂点，定位到该步骤后可针对性优化。</p>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+
+<!-- ════════════════════════════════════
+     SECTION 5：评估器与数据来源
+════════════════════════════════════ -->
+<div class="white-bg">
+<section class="section">
+  <div class="section-label">配置机制</div>
+  <div class="section-title">评估器与数据来源</div>
+  <p class="section-desc">评估器是评分的执行单元，数据来源决定评估的覆盖范围。两者的配置是评估体系落地的核心工作。</p>
+
+  <div class="two-col-grid">
+
+    <div>
+      <div class="col-title">评估器类型</div>
+      <div class="judger-cards">
+        <div class="judger-card">
+          <div class="judger-header">
+            <span class="judger-tag" style="background:#EBF4FF;color:#1677FF;">LLM 评估器</span>
+            <span class="judger-badge">推荐起点</span>
+          </div>
+          <p class="judger-desc">通过 Prompt 描述评分标准，由大模型对每条样本给出 score 和 reason。适合需要语义理解的维度：相关性、正确性、幻觉、意图匹配等。</p>
+          <div class="judger-pros-cons">
+            <div><span class="pc-label good">优势</span>上手快，无需开发，灵活应对语义复杂度高的判断</div>
+            <div><span class="pc-label warn">注意</span>每条样本消耗 token，不适合全量运行；评分准确性依赖所选模型的能力</div>
+          </div>
+        </div>
+        <div class="judger-card">
+          <div class="judger-header">
+            <span class="judger-tag" style="background:#F5EEFF;color:#722ED1;">HTTP 评估器</span>
+          </div>
+          <p class="judger-desc">将业务已有的判分逻辑封装为 HTTP 服务，平台调用该服务获取评分。适合规则明确、已有 checker 服务，或需要进行全链路评估的场景。</p>
+          <div class="judger-pros-cons">
+            <div><span class="pc-label good">优势</span>稳定可控，可复用已有业务能力，支持全链路评估模式</div>
+            <div><span class="pc-label warn">注意</span>需自行开发并维护评估服务，返回格式须符合平台规范</div>
+          </div>
+        </div>
+      </div>
+      <div class="judger-note">
+        人工评估不是独立流程，而是接在自动化评估之后的最终确认环节——自动化先筛出低分样本，人工只处理被筛出的部分。
+      </div>
+    </div>
+
+    <div>
+      <div class="col-title">数据来源</div>
+      <div class="data-src-cards">
+        <div class="data-src-card">
+          <div class="data-src-icon" style="background:linear-gradient(135deg,#1677FF,#389BFF);">⚡</div>
+          <div>
+            <div class="data-src-name">在线链路数据</div>
+            <p class="data-src-desc">X-RAY 从真实请求中采集完整链路，包含用户输入、每个 SPAN 的输入输出（LLM 调用 / 工具调用 / RAG 检索）、最终响应。通过 JsonPath 将指定字段注入评估器。</p>
+            <div class="data-src-tag">适合：线上持续监控、自动发现 bad case</div>
+          </div>
+        </div>
+        <div class="data-src-card">
+          <div class="data-src-icon" style="background:linear-gradient(135deg,#722ED1,#9B59D3);">📋</div>
+          <div>
+            <div class="data-src-name">离线数据集</div>
+            <p class="data-src-desc">手动整理的样本集，或从线上低分样本自动回流的数据。设计好输入/期望输出/标签等字段，字段映射至评估器变量后执行评估。</p>
+            <div class="data-src-tag">适合：开发阶段验证、上线前基线建立、版本迭代回归</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="dim-box">
+        <div class="dim-box-title">评估维度参考起点</div>
+        <p class="dim-box-note">以下为常见的起点维度，最终准确的评估标准需要业务 owner 结合实际场景定义和孵化。</p>
+        <div class="dim-tags">
+          <div>
+            <div class="dim-group-label">通用维度</div>
+            <div class="dim-tag-row">
+              <span class="dim-tag">相关性</span>
+              <span class="dim-tag">正确性</span>
+              <span class="dim-tag">幻觉检测</span>
+              <span class="dim-tag">安全合规</span>
+            </div>
+          </div>
+          <div>
+            <div class="dim-group-label">场景扩展</div>
+            <div class="dim-tag-row">
+              <span class="dim-tag dim-tag-purple">RAG：检索召回相关性</span>
+              <span class="dim-tag dim-tag-purple">Tool：参数准确性 / 调用必要性</span>
+              <span class="dim-tag dim-tag-purple">多轮：意图一致性</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</section>
+</div>
+
+
+<!-- ════════════════════════════════════
+     SECTION 6：快速开始
+════════════════════════════════════ -->
+<section class="section">
+  <div class="section-label">快速开始</div>
+  <div class="section-title">根据你现在的状态，选择起点</div>
+  <p class="section-desc">不需要把所有模块全部配好再开始。找到当前所处的阶段，从对应的起点进入。</p>
+
+  <div class="start-cards">
+
+    <div class="start-card">
+      <div class="start-card-header">
+        <div class="start-num">A</div>
+        <div>
+          <div class="start-title">Agent 还在开发中，有一批已知问题</div>
+          <div class="start-desc">目标：验证修复效果，建立回归机制</div>
+        </div>
+      </div>
+      <ol class="start-steps">
+        <li>建数据集，将已知问题样本上传，设计字段（输入 / 期望输出 / 标签）</li>
+        <li>创建 LLM 评估器，写 Prompt 定义「修复」的判断标准</li>
+        <li>建离线评估任务，配置 Agent 回放（选 ALLIN/REDNA 或填写接口信息）</li>
+        <li>触发一次评估，抽查 reason 是否符合预期，确认评估器方向正确</li>
+        <li>后续每次迭代后重新跑一遍，得分对比即为验证结论</li>
+      </ol>
+      <a class="start-link" href="https://docs.xiaohongshu.com/doc/2314f724fe2c6b95f78cbd4b8091e93f">查看快速开始文档 →</a>
+    </div>
+
+    <div class="start-card">
+      <div class="start-card-header">
+        <div class="start-num">B</div>
+        <div>
+          <div class="start-title">Agent 已上线，想马上监控线上效果</div>
+          <div class="start-desc">目标：持续发现 bad case，建立质量感知</div>
+        </div>
+      </div>
+      <ol class="start-steps">
+        <li>确认 X-RAY 链路可见（trace 和 SPAN 数据已正常上报）</li>
+        <li>配置 LLM 配置，选择底层评估模型</li>
+        <li>创建评估器，先聚焦最关心的 1-2 个维度</li>
+        <li>建在线链路评估任务，设置 trace 筛选条件 + 采样率（建议先 5%）+ 按天执行</li>
+        <li>手动触发一次，抽查 reason，确认字段映射正确后开启自动调度</li>
+        <li>开启数据回流，低分样本自动写入数据集</li>
+      </ol>
+      <a class="start-link" href="https://docs.xiaohongshu.com/doc/2314f724fe2c6b95f78cbd4b8091e93f">查看快速开始文档 →</a>
+    </div>
+
+  </div>
+
+  <div class="pitfall-box">
+    <div class="pitfall-title">⚠️ 最常见的配置问题</div>
+    <p>评估任务完成后，发现 reason 全部不准确，认为「评估不准」。</p>
+    <p style="margin-top:8px;"><strong>实际原因：90% 的情况是字段映射配错了，评估器接收到的不是需要被评估的内容。</strong></p>
+    <div class="pitfall-check">
+      排查方法：进入实验报告 → 任意一条样本 → 查看详情 → 找「评估器入参」一栏，确认传入的字段值是否符合预期。字段映射正确，评估器才能给出有意义的判断。
+    </div>
+  </div>
+</section>
+
+
+<!-- ════════════════════════════════════
+     FOOTER
+════════════════════════════════════ -->
+<div style="background:linear-gradient(135deg,#0D1B35 0%,#1a0a32 100%);padding:64px 24px;text-align:center;">
+  <div style="max-width:560px;margin:0 auto;">
+    <div style="font-size:12px;color:rgba(255,255,255,0.35);letter-spacing:2.5px;text-transform:uppercase;margin-bottom:16px;">X-RAY · AI 应用评估</div>
+    <div style="font-size:26px;font-weight:700;color:#fff;margin-bottom:14px;line-height:1.4;">把「感觉不错」<br>变成「有数据、有记录、能追溯」</div>
+    <p style="font-size:14px;color:rgba(255,255,255,0.5);margin-bottom:36px;line-height:1.8;">
+      从建立第一个数据集开始，评估体系随每次迭代持续积累价值。
+    </p>
+    <a href="https://docs.xiaohongshu.com/doc/10bd82c9c1bedd01879a3d78dfed4b26"
+       style="display:inline-block;background:var(--gradient);color:#fff;padding:14px 36px;border-radius:28px;font-size:15px;font-weight:600;text-decoration:none;box-shadow:0 4px 24px rgba(22,119,255,0.35);">
+      📖 查看完整使用文档
+    </a>
+  </div>
+</div>
+
+</body>
+</html>

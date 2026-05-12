@@ -1,7 +1,7 @@
 {
-  "version": "4.0",
+  "version": "4.1",
   "description": "ark-feedx + ark-mixrank 新笔记相关配置监控清单 - 用于 rec-new-note-diagnosis skill",
-  "last_updated": "2026-04-02",
+  "last_updated": "2026-04-20",
   "code_sources": [
     "rec/ark-feedx: feedx-hf/feedx-hf-recall/biz/recall/retrieval/VectoreOmegaRecallProc.java",
     "rec/ark-feedx: feedx-hf/feedx-hf-recall/biz/recall/sinkfilter/NoteAgeSinkFilterProc.java",
@@ -284,6 +284,26 @@
         "risk_description": "控制生态内容分层和时间评分，影响新笔记与其他内容在 postrank 阶段的相对得分，进而影响曝光比例",
         "related_step": "step2",
         "related_code": "EcologyNoteRatioProc.java（feedx-hf-postrank）"
+      },
+      {
+        "pattern": "*racing*traffic*ratio*",
+        "description": "Racing流量比例配置",
+        "risk_description": "Racing实验流量比例约束：各实验组流量之和不能超过100%，超限会导致执行失败或渐进式故障（发布后12-17小时延迟下跌）。这是高频根因，需优先排查"
+      },
+      {
+        "pattern": "*snscontentpresentation*",
+        "description": "主流量入口层配置（~85%流量）",
+        "risk_description": "主流量入口配置变更影响85%用户的新笔记展示，异常会导致全局性新笔记占比下跌"
+      },
+      {
+        "pattern": "*bootestribe*",
+        "description": "旧链路bootestribe配置（~15%流量）",
+        "risk_description": "旧链路配置变更影响15%用户，若仅bootestribe侧新笔记过滤异常，会导致整体小幅下跌（10%~20%）而主链路指标可能正常"
+      },
+      {
+        "pattern": "*degrade*",
+        "description": "降级链路配置（arkfeedx-service-degrade）",
+        "risk_description": "降级链路仍有mixRank调用，降级策略变更会影响主链超时后的新笔记兜底表现。异常时降级链路可能无法有效补充新笔记"
       }
     ],
     "medium": [

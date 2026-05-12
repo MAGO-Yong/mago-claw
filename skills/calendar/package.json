@@ -1,0 +1,25 @@
+{
+  "name": "calendar",
+  "version": "1.0.7",
+  "description": "小红书日历 CLI",
+  "private": true,
+  "type": "module",
+  "bin": {
+    "run.sh": "./build/cli.js"
+  },
+  "files": [
+    "build"
+  ],
+  "scripts": {
+    "build": "rm -rf build && tsc && node -e \"const fs=require('fs'); fs.chmodSync('build/cli.js', '755');\"",
+    "prepare": "npm run build",
+    "watch": "tsc --watch"
+  },
+  "dependencies": {
+    "axios": "^1.13.5"
+  },
+  "devDependencies": {
+    "@types/node": "^20.19.33",
+    "typescript": "^5.9.3"
+  }
+}
