@@ -1,0 +1,345 @@
+diff --git a/packages/xray-main/src/pages/aIApplicationEvaluation/components/DatasetItem.vue b/packages/xray-main/src/pages/aIApplicationEvaluation/components/DatasetItem.vue
+index d87af20..b871dc5 100644
+--- a/packages/xray-main/src/pages/aIApplicationEvaluation/components/DatasetItem.vue
++++ b/packages/xray-main/src/pages/aIApplicationEvaluation/components/DatasetItem.vue
+@@ -361,9 +361,97 @@ const columns = computed(() => {
+     height 32px
+     line-height 32px
+     text-align center
+-    border-radius 4px
+-    margin-bottom 10px
++    border-radius 6px
++    margin-bottom 12px
++    font-size 13px
+     &:hover
+-      background-color var(--color-grey-0)
++      background-color #f9fafb
++
++// ── 工具栏 ────────────────────────────────────────────
++.dataset-item-wrap :deep(.mb10)
++  margin-bottom 14px !important
++
++.dataset-item-wrap :deep(.xhs-btn:not(.xhs-btn--primary))
++  border 1px solid #e5e7eb
++  border-radius 6px
++  background #fff
++  color #374151
++  font-size 13px
++  &:hover
++    border-color #2563eb
++    color #2563eb
++
++.dataset-item-wrap :deep(.xhs-btn--primary)
++  background #2563eb
++  border-color #2563eb
++  border-radius 6px
++  font-size 13px
++  font-weight 500
++  &:hover
++    background #1d4ed8
++    border-color #1d4ed8
++
++// ── 表格 ─────────────────────────────────────────────
++.dataset-item-wrap :deep(.ant-table)
++  font-size 13.5px
++  border-radius 8px
++  border 1px solid #f3f4f6
++  overflow hidden
++
++.dataset-item-wrap :deep(.ant-table-thead > tr > th)
++  background #f9fafb
++  color #6b7280
++  font-size 12px
++  font-weight 600
++  text-transform uppercase
++  letter-spacing 0.02em
++  border-bottom 1px solid #f3f4f6
++  padding 10px 14px
++
++.dataset-item-wrap :deep(.ant-table-tbody > tr > td)
++  padding 11px 14px
++  border-bottom 1px solid #f9fafb
++  color #111827
++  font-size 13.5px
++
++.dataset-item-wrap :deep(.ant-table-tbody > tr:last-child > td)
++  border-bottom none
++
++.dataset-item-wrap :deep(.ant-table-tbody > tr:hover > td)
++  background #f8faff
++
++.dataset-item-wrap :deep(.xhs-link)
++  font-size 13px
++  color #2563eb
++  &:hover
++    color #1d4ed8
++
++.dataset-item-wrap :deep(.xhs-link[color="danger"])
++  color #ef4444
++  &:hover
++    color #dc2626
++
++// ── Tag 状态 ──────────────────────────────────────────
++.dataset-item-wrap :deep(.xhs-tag)
++  border-radius 99px
++  font-size 12px
++  font-weight 500
++  padding 2px 8px
++
++// ── 分页 ─────────────────────────────────────────────
++.dataset-item-wrap :deep(.xhs-pagination)
++  margin-top 16px
++
++.dataset-item-wrap :deep(.xhs-pagination-item--active)
++  background #2563eb
++  border-color #2563eb
++  color #fff
++
++.dataset-item-wrap :deep(.xhs-pagination-item)
++  border-radius 6px
++  border 1px solid #e5e7eb
++  min-width 32px
++  height 32px
++  font-size 13px
+ 
+ </style>
+\ No newline at end of file
+diff --git a/packages/xray-main/src/pages/aIApplicationEvaluation/components/NavHeader.vue b/packages/xray-main/src/pages/aIApplicationEvaluation/components/NavHeader.vue
+index 4adaf20..a30396b 100644
+--- a/packages/xray-main/src/pages/aIApplicationEvaluation/components/NavHeader.vue
++++ b/packages/xray-main/src/pages/aIApplicationEvaluation/components/NavHeader.vue
+@@ -14,10 +14,11 @@
+   display flex
+   justify-content space-between
+   align-items center
+-  padding 16px
+-  background-color var(--color-white)
+-  border-bottom 1px solid var(--color-line-divider)
++  padding 16px 20px
++  background-color #fff
++  border-bottom 1px solid #f3f4f6
+   position sticky
+   top 0
+   z-index 10
++  box-shadow 0 1px 0 #f3f4f6
+ </style>
+\ No newline at end of file
+diff --git a/packages/xray-main/src/pages/aIApplicationEvaluation/components/UpdateDataset.vue b/packages/xray-main/src/pages/aIApplicationEvaluation/components/UpdateDataset.vue
+index ea25ab9..f21cc5d 100644
+--- a/packages/xray-main/src/pages/aIApplicationEvaluation/components/UpdateDataset.vue
++++ b/packages/xray-main/src/pages/aIApplicationEvaluation/components/UpdateDataset.vue
+@@ -237,14 +237,42 @@ s
+     gap 10px
+     padding-top 4px
+ 
+-  .data-item-header 
+-    color var(--color-text-title)
+-    font-weight 500
+-    background-color var(--color-grey-0)
+-    border-bottom 1px solid var(--color-line-divider)
++  .data-item-header
++    color #374151
++    font-weight 600
++    font-size 12px
++    text-transform uppercase
++    letter-spacing 0.03em
++    background-color #f9fafb
++    border-bottom 1px solid #f3f4f6
+     padding-top 0
+     align-items center
+ 
+   .data-item-action
+     padding-top 4px
++
++// ── 抽屉内表单样式 ────────────────────────────────────
++.form-wrap :deep(.xhs-input-wrap)
++  border-radius 6px
++  border-color #e5e7eb
++  &:focus-within
++    border-color #2563eb
++
++.form-wrap :deep(.xhs-select)
++  border-radius 6px
++  border-color #e5e7eb
++
++.form-wrap :deep(.xhs-btn--primary)
++  background #2563eb
++  border-color #2563eb
++  border-radius 6px
++  &:hover
++    background #1d4ed8
++
++.form-wrap :deep(.xhs-btn:not(.xhs-btn--primary))
++  border-radius 6px
++  border-color #e5e7eb
++  &:hover
++    border-color #2563eb
++    color #2563eb
+ </style>
+diff --git a/packages/xray-main/src/pages/aIApplicationEvaluation/dataset.vue b/packages/xray-main/src/pages/aIApplicationEvaluation/dataset.vue
+index 3ffc3b7..e05d684 100644
+--- a/packages/xray-main/src/pages/aIApplicationEvaluation/dataset.vue
++++ b/packages/xray-main/src/pages/aIApplicationEvaluation/dataset.vue
+@@ -282,9 +282,106 @@ const columns = [
+ .dataset-wrap
+   height 100%
+   overflow hidden
+-  border-radius 4px
+-  background-color var(--color-white)
++  background-color #fff
+   display flex
+   flex-direction column
++  padding 20px 20px 0 20px
++  box-sizing border-box
++
++// ── 工具栏行：搜索框和按钮对齐 ──────────────────────
++.dataset-wrap :deep(.mb10)
++  margin-bottom 16px !important
++  gap 8px
++
++// ── 搜索框 ──────────────────────────────────────────
++.dataset-wrap :deep(.xhs-input-wrap)
++  border 1px solid #e5e7eb
++  border-radius 6px
++  background #f9fafb
++  transition border-color 0.15s
++  &:focus-within
++    border-color #2563eb
++    background #fff
++
++// ── 主按钮：新建数据集 ─────────────────────────────
++.dataset-wrap :deep(.xhs-btn--primary)
++  background #2563eb
++  border-color #2563eb
++  border-radius 6px
++  font-size 13px
++  font-weight 500
++  &:hover
++    background #1d4ed8
++    border-color #1d4ed8
++
++// ── 普通按钮（刷新）─────────────────────────────────
++.dataset-wrap :deep(.xhs-btn:not(.xhs-btn--primary))
++  border 1px solid #e5e7eb
++  border-radius 6px
++  background #fff
++  color #374151
++  font-size 13px
++  &:hover
++    border-color #2563eb
++    color #2563eb
++
++// ── 表格 ────────────────────────────────────────────
++.dataset-wrap :deep(.ant-table)
++  font-size 13.5px
++  border-radius 8px
++  border 1px solid #f3f4f6
++  overflow hidden
++
++.dataset-wrap :deep(.ant-table-thead > tr > th)
++  background #f9fafb
++  color #6b7280
++  font-size 12px
++  font-weight 600
++  text-transform uppercase
++  letter-spacing 0.02em
++  border-bottom 1px solid #f3f4f6
++  padding 10px 14px
++
++.dataset-wrap :deep(.ant-table-tbody > tr > td)
++  padding 11px 14px
++  border-bottom 1px solid #f9fafb
++  color #111827
++  font-size 13.5px
++
++.dataset-wrap :deep(.ant-table-tbody > tr:last-child > td)
++  border-bottom none
++
++.dataset-wrap :deep(.ant-table-tbody > tr:hover > td)
++  background #f8faff
++
++// ── 表格内链接操作 ───────────────────────────────────
++.dataset-wrap :deep(.xhs-link)
++  font-size 13px
++  color #2563eb
++  font-weight 400
++  &:hover
++    color #1d4ed8
++
++.dataset-wrap :deep(.xhs-link[color="danger"])
++  color #ef4444
++  &:hover
++    color #dc2626
++
++// ── 分页 ────────────────────────────────────────────
++.dataset-wrap :deep(.xhs-pagination)
++  margin-top 16px
++  padding-bottom 16px
++
++.dataset-wrap :deep(.xhs-pagination .xhs-pagination-item--active)
++  background #2563eb
++  border-color #2563eb
++  color #fff
++
++.dataset-wrap :deep(.xhs-pagination .xhs-pagination-item)
++  border-radius 6px
++  border 1px solid #e5e7eb
++  min-width 32px
++  height 32px
++  font-size 13px
+ 
+ </style>
+diff --git a/packages/xray-main/src/pages/aIApplicationEvaluation/datasetDetail.vue b/packages/xray-main/src/pages/aIApplicationEvaluation/datasetDetail.vue
+index 11d6b35..284cad4 100644
+--- a/packages/xray-main/src/pages/aIApplicationEvaluation/datasetDetail.vue
++++ b/packages/xray-main/src/pages/aIApplicationEvaluation/datasetDetail.vue
+@@ -83,10 +83,45 @@ onMounted(() => {
+   flex-direction column
+   height 100%
+   overflow-y auto
++  background #f9fafb
++
+   .content-wrap
+     flex 1
+     margin 16px
+-    padding 12px
+-    border-radius 4px
+-    background-color var(--color-white)
++    padding 16px
++    border-radius 8px
++    background-color #fff
++    border 1px solid #f3f4f6
++
++// ── NavHeader 头部区域 ────────────────────────────────
++.dataset-detail-wrap :deep(.nav-header-wrap)
++  background #fff
++  border-bottom 1px solid #f3f4f6
++  padding 16px 20px
++
++// ── 面包屑 ────────────────────────────────────────────
++.dataset-detail-wrap :deep(.xhs-breadcrumb)
++  font-size 13px
++
++.dataset-detail-wrap :deep(.xhs-breadcrumb-item a)
++  color #2563eb
++  font-weight 500
++  &:hover
++    color #1d4ed8
++
++.dataset-detail-wrap :deep(.xhs-breadcrumb-item:last-child span)
++  color #111827
++  font-weight 600
++  font-size 15px
++
++.dataset-detail-wrap :deep(.xhs-breadcrumb-separator)
++  color #d1d5db
++  margin 0 6px
++
++// ── 时间信息行 ────────────────────────────────────────
++.dataset-detail-wrap :deep(.mt16)
++  margin-top 10px !important
++  font-size 12.5px
++  color #6b7280
++
+ </style>
+\ No newline at end of file

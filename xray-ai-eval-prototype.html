@@ -1,0 +1,1271 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>XRay · AI 应用评估 · Prototype</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  :root {
+    --blue: #2563EB;
+    --blue-light: #EFF6FF;
+    --blue-mid: #DBEAFE;
+    --green: #16A34A;
+    --green-light: #DCFCE7;
+    --red: #DC2626;
+    --red-light: #FEE2E2;
+    --orange: #D97706;
+    --orange-light: #FEF3C7;
+    --purple: #7C3AED;
+    --purple-light: #EDE9FE;
+    --gray-50: #F9FAFB;
+    --gray-100: #F3F4F6;
+    --gray-200: #E5E7EB;
+    --gray-300: #D1D5DB;
+    --gray-400: #9CA3AF;
+    --gray-500: #6B7280;
+    --gray-600: #4B5563;
+    --gray-700: #374151;
+    --gray-900: #111827;
+    --sidebar-w: 200px;
+    --header-h: 52px;
+    --radius: 8px;
+    --radius-sm: 6px;
+  }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'PingFang SC', 'Helvetica Neue', sans-serif; background: #fff; color: var(--gray-900); font-size: 14px; line-height: 1.5; }
+
+  /* ─── Top Bar ─── */
+  .topbar {
+    position: fixed; top: 0; left: 0; right: 0; height: var(--header-h);
+    background: #fff; border-bottom: 1px solid var(--gray-200);
+    display: flex; align-items: center; padding: 0 20px; gap: 12px; z-index: 100;
+  }
+  .topbar-logo { display: flex; align-items: center; gap: 8px; font-weight: 600; font-size: 15px; color: var(--gray-900); }
+  .topbar-logo-icon { width: 28px; height: 28px; background: linear-gradient(135deg, #2563EB, #7C3AED); border-radius: 6px; display: flex; align-items: center; justify-content: center; color: #fff; font-size: 12px; font-weight: 700; }
+  .topbar-sep { color: var(--gray-300); font-size: 18px; }
+  .topbar-breadcrumb { color: var(--gray-500); font-size: 13px; }
+  .topbar-right { margin-left: auto; display: flex; align-items: center; gap: 12px; }
+  .topbar-avatar { width: 28px; height: 28px; border-radius: 50%; background: linear-gradient(135deg,#2563EB,#7C3AED); display:flex;align-items:center;justify-content:center;color:#fff;font-size:11px;font-weight:600; }
+
+  /* ─── Sidebar ─── */
+  .sidebar {
+    position: fixed; top: var(--header-h); left: 0; bottom: 0; width: var(--sidebar-w);
+    background: #fff; border-right: 1px solid var(--gray-200); overflow-y: auto; padding: 16px 0;
+  }
+  .sidebar-section-label { padding: 6px 16px 4px; font-size: 11px; color: var(--gray-400); font-weight: 600; letter-spacing: .04em; text-transform: uppercase; }
+  .sidebar-item {
+    display: flex; align-items: center; gap: 9px; padding: 7px 14px 7px 16px;
+    cursor: pointer; color: var(--gray-700); font-size: 13.5px; border-radius: 0;
+    transition: background .15s; position: relative; border-left: 3px solid transparent;
+  }
+  .sidebar-item:hover { background: var(--gray-50); }
+  .sidebar-item.active { background: var(--blue-light); color: var(--blue); font-weight: 500; border-left-color: var(--blue); }
+  .sidebar-item svg { width: 15px; height: 15px; flex-shrink: 0; opacity: .75; }
+  .sidebar-item.active svg { opacity: 1; }
+  .sidebar-badge { margin-left: auto; background: var(--blue); color: #fff; border-radius: 10px; font-size: 10px; padding: 1px 6px; font-weight: 600; }
+
+  /* ─── Main ─── */
+  .main { margin-left: var(--sidebar-w); margin-top: var(--header-h); padding: 28px 32px; min-height: calc(100vh - var(--header-h)); background: #fff; }
+
+  /* ─── Page header ─── */
+  .page-header { margin-bottom: 24px; }
+  .page-title { font-size: 20px; font-weight: 700; color: var(--gray-900); margin-bottom: 4px; }
+  .page-subtitle { font-size: 13px; color: var(--gray-500); }
+
+  /* ─── Tabs ─── */
+  .tabs { display: flex; border-bottom: 1px solid var(--gray-200); margin-bottom: 24px; gap: 0; }
+  .tab-item { padding: 10px 18px; font-size: 14px; cursor: pointer; color: var(--gray-500); border-bottom: 2px solid transparent; margin-bottom: -1px; white-space: nowrap; transition: color .15s; }
+  .tab-item:hover { color: var(--gray-700); }
+  .tab-item.active { color: var(--blue); border-bottom-color: var(--blue); font-weight: 500; }
+
+  /* ─── Toolbar ─── */
+  .toolbar { display: flex; align-items: center; gap: 10px; margin-bottom: 16px; }
+  .search-input {
+    display: flex; align-items: center; gap: 8px; border: 1px solid var(--gray-200);
+    border-radius: var(--radius-sm); padding: 7px 12px; min-width: 240px; background: var(--gray-50);
+    font-size: 13.5px; color: var(--gray-500);
+  }
+  .search-input svg { width: 14px; height: 14px; flex-shrink: 0; }
+  .filter-btn {
+    display: flex; align-items: center; gap: 6px; padding: 7px 12px; border: 1px solid var(--gray-200);
+    border-radius: var(--radius-sm); font-size: 13.5px; color: var(--gray-600); background: #fff;
+    cursor: pointer; white-space: nowrap;
+  }
+  .filter-btn:hover { background: var(--gray-50); }
+  .filter-btn svg { width: 14px; height: 14px; }
+  .spacer { flex: 1; }
+  .btn-primary {
+    display: flex; align-items: center; gap: 6px; padding: 8px 16px;
+    background: var(--blue); color: #fff; border-radius: var(--radius-sm);
+    font-size: 13.5px; font-weight: 500; cursor: pointer; border: none; white-space: nowrap;
+    transition: background .15s;
+  }
+  .btn-primary:hover { background: #1D4ED8; }
+  .btn-secondary {
+    display: flex; align-items: center; gap: 6px; padding: 7px 14px;
+    background: #fff; color: var(--gray-700); border: 1px solid var(--gray-200);
+    border-radius: var(--radius-sm); font-size: 13.5px; cursor: pointer; white-space: nowrap;
+  }
+  .btn-secondary:hover { background: var(--gray-50); }
+
+  /* ─── Stats Row ─── */
+  .stats-row { display: flex; gap: 12px; margin-bottom: 20px; }
+  .stat-card {
+    flex: 1; border: 1px solid var(--gray-200); border-radius: var(--radius); padding: 16px 20px;
+    display: flex; flex-direction: column; gap: 4px;
+  }
+  .stat-label { font-size: 12px; color: var(--gray-500); font-weight: 500; }
+  .stat-value { font-size: 24px; font-weight: 700; color: var(--gray-900); line-height: 1.2; }
+  .stat-sub { font-size: 12px; color: var(--gray-400); }
+  .stat-card.blue { border-color: var(--blue-mid); background: var(--blue-light); }
+  .stat-card.blue .stat-value { color: var(--blue); }
+  .stat-card.green { border-color: var(--green-light); background: #F0FDF4; }
+  .stat-card.green .stat-value { color: var(--green); }
+  .stat-card.orange { border-color: var(--orange-light); background: #FFFBEB; }
+  .stat-card.orange .stat-value { color: var(--orange); }
+
+  /* ─── Table ─── */
+  .table-wrap { border: 1px solid var(--gray-200); border-radius: var(--radius); overflow: hidden; }
+  table { width: 100%; border-collapse: collapse; }
+  thead { background: var(--gray-50); }
+  th { padding: 10px 16px; text-align: left; font-size: 12px; font-weight: 600; color: var(--gray-500); white-space: nowrap; border-bottom: 1px solid var(--gray-200); text-transform: uppercase; letter-spacing: .04em; }
+  td { padding: 12px 16px; border-bottom: 1px solid var(--gray-100); vertical-align: middle; font-size: 13.5px; color: var(--gray-700); }
+  tbody tr:last-child td { border-bottom: none; }
+  tbody tr:hover { background: var(--gray-50); }
+  .col-name { font-weight: 500; color: var(--gray-900); }
+  .col-link { color: var(--blue); cursor: pointer; }
+  .col-link:hover { text-decoration: underline; }
+  .col-mono { font-family: 'SF Mono', Monaco, monospace; font-size: 12px; color: var(--gray-600); }
+
+  /* ─── Badge ─── */
+  .badge { display: inline-flex; align-items: center; gap: 4px; padding: 2px 8px; border-radius: 100px; font-size: 12px; font-weight: 500; white-space: nowrap; }
+  .badge-green { background: var(--green-light); color: #15803D; }
+  .badge-blue { background: var(--blue-light); color: #1D4ED8; }
+  .badge-gray { background: var(--gray-100); color: var(--gray-600); }
+  .badge-orange { background: var(--orange-light); color: #92400E; }
+  .badge-red { background: var(--red-light); color: #991B1B; }
+  .badge-purple { background: var(--purple-light); color: #5B21B6; }
+  .badge dot { width: 6px; height: 6px; border-radius: 50%; background: currentColor; display: inline-block; }
+
+  /* ─── Row Actions ─── */
+  .row-actions { display: flex; align-items: center; gap: 12px; }
+  .act-view { color: var(--blue); cursor: pointer; font-size: 13px; }
+  .act-view:hover { text-decoration: underline; }
+  .act-edit { color: var(--gray-500); cursor: pointer; font-size: 13px; }
+  .act-edit:hover { color: var(--gray-700); }
+  .act-delete { color: var(--red); cursor: pointer; font-size: 13px; }
+  .act-delete:hover { text-decoration: underline; }
+
+  /* ─── Score bar ─── */
+  .score-bar-wrap { display: flex; align-items: center; gap: 8px; }
+  .score-bar-bg { flex: 1; height: 4px; background: var(--gray-100); border-radius: 2px; max-width: 80px; }
+  .score-bar-fill { height: 100%; border-radius: 2px; background: var(--blue); }
+  .score-num { font-size: 13px; font-weight: 600; color: var(--gray-700); min-width: 28px; }
+
+  /* ─── Toggle ─── */
+  .toggle { width: 36px; height: 20px; border-radius: 10px; background: var(--gray-200); position: relative; cursor: pointer; transition: background .2s; flex-shrink: 0; }
+  .toggle.on { background: var(--blue); }
+  .toggle::after { content: ''; position: absolute; top: 2px; left: 2px; width: 16px; height: 16px; border-radius: 50%; background: #fff; transition: left .2s; box-shadow: 0 1px 3px rgba(0,0,0,.2); }
+  .toggle.on::after { left: 18px; }
+
+  /* ─── Evaluator Cards ─── */
+  .eval-cards { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
+  .eval-card {
+    border: 1px solid var(--gray-200); border-radius: var(--radius); padding: 18px;
+    cursor: pointer; transition: border-color .15s, box-shadow .15s; position: relative;
+  }
+  .eval-card:hover { border-color: var(--blue); box-shadow: 0 0 0 3px var(--blue-light); }
+  .eval-card-header { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 10px; }
+  .eval-card-title { font-size: 14px; font-weight: 600; color: var(--gray-900); margin-bottom: 4px; }
+  .eval-card-desc { font-size: 12.5px; color: var(--gray-500); line-height: 1.5; }
+  .eval-card-footer { display: flex; align-items: center; gap: 8px; margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--gray-100); }
+  .eval-card-meta { font-size: 11.5px; color: var(--gray-400); margin-left: auto; }
+  .eval-card-actions { display: flex; gap: 4px; }
+  .icon-btn { width: 28px; height: 28px; border-radius: var(--radius-sm); display: flex; align-items: center; justify-content: center; cursor: pointer; color: var(--gray-400); transition: background .15s, color .15s; border: none; background: transparent; }
+  .icon-btn:hover { background: var(--gray-100); color: var(--gray-700); }
+  .icon-btn.danger:hover { background: var(--red-light); color: var(--red); }
+
+  /* ─── Distribution bar ─── */
+  .dist-row { display: flex; gap: 3px; height: 6px; border-radius: 3px; overflow: hidden; margin: 10px 0 6px; }
+  .dist-seg { height: 100%; }
+  .dist-legend { display: flex; gap: 12px; flex-wrap: wrap; }
+  .dist-legend-item { display: flex; align-items: center; gap: 5px; font-size: 12px; color: var(--gray-600); }
+  .dist-dot { width: 8px; height: 8px; border-radius: 2px; flex-shrink: 0; }
+
+  /* ─── Pagination ─── */
+  .pagination { display: flex; align-items: center; justify-content: space-between; padding: 14px 16px; border-top: 1px solid var(--gray-100); }
+  .pagination-info { font-size: 13px; color: var(--gray-500); }
+  .pagination-btns { display: flex; gap: 4px; }
+  .page-btn { width: 32px; height: 32px; border-radius: var(--radius-sm); display: flex; align-items: center; justify-content: center; font-size: 13px; cursor: pointer; border: 1px solid var(--gray-200); color: var(--gray-600); background: #fff; }
+  .page-btn:hover { background: var(--gray-50); }
+  .page-btn.active { background: var(--blue); color: #fff; border-color: var(--blue); font-weight: 600; }
+
+  /* ─── LLM Config ─── */
+  .llm-cards { display: grid; grid-template-columns: repeat(2, 1fr); gap: 14px; }
+  .llm-card { border: 1px solid var(--gray-200); border-radius: var(--radius); padding: 18px; position: relative; }
+  .llm-card-header { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
+  .llm-icon { width: 36px; height: 36px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 16px; flex-shrink: 0; }
+  .llm-name { font-size: 14px; font-weight: 600; color: var(--gray-900); }
+  .llm-alias { font-size: 12px; color: var(--gray-400); }
+  .llm-props { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 12px; }
+  .llm-prop { font-size: 12px; background: var(--gray-50); border: 1px solid var(--gray-200); border-radius: 4px; padding: 2px 8px; color: var(--gray-600); }
+  .llm-card-footer { display: flex; align-items: center; justify-content: space-between; padding-top: 12px; border-top: 1px solid var(--gray-100); }
+
+  /* ─── Empty State ─── */
+  .empty-state { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 60px 20px; color: var(--gray-400); }
+  .empty-icon { font-size: 40px; margin-bottom: 12px; opacity: .5; }
+  .empty-text { font-size: 14px; color: var(--gray-500); margin-bottom: 16px; }
+
+  /* ─── Drawer Overlay ─── */
+  .drawer-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.3); z-index: 200; }
+  .drawer-overlay.open { display: block; }
+  .drawer {
+    position: fixed; top: 0; right: 0; bottom: 0; width: 620px; background: #fff;
+    box-shadow: -4px 0 24px rgba(0,0,0,.1); z-index: 201; display: flex; flex-direction: column;
+    transform: translateX(100%); transition: transform .25s cubic-bezier(.16,1,.3,1);
+  }
+  .drawer.open { transform: translateX(0); }
+  .drawer-header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 20px 24px; border-bottom: 1px solid var(--gray-200); flex-shrink: 0;
+  }
+  .drawer-title { font-size: 16px; font-weight: 700; color: var(--gray-900); }
+  .drawer-subtitle { font-size: 13px; color: var(--gray-500); margin-top: 2px; }
+  .drawer-close { width: 32px; height: 32px; border-radius: var(--radius-sm); display: flex; align-items: center; justify-content: center; cursor: pointer; color: var(--gray-400); border: none; background: transparent; font-size: 18px; transition: background .15s; }
+  .drawer-close:hover { background: var(--gray-100); color: var(--gray-700); }
+  .drawer-body { flex: 1; overflow-y: auto; padding: 24px; }
+  .drawer-footer { padding: 16px 24px; border-top: 1px solid var(--gray-200); display: flex; justify-content: flex-end; gap: 10px; flex-shrink: 0; }
+
+  /* ─── Form ─── */
+  .form-section { margin-bottom: 24px; }
+  .form-section-title { font-size: 13px; font-weight: 600; color: var(--gray-700); margin-bottom: 12px; padding-bottom: 8px; border-bottom: 1px solid var(--gray-100); }
+  .form-row { display: grid; grid-template-columns: 140px 1fr; align-items: start; gap: 12px; margin-bottom: 14px; }
+  .form-label { font-size: 13px; color: var(--gray-600); padding-top: 8px; font-weight: 500; }
+  .form-value { font-size: 13.5px; color: var(--gray-900); padding: 7px 0; }
+  .form-input {
+    border: 1px solid var(--gray-200); border-radius: var(--radius-sm); padding: 7px 12px;
+    font-size: 13.5px; color: var(--gray-900); background: #fff; width: 100%;
+    outline: none; transition: border-color .15s;
+  }
+  .form-input:focus { border-color: var(--blue); box-shadow: 0 0 0 3px var(--blue-light); }
+  .form-textarea { resize: vertical; min-height: 80px; font-family: 'SF Mono', Monaco, monospace; font-size: 12.5px; }
+  .form-select {
+    border: 1px solid var(--gray-200); border-radius: var(--radius-sm); padding: 7px 12px;
+    font-size: 13.5px; color: var(--gray-900); background: #fff; width: 100%;
+    outline: none; cursor: pointer;
+  }
+  .code-block { background: var(--gray-50); border: 1px solid var(--gray-200); border-radius: var(--radius-sm); padding: 12px; font-family: 'SF Mono', Monaco, monospace; font-size: 12px; color: var(--gray-700); white-space: pre-wrap; overflow-x: auto; }
+
+  /* ─── Steps in drawer ─── */
+  .steps-nav { display: flex; gap: 0; margin-bottom: 24px; border: 1px solid var(--gray-200); border-radius: var(--radius); overflow: hidden; }
+  .step-item { flex: 1; display: flex; align-items: center; justify-content: center; gap: 7px; padding: 9px 8px; font-size: 13px; color: var(--gray-500); background: var(--gray-50); border-right: 1px solid var(--gray-200); cursor: pointer; }
+  .step-item:last-child { border-right: none; }
+  .step-item.active { background: var(--blue-light); color: var(--blue); font-weight: 500; }
+  .step-item.done { background: #F0FDF4; color: var(--green); }
+  .step-num { width: 20px; height: 20px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700; background: var(--gray-200); color: var(--gray-500); flex-shrink: 0; }
+  .step-item.active .step-num { background: var(--blue); color: #fff; }
+  .step-item.done .step-num { background: var(--green); color: #fff; }
+
+  /* ─── Detail sections ─── */
+  .detail-section { margin-bottom: 20px; }
+  .detail-section-header { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; }
+  .detail-section-title { font-size: 13px; font-weight: 600; color: var(--gray-700); }
+  .kv-list { display: grid; grid-template-columns: 130px 1fr; gap: 6px 12px; }
+  .kv-key { font-size: 12.5px; color: var(--gray-400); font-weight: 500; padding: 4px 0; }
+  .kv-val { font-size: 12.5px; color: var(--gray-900); padding: 4px 0; }
+
+  /* ─── Inline chart ─── */
+  .score-dist-chart { margin: 16px 0; }
+  .score-dist-title { font-size: 12px; font-weight: 600; color: var(--gray-600); margin-bottom: 8px; }
+  .score-dist-bars { display: flex; flex-direction: column; gap: 6px; }
+  .sdb-row { display: flex; align-items: center; gap: 10px; }
+  .sdb-label { font-size: 12px; color: var(--gray-500); min-width: 44px; text-align: right; }
+  .sdb-bar-wrap { flex: 1; height: 10px; background: var(--gray-100); border-radius: 5px; overflow: hidden; }
+  .sdb-bar { height: 100%; border-radius: 5px; background: var(--blue); transition: width .5s; }
+  .sdb-bar.red { background: #F87171; }
+  .sdb-bar.orange { background: #FBBF24; }
+  .sdb-bar.green { background: #34D399; }
+  .sdb-bar.blue2 { background: #60A5FA; }
+  .sdb-count { font-size: 12px; color: var(--gray-500); min-width: 48px; }
+  .sdb-pct { font-size: 12px; font-weight: 600; color: var(--gray-700); min-width: 42px; text-align: right; }
+
+  /* ─── Notice banner ─── */
+  .notice { display: flex; align-items: flex-start; gap: 10px; background: var(--blue-light); border: 1px solid var(--blue-mid); border-radius: var(--radius); padding: 12px 14px; margin-bottom: 20px; }
+  .notice-icon { font-size: 16px; flex-shrink: 0; margin-top: 1px; }
+  .notice-text { font-size: 13px; color: #1E40AF; line-height: 1.6; }
+
+  /* Active tab panel management */
+  .tab-panel { display: none; }
+  .tab-panel.active { display: block; }
+</style>
+</head>
+<body>
+
+<!-- Top Bar -->
+<div class="topbar">
+  <div class="topbar-logo">
+    <div class="topbar-logo-icon">XR</div>
+    X-Ray
+  </div>
+  <span class="topbar-sep">/</span>
+  <span style="color:var(--gray-600);font-size:13px;">AI 观测</span>
+  <span class="topbar-sep">/</span>
+  <span style="font-size:13px;font-weight:500;">AI 应用评估</span>
+  <div class="topbar-right">
+    <span style="font-size:13px;color:var(--gray-500);">observability · cat</span>
+    <div class="topbar-avatar">正</div>
+  </div>
+</div>
+
+<!-- Sidebar -->
+<div class="sidebar">
+  <div style="padding:12px 16px 8px;font-size:13px;font-weight:600;color:var(--gray-500);">组织/项目</div>
+  <div style="padding:4px 12px 12px;">
+    <div style="display:flex;align-items:center;gap:8px;padding:8px 10px;background:var(--gray-50);border:1px solid var(--gray-200);border-radius:var(--radius-sm);cursor:pointer;">
+      <span style="font-size:13px;color:var(--gray-700);font-weight:500;">observability</span>
+      <svg style="width:12px;height:12px;margin-left:auto;color:var(--gray-400);" viewBox="0 0 20 20" fill="currentColor"><path d="M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z"/></svg>
+    </div>
+  </div>
+
+  <div class="sidebar-section-label">评估管理</div>
+  <div class="sidebar-item" onclick="switchTab('dataset')">
+    <svg viewBox="0 0 20 20" fill="currentColor"><path d="M3 12.5A1.5 1.5 0 014.5 11h11a1.5 1.5 0 010 3h-11A1.5 1.5 0 013 12.5zm0-5A1.5 1.5 0 014.5 6h11a1.5 1.5 0 010 3h-11A1.5 1.5 0 013 7.5z"/></svg>
+    数据集
+    <span class="sidebar-badge">122</span>
+  </div>
+  <div class="sidebar-item" onclick="switchTab('auto')">
+    <svg viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M15.312 11.424a5.5 5.5 0 01-9.201 2.466l-.312-.311h2.433a.75.75 0 000-1.5H3.989a.75.75 0 00-.75.75v4.242a.75.75 0 001.5 0v-2.43l.31.31a7 7 0 0011.712-3.138.75.75 0 00-1.449-.39zm1.23-3.723a.75.75 0 00.219-.53V2.929a.75.75 0 00-1.5 0V5.36l-.31-.31A7 7 0 003.239 8.188a.75.75 0 101.448.389A5.5 5.5 0 0113.89 6.11l.311.31h-2.432a.75.75 0 000 1.5h4.243a.75.75 0 00.53-.219z" clip-rule="evenodd"/></svg>
+    自动评估
+  </div>
+  <div class="sidebar-item active" onclick="switchTab('experiment')">
+    <svg viewBox="0 0 20 20" fill="currentColor"><path d="M10 12.5a2.5 2.5 0 100-5 2.5 2.5 0 000 5z"/><path fill-rule="evenodd" d="M.664 10.59a1.651 1.651 0 010-1.186A10.004 10.004 0 0110 3c4.257 0 7.893 2.66 9.336 6.41.147.381.146.804 0 1.186A10.004 10.004 0 0110 17c-4.257 0-7.893-2.66-9.336-6.41z" clip-rule="evenodd"/></svg>
+    评估实验
+    <span class="sidebar-badge">128</span>
+  </div>
+  <div class="sidebar-section-label" style="margin-top:8px;">配置</div>
+  <div class="sidebar-item" onclick="switchTab('evaluator')">
+    <svg viewBox="0 0 20 20" fill="currentColor"><path d="M10 3.75a2 2 0 10-4 0 2 2 0 004 0zM17.25 4.5a.75.75 0 000-1.5h-5.5a.75.75 0 000 1.5h5.5zM5 3.75a.75.75 0 01-.75.75h-1.5a.75.75 0 010-1.5h1.5a.75.75 0 01.75.75zM4.25 17a.75.75 0 000-1.5h-1.5a.75.75 0 000 1.5h1.5zM17.25 17a.75.75 0 000-1.5h-5.5a.75.75 0 000 1.5h5.5zM9 10a.75.75 0 01-.75.75h-5.5a.75.75 0 010-1.5h5.5A.75.75 0 019 10zM17.25 10.75a.75.75 0 000-1.5h-1.5a.75.75 0 000 1.5h1.5zM14 10a2 2 0 10-4 0 2 2 0 004 0zM10 16.25a2 2 0 10-4 0 2 2 0 004 0z"/></svg>
+    评估器
+  </div>
+  <div class="sidebar-item" onclick="switchTab('llm')">
+    <svg viewBox="0 0 20 20" fill="currentColor"><path d="M3.196 12.87l-.825.483a.75.75 0 000 1.294l7.25 4.25a.75.75 0 00.758 0l7.25-4.25a.75.75 0 000-1.294l-.825-.484-5.666 3.322a2.25 2.25 0 01-2.276 0L3.196 12.87z"/><path d="M3.196 8.87l-.825.484a.75.75 0 000 1.293l7.25 4.25a.75.75 0 00.758 0l7.25-4.25a.75.75 0 000-1.293l-.825-.484-5.666 3.322a2.25 2.25 0 01-2.276 0L3.196 8.87z"/><path d="M10.38 1.103a.75.75 0 00-.76 0l-7.25 4.25a.75.75 0 000 1.294l7.25 4.25a.75.75 0 00.76 0l7.25-4.25a.75.75 0 000-1.294l-7.25-4.25z"/></svg>
+    LLM 配置
+  </div>
+</div>
+
+<!-- Main Content -->
+<div class="main">
+
+  <!-- ═══════════════ TAB: 评估实验 ═══════════════ -->
+  <div class="tab-panel active" id="panel-experiment">
+    <div class="page-header">
+      <div style="display:flex;align-items:flex-start;justify-content:space-between;">
+        <div>
+          <div class="page-title">评估实验</div>
+          <div class="page-subtitle">每次自动评估或手动触发产生的实验记录，含完整的评分分布和明细数据。</div>
+        </div>
+        <button class="btn-primary" onclick="openDrawer('trigger-drawer')">
+          <svg width="14" height="14" viewBox="0 0 20 20" fill="currentColor"><path d="M10.75 4.75a.75.75 0 00-1.5 0v4.5h-4.5a.75.75 0 000 1.5h4.5v4.5a.75.75 0 001.5 0v-4.5h4.5a.75.75 0 000-1.5h-4.5v-4.5z"/></svg>
+          手动触发
+        </button>
+      </div>
+    </div>
+
+    <!-- Stats -->
+    <div class="stats-row">
+      <div class="stat-card blue">
+        <div class="stat-label">今日实验</div>
+        <div class="stat-value">10,000</div>
+        <div class="stat-sub">sug粗筛 · 2026-05-13</div>
+      </div>
+      <div class="stat-card green">
+        <div class="stat-label">完成率</div>
+        <div class="stat-value">98.7%</div>
+        <div class="stat-sub">9,868 完成 · 132 失败</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">平均得分</div>
+        <div class="stat-value">0.296</div>
+        <div class="stat-sub">P50 = 0 · P90 = 1 · Max = 3</div>
+      </div>
+      <div class="stat-card orange">
+        <div class="stat-label">已运行天数</div>
+        <div class="stat-value">128</div>
+        <div class="stat-sub">连续运行中，每日 00:15</div>
+      </div>
+    </div>
+
+    <!-- Score Distribution -->
+    <div style="border:1px solid var(--gray-200);border-radius:var(--radius);padding:18px 20px;margin-bottom:20px;">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
+        <div style="font-size:13.5px;font-weight:600;color:var(--gray-800);">今日得分分布 · sug粗筛</div>
+        <span class="badge badge-blue">2026-05-13</span>
+      </div>
+      <div class="score-dist-bars">
+        <div class="sdb-row">
+          <div class="sdb-label">得分 0</div>
+          <div class="sdb-bar-wrap"><div class="sdb-bar red" style="width:77%;"></div></div>
+          <div class="sdb-count">7,599 条</div>
+          <div class="sdb-pct">77.0%</div>
+        </div>
+        <div class="sdb-row">
+          <div class="sdb-label">得分 1</div>
+          <div class="sdb-bar-wrap"><div class="sdb-bar orange" style="width:14%;"></div></div>
+          <div class="sdb-count">1,382 条</div>
+          <div class="sdb-pct">14.0%</div>
+        </div>
+        <div class="sdb-row">
+          <div class="sdb-label">得分 2</div>
+          <div class="sdb-bar-wrap"><div class="sdb-bar blue2" style="width:7%;"></div></div>
+          <div class="sdb-count">690 条</div>
+          <div class="sdb-pct">7.0%</div>
+        </div>
+        <div class="sdb-row">
+          <div class="sdb-label">得分 3</div>
+          <div class="sdb-bar-wrap"><div class="sdb-bar green" style="width:2%;"></div></div>
+          <div class="sdb-count">197 条</div>
+          <div class="sdb-pct">2.0%</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Toolbar -->
+    <div class="toolbar">
+      <div class="search-input">
+        <svg viewBox="0 0 20 20" fill="currentColor" style="color:var(--gray-400)"><path fill-rule="evenodd" d="M9 3.5a5.5 5.5 0 100 11 5.5 5.5 0 000-11zM2 9a7 7 0 1112.452 4.391l3.328 3.329a.75.75 0 11-1.06 1.06l-3.329-3.328A7 7 0 012 9z" clip-rule="evenodd"/></svg>
+        搜索实验名称…
+      </div>
+      <div class="filter-btn">
+        <svg viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M2.628 1.601C5.028 1.206 7.49 1 10 1s4.973.206 7.372.601a.75.75 0 01.628.74v2.288a2.25 2.25 0 01-.659 1.59l-4.682 4.683a2.25 2.25 0 00-.659 1.59v3.037c0 .684-.31 1.33-.844 1.757l-1.937 1.55A.75.75 0 018 18.25v-5.757a2.25 2.25 0 00-.659-1.591L2.659 6.22A2.25 2.25 0 012 4.629V2.34a.75.75 0 01.628-.74z" clip-rule="evenodd"/></svg>
+        筛选
+      </div>
+      <div class="spacer"></div>
+    </div>
+
+    <!-- Table -->
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>实验名称</th>
+            <th>状态</th>
+            <th>总量</th>
+            <th>完成率</th>
+            <th>平均得分</th>
+            <th>得分分布</th>
+            <th>触发时间</th>
+            <th>操作</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>
+              <div class="col-name col-link" onclick="openDrawer('exp-drawer')">sug粗筛 · 自动触发</div>
+              <div style="font-size:12px;color:var(--gray-400);margin-top:2px;">2026-05-13</div>
+            </td>
+            <td><span class="badge badge-green"><span class="dot" style="width:6px;height:6px;border-radius:50%;background:#16A34A;display:inline-block;"></span> 已完成</span></td>
+            <td>10,000</td>
+            <td>
+              <div class="score-bar-wrap">
+                <div class="score-bar-bg"><div class="score-bar-fill" style="width:98.7%;background:var(--green);"></div></div>
+                <span class="score-num" style="color:var(--green);">98.7%</span>
+              </div>
+            </td>
+            <td><span style="font-weight:600;">0.296</span></td>
+            <td>
+              <div class="dist-row" style="width:80px;">
+                <div class="dist-seg" style="width:77%;background:#F87171;border-radius:3px 0 0 3px;"></div>
+                <div class="dist-seg" style="width:14%;background:#FBBF24;"></div>
+                <div class="dist-seg" style="width:7%;background:#60A5FA;"></div>
+                <div class="dist-seg" style="width:2%;background:#34D399;border-radius:0 3px 3px 0;"></div>
+              </div>
+            </td>
+            <td class="col-mono">2026-05-13 00:15</td>
+            <td>
+              <div class="row-actions">
+                <span class="act-view" onclick="openDrawer('exp-drawer')">查看</span>
+                <span class="act-edit">导出</span>
+              </div>
+            </td>
+          </tr>
+          <tr>
+            <td>
+              <div class="col-name col-link">sug粗筛 · 自动触发</div>
+              <div style="font-size:12px;color:var(--gray-400);margin-top:2px;">2026-05-12</div>
+            </td>
+            <td><span class="badge badge-green"><span style="width:6px;height:6px;border-radius:50%;background:#16A34A;display:inline-block;"></span> 已完成</span></td>
+            <td>10,000</td>
+            <td>
+              <div class="score-bar-wrap">
+                <div class="score-bar-bg"><div class="score-bar-fill" style="width:99.1%;background:var(--green);"></div></div>
+                <span class="score-num" style="color:var(--green);">99.1%</span>
+              </div>
+            </td>
+            <td><span style="font-weight:600;">0.311</span></td>
+            <td>
+              <div class="dist-row" style="width:80px;">
+                <div class="dist-seg" style="width:75%;background:#F87171;border-radius:3px 0 0 3px;"></div>
+                <div class="dist-seg" style="width:15%;background:#FBBF24;"></div>
+                <div class="dist-seg" style="width:7%;background:#60A5FA;"></div>
+                <div class="dist-seg" style="width:3%;background:#34D399;border-radius:0 3px 3px 0;"></div>
+              </div>
+            </td>
+            <td class="col-mono">2026-05-12 00:15</td>
+            <td><div class="row-actions"><span class="act-view">查看</span><span class="act-edit">导出</span></div></td>
+          </tr>
+          <tr>
+            <td>
+              <div class="col-name col-link">sug粗筛 · 自动触发</div>
+              <div style="font-size:12px;color:var(--gray-400);margin-top:2px;">2026-05-11</div>
+            </td>
+            <td><span class="badge badge-green"><span style="width:6px;height:6px;border-radius:50%;background:#16A34A;display:inline-block;"></span> 已完成</span></td>
+            <td>10,000</td>
+            <td>
+              <div class="score-bar-wrap">
+                <div class="score-bar-bg"><div class="score-bar-fill" style="width:98.4%;background:var(--green);"></div></div>
+                <span class="score-num" style="color:var(--green);">98.4%</span>
+              </div>
+            </td>
+            <td><span style="font-weight:600;">0.288</span></td>
+            <td>
+              <div class="dist-row" style="width:80px;">
+                <div class="dist-seg" style="width:78%;background:#F87171;border-radius:3px 0 0 3px;"></div>
+                <div class="dist-seg" style="width:13%;background:#FBBF24;"></div>
+                <div class="dist-seg" style="width:7%;background:#60A5FA;"></div>
+                <div class="dist-seg" style="width:2%;background:#34D399;border-radius:0 3px 3px 0;"></div>
+              </div>
+            </td>
+            <td class="col-mono">2026-05-11 00:15</td>
+            <td><div class="row-actions"><span class="act-view">查看</span><span class="act-edit">导出</span></div></td>
+          </tr>
+          <tr>
+            <td>
+              <div class="col-name" style="color:var(--gray-500);">点点agent · 幻觉检测 · 自动触发</div>
+              <div style="font-size:12px;color:var(--gray-400);margin-top:2px;">2026-03-12</div>
+            </td>
+            <td><span class="badge badge-gray">已停止</span></td>
+            <td>2,340</td>
+            <td>
+              <div class="score-bar-wrap">
+                <div class="score-bar-bg"><div class="score-bar-fill" style="width:94%;background:var(--gray-300);"></div></div>
+                <span class="score-num" style="color:var(--gray-500);">94.0%</span>
+              </div>
+            </td>
+            <td><span style="font-weight:600;color:var(--gray-500);">0.72</span></td>
+            <td>
+              <div class="dist-row" style="width:80px;">
+                <div class="dist-seg" style="width:28%;background:#F87171;border-radius:3px 0 0 3px;"></div>
+                <div class="dist-seg" style="width:72%;background:#34D399;border-radius:0 3px 3px 0;"></div>
+              </div>
+            </td>
+            <td class="col-mono" style="color:var(--gray-400);">2026-03-12 00:30</td>
+            <td><div class="row-actions"><span class="act-view" style="color:var(--gray-400);">查看</span><span class="act-edit">导出</span></div></td>
+          </tr>
+        </tbody>
+      </table>
+      <div class="pagination">
+        <div class="pagination-info">共 128 条，第 1 / 7 页</div>
+        <div class="pagination-btns">
+          <div class="page-btn">‹</div>
+          <div class="page-btn active">1</div>
+          <div class="page-btn">2</div>
+          <div class="page-btn">3</div>
+          <div class="page-btn">…</div>
+          <div class="page-btn">7</div>
+          <div class="page-btn">›</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════ TAB: 数据集 ═══════════════ -->
+  <div class="tab-panel" id="panel-dataset">
+    <div class="page-header">
+      <div style="display:flex;align-items:flex-start;justify-content:space-between;">
+        <div>
+          <div class="page-title">数据集</div>
+          <div class="page-subtitle">评估任务自动回流或手动创建的数据集，用于离线回归实验和版本对比。</div>
+        </div>
+        <button class="btn-primary">
+          <svg width="14" height="14" viewBox="0 0 20 20" fill="currentColor"><path d="M10.75 4.75a.75.75 0 00-1.5 0v4.5h-4.5a.75.75 0 000 1.5h4.5v4.5a.75.75 0 001.5 0v-4.5h4.5a.75.75 0 000-1.5h-4.5v-4.5z"/></svg>
+          新建数据集
+        </button>
+      </div>
+    </div>
+    <div class="toolbar">
+      <div class="search-input">
+        <svg viewBox="0 0 20 20" fill="currentColor" style="color:var(--gray-400)"><path fill-rule="evenodd" d="M9 3.5a5.5 5.5 0 100 11 5.5 5.5 0 000-11zM2 9a7 7 0 1112.452 4.391l3.328 3.329a.75.75 0 11-1.06 1.06l-3.329-3.328A7 7 0 012 9z" clip-rule="evenodd"/></svg>
+        搜索数据集名称…
+      </div>
+      <div class="spacer"></div>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>数据集名称</th>
+            <th>数据条数</th>
+            <th>来源</th>
+            <th>创建时间</th>
+            <th>更新时间</th>
+            <th>操作</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><div class="col-name col-link">Sug 粗筛数据集 · 2026-05-12</div><div style="font-size:12px;color:var(--gray-400);">由评估任务 'sug粗筛' 自动创建</div></td>
+            <td><span style="font-weight:600;">549</span></td>
+            <td><span class="badge badge-blue">自动回流</span></td>
+            <td class="col-mono">2026-05-13 00:15</td>
+            <td class="col-mono">2026-05-13 00:15</td>
+            <td><div class="row-actions"><span class="act-view">查看</span><span class="act-edit">编辑</span><span class="act-edit">复制</span><span class="act-delete">删除</span></div></td>
+          </tr>
+          <tr>
+            <td><div class="col-name col-link">Sug 粗筛数据集 · 2026-05-11</div><div style="font-size:12px;color:var(--gray-400);">由评估任务 'sug粗筛' 自动创建</div></td>
+            <td><span style="font-weight:600;">617</span></td>
+            <td><span class="badge badge-blue">自动回流</span></td>
+            <td class="col-mono">2026-05-12 00:15</td>
+            <td class="col-mono">2026-05-12 00:15</td>
+            <td><div class="row-actions"><span class="act-view">查看</span><span class="act-edit">编辑</span><span class="act-edit">复制</span><span class="act-delete">删除</span></div></td>
+          </tr>
+          <tr>
+            <td><div class="col-name col-link">dots_shopping_badcase</div><div style="font-size:12px;color:var(--gray-400);">shopping bad case 记录</div></td>
+            <td><span style="font-weight:600;">4</span></td>
+            <td><span class="badge badge-gray">手动创建</span></td>
+            <td class="col-mono">2026-04-28 08:00</td>
+            <td class="col-mono">2026-04-28 08:00</td>
+            <td><div class="row-actions"><span class="act-view">查看</span><span class="act-edit">编辑</span><span class="act-edit">复制</span><span class="act-delete">删除</span></div></td>
+          </tr>
+        </tbody>
+      </table>
+      <div class="pagination">
+        <div class="pagination-info">共 122 条，第 1 / 7 页</div>
+        <div class="pagination-btns">
+          <div class="page-btn">‹</div>
+          <div class="page-btn active">1</div>
+          <div class="page-btn">2</div>
+          <div class="page-btn">3</div>
+          <div class="page-btn">…</div>
+          <div class="page-btn">7</div>
+          <div class="page-btn">›</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════ TAB: 自动评估 ═══════════════ -->
+  <div class="tab-panel" id="panel-auto">
+    <div class="page-header">
+      <div style="display:flex;align-items:flex-start;justify-content:space-between;">
+        <div>
+          <div class="page-title">自动评估任务</div>
+          <div class="page-subtitle">定时从在线链路或离线数据集采样，自动运行评估器并将结果回流至数据集。</div>
+        </div>
+        <button class="btn-primary" onclick="openDrawer('auto-create-drawer')">
+          <svg width="14" height="14" viewBox="0 0 20 20" fill="currentColor"><path d="M10.75 4.75a.75.75 0 00-1.5 0v4.5h-4.5a.75.75 0 000 1.5h4.5v4.5a.75.75 0 001.5 0v-4.5h4.5a.75.75 0 000-1.5h-4.5v-4.5z"/></svg>
+          新建任务
+        </button>
+      </div>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>任务名称</th>
+            <th>数据来源</th>
+            <th>采样率</th>
+            <th>执行周期</th>
+            <th>启用</th>
+            <th>最近执行</th>
+            <th>操作</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>
+              <div class="col-name">sug粗筛</div>
+              <div style="font-size:12px;color:var(--gray-400);margin-top:2px;">评估器: sug粗筛 · SPAN: name=sug</div>
+            </td>
+            <td><span class="badge badge-blue">在线链路</span></td>
+            <td>7%</td>
+            <td>每天 00:15</td>
+            <td><div class="toggle on" onclick="this.classList.toggle('on')"></div></td>
+            <td><span class="badge badge-green">2026-05-13 00:15 完成</span></td>
+            <td><div class="row-actions"><span class="act-view" onclick="openDrawer('auto-create-drawer')">查看</span><span class="act-edit" onclick="openDrawer('auto-create-drawer')">编辑</span><span class="act-edit">触发</span><span class="act-delete">删除</span></div></td>
+          </tr>
+          <tr>
+            <td>
+              <div class="col-name" style="color:var(--gray-500);">点点agent在线checker_幻觉检测</div>
+              <div style="font-size:12px;color:var(--gray-400);margin-top:2px;">评估器: 点点agent在线checker_幻觉检测</div>
+            </td>
+            <td><span class="badge badge-blue">在线链路</span></td>
+            <td>—</td>
+            <td>每天 00:30</td>
+            <td><div class="toggle" onclick="this.classList.toggle('on')"></div></td>
+            <td><span class="badge badge-gray">2026-03-12 已停止</span></td>
+            <td><div class="row-actions"><span class="act-view">查看</span><span class="act-edit">编辑</span><span class="act-edit">触发</span><span class="act-delete">删除</span></div></td>
+          </tr>
+        </tbody>
+      </table>
+      <div class="pagination">
+        <div class="pagination-info">共 2 条</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════ TAB: 评估器 ═══════════════ -->
+  <div class="tab-panel" id="panel-evaluator">
+    <div class="page-header">
+      <div style="display:flex;align-items:flex-start;justify-content:space-between;">
+        <div>
+          <div class="page-title">评估器</div>
+          <div class="page-subtitle">定义如何对 Agent 输出打分，支持 LLM Judge、HTTP 回调和代码规则三种类型。</div>
+        </div>
+        <button class="btn-primary" onclick="openDrawer('evaluator-drawer')">
+          <svg width="14" height="14" viewBox="0 0 20 20" fill="currentColor"><path d="M10.75 4.75a.75.75 0 00-1.5 0v4.5h-4.5a.75.75 0 000 1.5h4.5v4.5a.75.75 0 001.5 0v-4.5h4.5a.75.75 0 000-1.5h-4.5v-4.5z"/></svg>
+          新建评估器
+        </button>
+      </div>
+    </div>
+    <div class="toolbar">
+      <div class="search-input">
+        <svg viewBox="0 0 20 20" fill="currentColor" style="color:var(--gray-400)"><path fill-rule="evenodd" d="M9 3.5a5.5 5.5 0 100 11 5.5 5.5 0 000-11zM2 9a7 7 0 1112.452 4.391l3.328 3.329a.75.75 0 11-1.06 1.06l-3.329-3.328A7 7 0 012 9z" clip-rule="evenodd"/></svg>
+        搜索评估器名称…
+      </div>
+      <div class="filter-btn">
+        <svg viewBox="0 0 20 20" fill="currentColor" style="width:14px;height:14px;"><path fill-rule="evenodd" d="M2.628 1.601C5.028 1.206 7.49 1 10 1s4.973.206 7.372.601a.75.75 0 01.628.74v2.288a2.25 2.25 0 01-.659 1.59l-4.682 4.683a2.25 2.25 0 00-.659 1.59v3.037c0 .684-.31 1.33-.844 1.757l-1.937 1.55A.75.75 0 018 18.25v-5.757a2.25 2.25 0 00-.659-1.591L2.659 6.22A2.25 2.25 0 012 4.629V2.34a.75.75 0 01.628-.74z" clip-rule="evenodd"/></svg>
+        评估类型
+      </div>
+      <div class="spacer"></div>
+    </div>
+    <div class="eval-cards">
+      <!-- card 1 -->
+      <div class="eval-card" onclick="openDrawer('evaluator-drawer')">
+        <div class="eval-card-header">
+          <div>
+            <div class="eval-card-title">sug 粗筛</div>
+            <div class="eval-card-desc">判断搜索建议召回内容与用户意图的相关性，按 0-3 分四档打分。</div>
+          </div>
+          <div class="eval-card-actions">
+            <button class="icon-btn" title="编辑"><svg width="14" height="14" viewBox="0 0 20 20" fill="currentColor"><path d="M5.433 13.917l1.262-3.155A4 4 0 017.58 9.42l6.92-6.918a2.121 2.121 0 013 3l-6.92 6.918c-.383.383-.84.685-1.343.886l-3.154 1.262a.5.5 0 01-.65-.65z"/></svg></button>
+            <button class="icon-btn danger" title="删除"><svg width="14" height="14" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M8.75 1A2.75 2.75 0 006 3.75v.443c-.795.077-1.584.176-2.365.298a.75.75 0 10.23 1.482l.149-.022.841 10.518A2.75 2.75 0 007.596 19h4.807a2.75 2.75 0 002.742-2.53l.841-10.52.149.023a.75.75 0 00.23-1.482A41.03 41.03 0 0014 4.193V3.75A2.75 2.75 0 0011.25 1h-2.5zM10 4c.84 0 1.673.025 2.5.075V3.75c0-.69-.56-1.25-1.25-1.25h-2.5c-.69 0-1.25.56-1.25 1.25v.325C8.327 4.025 9.16 4 10 4zM8.58 7.72a.75.75 0 00-1.5.06l.3 7.5a.75.75 0 101.5-.06l-.3-7.5zm4.34.06a.75.75 0 10-1.5-.06l-.3 7.5a.75.75 0 101.5.06l.3-7.5z" clip-rule="evenodd"/></svg></button>
+          </div>
+        </div>
+        <div class="eval-card-footer">
+          <span class="badge badge-purple">LLM Judge</span>
+          <span class="badge badge-gray">0–3 分</span>
+          <span class="eval-card-meta">2026-01-21</span>
+        </div>
+      </div>
+      <!-- card 2 -->
+      <div class="eval-card">
+        <div class="eval-card-header">
+          <div>
+            <div class="eval-card-title">相关性</div>
+            <div class="eval-card-desc">输出是否引用了上下文中的真实内容，评估回复的信息忠实度。</div>
+          </div>
+          <div class="eval-card-actions">
+            <button class="icon-btn"><svg width="14" height="14" viewBox="0 0 20 20" fill="currentColor"><path d="M5.433 13.917l1.262-3.155A4 4 0 017.58 9.42l6.92-6.918a2.121 2.121 0 013 3l-6.92 6.918c-.383.383-.84.685-1.343.886l-3.154 1.262a.5.5 0 01-.65-.65z"/></svg></button>
+            <button class="icon-btn danger"><svg width="14" height="14" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M8.75 1A2.75 2.75 0 006 3.75v.443c-.795.077-1.584.176-2.365.298a.75.75 0 10.23 1.482l.149-.022.841 10.518A2.75 2.75 0 007.596 19h4.807a2.75 2.75 0 002.742-2.53l.841-10.52.149.023a.75.75 0 00.23-1.482A41.03 41.03 0 0014 4.193V3.75A2.75 2.75 0 0011.25 1h-2.5zM10 4c.84 0 1.673.025 2.5.075V3.75c0-.69-.56-1.25-1.25-1.25h-2.5c-.69 0-1.25.56-1.25 1.25v.325C8.327 4.025 9.16 4 10 4zM8.58 7.72a.75.75 0 00-1.5.06l.3 7.5a.75.75 0 101.5-.06l-.3-7.5zm4.34.06a.75.75 0 10-1.5-.06l-.3 7.5a.75.75 0 101.5.06l.3-7.5z" clip-rule="evenodd"/></svg></button>
+          </div>
+        </div>
+        <div class="eval-card-footer">
+          <span class="badge badge-purple">LLM Judge</span>
+          <span class="badge badge-gray">0–1 分</span>
+          <span class="eval-card-meta">2026-01-22</span>
+        </div>
+      </div>
+      <!-- card 3 -->
+      <div class="eval-card">
+        <div class="eval-card-header">
+          <div>
+            <div class="eval-card-title">正确性</div>
+            <div class="eval-card-desc">提交的内容是否正确、准确、真实？综合评估回复的事实准确性。</div>
+          </div>
+          <div class="eval-card-actions">
+            <button class="icon-btn"><svg width="14" height="14" viewBox="0 0 20 20" fill="currentColor"><path d="M5.433 13.917l1.262-3.155A4 4 0 017.58 9.42l6.92-6.918a2.121 2.121 0 013 3l-6.92 6.918c-.383.383-.84.685-1.343.886l-3.154 1.262a.5.5 0 01-.65-.65z"/></svg></button>
+            <button class="icon-btn danger"><svg width="14" height="14" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M8.75 1A2.75 2.75 0 006 3.75v.443c-.795.077-1.584.176-2.365.298a.75.75 0 10.23 1.482l.149-.022.841 10.518A2.75 2.75 0 007.596 19h4.807a2.75 2.75 0 002.742-2.53l.841-10.52.149.023a.75.75 0 00.23-1.482A41.03 41.03 0 0014 4.193V3.75A2.75 2.75 0 0011.25 1h-2.5zM10 4c.84 0 1.673.025 2.5.075V3.75c0-.69-.56-1.25-1.25-1.25h-2.5c-.69 0-1.25.56-1.25 1.25v.325C8.327 4.025 9.16 4 10 4zM8.58 7.72a.75.75 0 00-1.5.06l.3 7.5a.75.75 0 101.5-.06l-.3-7.5zm4.34.06a.75.75 0 10-1.5-.06l-.3 7.5a.75.75 0 101.5.06l.3-7.5z" clip-rule="evenodd"/></svg></button>
+          </div>
+        </div>
+        <div class="eval-card-footer">
+          <span class="badge badge-purple">LLM Judge</span>
+          <span class="badge badge-gray">0–1 分</span>
+          <span class="eval-card-meta">2026-01-22</span>
+        </div>
+      </div>
+      <!-- card 4 -->
+      <div class="eval-card">
+        <div class="eval-card-header">
+          <div>
+            <div class="eval-card-title">幻觉现象</div>
+            <div class="eval-card-desc">评估模型输出是否存在幻觉现象，包括捏造事实或无依据断言。</div>
+          </div>
+          <div class="eval-card-actions">
+            <button class="icon-btn"><svg width="14" height="14" viewBox="0 0 20 20" fill="currentColor"><path d="M5.433 13.917l1.262-3.155A4 4 0 017.58 9.42l6.92-6.918a2.121 2.121 0 013 3l-6.92 6.918c-.383.383-.84.685-1.343.886l-3.154 1.262a.5.5 0 01-.65-.65z"/></svg></button>
+            <button class="icon-btn danger"><svg width="14" height="14" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M8.75 1A2.75 2.75 0 006 3.75v.443c-.795.077-1.584.176-2.365.298a.75.75 0 10.23 1.482l.149-.022.841 10.518A2.75 2.75 0 007.596 19h4.807a2.75 2.75 0 002.742-2.53l.841-10.52.149.023a.75.75 0 00.23-1.482A41.03 41.03 0 0014 4.193V3.75A2.75 2.75 0 0011.25 1h-2.5zM10 4c.84 0 1.673.025 2.5.075V3.75c0-.69-.56-1.25-1.25-1.25h-2.5c-.69 0-1.25.56-1.25 1.25v.325C8.327 4.025 9.16 4 10 4zM8.58 7.72a.75.75 0 00-1.5.06l.3 7.5a.75.75 0 101.5-.06l-.3-7.5zm4.34.06a.75.75 0 10-1.5-.06l-.3 7.5a.75.75 0 101.5.06l.3-7.5z" clip-rule="evenodd"/></svg></button>
+          </div>
+        </div>
+        <div class="eval-card-footer">
+          <span class="badge badge-purple">LLM Judge</span>
+          <span class="badge badge-gray">0–1 分</span>
+          <span class="eval-card-meta">2026-01-22</span>
+        </div>
+      </div>
+      <!-- card 5 -->
+      <div class="eval-card">
+        <div class="eval-card-header">
+          <div>
+            <div class="eval-card-title">工具选择质量</div>
+            <div class="eval-card-desc">判断 AI 助手在多工具场景下选择的工具是否合适、是否多余。</div>
+          </div>
+          <div class="eval-card-actions">
+            <button class="icon-btn"><svg width="14" height="14" viewBox="0 0 20 20" fill="currentColor"><path d="M5.433 13.917l1.262-3.155A4 4 0 017.58 9.42l6.92-6.918a2.121 2.121 0 013 3l-6.92 6.918c-.383.383-.84.685-1.343.886l-3.154 1.262a.5.5 0 01-.65-.65z"/></svg></button>
+            <button class="icon-btn danger"><svg width="14" height="14" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M8.75 1A2.75 2.75 0 006 3.75v.443c-.795.077-1.584.176-2.365.298a.75.75 0 10.23 1.482l.149-.022.841 10.518A2.75 2.75 0 007.596 19h4.807a2.75 2.75 0 002.742-2.53l.841-10.52.149.023a.75.75 0 00.23-1.482A41.03 41.03 0 0014 4.193V3.75A2.75 2.75 0 0011.25 1h-2.5zM10 4c.84 0 1.673.025 2.5.075V3.75c0-.69-.56-1.25-1.25-1.25h-2.5c-.69 0-1.25.56-1.25 1.25v.325C8.327 4.025 9.16 4 10 4zM8.58 7.72a.75.75 0 00-1.5.06l.3 7.5a.75.75 0 101.5-.06l-.3-7.5zm4.34.06a.75.75 0 10-1.5-.06l-.3 7.5a.75.75 0 101.5.06l.3-7.5z" clip-rule="evenodd"/></svg></button>
+          </div>
+        </div>
+        <div class="eval-card-footer">
+          <span class="badge badge-purple">LLM Judge</span>
+          <span class="badge badge-gray">0–1 分</span>
+          <span class="eval-card-meta">2026-01-22</span>
+        </div>
+      </div>
+      <!-- card 6 -->
+      <div class="eval-card">
+        <div class="eval-card-header">
+          <div>
+            <div class="eval-card-title">点点agent · 幻觉检测</div>
+            <div class="eval-card-desc">通过 HTTP 回调自定义评估逻辑，用于点点购物 Agent 的专项幻觉检测。</div>
+          </div>
+          <div class="eval-card-actions">
+            <button class="icon-btn"><svg width="14" height="14" viewBox="0 0 20 20" fill="currentColor"><path d="M5.433 13.917l1.262-3.155A4 4 0 017.58 9.42l6.92-6.918a2.121 2.121 0 013 3l-6.92 6.918c-.383.383-.84.685-1.343.886l-3.154 1.262a.5.5 0 01-.65-.65z"/></svg></button>
+            <button class="icon-btn danger"><svg width="14" height="14" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M8.75 1A2.75 2.75 0 006 3.75v.443c-.795.077-1.584.176-2.365.298a.75.75 0 10.23 1.482l.149-.022.841 10.518A2.75 2.75 0 007.596 19h4.807a2.75 2.75 0 002.742-2.53l.841-10.52.149.023a.75.75 0 00.23-1.482A41.03 41.03 0 0014 4.193V3.75A2.75 2.75 0 0011.25 1h-2.5zM10 4c.84 0 1.673.025 2.5.075V3.75c0-.69-.56-1.25-1.25-1.25h-2.5c-.69 0-1.25.56-1.25 1.25v.325C8.327 4.025 9.16 4 10 4zM8.58 7.72a.75.75 0 00-1.5.06l.3 7.5a.75.75 0 101.5-.06l-.3-7.5zm4.34.06a.75.75 0 10-1.5-.06l-.3 7.5a.75.75 0 101.5.06l.3-7.5z" clip-rule="evenodd"/></svg></button>
+          </div>
+        </div>
+        <div class="eval-card-footer">
+          <span class="badge badge-orange">HTTP</span>
+          <span class="badge badge-gray">0–1 分</span>
+          <span class="eval-card-meta">2026-02-09</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════ TAB: LLM配置 ═══════════════ -->
+  <div class="tab-panel" id="panel-llm">
+    <div class="page-header">
+      <div style="display:flex;align-items:flex-start;justify-content:space-between;">
+        <div>
+          <div class="page-title">LLM 配置</div>
+          <div class="page-subtitle">为评估器选择可用的模型，支持配置温度、最大 Token 等参数。</div>
+        </div>
+        <button class="btn-primary">
+          <svg width="14" height="14" viewBox="0 0 20 20" fill="currentColor"><path d="M10.75 4.75a.75.75 0 00-1.5 0v4.5h-4.5a.75.75 0 000 1.5h4.5v4.5a.75.75 0 001.5 0v-4.5h4.5a.75.75 0 000-1.5h-4.5v-4.5z"/></svg>
+          添加 LLM
+        </button>
+      </div>
+    </div>
+    <div class="llm-cards">
+      <div class="llm-card">
+        <div class="llm-card-header">
+          <div class="llm-icon" style="background:#F0FDF4;">🤖</div>
+          <div>
+            <div class="llm-name">【筛】xray-mass-test</div>
+            <div class="llm-alias">用于评估器大批量测试</div>
+          </div>
+        </div>
+        <div class="llm-props">
+          <span class="llm-prop">temperature: 0.0</span>
+          <span class="llm-prop">max_tokens: 2048</span>
+          <span class="llm-prop">top_p: 1.0</span>
+        </div>
+        <div class="llm-card-footer">
+          <span class="badge badge-green">可用</span>
+          <div style="display:flex;gap:8px;">
+            <span class="act-edit">编辑</span>
+            <span class="act-delete">删除</span>
+          </div>
+        </div>
+      </div>
+      <div class="llm-card">
+        <div class="llm-card-header">
+          <div class="llm-icon" style="background:#EFF6FF;">🔬</div>
+          <div>
+            <div class="llm-name">xray-eval-default</div>
+            <div class="llm-alias">通用评估默认模型</div>
+          </div>
+        </div>
+        <div class="llm-props">
+          <span class="llm-prop">temperature: 0.2</span>
+          <span class="llm-prop">max_tokens: 4096</span>
+          <span class="llm-prop">top_p: 0.9</span>
+        </div>
+        <div class="llm-card-footer">
+          <span class="badge badge-green">可用</span>
+          <div style="display:flex;gap:8px;">
+            <span class="act-edit">编辑</span>
+            <span class="act-delete">删除</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div><!-- /main -->
+
+
+<!-- ═══════════════ DRAWER: 实验详情 ═══════════════ -->
+<div class="drawer-overlay" id="exp-drawer-overlay" onclick="closeDrawer('exp-drawer')"></div>
+<div class="drawer" id="exp-drawer">
+  <div class="drawer-header">
+    <div>
+      <div class="drawer-title">sug粗筛 · 自动触发 2026-05-13</div>
+      <div class="drawer-subtitle">10,000 条 · 已完成 9,868 · 失败 132</div>
+    </div>
+    <button class="drawer-close" onclick="closeDrawer('exp-drawer')">✕</button>
+  </div>
+  <div class="drawer-body">
+    <!-- Tabs inside drawer -->
+    <div style="display:flex;gap:0;border-bottom:1px solid var(--gray-200);margin-bottom:20px;">
+      <div style="padding:8px 16px;font-size:13.5px;color:var(--blue);border-bottom:2px solid var(--blue);font-weight:500;cursor:pointer;">实验分析</div>
+      <div style="padding:8px 16px;font-size:13.5px;color:var(--gray-500);border-bottom:2px solid transparent;cursor:pointer;">实验明细</div>
+    </div>
+
+    <!-- Stats -->
+    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:20px;">
+      <div style="border:1px solid var(--gray-200);border-radius:var(--radius);padding:12px 14px;">
+        <div style="font-size:11px;color:var(--gray-400);font-weight:600;margin-bottom:4px;">平均得分</div>
+        <div style="font-size:20px;font-weight:700;color:var(--gray-900);">0.296</div>
+      </div>
+      <div style="border:1px solid var(--gray-200);border-radius:var(--radius);padding:12px 14px;">
+        <div style="font-size:11px;color:var(--gray-400);font-weight:600;margin-bottom:4px;">P50</div>
+        <div style="font-size:20px;font-weight:700;color:var(--gray-900);">0</div>
+      </div>
+      <div style="border:1px solid var(--gray-200);border-radius:var(--radius);padding:12px 14px;">
+        <div style="font-size:11px;color:var(--gray-400);font-weight:600;margin-bottom:4px;">P90</div>
+        <div style="font-size:20px;font-weight:700;color:var(--gray-900);">1</div>
+      </div>
+      <div style="border:1px solid var(--gray-200);border-radius:var(--radius);padding:12px 14px;">
+        <div style="font-size:11px;color:var(--gray-400);font-weight:600;margin-bottom:4px;">最大值</div>
+        <div style="font-size:20px;font-weight:700;color:var(--gray-900);">3</div>
+      </div>
+    </div>
+
+    <!-- Distribution -->
+    <div class="detail-section">
+      <div class="detail-section-title">得分分布 · sug粗筛</div>
+      <div style="margin-top:12px;" class="score-dist-bars">
+        <div class="sdb-row"><div class="sdb-label">得分 0</div><div class="sdb-bar-wrap"><div class="sdb-bar red" style="width:77%;"></div></div><div class="sdb-count">7,599 条</div><div class="sdb-pct">77.0%</div></div>
+        <div class="sdb-row"><div class="sdb-label">得分 1</div><div class="sdb-bar-wrap"><div class="sdb-bar orange" style="width:14%;"></div></div><div class="sdb-count">1,382 条</div><div class="sdb-pct">14.0%</div></div>
+        <div class="sdb-row"><div class="sdb-label">得分 2</div><div class="sdb-bar-wrap"><div class="sdb-bar blue2" style="width:7%;"></div></div><div class="sdb-count">690 条</div><div class="sdb-pct">7.0%</div></div>
+        <div class="sdb-row"><div class="sdb-label">得分 3</div><div class="sdb-bar-wrap"><div class="sdb-bar green" style="width:2%;"></div></div><div class="sdb-count">197 条</div><div class="sdb-pct">2.0%</div></div>
+      </div>
+    </div>
+
+    <!-- Sample detail -->
+    <div class="detail-section" style="margin-top:20px;">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+        <div class="detail-section-title">明细样例（得分 ≥ 2）</div>
+        <span class="act-view" style="font-size:12px;">查看全部 →</span>
+      </div>
+      <div style="border:1px solid var(--gray-200);border-radius:var(--radius);overflow:hidden;">
+        <table style="width:100%;border-collapse:collapse;">
+          <thead><tr style="background:var(--gray-50);">
+            <th style="padding:8px 12px;text-align:left;font-size:11px;color:var(--gray-500);font-weight:600;border-bottom:1px solid var(--gray-200);">TraceId</th>
+            <th style="padding:8px 12px;text-align:left;font-size:11px;color:var(--gray-500);font-weight:600;border-bottom:1px solid var(--gray-200);">状态</th>
+            <th style="padding:8px 12px;text-align:left;font-size:11px;color:var(--gray-500);font-weight:600;border-bottom:1px solid var(--gray-200);">得分</th>
+            <th style="padding:8px 12px;text-align:left;font-size:11px;color:var(--gray-500);font-weight:600;border-bottom:1px solid var(--gray-200);">耗时</th>
+            <th style="padding:8px 12px;text-align:left;font-size:11px;color:var(--gray-500);font-weight:600;border-bottom:1px solid var(--gray-200);">操作</th>
+          </tr></thead>
+          <tbody>
+            <tr style="border-bottom:1px solid var(--gray-100);">
+              <td style="padding:10px 12px;font-family:monospace;font-size:12px;color:var(--gray-600);">abc123ef…</td>
+              <td style="padding:10px 12px;"><span class="badge badge-green">成功</span></td>
+              <td style="padding:10px 12px;"><span style="font-weight:700;color:var(--blue);">2</span></td>
+              <td style="padding:10px 12px;font-size:12px;color:var(--gray-500);">151.7s</td>
+              <td style="padding:10px 12px;"><span class="act-view" onclick="openDrawer('item-drawer')">详情</span></td>
+            </tr>
+            <tr>
+              <td style="padding:10px 12px;font-family:monospace;font-size:12px;color:var(--gray-600);">def456ab…</td>
+              <td style="padding:10px 12px;"><span class="badge badge-green">成功</span></td>
+              <td style="padding:10px 12px;"><span style="font-weight:700;color:var(--blue);">3</span></td>
+              <td style="padding:10px 12px;font-size:12px;color:var(--gray-500);">98.3s</td>
+              <td style="padding:10px 12px;"><span class="act-view">详情</span></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+  <div class="drawer-footer">
+    <button class="btn-secondary" onclick="closeDrawer('exp-drawer')">关闭</button>
+    <button class="btn-primary">导出实验数据</button>
+  </div>
+</div>
+
+<!-- ═══════════════ DRAWER: 明细项详情 ═══════════════ -->
+<div class="drawer-overlay" id="item-drawer-overlay" onclick="closeDrawer('item-drawer')"></div>
+<div class="drawer" id="item-drawer" style="width:560px;">
+  <div class="drawer-header">
+    <div>
+      <div class="drawer-title">评估明细</div>
+      <div class="drawer-subtitle">TraceId: abc123ef · 得分 2 · 耗时 151.7s</div>
+    </div>
+    <button class="drawer-close" onclick="closeDrawer('item-drawer')">✕</button>
+  </div>
+  <div class="drawer-body">
+    <div style="display:flex;gap:10px;margin-bottom:20px;">
+      <div style="flex:1;border:1px solid var(--gray-200);border-radius:var(--radius);padding:12px 14px;text-align:center;">
+        <div style="font-size:11px;color:var(--gray-400);margin-bottom:4px;">得分</div>
+        <div style="font-size:28px;font-weight:800;color:var(--blue);">2</div>
+      </div>
+      <div style="flex:1;border:1px solid var(--gray-200);border-radius:var(--radius);padding:12px 14px;text-align:center;">
+        <div style="font-size:11px;color:var(--gray-400);margin-bottom:4px;">Input Token</div>
+        <div style="font-size:20px;font-weight:700;color:var(--gray-800);">1,499</div>
+      </div>
+      <div style="flex:1;border:1px solid var(--gray-200);border-radius:var(--radius);padding:12px 14px;text-align:center;">
+        <div style="font-size:11px;color:var(--gray-400);margin-bottom:4px;">Output Token</div>
+        <div style="font-size:20px;font-weight:700;color:var(--gray-800);">5,627</div>
+      </div>
+      <div style="flex:1;border:1px solid var(--gray-200);border-radius:var(--radius);padding:12px 14px;text-align:center;">
+        <div style="font-size:11px;color:var(--gray-400);margin-bottom:4px;">Total Token</div>
+        <div style="font-size:20px;font-weight:700;color:var(--gray-800);">7,126</div>
+      </div>
+    </div>
+
+    <div class="form-section">
+      <div class="form-section-title">得分理由</div>
+      <div class="code-block">根据提供的对话内容分析：
+用户意图：搜索"口红推荐"相关内容
+Agent 返回：3条相关搜索建议，均与口红、彩妆相关
+
+评估维度：
+1. 意图召回：✓ 返回内容与用户搜索意图高度相关
+2. 覆盖度：△ 未覆盖价格/品牌等细分意图
+3. 质量：✓ 无幻觉，内容真实
+
+综合得分：2 / 3</div>
+    </div>
+
+    <div class="form-section">
+      <div class="form-section-title">评估器入参</div>
+      <div style="margin-bottom:8px;">
+        <div style="font-size:12px;color:var(--gray-500);margin-bottom:4px;">query</div>
+        <div class="code-block">口红推荐</div>
+      </div>
+      <div>
+        <div style="font-size:12px;color:var(--gray-500);margin-bottom:4px;">messages</div>
+        <div class="code-block">[{"role":"user","content":"口红推荐"},{"role":"assistant","content":"为您推荐以下搜索：\n• 口红推荐 2026\n• 平价口红 好用\n• 滋润口红 不脱妆"}]</div>
+      </div>
+    </div>
+  </div>
+  <div class="drawer-footer">
+    <button class="btn-secondary" onclick="closeDrawer('item-drawer')">关闭</button>
+    <button class="btn-primary">跳转链路</button>
+  </div>
+</div>
+
+<!-- ═══════════════ DRAWER: 自动评估任务（4步） ═══════════════ -->
+<div class="drawer-overlay" id="auto-create-drawer-overlay" onclick="closeDrawer('auto-create-drawer')"></div>
+<div class="drawer" id="auto-create-drawer">
+  <div class="drawer-header">
+    <div>
+      <div class="drawer-title">编辑自动评估任务</div>
+      <div class="drawer-subtitle">sug粗筛</div>
+    </div>
+    <button class="drawer-close" onclick="closeDrawer('auto-create-drawer')">✕</button>
+  </div>
+  <div class="drawer-body">
+    <div class="steps-nav">
+      <div class="step-item done"><div class="step-num">✓</div> 基本配置</div>
+      <div class="step-item done"><div class="step-num">✓</div> 评估数据</div>
+      <div class="step-item active"><div class="step-num">3</div> 评估器</div>
+      <div class="step-item"><div class="step-num">4</div> 数据回流</div>
+    </div>
+    <div class="form-section">
+      <div class="form-section-title">绑定评估器</div>
+      <div class="form-row">
+        <div class="form-label">评估器</div>
+        <select class="form-select"><option>sug 粗筛</option><option>相关性</option><option>正确性</option></select>
+      </div>
+    </div>
+    <div class="form-section">
+      <div class="form-section-title">字段映射（JsonPath）</div>
+      <div class="notice">
+        <span class="notice-icon">ℹ️</span>
+        <div class="notice-text">使用 JsonPath 语法从链路 Span 数据中提取字段，作为评估器的输入变量。</div>
+      </div>
+      <div class="form-row">
+        <div class="form-label">query</div>
+        <input class="form-input" value="$.response_content"/>
+      </div>
+      <div class="form-row">
+        <div class="form-label">messages</div>
+        <input class="form-input" value="$.messages[?(@.role=='user')]"/>
+      </div>
+    </div>
+  </div>
+  <div class="drawer-footer">
+    <button class="btn-secondary" onclick="closeDrawer('auto-create-drawer')">取消</button>
+    <button class="btn-secondary">上一步</button>
+    <button class="btn-primary">下一步 →</button>
+  </div>
+</div>
+
+<!-- ═══════════════ DRAWER: 评估器编辑 ═══════════════ -->
+<div class="drawer-overlay" id="evaluator-drawer-overlay" onclick="closeDrawer('evaluator-drawer')"></div>
+<div class="drawer" id="evaluator-drawer">
+  <div class="drawer-header">
+    <div>
+      <div class="drawer-title">编辑评估器</div>
+      <div class="drawer-subtitle">sug 粗筛 · LLM Judge</div>
+    </div>
+    <button class="drawer-close" onclick="closeDrawer('evaluator-drawer')">✕</button>
+  </div>
+  <div class="drawer-body">
+    <div class="form-section">
+      <div class="form-section-title">基础信息</div>
+      <div class="form-row">
+        <div class="form-label">评估器名称</div>
+        <input class="form-input" value="sug 粗筛"/>
+      </div>
+      <div class="form-row">
+        <div class="form-label">评估类型</div>
+        <select class="form-select"><option>LLM Judge</option><option>HTTP</option><option>代码规则</option></select>
+      </div>
+      <div class="form-row">
+        <div class="form-label">描述</div>
+        <input class="form-input" value="判断搜索建议召回内容与用户意图的相关性"/>
+      </div>
+    </div>
+    <div class="form-section">
+      <div class="form-section-title">模型配置</div>
+      <div class="form-row">
+        <div class="form-label">LLM</div>
+        <select class="form-select"><option>【筛】xray-mass-test</option><option>xray-eval-default</option></select>
+      </div>
+    </div>
+    <div class="form-section">
+      <div class="form-section-title">Prompt</div>
+      <div style="display:flex;gap:6px;margin-bottom:8px;">
+        <div style="padding:5px 10px;font-size:12.5px;background:var(--blue-light);color:var(--blue);border-radius:4px;cursor:pointer;font-weight:500;">Chat</div>
+        <div style="padding:5px 10px;font-size:12.5px;color:var(--gray-500);cursor:pointer;">Text</div>
+      </div>
+      <textarea class="form-input form-textarea" style="min-height:160px;">你是一个搜索质量评估专家。请根据用户的搜索意图，对以下搜索建议进行评分。
+
+评分标准：
+- 0分：返回内容与用户意图完全无关
+- 1分：部分相关，但覆盖度或质量不足
+- 2分：相关性高，覆盖主要意图
+- 3分：完全命中，高质量且完整覆盖用户意图
+
+输入变量：
+- query: {{query}}
+- messages: {{messages}}
+
+请只输出分数（0/1/2/3）和一句理由，格式：
+得分: X
+理由: ...</textarea>
+    </div>
+    <div class="form-section">
+      <div class="form-section-title">评分变量</div>
+      <div class="form-row">
+        <div class="form-label">query</div>
+        <input class="form-input" placeholder="评估器输入变量名"/>
+      </div>
+      <div class="form-row">
+        <div class="form-label">messages</div>
+        <input class="form-input" placeholder="评估器输入变量名"/>
+      </div>
+    </div>
+    <div class="form-section">
+      <div class="form-section-title">输出与评分</div>
+      <div class="form-row">
+        <div class="form-label">最低分</div>
+        <input class="form-input" value="0" style="width:80px;"/>
+      </div>
+      <div class="form-row">
+        <div class="form-label">最高分</div>
+        <input class="form-input" value="3" style="width:80px;"/>
+      </div>
+    </div>
+  </div>
+  <div class="drawer-footer">
+    <button class="btn-secondary" onclick="closeDrawer('evaluator-drawer')">取消</button>
+    <button class="btn-primary">保存</button>
+  </div>
+</div>
+
+<!-- ═══════════════ DRAWER: 手动触发实验 ═══════════════ -->
+<div class="drawer-overlay" id="trigger-drawer-overlay" onclick="closeDrawer('trigger-drawer')"></div>
+<div class="drawer" id="trigger-drawer" style="width:480px;">
+  <div class="drawer-header">
+    <div>
+      <div class="drawer-title">手动触发评估实验</div>
+      <div class="drawer-subtitle">选择数据集和评估器，立即运行一次实验</div>
+    </div>
+    <button class="drawer-close" onclick="closeDrawer('trigger-drawer')">✕</button>
+  </div>
+  <div class="drawer-body">
+    <div class="form-row">
+      <div class="form-label">实验名称</div>
+      <input class="form-input" placeholder="自动生成，或自定义命名"/>
+    </div>
+    <div class="form-row">
+      <div class="form-label">数据集</div>
+      <select class="form-select">
+        <option>Sug 粗筛数据集 · 2026-05-12（549条）</option>
+        <option>Sug 粗筛数据集 · 2026-05-11（617条）</option>
+        <option>dots_shopping_badcase（4条）</option>
+      </select>
+    </div>
+    <div class="form-row">
+      <div class="form-label">评估器</div>
+      <select class="form-select">
+        <option>sug 粗筛</option>
+        <option>相关性</option>
+        <option>正确性</option>
+        <option>幻觉现象</option>
+      </select>
+    </div>
+    <div class="notice" style="margin-top:16px;">
+      <span class="notice-icon">⚡</span>
+      <div class="notice-text">手动触发将立即占用评估器 LLM 配额，预计消耗 <strong>~390K token</strong>（549条 × 7,126 token）。</div>
+    </div>
+  </div>
+  <div class="drawer-footer">
+    <button class="btn-secondary" onclick="closeDrawer('trigger-drawer')">取消</button>
+    <button class="btn-primary">立即运行</button>
+  </div>
+</div>
+
+<script>
+  // Tab switching
+  function switchTab(tab) {
+    document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+    document.querySelectorAll('.sidebar-item').forEach(i => i.classList.remove('active'));
+    document.getElementById('panel-' + tab).classList.add('active');
+    event.currentTarget.classList.add('active');
+  }
+
+  // Drawer open/close
+  function openDrawer(id) {
+    document.getElementById(id + '-overlay').classList.add('open');
+    setTimeout(() => document.getElementById(id).classList.add('open'), 10);
+  }
+  function closeDrawer(id) {
+    document.getElementById(id).classList.remove('open');
+    document.getElementById(id + '-overlay').classList.remove('open');
+  }
+
+  // Keyboard ESC to close drawers
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Escape') {
+      document.querySelectorAll('.drawer.open').forEach(d => {
+        d.classList.remove('open');
+        document.getElementById(d.id + '-overlay').classList.remove('open');
+      });
+    }
+  });
+</script>
+</body>
+</html>

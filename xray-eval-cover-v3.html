@@ -1,0 +1,342 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<style>
+*, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+html, body {
+  width: 1200px; height: 1600px;
+  overflow: hidden;
+  font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Noto Sans SC", "Helvetica Neue", Arial, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  background: #fff;
+}
+
+/* ══ TOP gradient zone (900px) ═══════════════════════ */
+.top {
+  width: 1200px; height: 780px;
+  background: linear-gradient(150deg, #0e40b0 0%, #1677FF 28%, #5618c8 62%, #380a80 100%);
+  position: relative; overflow: hidden;
+  display: flex; align-items: center;
+  padding: 60px 72px;
+  gap: 56px;
+}
+
+/* background texture */
+.top::before {
+  content: '';
+  position: absolute; inset: 0; z-index: 0;
+  background:
+    radial-gradient(ellipse 55% 50% at 12% 20%, rgba(255,255,255,0.10) 0%, transparent 55%),
+    radial-gradient(ellipse 40% 40% at 88% 75%, rgba(255,255,255,0.07) 0%, transparent 50%),
+    radial-gradient(ellipse 80% 25% at 50% 105%, rgba(0,0,0,0.20) 0%, transparent 60%);
+}
+.top::after {
+  content: '';
+  position: absolute; inset: 0; z-index: 0;
+  background-image:
+    linear-gradient(rgba(255,255,255,0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255,255,255,0.03) 1px, transparent 1px);
+  background-size: 72px 72px;
+}
+
+/* LEFT text column */
+.left {
+  position: relative; z-index: 2;
+  flex: 0 0 500px;
+  display: flex; flex-direction: column;
+}
+
+.badge {
+  display: inline-flex; align-items: center; gap: 8px;
+  background: rgba(255,255,255,0.13); border: 1px solid rgba(255,255,255,0.28);
+  border-radius: 24px; padding: 7px 18px;
+  font-size: 17px; color: rgba(255,255,255,0.90);
+  margin-bottom: 38px; align-self: flex-start;
+}
+.badge-dot { width: 8px; height: 8px; border-radius: 50%; background: #52C41A; box-shadow: 0 0 8px #52C41A; flex-shrink: 0; }
+
+.product-label {
+  font-size: 16px; font-weight: 600;
+  color: rgba(255,255,255,0.50); letter-spacing: 3.5px; text-transform: uppercase;
+  margin-bottom: 18px;
+}
+
+.headline {
+  font-size: 80px; font-weight: 800;
+  color: #fff; line-height: 1.1; letter-spacing: -2px;
+  margin-bottom: 26px;
+}
+.headline .hl { color: #a8c8ff; display: block; }
+
+.tagline {
+  font-size: 20px; color: rgba(255,255,255,0.75);
+  line-height: 1.8; margin-bottom: 40px;
+}
+
+.chips { display: flex; flex-direction: column; gap: 11px; }
+.chip {
+  display: flex; align-items: center; gap: 10px;
+  font-size: 17px; color: rgba(255,255,255,0.85);
+}
+.chip-dot { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; }
+.chip-dot.b { background: #74b9ff; }
+.chip-dot.v { background: #c39af4; }
+.chip-dot.g { background: #74d7a0; }
+.chip-dot.a { background: #fdb97d; }
+
+/* RIGHT: product mockup */
+.right {
+  position: relative; z-index: 2;
+  flex: 1;
+  display: flex; align-items: center; justify-content: center;
+}
+
+.mockup-frame {
+  width: 560px;
+  background: #fff;
+  border-radius: 14px;
+  overflow: hidden;
+  box-shadow: 0 32px 80px rgba(0,0,0,0.40), 0 0 0 1px rgba(255,255,255,0.15);
+}
+
+/* mock browser bar */
+.mock-bar {
+  display: flex; align-items: center; gap: 6px;
+  padding: 12px 16px;
+  background: #F5F6FA; border-bottom: 1px solid #E8EDF5;
+}
+.mock-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+.mock-dot.r { background: #FF5F56; }
+.mock-dot.y { background: #FFBD2E; }
+.mock-dot.g { background: #27C93F; }
+.mock-bar-title {
+  flex: 1; text-align: center;
+  font-size: 11px; color: #8B95AB; font-weight: 500;
+  font-family: "SF Mono", monospace;
+}
+
+/* mock body */
+.mock-body { padding: 18px 20px; background: #fff; }
+
+/* breadcrumb */
+.bc { font-size: 11px; color: #8B95AB; margin-bottom: 14px; }
+.bc strong { color: #1A1A2E; font-weight: 600; }
+
+/* Stats row */
+.stats-row { display: flex; gap: 0; border: 1px solid #E8EDF5; border-radius: 10px; overflow: hidden; margin-bottom: 16px; }
+.stat-cell { flex: 1; padding: 12px 14px; border-right: 1px solid #E8EDF5; }
+.stat-cell:last-child { border-right: none; }
+.stat-lbl { font-size: 10px; color: #8B95AB; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 5px; }
+.stat-val { font-size: 22px; font-weight: 800; color: #1A1A2E; line-height: 1; }
+.stat-val .unit { font-size: 12px; color: #8B95AB; font-weight: 500; margin-left: 2px; }
+.stat-trend { font-size: 11px; color: #52C41A; font-weight: 700; margin-left: 4px; }
+
+/* Section title */
+.sec-title {
+  font-size: 11px; font-weight: 700; color: #1A1A2E;
+  margin-bottom: 10px; display: flex; align-items: center; gap: 6px;
+}
+.sec-title::before { content: ''; width: 3px; height: 12px; background: linear-gradient(#1677FF, #722ED1); border-radius: 2px; }
+
+/* Bar chart */
+.chart { display: flex; align-items: flex-end; gap: 10px; height: 90px; padding: 16px 4px 4px; border-bottom: 1px solid #E8EDF5; margin-bottom: 6px; }
+.bc-col { flex: 1; display: flex; flex-direction: column; align-items: center; }
+.bc-bar { width: 70%; max-width: 30px; border-radius: 3px 3px 0 0; min-height: 2px; position: relative; }
+.bc-num { position: absolute; top: -16px; left: 50%; transform: translateX(-50%); font-size: 9px; font-weight: 700; color: #1A1A2E; white-space: nowrap; }
+.chart-axis { display: flex; gap: 10px; padding: 4px 4px 0; margin-bottom: 14px; }
+.ax-lbl { flex: 1; text-align: center; font-size: 9px; color: #8B95AB; }
+
+/* Distribution bars */
+.dist { display: flex; align-items: flex-end; gap: 18px; height: 90px; padding: 16px 10px 4px; border-bottom: 1px solid #E8EDF5; margin-bottom: 6px; }
+.db-col { flex: 1; display: flex; flex-direction: column; align-items: center; }
+.db-bar { width: 100%; max-width: 50px; border-radius: 4px 4px 0 0; min-height: 2px; position: relative; }
+.db-pct { position: absolute; top: -20px; left: 50%; transform: translateX(-50%); font-size: 9px; font-weight: 700; color: #1A1A2E; white-space: nowrap; text-align: center; }
+.db-cnt { display: block; font-size: 8px; color: #8B95AB; font-weight: 400; margin-top: 1px; }
+.dist-axis { display: flex; gap: 18px; padding: 4px 10px 0; }
+.da-lbl { flex: 1; text-align: center; font-size: 9px; color: #8B95AB; }
+
+/* Table */
+.mock-table { width: 100%; border-collapse: collapse; margin-top: 14px; }
+.mock-table th { text-align: left; padding: 7px 8px; font-size: 9px; color: #8B95AB; font-weight: 700; border-bottom: 1px solid #E8EDF5; background: #FAFBFD; letter-spacing: 0.3px; text-transform: uppercase; }
+.mock-table td { padding: 8px 8px; font-size: 10px; color: #1A1A2E; border-bottom: 1px solid #E8EDF5; }
+.mock-table td.mono { font-family: "SF Mono",monospace; font-size: 9.5px; color: #5A6782; }
+.tag { display: inline-block; font-size: 9px; font-weight: 700; padding: 2px 6px; border-radius: 3px; }
+.tag.pass { background: #F6FFED; color: #389E0D; border: 1px solid #b7eb8f; }
+.tag.llm  { background: #EBF4FF; color: #1677FF; }
+.tag.code { background: #F5EEFF; color: #722ED1; }
+
+</style>
+</head>
+<body>
+
+<!-- ═══ TOP ZONE ═══ -->
+<div class="top">
+
+  <!-- LEFT: text -->
+  <div class="left">
+    <div class="badge">
+      <div class="badge-dot"></div>
+      X-RAY · AI 应用评估 · 上线
+    </div>
+
+    <div class="product-label">XPILOT · X-RAY</div>
+
+    <div class="headline">
+      你的 Agent<br>
+      <span class="hl">表现如何？</span>
+    </div>
+
+    <div class="tagline">
+      Agent 的输出是模型、工具、知识库<br>
+      和多轮交互的综合结果<br>
+      X-RAY 提供一套完整的评估体系
+    </div>
+
+    <div class="chips">
+      <div class="chip"><div class="chip-dot b"></div>建立正确的评估认知框架</div>
+      <div class="chip"><div class="chip-dot v"></div>四阶段评估地图 · 数据飞轮</div>
+      <div class="chip"><div class="chip-dot g"></div>代码 / LLM / 人工三档评估器</div>
+      <div class="chip"><div class="chip-dot a"></div>A / B 两条起点，立即开始</div>
+    </div>
+  </div>
+
+  <!-- RIGHT: product UI mockup -->
+  <div class="right">
+    <div class="mockup-frame">
+      <!-- Browser chrome -->
+      <div class="mock-bar">
+        <div class="mock-dot r"></div>
+        <div class="mock-dot y"></div>
+        <div class="mock-dot g"></div>
+        <div class="mock-bar-title">xray.devops.xiaohongshu.com · 评估实验</div>
+      </div>
+
+      <!-- Content -->
+      <div class="mock-body">
+        <!-- Breadcrumb -->
+        <div class="bc">自动评估 › <strong>意图召回</strong> › 意图召回 - 自动触发 2026-05-12</div>
+
+        <!-- Stats -->
+        <div class="stats-row">
+          <div class="stat-cell">
+            <div class="stat-lbl">已评样本</div>
+            <div class="stat-val">9,945</div>
+          </div>
+          <div class="stat-cell">
+            <div class="stat-lbl">耗时</div>
+            <div class="stat-val">99.4<span class="unit">s</span></div>
+          </div>
+          <div class="stat-cell">
+            <div class="stat-lbl">总 Token</div>
+            <div class="stat-val">6,098</div>
+          </div>
+          <div class="stat-cell">
+            <div class="stat-lbl">已回流</div>
+            <div class="stat-val">617<span class="stat-trend">↑90</span></div>
+          </div>
+        </div>
+
+        <!-- Chart -->
+        <div class="sec-title">评估器聚合得分</div>
+        <div class="chart">
+          <div class="bc-col"><div class="bc-bar" style="height:2px;background:#52C41A;"><div class="bc-num">0</div></div></div>
+          <div class="bc-col"><div class="bc-bar" style="height:10%;background:#5CC8FF;"><div class="bc-num">0.31</div></div></div>
+          <div class="bc-col"><div class="bc-bar" style="height:2px;background:#1677FF;"><div class="bc-num">0</div></div></div>
+          <div class="bc-col"><div class="bc-bar" style="height:30%;background:#722ED1;"><div class="bc-num">1</div></div></div>
+          <div class="bc-col"><div class="bc-bar" style="height:90%;background:#FA8C16;"><div class="bc-num">3</div></div></div>
+          <div class="bc-col"><div class="bc-bar" style="height:90%;background:#FAAD14;"><div class="bc-num">3</div></div></div>
+        </div>
+        <div class="chart-axis">
+          <div class="ax-lbl">Min</div><div class="ax-lbl">Avg</div><div class="ax-lbl">P50</div>
+          <div class="ax-lbl">P90</div><div class="ax-lbl">P99</div><div class="ax-lbl">Max</div>
+        </div>
+
+        <!-- Distribution -->
+        <div class="sec-title">得分明细 · 数据项分布</div>
+        <div class="dist">
+          <div class="db-col"><div class="db-bar" style="height:90%;background:#52C41A;"><div class="db-pct">76.3%<span class="db-cnt">7,592</span></div></div></div>
+          <div class="db-col"><div class="db-bar" style="height:22%;background:#5CC8FF;"><div class="db-pct">17.5%<span class="db-cnt">1,736</span></div></div></div>
+          <div class="db-col"><div class="db-bar" style="height:7%;background:#4D7BFF;"><div class="db-pct">4.9%<span class="db-cnt">487</span></div></div></div>
+          <div class="db-col"><div class="db-bar" style="height:3%;background:#722ED1;"><div class="db-pct">1.3%<span class="db-cnt">130</span></div></div></div>
+        </div>
+        <div class="dist-axis">
+          <div class="da-lbl">score 0</div><div class="da-lbl">1</div>
+          <div class="da-lbl">2</div><div class="da-lbl">3 · 回流阈值</div>
+        </div>
+
+        <!-- Mini table -->
+        <table class="mock-table">
+          <thead>
+            <tr><th>样本 ID</th><th>输入摘要</th><th>得分</th><th>评估器</th><th>状态</th></tr>
+          </thead>
+          <tbody>
+            <tr><td class="mono">ev_001f2a</td><td style="color:#5A6782;font-size:10px;">用户询问商品退货流程...</td><td style="font-weight:700;color:#1677FF;">3</td><td><span class="tag llm">LLM</span></td><td><span class="tag pass">已回流</span></td></tr>
+            <tr><td class="mono">ev_007b9c</td><td style="color:#5A6782;font-size:10px;">如何修改收货地址？</td><td style="font-weight:700;color:#52C41A;">3</td><td><span class="tag code">代码</span></td><td><span class="tag pass">已回流</span></td></tr>
+            <tr><td class="mono">ev_012d4e</td><td style="color:#5A6782;font-size:10px;">账号登录问题反馈...</td><td style="font-weight:700;color:#8B95AB;">1</td><td><span class="tag llm">LLM</span></td><td>-</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ BOTTOM white zone (700px) ═══ -->
+<div style="width:1200px;height:820px;background:#fff;position:relative;display:flex;flex-direction:column;padding:56px 88px 48px;">
+  <!-- Top accent bar -->
+  <div style="position:absolute;top:0;left:0;right:0;height:5px;background:linear-gradient(90deg,#1677FF,#722ED1);"></div>
+
+  <!-- Section label -->
+  <div style="font-size:14px;font-weight:700;color:#1677FF;letter-spacing:2.5px;text-transform:uppercase;margin-bottom:16px;">本文要点</div>
+
+  <!-- Title -->
+  <div style="font-size:42px;font-weight:800;color:#0d1b35;line-height:1.25;letter-spacing:-0.5px;margin-bottom:18px;">读完这篇，你能做到的四件事</div>
+
+  <!-- Desc -->
+  <div style="font-size:19px;color:#4a5568;line-height:1.8;margin-bottom:32px;">说清楚 AI 评估到底在评什么、拿到一套适合 Agent 的指标体系、在 X-RAY 完成第一次评估任务、看懂报告并驱动下一轮迭代</div>
+
+
+  <!-- Checklist -->
+  <div style="display:flex;flex-direction:column;gap:10px;margin-bottom:32px;">
+    <div style="display:flex;align-items:center;gap:12px;font-size:18px;color:#2d3748;"><div style="width:9px;height:9px;border-radius:50%;background:#1677FF;flex-shrink:0;"></div>理解评估 ≠ 测试，建立正确的评估认知框架</div>
+    <div style="display:flex;align-items:center;gap:12px;font-size:18px;color:#2d3748;"><div style="width:9px;height:9px;border-radius:50%;background:#722ED1;flex-shrink:0;"></div>选择适合你 Agent 的评估指标：忠实度、准确率、完整性</div>
+    <div style="display:flex;align-items:center;gap:12px;font-size:18px;color:#2d3748;"><div style="width:9px;height:9px;border-radius:50%;background:#0891b2;flex-shrink:0;"></div>配置评估任务，使用代码 / LLM / 人工三档评估器</div>
+    <div style="display:flex;align-items:center;gap:12px;font-size:18px;color:#2d3748;"><div style="width:9px;height:9px;border-radius:50%;background:#d97706;flex-shrink:0;"></div>解读评估报告，建立数据飞轮驱动持续改进</div>
+  </div>
+
+  <!-- 4 pillars -->
+  <div style="display:flex;gap:0;border-top:1px solid #e8edf5;padding-top:28px;margin-bottom:36px;">
+    <div style="flex:1;padding-right:28px;border-right:1px solid #e8edf5;margin-right:28px;">
+      <div style="font-size:32px;font-weight:800;color:#1677FF;margin-bottom:6px;">01</div>
+      <div style="font-size:17px;font-weight:700;color:#1a1a2e;margin-bottom:4px;">建立认知</div>
+      <div style="font-size:14px;color:#8b95ab;line-height:1.5;">误解与正确理解<br>评估 vs 测试的本质</div>
+    </div>
+    <div style="flex:1;padding-right:28px;border-right:1px solid #e8edf5;margin-right:28px;">
+      <div style="font-size:32px;font-weight:800;color:#722ED1;margin-bottom:6px;">02</div>
+      <div style="font-size:17px;font-weight:700;color:#1a1a2e;margin-bottom:4px;">评估地图</div>
+      <div style="font-size:14px;color:#8b95ab;line-height:1.5;">四阶段完整框架<br>数据飞轮持续积累</div>
+    </div>
+    <div style="flex:1;padding-right:28px;border-right:1px solid #e8edf5;margin-right:28px;">
+      <div style="font-size:32px;font-weight:800;color:#0891b2;margin-bottom:6px;">03</div>
+      <div style="font-size:17px;font-weight:700;color:#1a1a2e;margin-bottom:4px;">配置机制</div>
+      <div style="font-size:14px;color:#8b95ab;line-height:1.5;">评估器 · 任务 · 结果<br>代码 / LLM / 人工三档</div>
+    </div>
+    <div style="flex:1;">
+      <div style="font-size:32px;font-weight:800;color:#d97706;margin-bottom:6px;">04</div>
+      <div style="font-size:17px;font-weight:700;color:#1a1a2e;margin-bottom:4px;">开始行动</div>
+      <div style="font-size:14px;color:#8b95ab;line-height:1.5;">A / B 两条起点<br>从第一次评估开始</div>
+    </div>
+  </div>
+
+  <!-- Footer -->
+  <div style="display:flex;align-items:center;justify-content:space-between;border-top:1px solid #e8edf5;padding-top:20px;margin-top:auto;">
+    <div style="display:flex;align-items:center;gap:10px;">
+      <div style="width:34px;height:34px;border-radius:8px;background:linear-gradient(135deg,#1677FF,#722ED1);display:flex;align-items:center;justify-content:center;color:#fff;font-size:14px;font-weight:800;">XR</div>
+      <div style="font-size:17px;font-weight:600;color:#1a1a2e;">X-RAY <span style="color:#8b95ab;font-weight:400;">· 小红书技术风险</span></div>
+    </div>
+    <div style="font-size:14px;color:#8b95ab;font-family:'SF Mono','Menlo',monospace;">xray.devops.xiaohongshu.com</div>
+  </div>
+</div>
+
+</body>
+</html>

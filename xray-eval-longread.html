@@ -1,0 +1,2153 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI 应用评估 · X-RAY</title>
+<style>
+:root {
+  --primary: #1677FF;
+  --primary-dark: #0958D9;
+  --purple: #722ED1;
+  --green: #52C41A;
+  --orange: #FA8C16;
+  --red: #F5222D;
+  --text: #1A1A2E;
+  --text-secondary: #5A6782;
+  --text-tertiary: #8B95AB;
+  --bg: #F8F9FC;
+  --card: #FFFFFF;
+  --border: #E8EDF5;
+  --border-strong: #D6DCE8;
+  --gradient: linear-gradient(135deg, #1677FF 0%, #722ED1 100%);
+  --gradient-light: linear-gradient(135deg, #EBF4FF 0%, #F5EEFF 100%);
+  --dark: linear-gradient(135deg, #0D1B35 0%, #1a0a32 100%);
+}
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Helvetica Neue", Arial, sans-serif;
+  background: var(--bg); color: var(--text); line-height: 1.7;
+  -webkit-font-smoothing: antialiased;
+}
+code, .mono { font-family: "SF Mono", "Monaco", "Menlo", "Consolas", monospace; }
+
+/* ════════ HERO ════════ */
+.hero {
+  background: var(--gradient);
+  padding: 56px 24px 56px;
+  text-align: center; position: relative; overflow: hidden;
+}
+.hero::before {
+  content: ''; position: absolute; inset: 0;
+  background:
+    radial-gradient(circle at 20% 20%, rgba(255,255,255,0.08), transparent 40%),
+    radial-gradient(circle at 80% 60%, rgba(255,255,255,0.05), transparent 40%);
+}
+.hero-inner { position: relative; max-width: 880px; margin: 0 auto; }
+.hero-badge {
+  display: inline-flex; align-items: center; gap: 6px;
+  background: rgba(255,255,255,0.15); border: 1px solid rgba(255,255,255,0.25);
+  border-radius: 20px; padding: 4px 12px;
+  font-size: 11.5px; color: #fff; letter-spacing: 0.5px; margin-bottom: 16px;
+}
+.hero-badge span { width: 6px; height: 6px; border-radius: 50%; background: #52C41A; box-shadow: 0 0 8px #52C41A; }
+.hero h1 {
+  font-size: clamp(24px, 4vw, 36px); font-weight: 700; color: #fff;
+  line-height: 1.25; margin-bottom: 14px; letter-spacing: -0.4px;
+}
+.hero .subtitle {
+  font-size: 14px; color: rgba(255,255,255,0.82);
+  max-width: 600px; margin: 0 auto 24px; line-height: 1.75;
+}
+.hero-scenes {
+  display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px;
+  max-width: 880px; margin: 0 auto 22px;
+}
+@media(max-width:720px){ .hero-scenes { grid-template-columns: 1fr; gap: 10px; } }
+.hero-scene {
+  background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.16);
+  border-radius: 12px; padding: 12px 14px;
+  backdrop-filter: blur(6px);
+  text-align: left;
+  display: flex; flex-direction: column; gap: 8px;
+}
+.hero-scene-art {
+  height: 56px; display: flex; align-items: center; justify-content: center;
+}
+.hero-scene-art svg { width: 100%; height: 100%; max-width: 240px; }
+.hero-scene-text {
+  font-size: 12px; color: rgba(255,255,255,0.88); line-height: 1.55;
+}
+.hero-scene-text strong {
+  display: block; font-size: 13px; color: #fff; font-weight: 700;
+  margin-bottom: 3px; letter-spacing: 0.2px;
+}
+
+/* SVG node + flow primitives */
+.hs-node {
+  fill: rgba(255,255,255,0.14); stroke: rgba(255,255,255,0.55); stroke-width: 1.3;
+}
+.hs-node-fail { fill: rgba(244,63,94,0.35); stroke: #fda4af; }
+.hs-node-good { fill: rgba(74,222,128,0.32); stroke: #86efac; }
+.hs-line {
+  fill: none; stroke: rgba(255,255,255,0.45); stroke-width: 1.4;
+  stroke-dasharray: 0;
+}
+.hs-line-dotted {
+  fill: none; stroke: rgba(255,255,255,0.55); stroke-width: 1.3;
+  stroke-dasharray: 3 3;
+}
+.hs-text {
+  fill: #fff; font-size: 9.5px; font-weight: 600;
+  font-family: -apple-system, "SF Pro Text", sans-serif;
+}
+.hs-text-tert {
+  fill: rgba(255,255,255,0.7); font-size: 8.5px; font-weight: 500;
+  font-family: -apple-system, "SF Pro Text", sans-serif;
+}
+.hs-q {
+  fill: rgba(255,255,255,0.14); stroke: rgba(255,255,255,0.45); stroke-width: 1;
+}
+.hs-q-active { fill: rgba(255,255,255,0.32); stroke: rgba(255,255,255,0.85); }
+.hero-cta-row { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; }
+.hero-cta {
+  display: inline-flex; align-items: center; gap: 6px;
+  background: rgba(255,255,255,0.12); color: #fff; border: 1px solid rgba(255,255,255,0.28);
+  padding: 7px 16px; border-radius: 18px;
+  font-size: 12.5px; font-weight: 600; text-decoration: none;
+  transition: background 0.15s;
+}
+.hero-cta:hover { background: rgba(255,255,255,0.22); }
+.hero-cta.primary { background: #fff; color: var(--primary); border-color: #fff; }
+.hero-cta.primary:hover { background: rgba(255,255,255,0.92); }
+
+/* ════════ Layout ════════ */
+.section { max-width: 1080px; margin: 0 auto; padding: 48px 24px; }
+.section-narrow { max-width: 920px; }
+.white-bg { background: #fff; border-top: 1px solid var(--border); }
+.dark-bg { background: var(--dark); color: #fff; }
+.section-label {
+  font-size: 10.5px; font-weight: 700; letter-spacing: 2px;
+  color: var(--primary); text-transform: uppercase; margin-bottom: 8px;
+}
+.dark-bg .section-label { color: rgba(255,255,255,0.55); }
+.section-title { font-size: clamp(20px, 2.8vw, 26px); font-weight: 700; line-height: 1.3; margin-bottom: 10px; letter-spacing: -0.3px; }
+.dark-bg .section-title { color: #fff; }
+.section-desc { font-size: 13.5px; color: var(--text-secondary); max-width: 720px; margin-bottom: 28px; line-height: 1.75; }
+.dark-bg .section-desc { color: rgba(255,255,255,0.65); }
+
+/* ════════ 误解卡片 ════════ */
+/* layer1 双栏：认知 + 问题定义 */
+.layer1-2col {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 28px; align-items: stretch;
+}
+.layer1-2col > div { display: flex; flex-direction: column; }
+.layer1-2col .cost-table,
+.layer1-2col .cogn-table { flex: 1; }
+.cogn-table tbody td:first-child { color: var(--primary); }
+.cogn-table thead th:first-child { color: var(--primary); }
+@media(max-width:900px){ .layer1-2col { grid-template-columns: 1fr; gap: 24px; } }
+.layer1-2col .l1-block-label {
+  font-size: 10.5px; font-weight: 700; letter-spacing: 2px;
+  color: var(--primary); text-transform: uppercase; margin-bottom: 6px;
+}
+.layer1-2col .l1-block-title {
+  font-size: 17px; font-weight: 700; line-height: 1.35; margin-bottom: 8px; letter-spacing: -0.2px;
+}
+.layer1-2col .l1-block-desc {
+  font-size: 12.5px; color: var(--text-secondary); line-height: 1.7; margin-bottom: 16px;
+}
+.miscon-grid { display: flex; flex-direction: column; gap: 10px; }
+.miscon-item {
+  display: block;
+  border-radius: 12px; overflow: hidden; border: 1.5px solid var(--border);
+  background: #fff;
+}
+.miscon-wrong {
+  background: #FFF1F0; padding: 11px 14px;
+  border-bottom: 1.5px solid #ffccc7;
+}
+.miscon-tag-wrong { font-size: 9.5px; font-weight: 700; letter-spacing: 1px; color: #cf1322; margin-bottom: 3px; }
+.miscon-wrong p { font-size: 12.5px; color: #820014; font-weight: 600; line-height: 1.45; }
+.miscon-right { padding: 11px 14px; }
+.miscon-tag-right { font-size: 9.5px; font-weight: 700; letter-spacing: 1px; color: var(--primary); margin-bottom: 3px; }
+.miscon-right p { font-size: 12px; color: var(--text-secondary); line-height: 1.65; }
+.miscon-right strong { color: var(--text); font-weight: 600; }
+
+/* ════════ 代价表 ════════ */
+.cost-table { width: 100%; border-collapse: collapse; border-radius: 12px; overflow: hidden; border: 1px solid var(--border); background: #fff; }
+.cost-table thead th { background: var(--gradient-light); padding: 10px 14px; text-align: left; font-size: 11.5px; font-weight: 700; color: var(--text-secondary); letter-spacing: 0.3px; }
+.cost-table thead th:first-child { color: var(--text); }
+.cost-table tbody td { padding: 11px 14px; font-size: 12px; border-top: 1px solid var(--border); vertical-align: top; line-height: 1.65; }
+.cost-table tbody td:first-child { font-weight: 600; color: var(--text); width: 38%; font-size: 12.5px; }
+.cost-table tbody td:last-child { color: var(--text-secondary); }
+.cost-table tbody tr.highlight td { background: #FFF7E6; }
+.cost-table tbody tr.highlight td:first-child { color: var(--orange); }
+.cost-table tbody tr.highlight td:last-child { color: #7C5900; font-weight: 500; }
+.cost-table tbody tr.highlight td strong { color: #874D00; }
+
+/* ════════ 生命周期 — 2 栏：左 Tabs，右飞轮 ════════ */
+.lifecycle-layout {
+  display: grid; grid-template-columns: 1.35fr 1fr;
+  gap: 28px; align-items: start;
+}
+@media(max-width:900px){ .lifecycle-layout { grid-template-columns: 1fr; gap: 24px; } }
+
+.lc-tabs {
+  display: flex; gap: 6px; border-bottom: 1px solid var(--border);
+  margin-bottom: 18px; overflow-x: auto;
+}
+.lc-tab {
+  padding: 11px 14px; font-size: 13px; font-weight: 600;
+  color: var(--text-secondary); cursor: pointer; white-space: nowrap;
+  border-bottom: 2px solid transparent; margin-bottom: -1px;
+  transition: all 0.2s; background: none; border-top: none; border-left: none; border-right: none;
+  font-family: inherit;
+  display: flex; align-items: center; gap: 7px;
+}
+.lc-tab .lc-tab-num {
+  font-size: 10px; font-weight: 700; letter-spacing: 0.5px;
+  background: var(--bg); color: var(--text-tertiary);
+  padding: 2px 6px; border-radius: 4px;
+}
+.lc-tab:hover { color: var(--primary); }
+.lc-tab.active { color: var(--primary); border-bottom-color: var(--primary); }
+.lc-tab.active .lc-tab-num { background: var(--gradient-light); color: var(--primary); }
+
+.lc-panels { position: relative; }
+.lc-panel { display: none; }
+.lc-panel.active { display: block; animation: fadeIn 0.25s ease; }
+@keyframes fadeIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: translateY(0); } }
+.lc-panel-card {
+  border: 1.5px solid var(--border); border-radius: 12px;
+  padding: 20px 22px; background: #fff;
+}
+.lc-panel-when {
+  font-size: 12px; color: var(--text-secondary); margin-bottom: 12px;
+}
+.lc-card {
+  border-radius: 16px; overflow: hidden; border: 1.5px solid var(--border); background: #fff;
+  display: flex; flex-direction: column;
+  transition: box-shadow 0.2s, transform 0.2s;
+}
+.lc-card:hover { box-shadow: 0 8px 28px rgba(22,119,255,0.08); transform: translateY(-2px); }
+.lc-head { padding: 20px 22px 14px; display: flex; align-items: flex-start; gap: 14px; }
+.lc-num {
+  flex-shrink: 0; width: 38px; height: 38px; border-radius: 10px;
+  background: var(--gradient); color: #fff; font-size: 14px; font-weight: 800;
+  display: flex; align-items: center; justify-content: center; margin-top: 1px;
+  letter-spacing: 0.5px;
+}
+.lc-head h3 { font-size: 16px; font-weight: 700; margin-bottom: 4px; }
+.lc-head .lc-when { font-size: 12px; color: var(--text-secondary); }
+.lc-body { padding: 0 22px 20px; flex: 1; display: flex; flex-direction: column; }
+.lc-situation {
+  background: #F8F9FC; border-radius: 10px; padding: 12px 15px; margin-bottom: 14px;
+  font-size: 13px; color: var(--text-secondary); line-height: 1.7;
+  border-left: 3px solid var(--primary);
+}
+.lc-situation strong { color: var(--text); display: block; font-size: 11px; letter-spacing: 1px; margin-bottom: 4px; text-transform: uppercase; }
+.lc-pathlabel { font-size: 11px; font-weight: 700; letter-spacing: 1px; color: var(--primary); margin-bottom: 8px; text-transform: uppercase; }
+.lc-flow { display: flex; flex-wrap: wrap; gap: 5px; margin-bottom: 14px; align-items: center; }
+.lc-step {
+  background: var(--gradient-light); border: 1px solid #c9dcff;
+  border-radius: 6px; padding: 4px 10px;
+  font-size: 12px; color: var(--primary); font-weight: 600; white-space: nowrap;
+}
+.lc-arrow { color: var(--text-tertiary); font-size: 11px; }
+.lc-grain {
+  margin-top: auto; padding: 12px 14px; background: #F5EEFF; border-radius: 8px;
+  font-size: 12px; color: var(--purple); line-height: 1.65;
+  border: 1px dashed #d3b8f5;
+}
+.lc-grain strong { color: var(--purple); font-weight: 700; }
+
+/* ════════ 链路示意图（lc-grain 内嵌）════════ */
+.lc-trace {
+  margin-top: 10px;
+  background: rgba(255,255,255,0.65); border-radius: 6px;
+  padding: 10px 10px 8px; border: 1px solid rgba(114,46,209,0.12);
+}
+.lc-trace-row {
+  display: flex; align-items: center; gap: 4px;
+  font-family: 'SF Mono', monospace; font-size: 9.5px;
+}
+.lc-trace-node {
+  flex: 1; display: flex; flex-direction: column; align-items: center; gap: 2px;
+  padding: 5px 4px; border-radius: 4px;
+  background: #fff; border: 1px solid #e8e3f0;
+  color: #b0a0c4; min-width: 0;
+}
+.lc-trace-node.io {
+  flex: 0.7;
+  background: #f5f1fa; border-color: #d3b8f5;
+}
+.lc-trace-node.span-mark {
+  background: #f5f1fa; border-color: #d3b8f5;
+}
+.lc-trace-node.hi {
+  background: var(--purple); color: #fff;
+  border-color: var(--purple);
+  box-shadow: 0 2px 6px rgba(114,46,209,0.25);
+}
+.lc-trace-node.hi .lc-trace-tag { color: rgba(255,255,255,0.7); }
+.lc-trace-node.hi .lc-trace-name { color: #fff; }
+.lc-trace-tag {
+  font-size: 8px; letter-spacing: 0.5px;
+  color: #a08bbb; font-weight: 600; text-transform: uppercase;
+  font-family: 'Inter', sans-serif;
+}
+.lc-trace-name { font-size: 9.5px; font-weight: 600; }
+.lc-trace-arrow {
+  color: #d3b8f5; font-size: 10px; flex-shrink: 0;
+}
+.lc-trace-bar {
+  margin-top: 4px;
+  height: 3px; border-radius: 2px;
+  background: linear-gradient(to right, transparent 0%, transparent 5%, #e8d8f5 5%, #e8d8f5 95%, transparent 95%, transparent);
+  position: relative;
+}
+.lc-trace-bar.full {
+  background: linear-gradient(to right, var(--purple), #9B59D3);
+}
+.lc-trace-cap {
+  display: flex; justify-content: space-between;
+  font-size: 8.5px; color: #a08bbb;
+  margin-top: 5px; font-family: 'Inter', sans-serif; letter-spacing: 0.3px;
+}
+.lc-trace-cap .lc-trace-cap-hi { color: var(--purple); font-weight: 700; }
+.lc-key {
+  margin-top: 12px; padding-top: 12px; border-top: 1px dashed var(--border);
+  font-size: 12.5px; color: var(--text-secondary); line-height: 1.7;
+}
+.lc-key strong { color: var(--text); font-weight: 600; }
+
+/* ════════ 飞轮（变小，与 Tabs 并列） ════════ */
+.flywheel-wrap {
+  background: var(--dark); border-radius: 16px;
+  padding: 24px 22px 22px; text-align: center;
+  position: relative; overflow: hidden;
+  position: sticky; top: 16px;
+}
+.flywheel-wrap::before {
+  content: ''; position: absolute; inset: 0;
+  background: radial-gradient(circle at 50% 0%, rgba(22,119,255,0.18), transparent 60%);
+}
+.flywheel-wrap > * { position: relative; }
+.flywheel-wrap h3 { font-size: 14px; font-weight: 700; color: #fff; margin-bottom: 6px; }
+.flywheel-wrap > p { font-size: 11.5px; color: rgba(255,255,255,0.6); margin-bottom: 14px; line-height: 1.65; }
+
+.flywheel-svg-wrap { display: flex; justify-content: center; }
+.flywheel-svg { max-width: 320px; width: 100%; height: auto; }
+.fw-rotate { transform-origin: 280px 220px; animation: fw-spin 40s linear infinite; }
+@keyframes fw-spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+
+.flywheel-note {
+  margin-top: 14px; padding: 11px 14px;
+  background: rgba(22,119,255,0.14); border: 1px solid rgba(22,119,255,0.3);
+  border-radius: 8px; font-size: 11.5px; color: rgba(255,255,255,0.85); line-height: 1.65; text-align: left;
+}
+.flywheel-note strong { color: #fff; }
+
+/* ════════ Mock 截图 ════════ */
+.mockup {
+  background: #fff; border-radius: 12px; overflow: hidden;
+  border: 1.5px solid var(--border-strong);
+  box-shadow: 0 8px 32px rgba(13,27,53,0.08), 0 1px 2px rgba(13,27,53,0.04);
+  margin-top: 18px;
+}
+.mock-bar {
+  background: #F4F6FA; padding: 10px 14px;
+  display: flex; align-items: center; gap: 8px;
+  border-bottom: 1px solid var(--border);
+}
+.mock-dot { width: 10px; height: 10px; border-radius: 50%; }
+.mock-dot.r { background: #FF5F57; }
+.mock-dot.y { background: #FEBC2E; }
+.mock-dot.g { background: #28C840; }
+.mock-bar .mb-title { font-size: 11px; color: var(--text-tertiary); margin-left: 12px; font-weight: 600; letter-spacing: 0.3px; }
+.mock-body { padding: 18px; }
+
+/* Mock 1 - Evaluator config */
+.mock-form-row { display: flex; align-items: center; gap: 12px; padding: 10px 0; border-bottom: 1px dashed var(--border); }
+.mock-form-row:last-child { border-bottom: none; }
+.mock-form-row .label { font-size: 11px; color: var(--text-tertiary); width: 90px; flex-shrink: 0; font-weight: 600; }
+.mock-form-row .value { font-size: 13px; color: var(--text); font-weight: 500; }
+.mock-input {
+  background: #F8F9FC; border: 1px solid var(--border); border-radius: 6px;
+  padding: 6px 10px; font-size: 12px; color: var(--text); flex: 1;
+}
+.mock-pill { display: inline-flex; align-items: center; gap: 4px; background: #EBF4FF; color: var(--primary); font-size: 11px; font-weight: 700; padding: 3px 9px; border-radius: 4px; }
+.mock-pill.purple { background: #F5EEFF; color: var(--purple); }
+.mock-pill.green { background: #F6FFED; color: #389E0D; }
+.mock-pill.orange { background: #FFF7E6; color: #874D00; }
+
+/* Mock 2 - Field mapping */
+.mock-mapping { display: grid; grid-template-columns: 1fr 24px 1fr; gap: 10px; align-items: center; padding: 8px 0; }
+.mock-source { background: #F5EEFF; border-radius: 6px; padding: 8px 12px; font-family: "SF Mono", monospace; font-size: 11.5px; color: var(--purple); border: 1px solid #d3b8f5; }
+.mock-mapping-arrow { text-align: center; color: var(--text-tertiary); font-size: 14px; }
+.mock-target { background: #EBF4FF; border-radius: 6px; padding: 8px 12px; font-family: "SF Mono", monospace; font-size: 11.5px; color: var(--primary); border: 1px solid #b3d4ff; }
+
+/* Mock 3 - Distribution chart */
+.mock-stats { display: flex; gap: 16px; margin-bottom: 16px; padding-bottom: 14px; border-bottom: 1px solid var(--border); }
+.mock-stat { flex: 1; }
+.mock-stat .stat-label { font-size: 10px; color: var(--text-tertiary); letter-spacing: 1px; margin-bottom: 4px; font-weight: 700; }
+.mock-stat .stat-value { font-size: 22px; font-weight: 700; color: var(--text); line-height: 1; }
+.mock-stat .stat-trend { font-size: 11px; color: var(--green); font-weight: 600; margin-left: 6px; }
+.mock-stat .stat-trend.down { color: var(--red); }
+.chart-bars { display: flex; align-items: flex-end; gap: 4px; height: 100px; padding: 0 4px; }
+.chart-bar { flex: 1; background: var(--gradient); border-radius: 3px 3px 0 0; min-height: 8px; position: relative; }
+.chart-bar.low { background: linear-gradient(135deg,#FA8C16,#F5222D); }
+.chart-axis { display: flex; justify-content: space-between; padding: 6px 4px 0; font-size: 10px; color: var(--text-tertiary); border-top: 1px solid var(--border); margin-top: 4px; }
+
+/* Mock 4 - Low-score detail */
+.mock-row {
+  display: grid; grid-template-columns: 56px 1fr 64px;
+  gap: 14px; padding: 12px 14px; border-radius: 8px;
+  margin-bottom: 8px; background: #FFF7E6; border: 1px solid #FFE58F;
+  align-items: flex-start;
+}
+.mock-row.normal { background: #fff; border-color: var(--border); }
+.mock-score { font-size: 18px; font-weight: 700; font-family: "SF Mono", monospace; color: var(--red); line-height: 1.3; }
+.mock-row.normal .mock-score { color: var(--green); }
+.mock-row .row-q { font-size: 12px; color: var(--text); font-weight: 600; margin-bottom: 4px; line-height: 1.5; }
+.mock-row .row-reason { font-size: 11.5px; color: var(--text-secondary); line-height: 1.6; }
+.mock-row .row-meta { font-size: 10px; color: var(--text-tertiary); text-align: right; }
+
+/* Mock — split layout (list + side panel) */
+.mock-breadcrumb { font-size: 11px; color: var(--text-tertiary); padding: 0 0 12px; }
+.mock-breadcrumb .bc-strong { color: var(--text); font-weight: 600; }
+.mock-tabs { display: flex; gap: 18px; padding: 0 0 12px; border-bottom: 1px solid var(--border); margin-bottom: 14px; }
+.mock-tab { font-size: 12px; color: var(--text-tertiary); padding-bottom: 7px; cursor: default; font-weight: 500; }
+.mock-tab.active { color: var(--primary); font-weight: 700; border-bottom: 2px solid var(--primary); margin-bottom: -1px; }
+.mock-split { display: grid; grid-template-columns: 1fr 0.95fr; gap: 0; border: 1px solid var(--border); border-radius: 8px; overflow: hidden; }
+.mock-split-left { padding: 12px 14px; border-right: 1px solid var(--border); background: #FAFBFD; }
+.mock-split-right { padding: 14px 16px; background: #fff; }
+.mock-evcards { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.mock-evcard { background: #fff; border: 1px solid var(--border); border-radius: 7px; padding: 9px 11px; }
+.mock-evcard.active { border-color: var(--primary); box-shadow: 0 0 0 1px var(--primary) inset; background: #F5F9FF; }
+.mock-evcard .ec-title { font-size: 12px; font-weight: 600; color: var(--text); margin-bottom: 3px; }
+.mock-evcard .ec-time { font-size: 9.5px; color: var(--text-tertiary); margin-bottom: 6px; }
+.mock-evcard .ec-tag { display: inline-block; font-size: 9.5px; font-weight: 700; padding: 1.5px 6px; border-radius: 3px; }
+.mock-evcard .ec-tag.llm { background: #EBF4FF; color: #1677FF; }
+.mock-evcard .ec-tag.http { background: #F5EEFF; color: #722ED1; }
+.mock-detail-row { display: flex; gap: 10px; padding: 7px 0; border-bottom: 1px dashed var(--border); align-items: flex-start; }
+.mock-detail-row:last-child { border-bottom: none; }
+.mock-detail-row .dl { font-size: 10.5px; color: var(--text-tertiary); width: 64px; flex-shrink: 0; font-weight: 600; padding-top: 2px; }
+.mock-detail-row .dv { font-size: 11.5px; color: var(--text); flex: 1; line-height: 1.5; }
+.mock-radio-row { display: flex; gap: 12px; }
+.mock-radio { display: inline-flex; align-items: center; gap: 4px; font-size: 11px; color: var(--text-secondary); }
+.mock-radio::before { content: ''; width: 11px; height: 11px; border-radius: 50%; border: 1.5px solid #c7ccd6; display: inline-block; }
+.mock-radio.checked { color: var(--primary); font-weight: 600; }
+.mock-radio.checked::before { border-color: var(--primary); background: radial-gradient(circle, var(--primary) 38%, transparent 42%); }
+.mock-prompt-box {
+  background: #FAFBFD; border: 1px solid var(--border); border-radius: 6px;
+  padding: 10px 12px; font-family: "SF Mono", monospace; font-size: 10.5px;
+  color: var(--text-secondary); line-height: 1.65;
+  max-height: 130px; overflow: hidden; position: relative;
+}
+.mock-prompt-box::after {
+  content: ''; position: absolute; left: 0; right: 0; bottom: 0; height: 28px;
+  background: linear-gradient(to bottom, transparent, #FAFBFD);
+}
+.mock-prompt-box .pkey { color: var(--primary); font-weight: 700; }
+.mock-prompt-box .ppurple { color: var(--purple); font-weight: 700; }
+
+/* Mock — stepper (4-step wizard) */
+.mock-stepper { display: flex; align-items: center; padding: 0 0 16px; border-bottom: 1px solid var(--border); margin-bottom: 16px; gap: 6px; }
+.mock-step-pill { display: flex; align-items: center; gap: 7px; flex-shrink: 0; }
+.mock-step-num {
+  width: 22px; height: 22px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 11px; font-weight: 700; font-family: "SF Mono", monospace;
+}
+.mock-step-num.done { background: var(--primary); color: #fff; }
+.mock-step-num.todo { background: #E5E8EE; color: var(--text-tertiary); }
+.mock-step-label { font-size: 11.5px; color: var(--text-secondary); font-weight: 600; }
+.mock-step-label.done { color: var(--text); }
+.mock-step-line { flex: 1; height: 2px; background: var(--border); border-radius: 1px; min-width: 12px; }
+.mock-step-line.done { background: var(--primary); }
+.mock-stepblock { margin-bottom: 16px; padding-bottom: 16px; border-bottom: 1px dashed var(--border); }
+.mock-stepblock:last-child { border-bottom: none; padding-bottom: 0; margin-bottom: 0; }
+.mock-stepblock-title {
+  font-size: 11px; font-weight: 700; color: var(--primary); margin-bottom: 10px;
+  display: flex; align-items: center; gap: 7px; letter-spacing: 0.3px;
+}
+.mock-stepblock-title .sbn {
+  width: 18px; height: 18px; border-radius: 4px; background: var(--gradient); color: #fff;
+  font-size: 10px; display: flex; align-items: center; justify-content: center; font-family: "SF Mono", monospace; font-weight: 700;
+}
+
+/* Mock — analysis charts (P-percentile, distribution) */
+.mock-section-title {
+  font-size: 11px; font-weight: 700; color: var(--text); margin-bottom: 10px;
+  display: flex; align-items: center; gap: 6px;
+}
+.mock-section-title::before {
+  content: ''; width: 3px; height: 12px; background: var(--gradient); border-radius: 2px;
+}
+.mock-bigchart {
+  display: flex; align-items: flex-end; gap: 12px; height: 110px;
+  padding: 18px 6px 4px; border-bottom: 1px solid var(--border);
+  position: relative;
+}
+.mock-bigchart .bc-col { flex: 1; display: flex; flex-direction: column; align-items: center; }
+.mock-bigchart .bc-bar { width: 70%; max-width: 38px; border-radius: 3px 3px 0 0; min-height: 1px; position: relative; }
+.mock-bigchart .bc-bar .bc-num { position: absolute; top: -18px; left: 50%; transform: translateX(-50%); font-size: 11px; font-weight: 700; color: var(--text); white-space: nowrap; }
+.mock-bigchart-axis { display: flex; gap: 12px; padding: 6px 6px 0; }
+.mock-bigchart-axis .bc-label { flex: 1; text-align: center; font-size: 10px; color: var(--text-tertiary); }
+.mock-bigchart .bc-bar.b-min { background: #52C41A; }
+.mock-bigchart .bc-bar.b-avg { background: #5CC8FF; }
+.mock-bigchart .bc-bar.b-p50 { background: #1677FF; }
+.mock-bigchart .bc-bar.b-p90 { background: #722ED1; }
+.mock-bigchart .bc-bar.b-p99 { background: #FA8C16; }
+.mock-bigchart .bc-bar.b-max { background: #FAAD14; }
+.chart-legend { display: flex; flex-wrap: wrap; gap: 12px; padding: 8px 0 0; font-size: 10px; color: var(--text-secondary); }
+.chart-legend .lg { display: inline-flex; align-items: center; gap: 4px; }
+.chart-legend .lg::before { content: ''; width: 8px; height: 8px; border-radius: 50%; }
+.chart-legend .lg.l-min::before { background: #52C41A; }
+.chart-legend .lg.l-avg::before { background: #5CC8FF; }
+.chart-legend .lg.l-p50::before { background: #1677FF; }
+.chart-legend .lg.l-p90::before { background: #722ED1; }
+.chart-legend .lg.l-p99::before { background: #FA8C16; }
+.chart-legend .lg.l-max::before { background: #FAAD14; }
+
+/* Mock — score distribution (with percentages) */
+.mock-distbar { display: flex; align-items: flex-end; gap: 24px; height: 110px; padding: 18px 16px 4px; border-bottom: 1px solid var(--border); }
+.mock-distbar .db-col { flex: 1; display: flex; flex-direction: column; align-items: center; }
+.mock-distbar .db-bar { width: 100%; max-width: 56px; border-radius: 4px 4px 0 0; min-height: 4px; position: relative; }
+.mock-distbar .db-bar .db-pct { position: absolute; top: -22px; left: 50%; transform: translateX(-50%); font-size: 10.5px; font-weight: 700; color: var(--text); white-space: nowrap; }
+.mock-distbar .db-bar .db-pct .db-cnt { font-size: 9px; color: var(--text-tertiary); display: block; font-weight: 500; margin-top: 1px; }
+.mock-distbar .db-bar.s0 { background: #52C41A; }
+.mock-distbar .db-bar.s1 { background: #5CC8FF; }
+.mock-distbar .db-bar.s2 { background: #4D7BFF; }
+.mock-distbar .db-bar.s3 { background: #722ED1; }
+.mock-distbar-axis { display: flex; gap: 24px; padding: 6px 16px 0; }
+.mock-distbar-axis .db-label { flex: 1; text-align: center; font-size: 10px; color: var(--text-tertiary); font-weight: 600; }
+
+/* Mock — dataset table */
+.mock-table { width: 100%; border-collapse: collapse; font-size: 11px; }
+.mock-table th { text-align: left; padding: 8px 10px; font-size: 10px; color: var(--text-tertiary); font-weight: 700; border-bottom: 1px solid var(--border); background: #FAFBFD; letter-spacing: 0.3px; }
+.mock-table td { padding: 9px 10px; border-bottom: 1px solid var(--border); font-size: 11px; vertical-align: top; }
+.mock-table .mt-mono { font-family: "SF Mono", monospace; font-size: 10.5px; color: var(--text-secondary); }
+.mock-table .mt-id { font-family: "SF Mono", monospace; font-size: 10.5px; color: var(--text); font-weight: 600; }
+.mock-table .mt-trunc { color: var(--text-secondary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 180px; display: block; }
+.mock-status-active { display: inline-block; font-size: 9.5px; font-weight: 700; padding: 2px 7px; border-radius: 3px; background: #F6FFED; color: #389E0D; border: 1px solid #b7eb8f; }
+.mock-table-foot { font-size: 10px; color: var(--text-tertiary); padding: 10px 10px 0; display: flex; justify-content: space-between; align-items: center; }
+
+/* ════════ 评估器对比 ════════ */
+.judger-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
+@media(max-width:680px){ .judger-grid { grid-template-columns: 1fr; } }
+.judger-card { border: 1.5px solid var(--border); border-radius: 14px; padding: 22px 24px; background: #fff; }
+.judger-card.recommend { border-color: #b3d4ff; box-shadow: 0 4px 20px rgba(22,119,255,0.06); }
+.judger-head { display: flex; align-items: center; gap: 8px; margin-bottom: 12px; flex-wrap: wrap; }
+.judger-tag { font-size: 12px; font-weight: 700; padding: 4px 11px; border-radius: 6px; }
+.judger-tag.llm { background: #EBF4FF; color: #1677FF; }
+.judger-tag.http { background: #F5EEFF; color: #722ED1; }
+.judger-rec { font-size: 11px; color: var(--green); background: #F6FFED; padding: 3px 9px; border-radius: 4px; font-weight: 700; border: 1px solid #b7eb8f; }
+.judger-desc { font-size: 13px; color: var(--text-secondary); line-height: 1.75; margin-bottom: 14px; }
+.pc-list { display: flex; flex-direction: column; gap: 8px; }
+.pc-item { font-size: 12.5px; color: var(--text-secondary); line-height: 1.65; display: flex; gap: 8px; align-items: flex-start; }
+.pc-tag { font-size: 10px; font-weight: 700; padding: 2px 7px; border-radius: 4px; flex-shrink: 0; margin-top: 2px; letter-spacing: 0.3px; }
+.pc-tag.good { background: #F6FFED; color: #389E0D; }
+.pc-tag.warn { background: #FFF7E6; color: #874D00; }
+.judger-note {
+  margin-top: 18px; padding: 13px 16px; background: var(--bg);
+  border-radius: 8px; border-left: 3px solid var(--text-tertiary);
+  font-size: 12.5px; color: var(--text-secondary); line-height: 1.7;
+}
+
+/* ════════ 评估维度 + Prompt ════════ */
+.dim-tags { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 24px; }
+.dim-tag {
+  background: var(--gradient-light); border: 1px solid #c9dcff;
+  border-radius: 6px; padding: 6px 14px;
+  font-size: 12.5px; color: var(--primary); font-weight: 600;
+}
+.dim-tag.purple { background: #F5EEFF; border-color: #d3b8f5; color: var(--purple); }
+
+.code-block {
+  background: #0D1B35; border-radius: 12px; padding: 20px 22px;
+  font-family: "SF Mono", "Monaco", "Menlo", "Consolas", monospace;
+  font-size: 12.5px; line-height: 1.75; overflow-x: auto;
+  border: 1px solid #1a3a5c;
+}
+.code-block .c-comment { color: #8B95AB; }
+.code-block .c-key { color: #1677FF; font-weight: 600; }
+.code-block .c-str { color: #95DE64; }
+.code-block .c-var { color: #FFC53D; font-weight: 600; }
+.code-block .c-num { color: #FA8C16; }
+.code-block .c-text { color: #E8EDF5; }
+.code-caption { font-size: 11px; color: var(--text-tertiary); margin-top: 10px; letter-spacing: 0.5px; }
+
+/* ════════ 数据来源 ════════ */
+.src-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
+@media(max-width:680px){ .src-grid { grid-template-columns: 1fr; } }
+.src-card { border: 1.5px solid var(--border); border-radius: 14px; padding: 22px; background: #fff; }
+.src-icon { width: 38px; height: 38px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 17px; color: #fff; margin-bottom: 12px; }
+.src-icon.online { background: linear-gradient(135deg,#1677FF,#389BFF); }
+.src-icon.offline { background: linear-gradient(135deg,#722ED1,#9B59D3); }
+.src-card h4 { font-size: 14.5px; font-weight: 700; margin-bottom: 6px; }
+.src-card p { font-size: 12.5px; color: var(--text-secondary); line-height: 1.75; margin-bottom: 12px; }
+.src-fit { font-size: 11px; color: var(--primary); background: #EBF4FF; padding: 4px 10px; border-radius: 4px; display: inline-block; font-weight: 600; }
+.src-card.offline .src-fit { color: var(--purple); background: #F5EEFF; }
+
+/* 字段映射坑警告 */
+.pitfall {
+  background: #FFFBEB; border: 1.5px solid #FFE58F; border-radius: 14px;
+  padding: 22px 24px; margin-top: 28px;
+}
+.pitfall-title { font-size: 14px; font-weight: 700; color: #874D00; margin-bottom: 10px; display: flex; align-items: center; gap: 8px; }
+.pitfall-title::before { content: '⚠️'; font-size: 16px; }
+.pitfall p { font-size: 13px; color: #613400; line-height: 1.75; }
+.pitfall p strong { color: #874D00; }
+.pitfall-fix { margin-top: 12px; background: #fff; border-radius: 8px; padding: 12px 14px; font-size: 12.5px; color: var(--text-secondary); line-height: 1.7; border-left: 3px solid var(--orange); }
+.pitfall-fix strong { color: var(--text); }
+
+/* ════════ 行动层 (图形化版) ════════ */
+.start-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 22px; }
+@media(max-width:880px){ .start-grid { grid-template-columns: 1fr; } }
+
+.start-card {
+  border: 1.5px solid var(--border); border-radius: 16px;
+  background: #fff; display: flex; flex-direction: column;
+  overflow: hidden;
+}
+.start-card.b { border-color: #d4c2f5; }
+
+/* 顶部 hero */
+.start-hero {
+  position: relative; padding: 22px 24px 20px;
+  background: linear-gradient(135deg, #EBF4FF 0%, #F5F9FF 100%);
+  border-bottom: 1.5px solid #d6e6ff;
+}
+.start-card.b .start-hero {
+  background: linear-gradient(135deg, #F5EEFF 0%, #FAF6FF 100%);
+  border-bottom-color: #e0d0f5;
+}
+.start-hero-row { display: flex; align-items: center; gap: 14px; margin-bottom: 14px; }
+.start-letter {
+  width: 40px; height: 40px; border-radius: 12px;
+  background: var(--gradient); color: #fff;
+  font-size: 17px; font-weight: 800;
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0; box-shadow: 0 4px 12px rgba(22,119,255,0.25);
+}
+.start-card.b .start-letter {
+  background: linear-gradient(135deg, #722ED1, #9B59D3);
+  box-shadow: 0 4px 12px rgba(114,46,209,0.25);
+}
+.start-hero h4 { font-size: 15px; font-weight: 700; margin-bottom: 4px; line-height: 1.4; }
+.start-hero .start-goal {
+  font-size: 11.5px; color: var(--text-secondary);
+  display: inline-flex; align-items: center; gap: 6px;
+}
+.start-hero .start-goal::before {
+  content: '🎯'; font-size: 12px;
+}
+
+/* hero scene illustration */
+.start-scene {
+  display: flex; align-items: center; gap: 10px;
+  padding: 10px 12px; background: rgba(255,255,255,0.6);
+  border: 1px solid rgba(22,119,255,0.15);
+  border-radius: 10px;
+}
+.start-card.b .start-scene { border-color: rgba(114,46,209,0.18); }
+.start-scene-art {
+  flex-shrink: 0; width: 48px; height: 48px;
+  display: flex; align-items: center; justify-content: center;
+}
+.start-scene-text {
+  font-size: 11.5px; color: var(--text-secondary); line-height: 1.55;
+}
+.start-scene-text strong { color: var(--text); font-weight: 600; }
+
+/* 步骤条 */
+.start-steps {
+  padding: 22px 24px 20px;
+  display: flex; flex-direction: column; gap: 0;
+  list-style: none;
+}
+.start-step {
+  display: flex; align-items: flex-start; gap: 12px;
+  position: relative; padding-bottom: 14px;
+}
+.start-step:last-child { padding-bottom: 0; }
+.start-step::before {
+  content: ''; position: absolute;
+  left: 13px; top: 28px; bottom: 0;
+  width: 1.5px; background: linear-gradient(to bottom, #d6e6ff, transparent);
+}
+.start-card.b .start-step::before {
+  background: linear-gradient(to bottom, #e0d0f5, transparent);
+}
+.start-step:last-child::before { display: none; }
+
+.start-step-num {
+  width: 26px; height: 26px; border-radius: 50%;
+  background: #fff; border: 1.5px solid var(--primary);
+  color: var(--primary); font-size: 11.5px; font-weight: 700;
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0; z-index: 1;
+}
+.start-card.b .start-step-num {
+  border-color: var(--purple); color: var(--purple);
+}
+.start-step-body { flex: 1; padding-top: 2px; }
+.start-step-title {
+  font-size: 13px; font-weight: 600; color: var(--text);
+  line-height: 1.55; margin-bottom: 4px;
+}
+.start-step-meta {
+  display: flex; flex-wrap: wrap; gap: 6px; align-items: center;
+  font-size: 11px; color: var(--text-tertiary); line-height: 1.6;
+}
+.start-step-chip {
+  display: inline-flex; align-items: center; gap: 3px;
+  padding: 1.5px 7px; border-radius: 4px;
+  background: #EBF4FF; color: var(--primary);
+  font-size: 10.5px; font-weight: 600;
+}
+.start-card.b .start-step-chip {
+  background: #F5EEFF; color: var(--purple);
+}
+.start-step-meta a { color: var(--primary); text-decoration: underline; }
+.start-card.b .start-step-meta a { color: var(--purple); }
+
+/* footer link */
+.start-foot {
+  border-top: 1px dashed var(--border); padding: 14px 24px 18px;
+  display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  margin-top: auto;
+}
+.start-foot-out {
+  font-size: 11px; color: var(--text-tertiary);
+  display: inline-flex; align-items: center; gap: 6px;
+}
+.start-foot-out::before {
+  content: '✓'; color: var(--green); font-weight: 700;
+}
+.start-link {
+  font-size: 12.5px; color: var(--primary); font-weight: 600;
+  text-decoration: none; display: inline-flex; align-items: center; gap: 4px;
+}
+.start-card.b .start-link { color: var(--purple); }
+.start-link:hover { text-decoration: underline; }
+
+/* ════════ Footer ════════ */
+.footer {
+  background: var(--dark); padding: 72px 24px;
+  text-align: center; color: #fff;
+}
+.footer-inner { max-width: 620px; margin: 0 auto; }
+.footer-label { font-size: 11px; color: rgba(255,255,255,0.4); letter-spacing: 2.5px; text-transform: uppercase; margin-bottom: 18px; }
+.footer-title { font-size: clamp(22px, 3.4vw, 28px); font-weight: 700; line-height: 1.4; margin-bottom: 14px; }
+.footer-desc { font-size: 14px; color: rgba(255,255,255,0.55); margin-bottom: 36px; line-height: 1.85; }
+.footer-cta {
+  display: inline-flex; align-items: center; gap: 8px;
+  background: var(--gradient); color: #fff;
+  padding: 14px 36px; border-radius: 28px;
+  font-size: 15px; font-weight: 600; text-decoration: none;
+  box-shadow: 0 4px 24px rgba(22,119,255,0.35);
+}
+.footer-cta.ghost {
+  background: transparent; color: rgba(255,255,255,0.85);
+  border: 1px solid rgba(255,255,255,0.25); box-shadow: none;
+}
+.footer-cta.ghost:hover { border-color: rgba(255,255,255,0.5); color: #fff; }
+.footer-cta-row { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
+.footer-meta { margin-top: 36px; padding-top: 24px; border-top: 1px solid rgba(255,255,255,0.1); font-size: 12px; color: rgba(255,255,255,0.4); }
+
+/* ════════ Hero readtime ════════ */
+.hero-readtime {
+  margin-top: 18px; font-size: 12px; color: var(--text-secondary);
+  letter-spacing: 0.5px;
+}
+
+/* ════════ TOC ════════ */
+.toc-wrap {
+  background: #fff; border-bottom: 1px solid var(--border);
+  padding: 36px 24px;
+}
+.toc-inner { max-width: 960px; margin: 0 auto; }
+.toc-label {
+  font-size: 11px; color: var(--text-tertiary, #999);
+  letter-spacing: 2px; text-transform: uppercase; margin-bottom: 18px;
+  font-weight: 600;
+}
+.toc-grid {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 8px;
+}
+.toc-item {
+  display: flex; align-items: center; gap: 12px;
+  padding: 14px 16px; border-radius: 10px;
+  text-decoration: none; color: var(--text);
+  background: #FAFBFD; border: 1px solid var(--border);
+  transition: all 0.18s ease;
+}
+.toc-item:hover {
+  border-color: var(--primary);
+  background: #F0F7FF;
+  transform: translateX(2px);
+}
+.toc-num {
+  font-family: 'SF Mono', monospace; font-size: 12px; font-weight: 700;
+  color: var(--primary); min-width: 24px;
+}
+.toc-text { font-size: 13.5px; line-height: 1.5; }
+
+/* small helper */
+.inline-hint {
+  display: inline-block; font-size: 11px; color: var(--purple);
+  background: #F5EEFF; padding: 2px 8px; border-radius: 4px; font-weight: 600;
+  border: 1px solid #d3b8f5;
+}
+
+/* ════════ 4 步流程条（layer3） ════════ */
+.flow-strip {
+  display: flex; align-items: stretch; justify-content: stretch;
+  gap: 0; margin: 16px 0 32px;
+  position: relative;
+  background: linear-gradient(135deg, #F8FAFD 0%, #F2F6FC 100%);
+  border: 1px solid var(--border); border-radius: 14px;
+  padding: 22px 18px 20px;
+}
+.flow-node {
+  flex: 1 1 0; display: flex; flex-direction: column; align-items: center;
+  gap: 8px; flex-shrink: 0; min-width: 0; position: relative;
+  text-align: center;
+}
+.flow-node-circle {
+  width: 48px; height: 48px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 18px; color: #fff; font-weight: 700;
+  box-shadow: 0 6px 16px rgba(13,27,53,0.15);
+  position: relative; z-index: 2;
+}
+.flow-node:nth-child(1) .flow-node-circle { background: linear-gradient(135deg,#1677FF,#3D94FF); }
+.flow-node:nth-child(3) .flow-node-circle { background: linear-gradient(135deg,#5C7CFA,#7B61FF); }
+.flow-node:nth-child(5) .flow-node-circle { background: linear-gradient(135deg,#8B5CF6,#A855F7); }
+.flow-node:nth-child(7) .flow-node-circle { background: linear-gradient(135deg,#EC4899,#F43F5E); }
+.flow-node-label {
+  font-size: 13.5px; font-weight: 700; color: var(--text);
+  letter-spacing: 0.3px;
+}
+.flow-node-tag {
+  font-size: 10.5px; color: var(--text-tertiary); font-weight: 600;
+  letter-spacing: 0.5px; text-transform: uppercase;
+}
+.flow-node-detail {
+  margin-top: 2px;
+  font-size: 11px; color: var(--text-secondary); line-height: 1.55;
+  background: #fff; border: 1px solid var(--border);
+  border-radius: 8px; padding: 8px 10px;
+  width: 100%; box-sizing: border-box;
+}
+.flow-node-detail .fnd-row {
+  display: flex; align-items: center; gap: 4px;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.flow-node-detail .fnd-row::before {
+  content: '·'; color: var(--text-tertiary); font-weight: 700;
+  margin-right: 2px;
+}
+.flow-arrow {
+  flex: 0 0 auto; align-self: flex-start;
+  width: 24px; height: 2px;
+  background: linear-gradient(to right, #c8d4e6, #a3b3cc);
+  position: relative; margin: 24px 0 0;
+}
+.flow-arrow::after {
+  content: '';
+  position: absolute; right: -1px; top: 50%; transform: translateY(-50%);
+  width: 0; height: 0; border-style: solid;
+  border-width: 5px 0 5px 7px;
+  border-color: transparent transparent transparent #a3b3cc;
+}
+@media(max-width:880px){
+  .flow-strip { flex-wrap: wrap; gap: 14px; padding: 18px; }
+  .flow-arrow { display: none; }
+  .flow-node { flex: 1 1 calc(50% - 8px); }
+}
+
+/* ════════ Layer3 Tabs ════════ */
+.l3-tabs {
+  display: flex; gap: 6px; border-bottom: 1px solid var(--border);
+  margin-bottom: 24px; overflow-x: auto;
+}
+.l3-tab {
+  padding: 11px 16px; font-size: 13.5px; font-weight: 600;
+  color: var(--text-secondary); cursor: pointer; white-space: nowrap;
+  border-bottom: 2px solid transparent; margin-bottom: -1px;
+  transition: all 0.2s; background: none; border-top: none; border-left: none; border-right: none;
+  font-family: inherit;
+  display: flex; align-items: center; gap: 8px;
+}
+.l3-tab .l3-tab-num {
+  font-size: 10px; font-weight: 700; letter-spacing: 0.5px;
+  background: var(--bg); color: var(--text-tertiary);
+  padding: 2px 7px; border-radius: 4px;
+}
+.l3-tab:hover { color: var(--primary); }
+.l3-tab.active { color: var(--primary); border-bottom-color: var(--primary); }
+.l3-tab.active .l3-tab-num { background: var(--gradient-light); color: var(--primary); }
+.l3-panels { position: relative; }
+.l3-panel { display: none; }
+.l3-panel.active { display: block; animation: fadeIn 0.25s ease; }
+</style>
+</head>
+<body>
+
+<!-- ════════════════════════════════════
+     HERO
+════════════════════════════════════ -->
+<section class="hero">
+  <div class="hero-inner">
+    <div class="hero-badge"><span></span> X-RAY · AI 应用评估 · 正式上线</div>
+    <h1>你的 Agent 上线了。<br>但你真的知道它今天表现得好不好吗？</h1>
+    <p class="subtitle">
+      Agent 的输出是模型、工具、知识库和多轮交互的综合结果。<br>
+      任何一个环节出问题，最终输出都会出错——但你用什么来判断？
+    </p>
+    <div class="hero-scenes">
+
+      <!-- Scene 1: 链路黑盒 — Agent 各环节像黑盒，结果错但不知错在哪一步 -->
+      <div class="hero-scene">
+        <div class="hero-scene-art">
+          <svg viewBox="0 0 240 76" xmlns="http://www.w3.org/2000/svg">
+            <circle class="hs-node" cx="18" cy="38" r="10"/>
+            <text class="hs-text-tert" x="18" y="62" text-anchor="middle">User</text>
+            <path class="hs-line" d="M 30 38 L 50 38" marker-end="url(#hs-arr)"/>
+            <rect class="hs-node" x="52" y="26" width="34" height="24" rx="4"/>
+            <text class="hs-text" x="69" y="42" text-anchor="middle">LLM</text>
+            <path class="hs-line" d="M 88 38 L 104 38" marker-end="url(#hs-arr)"/>
+            <rect class="hs-node hs-node-fail" x="106" y="26" width="34" height="24" rx="4"/>
+            <text class="hs-text" x="123" y="42" text-anchor="middle">Tool</text>
+            <text class="hs-text-tert" x="123" y="64" text-anchor="middle">?</text>
+            <path class="hs-line" d="M 142 38 L 158 38" marker-end="url(#hs-arr)"/>
+            <rect class="hs-node" x="160" y="26" width="34" height="24" rx="4"/>
+            <text class="hs-text" x="177" y="42" text-anchor="middle">RAG</text>
+            <path class="hs-line" d="M 196 38 L 212 38" marker-end="url(#hs-arr)"/>
+            <text class="hs-text" x="226" y="34" text-anchor="middle" style="font-size:14px;font-weight:700;fill:#fda4af;">✗</text>
+            <text class="hs-text-tert" x="226" y="50" text-anchor="middle" style="fill:#fda4af;">错</text>
+            <defs>
+              <marker id="hs-arr" markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto">
+                <path d="M 0 0 L 5 3 L 0 6 z" fill="rgba(255,255,255,0.55)"/>
+              </marker>
+            </defs>
+          </svg>
+        </div>
+        <div class="hero-scene-text">
+          <strong>结果错了，不知道错在哪一步</strong>
+          模型 / 工具 / 知识库 / 多轮交互——Agent 链路是黑盒，结果不对但定位不到根因。
+        </div>
+      </div>
+
+      <!-- Scene 2: 改版无对照 -->
+      <div class="hero-scene">
+        <div class="hero-scene-art">
+          <svg viewBox="0 0 240 76" xmlns="http://www.w3.org/2000/svg">
+            <rect class="hs-node" x="14" y="14" width="68" height="48" rx="6"/>
+            <text class="hs-text-tert" x="48" y="28" text-anchor="middle">Prompt v1</text>
+            <line class="hs-line-dotted" x1="22" y1="36" x2="74" y2="36"/>
+            <line class="hs-line-dotted" x1="22" y1="44" x2="68" y2="44"/>
+            <line class="hs-line-dotted" x1="22" y1="52" x2="70" y2="52"/>
+            <path class="hs-line" d="M 86 38 L 104 38" marker-end="url(#hs-arr2)"/>
+            <text class="hs-text-tert" x="95" y="32" text-anchor="middle">改了</text>
+            <rect class="hs-node" x="106" y="14" width="68" height="48" rx="6"/>
+            <text class="hs-text-tert" x="140" y="28" text-anchor="middle">Prompt v2</text>
+            <line class="hs-line-dotted" x1="114" y1="36" x2="166" y2="36"/>
+            <line class="hs-line-dotted" x1="114" y1="44" x2="160" y2="44"/>
+            <line class="hs-line-dotted" x1="114" y1="52" x2="162" y2="52"/>
+            <text x="206" y="32" text-anchor="middle" style="font-size:18px;font-weight:700;fill:rgba(255,255,255,0.85);">?</text>
+            <text class="hs-text-tert" x="206" y="48" text-anchor="middle">好在</text>
+            <text class="hs-text-tert" x="206" y="58" text-anchor="middle">哪？</text>
+            <defs>
+              <marker id="hs-arr2" markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto">
+                <path d="M 0 0 L 5 3 L 0 6 z" fill="rgba(255,255,255,0.55)"/>
+              </marker>
+            </defs>
+          </svg>
+        </div>
+        <div class="hero-scene-text">
+          <strong>改了 Prompt，说不清好在哪</strong>
+          感觉变好了，但没数据对比、没回归——也不知道有没有引入新的劣化。
+        </div>
+      </div>
+
+      <!-- Scene 3: 上线后失明 -->
+      <div class="hero-scene">
+        <div class="hero-scene-art">
+          <svg viewBox="0 0 240 76" xmlns="http://www.w3.org/2000/svg">
+            <rect class="hs-q" x="6" y="14" width="38" height="14" rx="3"/>
+            <rect class="hs-q" x="6" y="32" width="38" height="14" rx="3"/>
+            <rect class="hs-q" x="6" y="50" width="38" height="14" rx="3"/>
+            <rect class="hs-q" x="50" y="14" width="38" height="14" rx="3"/>
+            <rect class="hs-q-active" x="50" y="32" width="38" height="14" rx="3"/>
+            <rect class="hs-q" x="50" y="50" width="38" height="14" rx="3"/>
+            <rect class="hs-q" x="94" y="14" width="38" height="14" rx="3"/>
+            <rect class="hs-q" x="94" y="32" width="38" height="14" rx="3"/>
+            <rect class="hs-q" x="94" y="50" width="38" height="14" rx="3"/>
+            <rect class="hs-q" x="138" y="14" width="38" height="14" rx="3"/>
+            <rect class="hs-q" x="138" y="32" width="38" height="14" rx="3"/>
+            <rect class="hs-q" x="138" y="50" width="38" height="14" rx="3"/>
+            <g transform="translate(196,38)">
+              <circle cx="0" cy="0" r="18" fill="rgba(255,255,255,0.08)" stroke="rgba(255,255,255,0.4)" stroke-width="1"/>
+              <path d="M -10 0 Q 0 -7 10 0" stroke="rgba(255,255,255,0.85)" stroke-width="1.6" fill="none" stroke-linecap="round"/>
+              <path d="M -10 0 Q 0 7 10 0" stroke="rgba(255,255,255,0.4)" stroke-width="1" fill="none" stroke-linecap="round" stroke-dasharray="2 2"/>
+              <line x1="-12" y1="-12" x2="12" y2="12" stroke="rgba(244,63,94,0.85)" stroke-width="1.6" stroke-linecap="round"/>
+            </g>
+            <text class="hs-text-tert" x="71" y="74" text-anchor="middle">线上对话样本</text>
+          </svg>
+        </div>
+        <div class="hero-scene-text">
+          <strong>上线两周了，从没看过对话</strong>
+          有线上数据、却从未系统性扫一遍——典型的「上线即失明」。
+        </div>
+      </div>
+
+    </div>
+    <div class="hero-cta-row">
+      <a href="#map" class="hero-cta primary">📍 你的场景</a>
+      <a href="#layer3" class="hero-cta">⚙️ 你的配置</a>
+      <a href="#start" class="hero-cta">🚀 开始行动</a>
+      <a href="https://xray.devops.xiaohongshu.com/aiobservation/aievaluation?projectId=cmht3lmqy0001vj07an15cq8n&aiTab=evaluator" class="hero-cta" target="_blank">↗ 打开 X-RAY</a>
+    </div>
+  </div>
+</section>
+
+
+<!-- ════════════════════════════════════
+     第一层：认知 + 问题定义（双栏并排）
+════════════════════════════════════ -->
+<div class="white-bg" id="layer1">
+<section class="section">
+  <div class="section-label">第一层 · 建立认知</div>
+  <div class="section-title">评估到底在做什么 · 不评估的代价</div>
+  <p class="section-desc">
+    左边先把误解纠过来——评估是看 Agent 在你业务场景下的综合表现；右边对照看，不做系统评估时你正在用什么"替代品"，以及它们的真实代价。
+  </p>
+
+  <div class="layer1-2col">
+
+    <!-- 左：问题定义（先把问题摆出来）-->
+    <div id="layer1-cost">
+      <div class="l1-block-label">问题定义</div>
+      <div class="l1-block-title">不做系统性评估，你在用什么替代它</div>
+      <div class="l1-block-desc">这些做法在早期可以运转，但随着 Agent 复杂度和流量规模增长，代价会快速放大。</div>
+      <table class="cost-table">
+        <thead>
+          <tr>
+            <th>当前做法</th>
+            <th>实际代价</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>人工抽查几条对话，觉得还行就上线</td>
+            <td>一次请求可能调 6 个工具、多次 LLM 推理，人工看不完整链路；边界问题持续漏过到投诉才被发现。</td>
+          </tr>
+          <tr>
+            <td>靠经验判断"新版好像比旧版好"</td>
+            <td>工具调用准确率、RAG 召回质量都可能悄悄劣化。没有量化基准，迭代方向无法被验证。</td>
+          </tr>
+          <tr>
+            <td>发现 bad case 后存入 redoc 文档</td>
+            <td>下次迭代是否修复？同类问题是否再现？没有自动化回归机制，只能依赖人工记忆追踪。</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- 右：认知建立（再把认知纠过来）-->
+    <div>
+      <div class="l1-block-label">认知建立</div>
+      <div class="l1-block-title">评估到底在做什么</div>
+      <div class="l1-block-desc">
+        评估 = 用可量化的方式，持续回答「Agent 在真实场景里的<strong style="color:var(--text)">综合表现</strong>是否符合预期」——不只是模型，而是模型 + 工具 + 知识库 + 多轮交互的综合结果。
+      </div>
+      <table class="cost-table cogn-table">
+        <thead>
+          <tr>
+            <th>常见误解</th>
+            <th>实际上是</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>评估是测模型能力</td>
+            <td>评估对象是 <strong>Agent 在你的业务场景下的综合表现</strong>。同一个模型换工具或知识库，结论可能完全不同。</td>
+          </tr>
+          <tr>
+            <td>评估靠人工打分</td>
+            <td>人工是<strong>最后一关，不是全部</strong>。自动化先筛出问题样本，人工只看被筛出来的那部分。</td>
+          </tr>
+          <tr>
+            <td>有通用评估器可以直接用</td>
+            <td>不存在。客服看解决率、RAG 看相关性、Tool 看参数准确性——<strong>业务 owner 自己定义评估维度</strong>。</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+  </div>
+</section>
+</div>
+
+
+<!-- ════════════════════════════════════
+     第二层：地图
+════════════════════════════════════ -->
+<div class="white-bg" id="map">
+<section class="section">
+  <div class="section-label">第二层 · 评估地图</div>
+  <div class="section-title">你在 Agent 的哪个阶段，就做什么评估</div>
+  <p class="section-desc">
+    评估不是「上线时跑一次」的动作，而是贯穿 Agent 从开发到持续运营全周期的机制。不同阶段的处境不同，对应的评估路径也不同——找到你当前所在的阶段，从那里开始。
+  </p>
+
+  <div class="lifecycle-layout">
+
+    <!-- 左：4 Tabs -->
+    <div>
+      <div class="lc-tabs">
+        <button class="lc-tab active" data-lctab="01"><span class="lc-tab-num">01</span>开发中</button>
+        <button class="lc-tab" data-lctab="02"><span class="lc-tab-num">02</span>上线前</button>
+        <button class="lc-tab" data-lctab="03"><span class="lc-tab-num">03</span>上线后</button>
+        <button class="lc-tab" data-lctab="04"><span class="lc-tab-num">04</span>版本迭代</button>
+      </div>
+      <div class="lc-panels">
+
+        <div class="lc-panel active" data-lcpanel="01">
+          <div class="lc-panel-card">
+            <div class="lc-panel-when">有 bad case，验证修复是否有效</div>
+            <div class="lc-situation">
+              <strong>典型处境</strong>
+              Agent 还没上线或刚迭代完。手上有已知问题样本（自测出的、用户反馈的、上一版抓到的）。改了 Prompt、工具或知识库后，需要验证改动是否真的修复了问题、有没有引入新劣化。
+            </div>
+            <div class="lc-pathlabel">评估路径</div>
+            <div class="lc-flow">
+              <span class="lc-step">整理 bad case 数据集</span>
+              <span class="lc-arrow">→</span>
+              <span class="lc-step">配评估器</span>
+              <span class="lc-arrow">→</span>
+              <span class="lc-step">离线回放</span>
+              <span class="lc-arrow">→</span>
+              <span class="lc-step">对比版本得分</span>
+            </div>
+            <div class="lc-grain"><strong>看的是「结果」</strong>——只看输入和最终输出，先把质量基线建起来。
+              <div class="lc-trace">
+                <div class="lc-trace-row">
+                  <div class="lc-trace-node hi"><span class="lc-trace-tag">Trace</span><span class="lc-trace-name">input</span></div>
+                  <span class="lc-trace-arrow">›</span>
+                  <div class="lc-trace-node"><span class="lc-trace-tag">SPAN</span><span class="lc-trace-name">LLM</span></div>
+                  <span class="lc-trace-arrow">›</span>
+                  <div class="lc-trace-node"><span class="lc-trace-tag">SPAN</span><span class="lc-trace-name">Tool</span></div>
+                  <span class="lc-trace-arrow">›</span>
+                  <div class="lc-trace-node"><span class="lc-trace-tag">SPAN</span><span class="lc-trace-name">RAG</span></div>
+                  <span class="lc-trace-arrow">›</span>
+                  <div class="lc-trace-node hi"><span class="lc-trace-tag">Trace</span><span class="lc-trace-name">output</span></div>
+                </div>
+                <div class="lc-trace-cap"><span class="lc-trace-cap-hi">结果 = trace 的 input / output</span><span>中间 SPAN 不评</span></div>
+              </div>
+            </div>
+            <div class="lc-key"><strong>关键价值：</strong>bad case 从「存在文档里」变成「可重复自动验证的回归集」，每次迭代后跑一遍，修复验证才真正形成闭环。</div>
+          </div>
+        </div>
+
+        <div class="lc-panel" data-lcpanel="02">
+          <div class="lc-panel-card">
+            <div class="lc-panel-when">建立质量基线，再灰度放量</div>
+            <div class="lc-situation">
+              <strong>典型处境</strong>
+              Agent 准备上线或扩大灰度。需要在真实流量进入前，确认整体效果在可接受范围，并明确知道哪些场景存在风险——不是凭感觉，而是有数据支撑。
+            </div>
+            <div class="lc-pathlabel">评估路径</div>
+            <div class="lc-flow">
+              <span class="lc-step">整理代表性样本集</span>
+              <span class="lc-arrow">→</span>
+              <span class="lc-step">定义评估维度</span>
+              <span class="lc-arrow">→</span>
+              <span class="lc-step">离线评估</span>
+              <span class="lc-arrow">→</span>
+              <span class="lc-step">看 P50/P90 分布</span>
+            </div>
+            <div class="lc-grain"><strong>仍是「结果」粒度</strong>——但这次的目的是看分布、识别风险场景，而不是验单条修复。
+              <div class="lc-trace">
+                <div class="lc-trace-row">
+                  <div class="lc-trace-node hi"><span class="lc-trace-tag">Trace</span><span class="lc-trace-name">input</span></div>
+                  <span class="lc-trace-arrow">›</span>
+                  <div class="lc-trace-node"><span class="lc-trace-tag">SPAN</span><span class="lc-trace-name">LLM</span></div>
+                  <span class="lc-trace-arrow">›</span>
+                  <div class="lc-trace-node"><span class="lc-trace-tag">SPAN</span><span class="lc-trace-name">Tool</span></div>
+                  <span class="lc-trace-arrow">›</span>
+                  <div class="lc-trace-node hi"><span class="lc-trace-tag">Trace</span><span class="lc-trace-name">output</span></div>
+                </div>
+                <div class="lc-trace-cap"><span class="lc-trace-cap-hi">结果 = trace 的 input / output</span><span>看 P50/P90 分布</span></div>
+              </div>
+            </div>
+            <div class="lc-key"><strong>关键价值：</strong>不是「100 分才能上线」，而是上线前明确知道哪些风险是可接受的——比上线后被动发现问题的排查成本低得多。</div>
+          </div>
+        </div>
+
+        <div class="lc-panel" data-lcpanel="03">
+          <div class="lc-panel-card">
+            <div class="lc-panel-when">持续监控，自动发现 bad case</div>
+            <div class="lc-situation">
+              <strong>典型处境</strong>
+              Agent 已在跑，每天有真实用户请求。某个工具最近频繁失败、某类 query 的 RAG 召回在下滑、某次模型升级后某场景悄悄劣化——这些问题不会主动暴露，需要持续监控来发现。
+            </div>
+            <div class="lc-pathlabel">评估路径</div>
+            <div class="lc-flow">
+              <span class="lc-step">X-RAY 采集完整链路</span>
+              <span class="lc-arrow">→</span>
+              <span class="lc-step">周期自动评估</span>
+              <span class="lc-arrow">→</span>
+              <span class="lc-step">实验报告</span>
+              <span class="lc-arrow">→</span>
+              <span class="lc-step">低分自动入库</span>
+            </div>
+            <div class="lc-grain"><strong>从「结果」起步，需要时切到「节点」</strong>——比如想专门盯工具调用质量，就只评每次工具调用 SPAN 的参数对不对。
+              <div class="lc-trace">
+                <div class="lc-trace-row">
+                  <div class="lc-trace-node"><span class="lc-trace-tag">Trace</span><span class="lc-trace-name">input</span></div>
+                  <span class="lc-trace-arrow">›</span>
+                  <div class="lc-trace-node"><span class="lc-trace-tag">SPAN</span><span class="lc-trace-name">LLM</span></div>
+                  <span class="lc-trace-arrow">›</span>
+                  <div class="lc-trace-node hi"><span class="lc-trace-tag">SPAN</span><span class="lc-trace-name">Tool</span></div>
+                  <span class="lc-trace-arrow">›</span>
+                  <div class="lc-trace-node"><span class="lc-trace-tag">SPAN</span><span class="lc-trace-name">RAG</span></div>
+                  <span class="lc-trace-arrow">›</span>
+                  <div class="lc-trace-node"><span class="lc-trace-tag">Trace</span><span class="lc-trace-name">output</span></div>
+                </div>
+                <div class="lc-trace-cap"><span class="lc-trace-cap-hi">节点 = 单个 SPAN</span><span>例：只评工具调用</span></div>
+              </div>
+            </div>
+            <div class="lc-key">
+              <strong>关键价值一：</strong>配置一次，持续自动运行，问题样本自动沉淀。<br>
+              <strong>关键价值二：</strong>X-RAY 采集的链路本身就是价值——这里是<em>系统性查看 Agent 完整对话链路的唯一入口</em>。
+            </div>
+          </div>
+        </div>
+
+        <div class="lc-panel" data-lcpanel="04">
+          <div class="lc-panel-card">
+            <div class="lc-panel-when">每次改动后验证有没有引入劣化</div>
+            <div class="lc-situation">
+              <strong>典型处境</strong>
+              Agent 在持续迭代——Prompt 在调、工具在更新、模型版本在升、知识库在扩充。每次改动都可能在解决一个问题的同时引入新的问题，需要在发布前回归验证。
+            </div>
+            <div class="lc-pathlabel">评估路径</div>
+            <div class="lc-flow">
+              <span class="lc-step">复用已有数据集</span>
+              <span class="lc-arrow">→</span>
+              <span class="lc-step">迭代后重跑</span>
+              <span class="lc-arrow">→</span>
+              <span class="lc-step">对比得分变化</span>
+            </div>
+            <div class="lc-grain"><strong>极少数复杂诊断场景</strong>——结果时好时坏定位不到时，可以拆 ReAct 链路做<span class="inline-hint">轨迹评估</span>找逻辑断裂点。日常迭代不需要走到这一步。
+              <div class="lc-trace">
+                <div class="lc-trace-row">
+                  <div class="lc-trace-node hi"><span class="lc-trace-tag">Trace</span><span class="lc-trace-name">input</span></div>
+                  <span class="lc-trace-arrow">›</span>
+                  <div class="lc-trace-node hi"><span class="lc-trace-tag">SPAN</span><span class="lc-trace-name">Plan</span></div>
+                  <span class="lc-trace-arrow">›</span>
+                  <div class="lc-trace-node hi"><span class="lc-trace-tag">SPAN</span><span class="lc-trace-name">Tool</span></div>
+                  <span class="lc-trace-arrow">›</span>
+                  <div class="lc-trace-node hi"><span class="lc-trace-tag">SPAN</span><span class="lc-trace-name">Reflect</span></div>
+                  <span class="lc-trace-arrow">›</span>
+                  <div class="lc-trace-node hi"><span class="lc-trace-tag">Trace</span><span class="lc-trace-name">output</span></div>
+                </div>
+                <div class="lc-trace-cap"><span class="lc-trace-cap-hi">全链路 = 整个 trace</span><span>评每一步的逻辑衔接</span></div>
+              </div>
+            </div>
+            <div class="lc-key"><strong>关键价值：</strong>数据集随线上 bad case 持续回流而积累，回归验证的覆盖面越来越广——数据集越跑越有价值。</div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- 右：飞轮 -->
+    <div class="flywheel-wrap">
+    <h3>四个阶段构成一个数据飞轮</h3>
+    <p>线上发现的 bad case 自动沉淀为离线数据集，离线数据集支撑下一轮迭代的回归验证，形成持续运转的评估闭环。</p>
+
+    <div class="flywheel-svg-wrap">
+      <svg class="flywheel-svg" viewBox="0 0 560 440" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <linearGradient id="fwArrow" x1="0%" y1="0%" x2="100%" y2="0%">
+            <stop offset="0%" stop-color="#1677FF" stop-opacity="0.35"/>
+            <stop offset="100%" stop-color="#722ED1" stop-opacity="0.35"/>
+          </linearGradient>
+          <linearGradient id="fwNode" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stop-color="#1677FF" stop-opacity="0.15"/>
+            <stop offset="100%" stop-color="#722ED1" stop-opacity="0.15"/>
+          </linearGradient>
+          <marker id="fwArrowHead" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+            <path d="M 0 0 L 10 5 L 0 10 z" fill="#1677FF" opacity="0.55"/>
+          </marker>
+        </defs>
+
+        <!-- 旋转的圆形箭头层 -->
+        <g class="fw-rotate">
+          <circle cx="280" cy="220" r="155" fill="none" stroke="url(#fwArrow)" stroke-width="2" stroke-dasharray="6 8" />
+        </g>
+
+        <!-- 中心 -->
+        <circle cx="280" cy="220" r="58" fill="rgba(22,119,255,0.12)" stroke="rgba(22,119,255,0.35)" stroke-width="1.5" />
+        <text x="280" y="212" text-anchor="middle" font-size="13" font-weight="700" fill="#fff">数据飞轮</text>
+        <text x="280" y="232" text-anchor="middle" font-size="11" fill="rgba(255,255,255,0.55)">越跑越值钱</text>
+
+        <!-- 四个节点：上(开发) / 右(上线前) / 下(上线后) / 左(版本迭代) -->
+        <!-- 节点 01：开发中 上方 -->
+        <g>
+          <rect x="200" y="20" width="160" height="70" rx="12" fill="rgba(255,255,255,0.06)" stroke="rgba(255,255,255,0.18)" stroke-width="1.5"/>
+          <text x="280" y="42" text-anchor="middle" font-size="10" font-weight="700" fill="rgba(255,255,255,0.5)" letter-spacing="1">PHASE 01 · 开发中</text>
+          <text x="280" y="62" text-anchor="middle" font-size="14" font-weight="700" fill="#fff">离线回放</text>
+          <text x="280" y="80" text-anchor="middle" font-size="11" fill="rgba(255,255,255,0.55)">bad case 数据集 + 回放</text>
+        </g>
+
+        <!-- 节点 02：上线前 右方 -->
+        <g>
+          <rect x="380" y="180" width="160" height="70" rx="12" fill="rgba(255,255,255,0.06)" stroke="rgba(255,255,255,0.18)" stroke-width="1.5"/>
+          <text x="460" y="202" text-anchor="middle" font-size="10" font-weight="700" fill="rgba(255,255,255,0.5)" letter-spacing="1">PHASE 02 · 上线前</text>
+          <text x="460" y="222" text-anchor="middle" font-size="14" font-weight="700" fill="#fff">基线评估</text>
+          <text x="460" y="240" text-anchor="middle" font-size="11" fill="rgba(255,255,255,0.55)">代表性样本 + 分布</text>
+        </g>
+
+        <!-- 节点 03：上线后 下方 -->
+        <g>
+          <rect x="200" y="350" width="160" height="70" rx="12" fill="rgba(82,196,26,0.12)" stroke="rgba(82,196,26,0.35)" stroke-width="1.5"/>
+          <text x="280" y="372" text-anchor="middle" font-size="10" font-weight="700" fill="rgba(82,196,26,0.7)" letter-spacing="1">PHASE 03 · 上线后</text>
+          <text x="280" y="392" text-anchor="middle" font-size="14" font-weight="700" fill="#fff">在线持续监控</text>
+          <text x="280" y="410" text-anchor="middle" font-size="11" fill="rgba(255,255,255,0.55)">真实链路 + 自动抽样</text>
+        </g>
+
+        <!-- 节点 04：版本迭代 左方 -->
+        <g>
+          <rect x="20" y="180" width="160" height="70" rx="12" fill="rgba(255,255,255,0.06)" stroke="rgba(255,255,255,0.18)" stroke-width="1.5"/>
+          <text x="100" y="202" text-anchor="middle" font-size="10" font-weight="700" fill="rgba(255,255,255,0.5)" letter-spacing="1">PHASE 04 · 版本迭代</text>
+          <text x="100" y="222" text-anchor="middle" font-size="14" font-weight="700" fill="#fff">离线回归</text>
+          <text x="100" y="240" text-anchor="middle" font-size="11" fill="rgba(255,255,255,0.55)">复用数据集 + 对比</text>
+        </g>
+
+        <!-- 顺时针箭头 -->
+        <path d="M 360 60 Q 460 110 460 175" fill="none" stroke="#1677FF" stroke-width="1.5" stroke-opacity="0.5" marker-end="url(#fwArrowHead)"/>
+        <path d="M 460 255 Q 460 350 365 380" fill="none" stroke="#1677FF" stroke-width="1.5" stroke-opacity="0.5" marker-end="url(#fwArrowHead)"/>
+        <path d="M 195 380 Q 100 350 100 255" fill="none" stroke="#52C41A" stroke-width="1.8" stroke-opacity="0.7" marker-end="url(#fwArrowHead)"/>
+        <path d="M 100 175 Q 100 110 195 60" fill="none" stroke="#1677FF" stroke-width="1.5" stroke-opacity="0.5" marker-end="url(#fwArrowHead)"/>
+
+        <!-- 回流标签 -->
+        <text x="50" y="320" font-size="10" font-weight="700" fill="#52C41A" letter-spacing="0.5">低分样本自动回流</text>
+      </svg>
+    </div>
+
+    <div class="flywheel-note">
+      <strong>核心认知：</strong>评估体系的价值不来自某一次跑出来的报告，而来自这个飞轮持续转动后积累的<strong>数据资产</strong>——越跑，覆盖的场景越全，验证越可靠。
+    </div>
+  </div>
+
+  </div><!-- /.lifecycle-layout -->
+
+</section>
+</div>
+
+
+<!-- ════════════════════════════════════
+     第三层：机制
+════════════════════════════════════ -->
+<section class="section" id="layer3">
+  <div class="section-label">第三层 · 配置机制</div>
+  <div class="section-title">评估具体怎么配</div>
+  <p class="section-desc">
+    选定路径之后，落地到 X-RAY 上的工作只有四步：定义评估维度 → 选评估器 → 创建评估任务 → 看结果回流。其中第一步永远是最重要的。
+  </p>
+
+  <!-- 4 步流程箭头 -->
+  <div class="flow-strip">
+    <div class="flow-node">
+      <div class="flow-node-circle">①</div>
+      <div class="flow-node-label">评估维度</div>
+      <div class="flow-node-tag">定标准</div>
+      <div class="flow-node-detail">
+        <div class="fnd-row">想清楚要回答哪个问题</div>
+        <div class="fnd-row">业务 owner 自己定义</div>
+        <div class="fnd-row">最重要的一步</div>
+      </div>
+    </div>
+    <div class="flow-arrow"></div>
+    <div class="flow-node">
+      <div class="flow-node-circle">②</div>
+      <div class="flow-node-label">评估器</div>
+      <div class="flow-node-tag">选实现</div>
+      <div class="flow-node-detail">
+        <div class="fnd-row">LLM 评估器（语义类）</div>
+        <div class="fnd-row">HTTP 评估器（规则类）</div>
+        <div class="fnd-row">一次配置，跨任务复用</div>
+      </div>
+    </div>
+    <div class="flow-arrow"></div>
+    <div class="flow-node">
+      <div class="flow-node-circle">③</div>
+      <div class="flow-node-label">评估任务</div>
+      <div class="flow-node-tag">接数据</div>
+      <div class="flow-node-detail">
+        <div class="fnd-row">在线链路 / 离线数据集</div>
+        <div class="fnd-row">JsonPath 字段映射</div>
+        <div class="fnd-row">按周期自动调度</div>
+      </div>
+    </div>
+    <div class="flow-arrow"></div>
+    <div class="flow-node">
+      <div class="flow-node-circle">④</div>
+      <div class="flow-node-label">看结果</div>
+      <div class="flow-node-tag">回流闭环</div>
+      <div class="flow-node-detail">
+        <div class="fnd-row">实验报告 P50/P90</div>
+        <div class="fnd-row">低分样本筛 reason</div>
+        <div class="fnd-row">bad case 自动入库</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 4 Tabs -->
+  <div class="l3-tabs">
+    <button class="l3-tab active" data-l3tab="31"><span class="l3-tab-num">3.1</span>评估维度</button>
+    <button class="l3-tab" data-l3tab="32"><span class="l3-tab-num">3.2</span>评估器</button>
+    <button class="l3-tab" data-l3tab="33"><span class="l3-tab-num">3.3</span>评估任务</button>
+    <button class="l3-tab" data-l3tab="34"><span class="l3-tab-num">3.4</span>看结果 · 回流</button>
+  </div>
+
+  <div class="l3-panels">
+
+  <!-- 3.1 评估维度 + Prompt -->
+  <div class="l3-panel active" data-l3panel="31"><div style="margin-bottom: 0;">
+    <h3 style="font-size:18px;font-weight:700;margin-bottom:10px;">3.1 第一步永远是定义评估维度</h3>
+    <p style="font-size:13.5px;color:var(--text-secondary);line-height:1.85;margin-bottom:16px;">
+      在配任何工具之前，业务 owner 需要先回答一个问题：<strong style="color:var(--text)">对你的 Agent 来说，「好」的标准是什么？</strong>下面是常见起点维度，但这是起点不是终点——你的业务场景决定哪些维度重要、怎么定义边界。
+    </p>
+
+    <div class="dim-tags">
+      <span class="dim-tag">相关性</span>
+      <span class="dim-tag">正确性</span>
+      <span class="dim-tag">幻觉</span>
+      <span class="dim-tag">安全合规</span>
+      <span class="dim-tag purple">RAG · 检索召回相关性</span>
+      <span class="dim-tag purple">Tool · 参数准确性 / 调用必要性</span>
+      <span class="dim-tag purple">多轮 · 意图穿透</span>
+    </div>
+
+    <p style="font-size:13px;color:var(--text-secondary);margin-bottom:14px;line-height:1.75;">
+      定义清楚「好坏标准」，写成评估器 Prompt——<strong style="color:var(--text)">这是评估体系最核心的资产，也是平台无法替你完成的部分</strong>。一段真实的 LLM 评估器 Prompt 大致长这样：
+    </p>
+
+    <div class="code-block">
+<span class="c-comment"># 评估器 · 回答相关性</span>
+<span class="c-text">你是一个严格的 AI 应用质量评估官。请判断【AI 回复】是否</span>
+<span class="c-text">直接、完整地响应了【用户问题】的核心诉求。</span>
+
+<span class="c-key">## 用户问题</span>
+<span class="c-var">{{user_query}}</span>
+
+<span class="c-key">## AI 回复</span>
+<span class="c-var">{{llm_output}}</span>
+
+<span class="c-key">## 上下文（可选）</span>
+<span class="c-var">{{retrieved_docs}}</span>
+
+<span class="c-key">## 评分规则</span>
+<span class="c-text">- </span><span class="c-num">1.0</span><span class="c-text">：完全命中诉求，信息完整且准确</span>
+<span class="c-text">- </span><span class="c-num">0.6</span><span class="c-text">：部分命中，主要诉求被回答但有遗漏</span>
+<span class="c-text">- </span><span class="c-num">0.3</span><span class="c-text">：方向相关但未真正解决问题</span>
+<span class="c-text">- </span><span class="c-num">0.0</span><span class="c-text">：答非所问 / 幻觉 / 拒答</span>
+
+<span class="c-key">## 输出格式（严格 JSON）</span>
+<span class="c-text">{</span>
+  <span class="c-str">"score"</span><span class="c-text">: </span><span class="c-num">0.0</span> <span class="c-comment">// 0~1，保留一位小数</span>
+  <span class="c-str">"reason"</span><span class="c-text">: </span><span class="c-str">"..."</span> <span class="c-comment">// 一句话说清楚扣分原因</span>
+<span class="c-text">}</span>
+    </div>
+    <div class="code-caption">▲ 示例 Prompt · 真实落地时根据业务调整</div>
+  </div></div><!-- /3.1 panel -->
+
+
+  <!-- 3.2 评估器对比 + 配置截图 -->
+  <div class="l3-panel" data-l3panel="32"><div style="margin-bottom: 0;">
+    <h3 style="font-size:18px;font-weight:700;margin-bottom:10px;">3.2 评估器选哪种</h3>
+    <p style="font-size:13.5px;color:var(--text-secondary);line-height:1.85;margin-bottom:24px;">
+      两类评估器满足不同场景，绝大多数团队从 LLM 评估器开始；规则成熟后再补 HTTP 评估器。
+    </p>
+
+    <div class="judger-grid">
+      <div class="judger-card recommend">
+        <div class="judger-head">
+          <span class="judger-tag llm">LLM 评估器</span>
+          <span class="judger-rec">推荐起点</span>
+        </div>
+        <p class="judger-desc">通过 Prompt 描述评分标准，由大模型对每条样本给出 score 和 reason。</p>
+        <div class="pc-list">
+          <div class="pc-item"><span class="pc-tag good">优势</span>上手快、无需开发、灵活应对语义复杂判断</div>
+          <div class="pc-item"><span class="pc-tag warn">注意</span>每条样本消耗 token，不适合全量；评分准确性依赖所选模型</div>
+        </div>
+      </div>
+      <div class="judger-card">
+        <div class="judger-head">
+          <span class="judger-tag http">HTTP 评估器</span>
+        </div>
+        <p class="judger-desc">把业务已有的判分逻辑封装成 HTTP 服务，平台调你的服务拿评分。</p>
+        <div class="pc-list">
+          <div class="pc-item"><span class="pc-tag good">优势</span>稳定可控、复用已有能力、支持全链路评估</div>
+          <div class="pc-item"><span class="pc-tag warn">注意</span>需自行开发并维护服务，返回格式须符合平台规范</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="judger-note" style="margin-top:18px;">
+      人工评估不是独立流程，而是接在自动化之后的最终确认环节——自动化先筛出低分样本，人工只处理被筛出的部分。
+    </div>
+
+    <!-- Mock 1：评估器列表 + 详情面板 -->
+    <div class="mockup">
+      <div class="mock-bar">
+        <div class="mock-dot r"></div><div class="mock-dot y"></div><div class="mock-dot g"></div>
+        <div class="mb-title">X-RAY · AI 应用评估 · 评估器</div>
+      </div>
+      <div class="mock-body">
+        <div class="mock-tabs">
+          <span class="mock-tab">数据集</span>
+          <span class="mock-tab">自动评估</span>
+          <span class="mock-tab">评估实验</span>
+          <span class="mock-tab active">评估器</span>
+          <span class="mock-tab">LLM 配置</span>
+        </div>
+        <div class="mock-split">
+          <div class="mock-split-left">
+            <div style="font-size:10px;color:var(--text-tertiary);font-weight:700;letter-spacing:0.5px;margin-bottom:8px;">沉淀 9 个评估器 · 跨任务复用</div>
+            <div class="mock-evcards">
+              <div class="mock-evcard">
+                <div class="ec-title">幻觉检测</div>
+                <div class="ec-time">2026-02-09</div>
+                <span class="ec-tag http">HTTP</span>
+              </div>
+              <div class="mock-evcard">
+                <div class="ec-title">相关性</div>
+                <div class="ec-time">2026-01-22</div>
+                <span class="ec-tag llm">LLM</span>
+              </div>
+              <div class="mock-evcard">
+                <div class="ec-title">正确性</div>
+                <div class="ec-time">2026-01-22</div>
+                <span class="ec-tag llm">LLM</span>
+              </div>
+              <div class="mock-evcard">
+                <div class="ec-title">不敏感性</div>
+                <div class="ec-time">2026-01-22</div>
+                <span class="ec-tag llm">LLM</span>
+              </div>
+              <div class="mock-evcard">
+                <div class="ec-title">工具选择质量</div>
+                <div class="ec-time">2026-01-22</div>
+                <span class="ec-tag llm">LLM</span>
+              </div>
+              <div class="mock-evcard active">
+                <div class="ec-title">意图召回</div>
+                <div class="ec-time">2026-01-21</div>
+                <span class="ec-tag llm">LLM</span>
+              </div>
+            </div>
+          </div>
+          <div class="mock-split-right">
+            <div style="font-size:10px;color:var(--text-tertiary);font-weight:700;letter-spacing:0.5px;margin-bottom:8px;">编辑评估器 · 意图召回</div>
+            <div class="mock-detail-row">
+              <span class="dl">评估方式</span>
+              <span class="dv">
+                <span class="mock-radio checked">单 span</span>
+                <span class="mock-radio" style="margin-left:10px;">结果评估</span>
+              </span>
+            </div>
+            <div class="mock-detail-row">
+              <span class="dl">LLM 选择</span>
+              <span class="dv"><span class="mock-pill">业务 LLM 评估模型</span></span>
+            </div>
+            <div class="mock-detail-row">
+              <span class="dl">Prompt</span>
+              <span class="dv">
+                <div class="mock-prompt-box">
+                  <span class="pkey">## 任务</span><br>
+                  你会收到一段输入内容（来源可为多种业务上下文）。<br>
+                  同时给你几个 AI 工具生成的候选 query……<br>
+                  <span class="ppurple">## query 判断标准</span><br>
+                  - 候选 query 必须与原始诉求高度严格相关……<br>
+                  - 生成多个 query 时，重复的 query 一定不相关……
+                </div>
+              </span>
+            </div>
+            <div class="mock-detail-row">
+              <span class="dl">输出约束</span>
+              <span class="dv">
+                <span class="mock-pill green">score (0~3)</span>
+                <span class="mock-pill green" style="margin-left:6px;">reason</span>
+              </span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="code-caption" style="text-align:center;">▲ 评估器一次配置、跨任务复用 · 类型分 LLM / HTTP 两种</div>
+  </div></div><!-- /3.2 panel -->
+
+
+  <!-- 3.3 评估任务 + 字段映射 mock -->
+  <div class="l3-panel" data-l3panel="33"><div style="margin-bottom: 0;">
+    <h3 style="font-size:18px;font-weight:700;margin-bottom:10px;">3.3 创建评估任务 · 接数据 + 字段映射</h3>
+    <p style="font-size:13.5px;color:var(--text-secondary);line-height:1.85;margin-bottom:24px;">
+      一个<strong>评估任务</strong> ＝ 评估器 ＋ 数据来源 ＋ 调度策略。它把"评估什么"和"什么时候评"绑在一起，跑出来的结果统一回写到实验。X-RAY 提供两条数据通路，对应不同生命周期阶段。
+    </p>
+
+    <div class="src-grid">
+      <div class="src-card">
+        <div class="src-icon online">⚡</div>
+        <h4>在线链路数据</h4>
+        <p>基于 ARKAI / ALLIN 等开发的智能体<strong>默认上报 AI 链路数据</strong>，X-RAY 从真实请求中采集完整链路：用户输入、每个 SPAN 的输入输出（LLM / Tool / RAG）、最终响应。通过 JsonPath 把指定字段注入评估器。</p>
+        <span class="src-fit">适合：线上持续监控、自动发现 bad case &nbsp;·&nbsp; <a href="https://docs.xiaohongshu.com/doc/c027e7e5aee31a74dd00a534b3090f9e" target="_blank" style="color:var(--primary);text-decoration:underline;">AI 应用链路规范 ↗</a></span>
+      </div>
+      <div class="src-card offline">
+        <div class="src-icon offline">📋</div>
+        <h4>离线数据集</h4>
+        <p>手动整理的样本集，或从线上低分样本自动回流的数据。设计输入/期望输出/标签等字段，映射到评估器变量。</p>
+        <span class="src-fit">适合：开发验证、上线前基线、版本回归</span>
+      </div>
+    </div>
+
+    <!-- Mock 2：评估任务 4 步配置（一图融合）-->
+    <div class="mockup">
+      <div class="mock-bar">
+        <div class="mock-dot r"></div><div class="mock-dot y"></div><div class="mock-dot g"></div>
+        <div class="mb-title">X-RAY · 自动评估 · 创建任务「意图召回」</div>
+      </div>
+      <div class="mock-body">
+        <div class="mock-stepper">
+          <div class="mock-step-pill"><div class="mock-step-num done">✓</div><span class="mock-step-label done">基本配置</span></div>
+          <div class="mock-step-line done"></div>
+          <div class="mock-step-pill"><div class="mock-step-num done">✓</div><span class="mock-step-label done">评估数据</span></div>
+          <div class="mock-step-line done"></div>
+          <div class="mock-step-pill"><div class="mock-step-num done">✓</div><span class="mock-step-label done">评估器</span></div>
+          <div class="mock-step-line done"></div>
+          <div class="mock-step-pill"><div class="mock-step-num done">4</div><span class="mock-step-label done">数据回流</span></div>
+        </div>
+
+        <div class="mock-stepblock">
+          <div class="mock-stepblock-title"><span class="sbn">1</span>基本配置</div>
+          <div class="mock-detail-row">
+            <span class="dl">任务名称</span>
+            <span class="dv">意图召回</span>
+          </div>
+          <div class="mock-detail-row">
+            <span class="dl">评估类型</span>
+            <span class="dv">
+              <span class="mock-radio checked">在线链路数据</span>
+              <span class="mock-radio" style="margin-left:14px;">离线数据集</span>
+            </span>
+          </div>
+          <div class="mock-detail-row">
+            <span class="dl">执行周期</span>
+            <span class="dv">按天 · 时间点 00:15</span>
+          </div>
+        </div>
+
+        <div class="mock-stepblock">
+          <div class="mock-stepblock-title"><span class="sbn">2</span>评估数据 · 圈定要评什么</div>
+          <div class="mock-detail-row">
+            <span class="dl">评估方式</span>
+            <span class="dv">
+              <span class="mock-radio checked">单 span</span>
+              <span class="mock-radio" style="margin-left:14px;">全链路评估</span>
+              <span class="mock-radio" style="margin-left:14px;">结果评估</span>
+            </span>
+          </div>
+          <div class="mock-detail-row">
+            <span class="dl">SPAN 筛选</span>
+            <span class="dv"><code style="font-family:'SF Mono',monospace;font-size:11px;background:#FAFBFD;padding:3px 8px;border-radius:4px;border:1px solid var(--border);">name = ***</code></span>
+          </div>
+          <div class="mock-detail-row">
+            <span class="dl">链路采样率</span>
+            <span class="dv">7 %</span>
+          </div>
+        </div>
+
+        <div class="mock-stepblock">
+          <div class="mock-stepblock-title"><span class="sbn">3</span>评估器 · JsonPath 字段映射</div>
+          <div class="mock-detail-row">
+            <span class="dl">评估器</span>
+            <span class="dv"><span class="mock-pill">意图召回</span></span>
+          </div>
+          <div class="mock-mapping">
+            <div class="mock-source">$.response_content</div>
+            <div class="mock-mapping-arrow">→</div>
+            <div class="mock-target">{{query}} （Trace output）</div>
+          </div>
+          <div class="mock-mapping">
+            <div class="mock-source">$.messages[?(@.role == 'user')]</div>
+            <div class="mock-mapping-arrow">→</div>
+            <div class="mock-target">{{messages}} （Trace input）</div>
+          </div>
+        </div>
+
+        <div class="mock-stepblock">
+          <div class="mock-stepblock-title"><span class="sbn">4</span>数据回流（可选）· bad case 自动入库</div>
+          <div class="mock-detail-row">
+            <span class="dl">目标数据集</span>
+            <span class="dv"><span class="mock-pill purple">意图召回数据集</span> · 自动创建新版本</span>
+          </div>
+          <div class="mock-detail-row">
+            <span class="dl">回流条件</span>
+            <span class="dv"><code style="font-family:'SF Mono',monospace;font-size:11px;background:#FAFBFD;padding:3px 8px;border-radius:4px;border:1px solid var(--border);">意图召回 · score &gt;= 阈值 2</code></span>
+          </div>
+          <div class="mock-detail-row">
+            <span class="dl">字段映射</span>
+            <span class="dv" style="font-family:'SF Mono',monospace;font-size:10.5px;color:var(--text-secondary);">
+              messages ← $.data.input.messages[?(@.role == 'user')]<br>
+              raw_input ← $.data.input.raw_input
+            </span>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="code-caption" style="text-align:center;">▲ 一个评估任务 = 4 步：定义 → 圈数据 → 配评估器映射 → 配回流</div>
+  </div></div><!-- /3.3 panel -->
+
+
+  <!-- 3.4 看结果 + 回流 -->
+  <div class="l3-panel" data-l3panel="34"><div>
+    <h3 style="font-size:18px;font-weight:700;margin-bottom:10px;">3.4 看结果 · bad case 自动回流</h3>
+    <p style="font-size:13.5px;color:var(--text-secondary);line-height:1.85;margin-bottom:24px;">
+      评估结果有两个视角：<strong style="color:var(--text)">实验分析</strong>看整体水位（P50/P90/P99 分布、版本对比），<strong style="color:var(--text)">实验明细</strong>找低分样本（按分筛选、看 reason、跳转完整链路追溯根因）。低分样本根据回流条件自动写入数据集——这是让评估体系越跑越值钱的核心机制。
+    </p>
+
+    <!-- Mock 3：评估实验 · 聚合得分 + 数据项分布（融合 6/7/8）-->
+    <div class="mockup">
+      <div class="mock-bar">
+        <div class="mock-dot r"></div><div class="mock-dot y"></div><div class="mock-dot g"></div>
+        <div class="mb-title">X-RAY · 评估实验 · 意图召回 - 自动触发 2026-05-12</div>
+      </div>
+      <div class="mock-body">
+        <div class="mock-breadcrumb">
+          <span>自动评估 ›</span>
+          <span class="bc-strong"> 意图召回</span>
+          <span> › 意图召回 - 自动触发 2026-05-12</span>
+        </div>
+
+        <div class="mock-stats">
+          <div class="mock-stat">
+            <div class="stat-label">已评样本</div>
+            <div class="stat-value">9,945</div>
+          </div>
+          <div class="mock-stat">
+            <div class="stat-label">耗时</div>
+            <div class="stat-value">99.4<span style="font-size:12px;color:var(--text-tertiary);font-weight:600;margin-left:2px;">s</span></div>
+          </div>
+          <div class="mock-stat">
+            <div class="stat-label">总 Token</div>
+            <div class="stat-value">6,098</div>
+          </div>
+          <div class="mock-stat">
+            <div class="stat-label">已回流</div>
+            <div class="stat-value">617<span class="stat-trend">+90</span></div>
+          </div>
+        </div>
+
+        <div class="mock-section-title">评估器聚合得分</div>
+        <div class="mock-bigchart">
+          <div class="bc-col"><div class="bc-bar b-min" style="height:1px;"><div class="bc-num">0</div></div></div>
+          <div class="bc-col"><div class="bc-bar b-avg" style="height:9%;"><div class="bc-num">0.312</div></div></div>
+          <div class="bc-col"><div class="bc-bar b-p50" style="height:1px;"><div class="bc-num">0</div></div></div>
+          <div class="bc-col"><div class="bc-bar b-p90" style="height:30%;"><div class="bc-num">1</div></div></div>
+          <div class="bc-col"><div class="bc-bar b-p99" style="height:90%;"><div class="bc-num">3</div></div></div>
+          <div class="bc-col"><div class="bc-bar b-max" style="height:90%;"><div class="bc-num">3</div></div></div>
+        </div>
+        <div class="mock-bigchart-axis">
+          <div class="bc-label">Min</div>
+          <div class="bc-label">Avg</div>
+          <div class="bc-label">P50</div>
+          <div class="bc-label">P90</div>
+          <div class="bc-label">P99</div>
+          <div class="bc-label">Max</div>
+        </div>
+
+        <div style="height:14px;"></div>
+
+        <div class="mock-section-title">得分明细 · 数据项分布</div>
+        <div class="mock-distbar">
+          <div class="db-col"><div class="db-bar s0" style="height:90%;"><div class="db-pct">76.34%<span class="db-cnt">7,592</span></div></div></div>
+          <div class="db-col"><div class="db-bar s1" style="height:22%;"><div class="db-pct">17.46%<span class="db-cnt">1,736</span></div></div></div>
+          <div class="db-col"><div class="db-bar s2" style="height:7%;"><div class="db-pct">4.9%<span class="db-cnt">487</span></div></div></div>
+          <div class="db-col"><div class="db-bar s3" style="height:3%;"><div class="db-pct">1.31%<span class="db-cnt">130</span></div></div></div>
+        </div>
+        <div class="mock-distbar-axis">
+          <div class="db-label">score 0</div>
+          <div class="db-label">1</div>
+          <div class="db-label">2</div>
+          <div class="db-label">3 （回流阈值 ≥ 2）</div>
+        </div>
+      </div>
+    </div>
+    <div class="code-caption" style="text-align:center;">▲ 实验分析视角：聚合得分（Min/Avg/P50/P90/P99/Max）+ 数据项分布</div>
+
+    <!-- Mock 4：数据集（bad case 自动回流后形成的样本集）-->
+    <div class="mockup">
+      <div class="mock-bar">
+        <div class="mock-dot r"></div><div class="mock-dot y"></div><div class="mock-dot g"></div>
+        <div class="mb-title">X-RAY · 数据集 · 意图召回数据集 - 从任务 意图召回回流 - 2026-05-11</div>
+      </div>
+      <div class="mock-body">
+        <div class="mock-breadcrumb">
+          <span>数据集 ›</span>
+          <span class="bc-strong"> 意图召回数据集 - 从任务回流 - 2026-05-11</span>
+          <span style="margin-left:10px;color:var(--text-tertiary);">创建 2026-05-12 00:15:25 · 更新 2026-05-12 00:15:25</span>
+        </div>
+
+        <div class="mock-split" style="grid-template-columns:1.7fr 1fr;">
+          <div class="mock-split-left" style="padding:0;background:#fff;">
+            <table class="mock-table">
+              <thead>
+                <tr>
+                  <th style="width:130px;">ID</th>
+                  <th>messages</th>
+                  <th>raw_input</th>
+                  <th>response_content</th>
+                  <th style="width:60px;">状态</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr style="background:#F5F9FF;">
+                  <td class="mt-id">cmp1******<br>******01</td>
+                  <td><span class="mt-trunc mt-mono">[{"role":"user","content":"…"…</span></td>
+                  <td><span class="mt-trunc mt-mono">[{"type":"CARDS","seqId":0…</span></td>
+                  <td><span class="mt-trunc mt-mono">&lt;query&gt;&lt;q&gt;****&lt;/q&gt;&lt;q&gt;****…</span></td>
+                  <td><span class="mock-status-active">ACTIVE</span></td>
+                </tr>
+                <tr>
+                  <td class="mt-id">cmp1******<br>******02</td>
+                  <td><span class="mt-trunc mt-mono">[{"role":"user","content":"…"…</span></td>
+                  <td><span class="mt-trunc mt-mono">[{"type":"CARDS","seqId":0…</span></td>
+                  <td><span class="mt-trunc mt-mono">&lt;query&gt;&lt;q&gt;****&lt;/q&gt;&lt;q&gt;****…</span></td>
+                  <td><span class="mock-status-active">ACTIVE</span></td>
+                </tr>
+                <tr>
+                  <td class="mt-id">cmp1******<br>******03</td>
+                  <td><span class="mt-trunc mt-mono">[{"role":"user","content":"…"…</span></td>
+                  <td><span class="mt-trunc mt-mono">[{"type":"CARDS","seqId":0…</span></td>
+                  <td><span class="mt-trunc mt-mono">&lt;query&gt;&lt;q&gt;****&lt;/q&gt;&lt;q&gt;****…</span></td>
+                  <td><span class="mock-status-active">ACTIVE</span></td>
+                </tr>
+                <tr>
+                  <td class="mt-id">cmp1******<br>******04</td>
+                  <td><span class="mt-trunc mt-mono">[{"role":"user","content":"…"…</span></td>
+                  <td><span class="mt-trunc mt-mono">[{"type":"CARDS","seqId":0…</span></td>
+                  <td><span class="mt-trunc mt-mono">&lt;query&gt;&lt;q&gt;****&lt;/q&gt;&lt;q&gt;****…</span></td>
+                  <td><span class="mock-status-active">ACTIVE</span></td>
+                </tr>
+                <tr>
+                  <td class="mt-id">cmp1******<br>******05</td>
+                  <td><span class="mt-trunc mt-mono">[{"role":"user","content":"…"…</span></td>
+                  <td><span class="mt-trunc mt-mono">[{"type":"CARDS","seqId":0…</span></td>
+                  <td><span class="mt-trunc mt-mono">&lt;query&gt;&lt;q&gt;****&lt;/q&gt;&lt;q&gt;****…</span></td>
+                  <td><span class="mock-status-active">ACTIVE</span></td>
+                </tr>
+              </tbody>
+            </table>
+            <div class="mock-table-foot">
+              <span>共 617 条 · 31 页 · 来自最近 7 次回流</span>
+              <span>每页 20 条</span>
+            </div>
+          </div>
+          <div class="mock-split-right">
+            <div style="font-size:11px;font-weight:700;color:var(--text);margin-bottom:10px;display:flex;justify-content:space-between;align-items:center;">
+              <span>样本回流溯源</span>
+              <span class="mock-status-active">ACTIVE</span>
+            </div>
+            <div class="mock-detail-row">
+              <span class="dl">ID</span>
+              <span class="dv mt-mono">cmp1***************01</span>
+            </div>
+            <div class="mock-detail-row">
+              <span class="dl">来源 TraceID</span>
+              <span class="dv mt-mono">cf0a***********4a2e9d**********</span>
+            </div>
+            <div class="mock-detail-row">
+              <span class="dl">回流任务</span>
+              <span class="dv"><span class="mock-pill purple">意图召回</span> · score ≥ 2</span>
+            </div>
+            <div class="mock-detail-row">
+              <span class="dl">入库时间</span>
+              <span class="dv">2026-05-12 03:38:57</span>
+            </div>
+            <div class="mock-detail-row">
+              <span class="dl">下一步</span>
+              <span class="dv" style="font-size:11px;color:var(--text-secondary);line-height:1.65;">作为<strong style="color:var(--text)">下一版离线回归</strong>的输入 · 验证修复后这条 case 是否还会被打低分。</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="code-caption" style="text-align:center;">▲ 数据集 = 评估体系的"资产沉淀"：bad case → 自动回流 → 下一版回归输入</div>
+  </div></div><!-- /3.4 panel -->
+
+  </div><!-- /.l3-panels -->
+</section>
+
+
+<!-- ════════════════════════════════════
+     第四层：行动
+════════════════════════════════════ -->
+<div class="white-bg" id="start">
+<section class="section">
+  <div class="section-label">第四层 · 开始行动</div>
+  <div class="section-title">根据你现在的状态，从这里开始</div>
+  <p class="section-desc">不需要把所有模块全部配好再开始。找到当前所处的阶段，按对应的起点进入。</p>
+
+  <div class="start-grid">
+
+    <!-- Card A: 离线起点 -->
+    <div class="start-card a">
+      <div class="start-hero">
+        <div class="start-hero-row">
+          <div class="start-letter">A</div>
+          <div>
+            <h4>Agent 还在开发，有一批已知 bad case</h4>
+            <div class="start-goal">验证修复效果，建立回归机制</div>
+          </div>
+        </div>
+        <div class="start-scene">
+          <div class="start-scene-art">
+            <svg width="48" height="48" viewBox="0 0 48 48" fill="none">
+              <rect x="6" y="8" width="22" height="32" rx="3" fill="#fff" stroke="#1677FF" stroke-width="1.5"/>
+              <line x1="10" y1="14" x2="24" y2="14" stroke="#c9dcff" stroke-width="1.2"/>
+              <line x1="10" y1="19" x2="24" y2="19" stroke="#c9dcff" stroke-width="1.2"/>
+              <line x1="10" y1="24" x2="20" y2="24" stroke="#c9dcff" stroke-width="1.2"/>
+              <line x1="10" y1="29" x2="22" y2="29" stroke="#c9dcff" stroke-width="1.2"/>
+              <circle cx="36" cy="14" r="4" fill="#FFF1F0" stroke="#cf1322" stroke-width="1.2"/>
+              <text x="36" y="17" text-anchor="middle" font-size="6" fill="#cf1322" font-weight="700">!</text>
+              <circle cx="36" cy="24" r="4" fill="#FFF1F0" stroke="#cf1322" stroke-width="1.2"/>
+              <text x="36" y="27" text-anchor="middle" font-size="6" fill="#cf1322" font-weight="700">!</text>
+              <circle cx="36" cy="34" r="4" fill="#F6FFED" stroke="#52C41A" stroke-width="1.2"/>
+              <path d="M34 34 L35.5 35.5 L38 33" stroke="#52C41A" stroke-width="1.2" fill="none" stroke-linecap="round"/>
+            </svg>
+          </div>
+          <div class="start-scene-text">
+            <strong>离线起点</strong>：先把 bad case 沉淀成数据集，再让评估器告诉你"是否修好了"
+          </div>
+        </div>
+      </div>
+
+      <ol class="start-steps">
+        <li class="start-step">
+          <div class="start-step-num">1</div>
+          <div class="start-step-body">
+            <div class="start-step-title">建数据集，把 bad case 上传</div>
+            <div class="start-step-meta">
+              <span class="start-step-chip">📋 数据集</span>
+              <span>设计字段：输入 / 期望输出 / 标签</span>
+            </div>
+          </div>
+        </li>
+        <li class="start-step">
+          <div class="start-step-num">2</div>
+          <div class="start-step-body">
+            <div class="start-step-title">创建 LLM 评估器</div>
+            <div class="start-step-meta">
+              <span class="start-step-chip">🧠 评估器</span>
+              <span>写 Prompt 定义「修复」的判断标准</span>
+            </div>
+          </div>
+        </li>
+        <li class="start-step">
+          <div class="start-step-num">3</div>
+          <div class="start-step-body">
+            <div class="start-step-title">建离线评估任务，配置 Agent 回放</div>
+            <div class="start-step-meta">
+              <span class="start-step-chip">⚙️ 评估任务</span>
+              <span>选 ALLIN / REDNA 或填接口信息</span>
+            </div>
+          </div>
+        </li>
+        <li class="start-step">
+          <div class="start-step-num">4</div>
+          <div class="start-step-body">
+            <div class="start-step-title">跑一次，抽查 reason 是否符合预期</div>
+            <div class="start-step-meta">
+              <span class="start-step-chip">🔍 校准</span>
+              <span>确认评估器方向正确</span>
+            </div>
+          </div>
+        </li>
+        <li class="start-step">
+          <div class="start-step-num">5</div>
+          <div class="start-step-body">
+            <div class="start-step-title">每次迭代后重跑，得分对比 = 验证结论</div>
+            <div class="start-step-meta">
+              <span class="start-step-chip">🔁 回归</span>
+              <span>建立持续的版本基线</span>
+            </div>
+          </div>
+        </li>
+      </ol>
+
+      <div class="start-foot">
+        <span class="start-foot-out">产出：可复用的离线评估管线</span>
+        <a class="start-link" href="https://docs.xiaohongshu.com/doc/3ca64616209c5a61db985f6697ad839a" target="_blank">快速开始文档 →</a>
+      </div>
+    </div>
+
+    <!-- Card B: 在线起点 -->
+    <div class="start-card b">
+      <div class="start-hero">
+        <div class="start-hero-row">
+          <div class="start-letter">B</div>
+          <div>
+            <h4>Agent 已上线，想马上监控线上效果</h4>
+            <div class="start-goal">持续发现 bad case，建立质量感知</div>
+          </div>
+        </div>
+        <div class="start-scene">
+          <div class="start-scene-art">
+            <svg width="48" height="48" viewBox="0 0 48 48" fill="none">
+              <path d="M6 36 Q14 24 22 30 T42 18" stroke="#722ED1" stroke-width="1.6" fill="none"/>
+              <circle cx="14" cy="29" r="2.2" fill="#722ED1"/>
+              <circle cx="22" cy="30" r="2.2" fill="#722ED1"/>
+              <circle cx="32" cy="22" r="2.2" fill="#cf1322"/>
+              <circle cx="32" cy="22" r="5" fill="none" stroke="#cf1322" stroke-width="1" stroke-dasharray="2 2"/>
+              <circle cx="42" cy="18" r="2.2" fill="#722ED1"/>
+              <line x1="6" y1="40" x2="46" y2="40" stroke="#d3b8f5" stroke-width="0.8"/>
+              <line x1="6" y1="8" x2="6" y2="40" stroke="#d3b8f5" stroke-width="0.8"/>
+            </svg>
+          </div>
+          <div class="start-scene-text">
+            <strong>在线起点</strong>：从真实流量里采样，自动找出低分样本，再回流形成数据集
+          </div>
+        </div>
+      </div>
+
+      <ol class="start-steps">
+        <li class="start-step">
+          <div class="start-step-num">1</div>
+          <div class="start-step-body">
+            <div class="start-step-title">确认 X-RAY 链路可见</div>
+            <div class="start-step-meta">
+              <span class="start-step-chip">🔌 链路</span>
+              <span>基于 ARKAI / ALLIN 的智能体默认上报，参考 <a href="https://docs.xiaohongshu.com/doc/c027e7e5aee31a74dd00a534b3090f9e" target="_blank">AI 应用链路规范 ↗</a></span>
+            </div>
+          </div>
+        </li>
+        <li class="start-step">
+          <div class="start-step-num">2</div>
+          <div class="start-step-body">
+            <div class="start-step-title">配 LLM 配置</div>
+            <div class="start-step-meta">
+              <span class="start-step-chip">🧩 LLM</span>
+              <span>选好底层评估模型</span>
+            </div>
+          </div>
+        </li>
+        <li class="start-step">
+          <div class="start-step-num">3</div>
+          <div class="start-step-body">
+            <div class="start-step-title">创建评估器</div>
+            <div class="start-step-meta">
+              <span class="start-step-chip">🧠 评估器</span>
+              <span>先聚焦最关心的 1~2 个维度</span>
+            </div>
+          </div>
+        </li>
+        <li class="start-step">
+          <div class="start-step-num">4</div>
+          <div class="start-step-body">
+            <div class="start-step-title">建在线链路评估任务</div>
+            <div class="start-step-meta">
+              <span class="start-step-chip">⚙️ 任务</span>
+              <span>trace 筛选 + 采样率（建议 5%）+ 按天</span>
+            </div>
+          </div>
+        </li>
+        <li class="start-step">
+          <div class="start-step-num">5</div>
+          <div class="start-step-body">
+            <div class="start-step-title">手动触发一次，抽查 reason</div>
+            <div class="start-step-meta">
+              <span class="start-step-chip">🔍 校准</span>
+              <span>字段映射正确后开启自动调度</span>
+            </div>
+          </div>
+        </li>
+        <li class="start-step">
+          <div class="start-step-num">6</div>
+          <div class="start-step-body">
+            <div class="start-step-title">开启数据回流</div>
+            <div class="start-step-meta">
+              <span class="start-step-chip">📥 回流</span>
+              <span>低分样本自动写入数据集</span>
+            </div>
+          </div>
+        </li>
+      </ol>
+
+      <div class="start-foot">
+        <span class="start-foot-out">产出：在线监控 + 数据飞轮闭环</span>
+        <a class="start-link" href="https://docs.xiaohongshu.com/doc/2314f724fe2c6b95f78cbd4b8091e93f" target="_blank">快速开始文档 →</a>
+      </div>
+    </div>
+
+  </div>
+</section>
+</div>
+
+
+<!-- ════════════════════════════════════
+     FOOTER
+════════════════════════════════════ -->
+<div class="footer">
+  <div class="footer-inner">
+    <div class="footer-label">X-RAY · AI 应用评估</div>
+    <div class="footer-title">把「感觉不错」<br>变成「有数据、有记录、能追溯」</div>
+    <p class="footer-desc">从建立第一个数据集开始，评估体系随每次迭代持续积累价值。</p>
+    <div class="footer-cta-row">
+      <a href="https://xray.devops.xiaohongshu.com/aiobservation/aievaluation?projectId=cmht3lmqy0001vj07an15cq8n&aiTab=evaluator" class="footer-cta" target="_blank">↗ 打开 X-RAY · 自动评估</a>
+      <a href="https://docs.xiaohongshu.com/doc/f05c18bfd4ed1e4fed4940dbd979a0bb" class="footer-cta ghost" target="_blank">📖 查看完整使用文档</a>
+    </div>
+    <div class="footer-meta">
+      X-RAY 平台 · 小红书技术风险 · 如有问题或建议，欢迎直接反馈
+    </div>
+  </div>
+</div>
+
+<script>
+  // 评估地图 4 Tabs
+  document.querySelectorAll('.lc-tab').forEach(tab => {
+    tab.addEventListener('click', () => {
+      const target = tab.getAttribute('data-lctab');
+      document.querySelectorAll('.lc-tab').forEach(t => t.classList.remove('active'));
+      document.querySelectorAll('.lc-panel').forEach(p => p.classList.remove('active'));
+      tab.classList.add('active');
+      const panel = document.querySelector(`.lc-panel[data-lcpanel="${target}"]`);
+      if (panel) panel.classList.add('active');
+    });
+  });
+
+  // 配置 4 Tabs (Layer3)
+  document.querySelectorAll('.l3-tab').forEach(tab => {
+    tab.addEventListener('click', () => {
+      const target = tab.getAttribute('data-l3tab');
+      document.querySelectorAll('.l3-tab').forEach(t => t.classList.remove('active'));
+      document.querySelectorAll('.l3-panel').forEach(p => p.classList.remove('active'));
+      tab.classList.add('active');
+      const panel = document.querySelector(`.l3-panel[data-l3panel="${target}"]`);
+      if (panel) panel.classList.add('active');
+    });
+  });
+</script>
+
+</body>
+</html>

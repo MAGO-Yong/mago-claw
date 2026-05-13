@@ -1,0 +1,377 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+html, body {
+  width: 1200px;
+  height: 1600px;
+  overflow: hidden;
+  font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Noto Sans SC", "Helvetica Neue", Arial, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  background: #fff;
+}
+
+/* ══ TOP: gradient hero (960px) ═══════════════════════════════════════════ */
+.top {
+  width: 1200px;
+  height: 820px;
+  background: linear-gradient(150deg, #1046b8 0%, #1677FF 30%, #5b18c8 65%, #3a0a82 100%);
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  padding: 56px 88px 60px;
+}
+
+/* Radial highlight blobs */
+.top::before {
+  content: '';
+  position: absolute; inset: 0;
+  background:
+    radial-gradient(ellipse 55% 40% at 18% 18%, rgba(255,255,255,0.11) 0%, transparent 60%),
+    radial-gradient(ellipse 45% 35% at 82% 65%, rgba(255,255,255,0.07) 0%, transparent 55%),
+    radial-gradient(ellipse 70% 30% at 50% 105%, rgba(0,0,0,0.22) 0%, transparent 60%);
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* Grid */
+.top::after {
+  content: '';
+  position: absolute; inset: 0;
+  background-image:
+    linear-gradient(rgba(255,255,255,0.035) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255,255,255,0.035) 1px, transparent 1px);
+  background-size: 80px 80px;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.top-content {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+/* Badge */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(255,255,255,0.13);
+  border: 1px solid rgba(255,255,255,0.28);
+  border-radius: 24px;
+  padding: 7px 20px;
+  font-size: 18px;
+  color: rgba(255,255,255,0.92);
+  letter-spacing: 0.5px;
+  margin-bottom: 36px;
+  align-self: flex-start;
+}
+.badge-dot {
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  background: #52C41A;
+  box-shadow: 0 0 8px #52C41A;
+  flex-shrink: 0;
+}
+
+/* Product label */
+.product-label {
+  font-size: 18px;
+  font-weight: 600;
+  color: rgba(255,255,255,0.55);
+  letter-spacing: 3.5px;
+  text-transform: uppercase;
+  margin-bottom: 20px;
+}
+
+/* Headline */
+.headline {
+  font-size: 92px;
+  font-weight: 800;
+  color: #fff;
+  line-height: 1.1;
+  letter-spacing: -2px;
+  margin-bottom: 28px;
+}
+.headline .hl { color: #a8c8ff; }
+
+/* Tagline */
+.tagline {
+  font-size: 24px;
+  color: rgba(255,255,255,0.78);
+  line-height: 1.75;
+  margin-bottom: 0;
+}
+
+/* Spacer push */
+.spacer { height: 20px; }
+
+/* 3 Cards */
+.cards {
+  display: flex;
+  gap: 18px;
+  width: 100%;
+}
+.card {
+  flex: 1;
+  background: rgba(255,255,255,0.09);
+  border: 1px solid rgba(255,255,255,0.18);
+  border-radius: 16px;
+  padding: 26px 26px;
+  backdrop-filter: blur(6px);
+}
+.card-icon {
+  width: 42px; height: 42px;
+  border-radius: 11px;
+  display: flex; align-items: center; justify-content: center;
+  margin-bottom: 16px;
+}
+.card-icon.blue   { background: rgba(22,119,255,0.38); }
+.card-icon.violet { background: rgba(114,46,209,0.38); }
+.card-icon.green  { background: rgba(82,196,26,0.30); }
+.card-title {
+  font-size: 20px;
+  font-weight: 700;
+  color: #fff;
+  margin-bottom: 9px;
+}
+.card-desc {
+  font-size: 16px;
+  color: rgba(255,255,255,0.70);
+  line-height: 1.6;
+}
+
+/* ══ BOTTOM: white zone (640px) ══════════════════════════════════════════ */
+.bottom {
+  width: 1200px;
+  height: 780px;
+  background: #ffffff;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  padding: 60px 88px 48px;
+}
+
+/* Top colored strip */
+.bottom::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 5px;
+  background: linear-gradient(90deg, #1677FF 0%, #722ED1 100%);
+}
+
+/* Section heading */
+.section-label {
+  font-size: 15px;
+  font-weight: 600;
+  color: #1677FF;
+  letter-spacing: 2.5px;
+  text-transform: uppercase;
+  margin-bottom: 14px;
+}
+
+/* Summary */
+.summary-title {
+  font-size: 40px;
+  font-weight: 800;
+  color: #0d1b35;
+  line-height: 1.25;
+  margin-bottom: 20px;
+  letter-spacing: -0.5px;
+}
+.summary-body {
+  font-size: 20px;
+  color: #4a5568;
+  line-height: 1.8;
+  margin-bottom: 28px;
+}
+
+/* Checklist */
+.checklist {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 32px;
+}
+.check-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 18px;
+  color: #2d3748;
+}
+.dot {
+  width: 9px; height: 9px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.dot.b { background: #1677FF; }
+.dot.v { background: #722ED1; }
+.dot.t { background: #0891b2; }
+.dot.a { background: #d97706; }
+
+/* 4 pillars */
+.pillars {
+  display: flex;
+  gap: 0;
+  border-top: 1px solid #e8edf5;
+  padding-top: 26px;
+  margin-bottom: 26px;
+}
+.pillar {
+  flex: 1;
+  padding-right: 24px;
+  border-right: 1px solid #e8edf5;
+  margin-right: 24px;
+}
+.pillar:last-child { border-right: none; margin-right: 0; padding-right: 0; }
+.pillar-num {
+  font-size: 30px;
+  font-weight: 800;
+  margin-bottom: 5px;
+  letter-spacing: -0.5px;
+}
+.pillar-num.b { color: #1677FF; }
+.pillar-num.v { color: #722ED1; }
+.pillar-num.t { color: #0891b2; }
+.pillar-num.a { color: #d97706; }
+.pillar-label {
+  font-size: 16px;
+  font-weight: 700;
+  color: #1a1a2e;
+  margin-bottom: 3px;
+}
+.pillar-sub { font-size: 13px; color: #8b95ab; line-height: 1.5; }
+
+/* Footer */
+.footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-top: 1px solid #e8edf5;
+  padding-top: 18px;
+  margin-top: auto;
+}
+.footer-brand { display: flex; align-items: center; gap: 10px; }
+.footer-logo {
+  width: 32px; height: 32px;
+  border-radius: 8px;
+  background: linear-gradient(135deg, #1677FF, #722ED1);
+  display: flex; align-items: center; justify-content: center;
+  color: #fff; font-size: 14px; font-weight: 800; letter-spacing: -1px;
+}
+.footer-name { font-size: 17px; font-weight: 600; color: #1a1a2e; }
+.footer-name span { color: #8b95ab; font-weight: 400; }
+.footer-url { font-size: 15px; color: #8b95ab; font-family: "SF Mono","Menlo",monospace; }
+</style>
+</head>
+<body>
+
+<!-- TOP hero -->
+<div class="top">
+  <div class="top-content">
+    <div>
+      <div class="badge">
+        <div class="badge-dot"></div>
+        X-RAY · AI 应用评估 · 正式上线
+      </div>
+      <div class="product-label">X-RAY · XPILOT</div>
+      <div class="headline">
+        你的 Agent，<br><span class="hl">表现如何？</span>
+      </div>
+      <div class="tagline">
+        Agent 的输出是模型、工具、知识库和多轮交互的综合结果<br>
+        X-RAY 提供一套完整的评估体系，帮你看清每一层
+      </div>
+    </div>
+
+    <div class="spacer"></div>
+
+    <div class="cards">
+      <div class="card">
+        <div class="card-icon blue">
+          <svg width="22" height="22" fill="none" viewBox="0 0 24 24">
+            <circle cx="12" cy="12" r="9" stroke="rgba(255,255,255,0.9)" stroke-width="1.8"/>
+            <path d="M8 12l3 3 5-5" stroke="rgba(255,255,255,0.9)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </div>
+        <div class="card-title">误解 → 正确理解</div>
+        <div class="card-desc">评估不是测试准确率，而是建立持续改进的反馈飞轮</div>
+      </div>
+      <div class="card">
+        <div class="card-icon violet">
+          <svg width="22" height="22" fill="none" viewBox="0 0 24 24">
+            <rect x="3" y="3" width="18" height="18" rx="3" stroke="rgba(255,255,255,0.9)" stroke-width="1.8"/>
+            <path d="M3 9h18M9 21V9" stroke="rgba(255,255,255,0.9)" stroke-width="1.8" stroke-linecap="round"/>
+          </svg>
+        </div>
+        <div class="card-title">四阶段评估地图</div>
+        <div class="card-desc">从认知建立、指标体系、评估执行到结果解读的完整路径</div>
+      </div>
+      <div class="card">
+        <div class="card-icon green">
+          <svg width="22" height="22" fill="none" viewBox="0 0 24 24">
+            <path d="M13 2L4.5 13H12l-1 9 8.5-11H12l1-9z" stroke="rgba(255,255,255,0.9)" stroke-width="1.8" stroke-linejoin="round"/>
+          </svg>
+        </div>
+        <div class="card-title">两条起点任选</div>
+        <div class="card-desc">已有数据集直接配置；从零开始用采集工具快速积累样本</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- BOTTOM white zone -->
+<div class="bottom">
+  <div class="section-label">本文要点</div>
+  <div class="summary-title">读完这篇，你能做到的四件事</div>
+  <div class="summary-body">说清楚 AI 评估到底在评什么、拿到一套适合 Agent 的指标体系、在 X-RAY 完成第一次评估任务、看懂报告并驱动下一轮迭代</div>
+
+  <div class="checklist">
+    <div class="check-item"><div class="dot b"></div>理解评估 ≠ 测试，建立正确的评估认知框架</div>
+    <div class="check-item"><div class="dot v"></div>选择适合你 Agent 的评估指标：忠实度、准确率、完整性</div>
+    <div class="check-item"><div class="dot t"></div>配置评估任务，使用代码 / LLM / 人工三档评估器</div>
+    <div class="check-item"><div class="dot a"></div>解读评估报告，建立数据飞轮驱动持续改进</div>
+  </div>
+
+  <div class="pillars">
+    <div class="pillar">
+      <div class="pillar-num b">01</div>
+      <div class="pillar-label">建立认知</div>
+      <div class="pillar-sub">误解与正确理解<br>评估 vs 测试的本质差异</div>
+    </div>
+    <div class="pillar">
+      <div class="pillar-num v">02</div>
+      <div class="pillar-label">评估地图</div>
+      <div class="pillar-sub">四阶段完整框架<br>数据飞轮持续积累</div>
+    </div>
+    <div class="pillar">
+      <div class="pillar-num t">03</div>
+      <div class="pillar-label">配置机制</div>
+      <div class="pillar-sub">评估器 · 任务 · 结果<br>代码 / LLM / 人工三档</div>
+    </div>
+    <div class="pillar">
+      <div class="pillar-num a">04</div>
+      <div class="pillar-label">开始行动</div>
+      <div class="pillar-sub">A / B 两条起点<br>从第一次评估开始</div>
+    </div>
+  </div>
+
+  <div class="footer">
+    <div class="footer-brand">
+      <div class="footer-logo">XR</div>
+      <div class="footer-name">X-RAY <span>· 小红书技术风险</span></div>
+    </div>
+    <div class="footer-url">xray.devops.xiaohongshu.com</div>
+  </div>
+</div>
+
+</body>
+</html>

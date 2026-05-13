@@ -12,15 +12,17 @@
 - 【每天 08:00】`work-daily-report` cron：按三大工作方向汇总日报 → 延续上期待做对比 → Hi 发送（2026-04-19 改为每天跑）
 
 ### 待跟进（一次性）
-- [ ] execute_tool Span 框架层采集现状确认（拖延 21 天+，M1 执行第 11 天仍未启动）
-- [ ] 告警诊断需求文档 v0.6 与对话 v0.2 合并归档（拖延 21 天+，M1 窗口已开但零输入）
-- [ ] xray-log-query P0 SKILL 修复（subApplication 参数格式说明，拖延 21 天+）
+- [ ] REQ-001 子需求推进（5/12 用户上线定级）：P0-1 页面嵌入（前端已排期✅）、P0-2 Langfuse 同步（接口已有✅）、P0-3 数据集上传（待开发）；P1×3、P2×4 → 详见 requirements.md + requirements-board.html
+- [ ] execute_tool Span 框架层采集现状确认（拖延 30 天+，跨 M1/M2）
+- [ ] 告警诊断需求文档 v0.6 与对话 v0.2 合并归档（拖延 30 天+，跨 M1/M2）
+- [ ] xray-log-query P0 SKILL 修复（subApplication 参数格式说明，拖延 30 天+，跨 M1/M2）
 - [ ] 新项目 `mahengyang/obs-token` 云效流水线创建（4/29 启动，Agent 已给 3 个方案，待用户确认语言栈和类型）
 - [ ] LangChain Deep Agents 学习笔记收集（4/29 建立协作机制，用户开始学习中，`langchain-learning-notes.md`）
 - [ ] 5-6 月双月 OKR 转 REDoc 文档（定稿已完成，待归档）
 - [ ] Agent 诊断 UI 设计方向确认，出对比稿（方向已确认，待执行）
 - [ ] AgentOps REDoc 文档 18 条评论改造（用户确认后执行）
-- [ ] QS AutoFlow 合作方案文档 + 与小庄约讨论（方向二连续 12 天零产出，M1 启动后仍无动作）
+- [ ] QS AutoFlow 合作方案文档 + 与小庄约讨论（方向二有首个 MVP：需求管理机制，但 AutoFlow 方案仍停滞）
+- [ ] 用户自写的 OKR Skill 文件找回（5/12 用户询问，本地未找到，可能在旧对话中未保存或已丢失）
 - [x] ~~万豪 Q1 注册截止 2026-04-26~~ ✅ 已取消跟踪（2026-04-18 用户要求）
 - [x] ~~AI 诊断卡片设计~~ ✅ v4 确认可用，设计说明文档已发布 REDoc（2026-04-20）
 - [x] ~~XRay Skills V2 PR 稿~~ ✅ 已发布 REDoc（2026-04-21）
