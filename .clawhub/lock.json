@@ -47,43 +47,43 @@
     },
     "calendar": {
       "version": "1.0.8",
-      "installedAt": 1778681614813
+      "installedAt": 1778767976335
     },
     "summarize": {
       "version": "1.0.0",
-      "installedAt": 1778681615358
+      "installedAt": 1778767976870
     },
     "docx": {
       "version": "1.0.0",
-      "installedAt": 1778681615991
+      "installedAt": 1778767977435
     },
     "pptx": {
       "version": "1.0.0",
-      "installedAt": 1778681616606
+      "installedAt": 1778767978298
     },
     "xlsx": {
       "version": "1.0.0",
-      "installedAt": 1778681617235
+      "installedAt": 1778767978882
     },
     "hi-docs": {
       "version": "1.0.11",
-      "installedAt": 1778681617790
+      "installedAt": 1778767979420
     },
     "hi-im": {
       "version": "1.0.10",
-      "installedAt": 1778681618323
+      "installedAt": 1778767979941
     },
     "hi-search": {
       "version": "1.0.12",
-      "installedAt": 1778681619101
+      "installedAt": 1778767980465
     },
     "hi-todos": {
       "version": "1.0.11",
-      "installedAt": 1778681619640
+      "installedAt": 1778767980986
     },
     "hi-calendar": {
       "version": "1.0.10",
-      "installedAt": 1778681620189
+      "installedAt": 1778767981503
     },
     "ones-assistant": {
       "version": "1.0.10",
@@ -128,6 +128,10 @@
     "meal-order-skill": {
       "version": "1.0.5",
       "installedAt": 1776765891362
+    },
+    "seal-sync-skills": {
+      "version": "1.0.1",
+      "installedAt": 1778743361626
     }
   }
 }

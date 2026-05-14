@@ -1,17 +1,85 @@
-# Backup Diff Report
-**Date**: 2026-05-12
-**Compare against**: 2026-05-07 (most recent previous backup)
+# Workspace Daily Diff
 
-## File-level Changes
+## Date: 2026-05-15 (vs 2026-05-14)
 
+### Changed files:
 
-## New Files
+#### MEMORY.md
+```diff
+39a40,42
+>   - **XRAY-CLI 正式上线（2026-05-13）**：AI-First 设计，默认非交互 + 结构化 JSON 输出，`--human` 进入交互模式
+>   - Skill = 语言接口（人→AI→XRay），CLI = 程序接口（程序→XRay→JSON）
+>   - 架构方向：诊断 Skill 内数据采集可换 CLI，Skill 专注推理判断
+142a146,150
+> 
+> **宣发封面图设计规范**（2026-05-13 确立）
+> - 上半部蓝紫渐变背景 + 3D 产品插画 + 标题文字，下半部白色区域 + 4 大支柱 + 品牌 footer
+> - 使用团队提供的 3D 等距插画作为视觉主体，Agent 负责合成
+> - **教训**：用户给参考图 = 直接用图做，不要过度分析「为什么难做」然后给选项
+```
 
-只在 backup/2026-05-12/snapshot/memory/daily-digest 存在：2026-05-06.md
-只在 backup/2026-05-12/snapshot/memory/work-log 存在：2026-05-07.md
+#### memory/daily-digest/2026-05-13.md
+```diff
+3c3
+< > **关键变化：连续零交互终结，用户上线完成需求定级 + 评估落地页交付。**
+---
+> > **关键变化：连续零交互终结，用户上线完成需求定级 + 评估落地页交付 + XRAY-CLI 正式上线讨论 + 宣发封面图定稿。**
+63,64c63,104
+< *生成方式：daily-digest cron · 读取 3 个 webchat 会话*
+< *生成时间：2026-05-13 08:05*
+---
+> ---
+> 
+> ## 💡 下午追加：XRAY-CLI 正式上线（~16:30）
+> 
+> ### 1. 「所以 CLI 和 SKILL 的本质区别，适用场景，以及优势是什么呢」
+> **用户原话**：「所以 CLI 和 SKILL 的本质区别，适用场景，以及优势是什么呢」
+> 
+> **价值**：用户在 XRAY-CLI 刚上线的当下，没有急着去用，而是先问**本质区别**。这是一个典型的「先理解架构，再决定怎么用」的思考方式。
+> 
+> **讨论结论**：
+> - **Skill = 语言接口**（人说话 → AI 理解 → 调 API → 回复人话）
+> - **CLI = 程序接口**（程序传参 → 直接调 API → 返回 JSON → 程序继续处理）
+> - 关键架构升级方向：诊断 Skill 内部数据采集可换成 CLI，Skill 专注推理判断，数据走 CLI，职责更清晰，准确率更稳定
+> 
+> ### 2. 对 OKR 架构影响的即时判断
+> 用户看到 CLI 上线后，立即意识到它与自己 5-6 月 OKR（KR1 通用诊断 Skill 准确率≥70%）的潜在关系——Skill 层跑推理，CLI 层跑数据采集，分层架构可以提升准确率稳定性。
+> 
+> ---
+> 
+> ## 🆕 新发现（下午追加）
+> 
+> ### 1. XRAY-CLI AI-First 设计确认
+> - 默认非交互模式 + 结构化 JSON 输出
+> - 不是给 CLI 加个 `--json` flag 就叫 AI-First，而是**从交互模型层面就为 Agent 调用设计**
+> - `--human` flag 进入交互模式（给人用），默认模式给程序用
+> 
+> ### 2. 评估落地页 Prototype v2 完整交付
+> - 覆盖 5 个 TAB 的所有子页面和抽屉
+> - HTML 文件通过 Hi 发送，可下载本地浏览器预览
+> 
+> ---
+> 
+> ## ⚠️ 教训（下午追加）
+> 
+> ### Agent 在封面图迭代中绕弯子
+> 用户发了一张参考图并要求模仿样式，Agent 先分析了 3D 插画风格的复杂性、给了三个选项让用户选，被用户直接骂「你啥傻逼吗」。
+> → **教训**：用户给参考图 = 直接照着做，不要过度分析「为什么难做」然后给选项。先做，做了再说。
+> 
+> ---
+> 
+> *生成方式：daily-digest cron · 读取 5 个 webchat 会话（含下午追加）*
+> *首次生成：2026-05-13 08:05 | 追加更新：2026-05-14 08:00*
+```
 
-## Content Diff (MEMORY.md)
+### New files:
 
+- memory/2026-05-14.md (NEW)
+- memory/work-log/2026-05-14.md (NEW)
 
-## Content Diff (AGENTS.md)
+### Unchanged:
 
+- SOUL.md
+- AGENTS.md
+- ROUTING.md
+- agents/*
