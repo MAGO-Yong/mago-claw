@@ -1,50 +1,47 @@
-# Backup Diff: 2026-04-12 → 2026-04-13
+# Daily Backup Diff: 2026-05-15 → 2026-05-16
 
-Generated: 2026-04-13 02:01:33
+Generated: 2026-05-16 02:02:00 CST
 
 ## MEMORY.md
+  ⚠️ Changes detected:
 ```diff
-416a417,442
-> ## 📈 W15 成长报告摘要（2026-04-12 更新）
-> 
-> **本周里程碑**：
-> 1. **xray-log-query 评估完成**：综合 4.33/5.0，PASS，发现 4 个 SKILL 设计缺陷（P0：pod名误识别/接口路径泄露/响应无数据量约束/降级静默）
-> 2. **AI Agent/Skill 可观测性规范 v9 定稿**：小红书内部 TC 工程底线规范，三类对象（LLM推理引擎/Skill/Agent）分别观测，强制收窄原则，SLO = Baseline×90%
-> 3. **XRay 告警 Hi IM 原型完成**：`xray-native-v2.html` 五节点全链路（136KB），四状态告警卡片 + Claw A链路配置，产品链路全貌重绘
-> 4. **AgentOps 平台深度规划完成**：两方向框架（OPS for Agent + Agent Native），六章完整写入 REDoc，13 个全局卡点，行业一手技术洞察（NeMo/OTel/LangSmith）
-> 
-> **关键洞察蒸馏**：
-> - **Skill 工程质量是 Agent 能力天花板**：修 SKILL，而不是责怪 Agent 推理
-> - **规范文档的力量在"强制收窄"**：只强制"没有会出严重问题"的条款，每条加"为什么"
-> - **竞品调研必须去官方文档拿具体数字**，综述文章信息密度低 10 倍
-> - **AgentOps = OPS 平台 Agent Native 化**（不只是针对 Agent 的运维），这个定位升维解决了架构争议
-> - **REDoc 大文档操作**：>100 块必须 `--offset/--limit` 分批读，全量写入用 stdin 管道
-> 
-> **本周未解决（持续跟进）**：
-> - AgentOps 文档 18 条评论改造（用户确认后执行）
-> - 万豪 Q1 注册截止 **2026-04-26**（⚠️ 紧迫！）
-> - xray-log-query P0 SKILL 修复（subApplication 参数格式说明）
-> 
-> **周报文件**：`memory/weekly/2026-W15-growth-report.md`
-> 
-> *最后更新: 2026-04-12 — W15 周报生成*
-> 
-> ---
-> 
+--- backup/2026-05-15/snapshot/MEMORY.md	2026-05-15 02:01:23.109344812 +0800
++++ backup/2026-05-16/snapshot/MEMORY.md	2026-05-16 02:01:30.854920016 +0800
+@@ -13,9 +13,9 @@
+ 
+ ### 待跟进（一次性）
+ - [ ] REQ-001 子需求推进（5/12 用户上线定级）：P0-1 页面嵌入（前端已排期✅）、P0-2 Langfuse 同步（接口已有✅）、P0-3 数据集上传（待开发）；P1×3、P2×4 → 详见 requirements.md + requirements-board.html
+-- [ ] execute_tool Span 框架层采集现状确认（拖延 30 天+，跨 M1/M2）
+-- [ ] 告警诊断需求文档 v0.6 与对话 v0.2 合并归档（拖延 30 天+，跨 M1/M2）
+-- [ ] xray-log-query P0 SKILL 修复（subApplication 参数格式说明，拖延 30 天+，跨 M1/M2）
++- [ ] execute_tool Span 框架层采集现状确认（拖延 33 天+，跨 M1/M2）
++- [ ] 告警诊断需求文档 v0.6 与对话 v0.2 合并归档（拖延 33 天+，跨 M1/M2）
++- [ ] xray-log-query P0 SKILL 修复（subApplication 参数格式说明，拖延 33 天+，跨 M1/M2）
+ - [ ] 新项目 `mahengyang/obs-token` 云效流水线创建（4/29 启动，Agent 已给 3 个方案，待用户确认语言栈和类型）
+ - [ ] LangChain Deep Agents 学习笔记收集（4/29 建立协作机制，用户开始学习中，`langchain-learning-notes.md`）
+ - [ ] 5-6 月双月 OKR 转 REDoc 文档（定稿已完成，待归档）
 ```
 
 ## SOUL.md
-_No changes_
+  ✅ No changes
 
 ## AGENTS.md
-_No changes_
+  ✅ No changes
 
 ## ROUTING.md
-_No changes_
+  ✅ No changes
 
-## memory/ 目录变更
-```
-文件 backup/2026-04-12/memory/self-improving.md 和 backup/2026-04-13/memory/self-improving.md 不同
-只在 backup/2026-04-13/memory/weekly 存在：2026-W15-growth-report.md
-```
+## memory/ directory
+  ✅ No new or removed files
 
+## agents/ directory
+  🆕 New files:
+    - /agents/invest/SOUL.md
+    - /agents/life/marriott/marriott_q1_checklist.md
+    - /agents/life/SOUL.md
+    - /agents/work/SOUL.md
+  ❌ Removed files:
+    - /invest/SOUL.md
+    - /life/marriott/marriott_q1_checklist.md
+    - /life/SOUL.md
+    - /work/SOUL.md
