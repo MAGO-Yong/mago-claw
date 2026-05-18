@@ -185,6 +185,30 @@
 *更新：2026-04-12（W15 周报蒸馏）*
 *更新：2026-04-19（W16 周报蒸馏）*
 *更新：2026-05-03（W18 周报蒸馏）*
+*更新：2026-05-17（W20 周报蒸馏）*
+
+## 本周新增规则（2026-W20）
+
+### 交付模式：容器环境 → patch 文件 → 本地应用
+- 当 Agent 需要修改用户本地前端代码但无法在容器跑 dev server 时（依赖本地 hosts + 外网 CDN + 鉴权）
+- 生成 patch 文件 → 启动内部 HTTP 服务 → 用户在本地 `curl | git apply`
+- 不要尝试在容器环境模拟本地开发环境（hosts/CDN/鉴权都不满足）
+- 这是「云端 Agent 帮本地开发」的标准交付模式
+
+### Proxy 配置排查顺序
+- 1) 确认 proxy 在跑（`lsof -ti :8089`）
+- 2) 确认环境变量 `ANTHROPIC_BASE_URL` 指向正确端口
+- 3) 确认 Claude Code 已 `/logout` 清除本地 credentials
+- 4) 再启动 Claude Code
+- **注意**：不要在 proxy 跑着时 `source ~/.zshrc`，会引发 kill 冲突
+- **最快恢复命令**：`lsof -ti :8089 | xargs kill -9 && cd ~/Documents/New\ project/claude-proxy && ./target/release/claude-proxy --obs-token-url http://10.40.49.142:8090 &`
+
+### 先评估环境依赖再动手
+- 2026-05-13 犯过的错：formula dev server 在容器环境跑不起来，花了很多时间尝试后才确认限制
+- **规则**：启动 dev server 类任务前，先检查：hosts 绑定、CDN 可达性、鉴权方式
+- 如果任一不满足，立即切换到替代方案（patch/文件交付），不要死磕
+
+---
 
 ## 本周新增规则（2026-W17）
 

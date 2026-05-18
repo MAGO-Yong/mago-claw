@@ -1,0 +1,359 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>XRay 告警 Skill — 让告警管理回归对话</title>
+<style>
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Helvetica Neue","Microsoft YaHei",sans-serif;background:#f5f7fa;color:#1d2129;line-height:1.6;-webkit-font-smoothing:antialiased}
+  .container{max-width:960px;margin:0 auto;padding:0 24px}
+
+  /* ===== Hero ===== */
+  .hero{background:linear-gradient(135deg,#1677FF 0%,#722ED1 100%);padding:80px 0 64px;text-align:center;position:relative;overflow:hidden}
+  .hero::before{content:'';position:absolute;top:-50%;right:-20%;width:600px;height:600px;background:radial-gradient(circle,rgba(255,255,255,.08) 0%,transparent 70%);border-radius:50%}
+  .hero::after{content:'';position:absolute;bottom:-30%;left:-10%;width:400px;height:400px;background:radial-gradient(circle,rgba(255,255,255,.05) 0%,transparent 70%);border-radius:50%}
+  .hero>*{position:relative;z-index:1}
+  .hero-badge{display:inline-block;background:rgba(255,255,255,.15);backdrop-filter:blur(8px);border:1px solid rgba(255,255,255,.2);border-radius:20px;padding:6px 18px;font-size:13px;color:rgba(255,255,255,.95);margin-bottom:24px;letter-spacing:.5px}
+  .hero h1{font-size:44px;font-weight:700;color:#fff;margin-bottom:16px;letter-spacing:-.5px}
+  .hero h1 span{color:rgba(255,255,255,.85);font-weight:400}
+  .hero-sub{font-size:18px;color:rgba(255,255,255,.8);max-width:560px;margin:0 auto 32px;line-height:1.7}
+  .hero-tags{display:flex;gap:10px;justify-content:center;flex-wrap:wrap}
+  .hero-tag{background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.18);border-radius:8px;padding:8px 16px;font-size:14px;color:#fff;display:flex;align-items:center;gap:6px}
+  .hero-tag .icon{font-size:16px}
+
+  /* ===== Section ===== */
+  .section{padding:64px 0}
+  .section-label{font-size:13px;font-weight:600;text-transform:uppercase;letter-spacing:2px;color:#1677FF;margin-bottom:8px}
+  .section-title{font-size:28px;font-weight:700;color:#1d2129;margin-bottom:12px}
+  .section-desc{font-size:15px;color:#86909c;max-width:520px;margin-bottom:40px;line-height:1.7}
+
+  /* ===== Core Scenario ===== */
+  .pain-tags{display:flex;gap:6px;flex-wrap:wrap;margin-top:12px}
+  .pain-tag{font-size:12px;padding:4px 10px;border-radius:6px;background:#e6f0ff;color:#1677FF;font-weight:500}
+  .pain-solution{margin-top:12px}
+  .solution-tag{font-size:12px;padding:4px 10px;border-radius:6px;background:#f0fff0;color:#52c41a;font-weight:500}
+
+  /* ===== Pain Points ===== */
+  .pain-section{background:#fff;border-top:1px solid #e5e6eb}
+  .pain-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:20px}
+  .pain-card{background:#f7f8fa;border:1px solid #e5e6eb;border-radius:12px;padding:28px 24px;position:relative;overflow:hidden}
+  .pain-card::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;background:linear-gradient(90deg,#1677FF,#722ED1);opacity:0}
+  .pain-card:hover::before{opacity:1}
+  .pain-icon{font-size:32px;margin-bottom:14px}
+  .pain-card h3{font-size:16px;font-weight:600;color:#1d2129;margin-bottom:8px}
+  .pain-card p{font-size:14px;color:#86909c;line-height:1.6}
+
+  /* ===== Capabilities + Flow Merged ===== */
+  .caps-section{background:#f5f7fa}
+  .cap-scenario{background:#fff;border:1px solid #e5e6eb;border-radius:14px;padding:28px;margin-bottom:20px;transition:all .2s ease}
+  .cap-scenario:hover{border-color:#1677FF;box-shadow:0 4px 16px rgba(22,119,255,.06)}
+  .cap-scenario-header{display:flex;gap:16px;align-items:flex-start;margin-bottom:20px}
+  .cap-scenario-num{width:36px;height:36px;border-radius:10px;background:linear-gradient(135deg,#1677FF,#722ED1);color:#fff;display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:700;flex-shrink:0}
+  .cap-scenario-title h3{font-size:17px;font-weight:600;color:#1d2129;margin-bottom:4px}
+  .cap-scenario-quote{font-size:14px;color:#86909c;font-style:italic;margin:0}
+  .cap-flow{display:flex;align-items:center;gap:8px;margin-bottom:14px;flex-wrap:wrap}
+  .cap-flow-step{font-size:13px;color:#4e5969;background:#f7f8fa;border-radius:8px;padding:10px 14px;flex:1;min-width:200px;line-height:1.5}
+  .step-label{display:inline-block;font-size:11px;font-weight:600;padding:2px 8px;border-radius:4px;margin-right:6px}
+  .cap-flow-step:nth-child(1) .step-label{background:#e6f0ff;color:#1677FF}
+  .cap-flow-step:nth-child(3) .step-label{background:#e6fff0;color:#52c41a}
+  .cap-flow-step:nth-child(5) .step-label{background:#f0e6ff;color:#722ED1}
+  .cap-flow-arrow{font-size:18px;color:#c9cdd4;flex-shrink:0}
+  .cap-params{display:flex;gap:6px;flex-wrap:wrap}
+  .param-tag{font-size:11px;padding:3px 8px;border-radius:4px;background:#f2f3f5;color:#86909c;font-family:monospace}
+
+  /* ===== Cases ===== */
+  .cases-section{background:#f5f7fa;border-top:1px solid #e5e6eb}
+  .cases-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:20px}
+  .case-card{background:#fff;border:1px solid #e5e6eb;border-radius:14px;padding:28px;transition:all .2s ease}
+  .case-card:hover{border-color:#1677FF;box-shadow:0 4px 16px rgba(22,119,255,.06)}
+  .case-card.wide{grid-column:1/-1}
+  .case-tag{font-size:13px;font-weight:600;margin-bottom:16px;color:#1677FF}
+  .case-scenario h3{font-size:18px;font-weight:700;color:#1d2129;margin-bottom:10px;line-height:1.4}
+  .case-scenario p{font-size:14px;color:#4e5969;line-height:1.7;margin-bottom:12px}
+  .case-needs{padding-left:20px;margin:0 0 12px}
+  .case-needs li{font-size:14px;color:#4e5969;line-height:1.8}
+  .case-quote blockquote{font-size:14px;color:#4e5969;line-height:1.7;border-left:3px solid #1677FF;padding-left:14px;margin:0 0 14px;font-style:italic;background:#f7f8fa;padding:14px 16px;border-radius:0 8px 8px 0;border-left:3px solid #1677FF}
+  .case-screenshots{display:grid;grid-template-columns:1fr 1fr;gap:1px;background:#f2f3f5;border-radius:8px;overflow:hidden;margin-bottom:14px}
+  .case-screenshots img{width:100%;height:auto;display:block}
+  .case-outcome{font-size:13px;color:#86909c;padding-top:12px;border-top:1px solid #f2f3f5}
+  .outcome-label{display:inline-block;font-size:12px;font-weight:600;padding:3px 10px;border-radius:6px;background:#f0f5ff;color:#1677FF;margin-bottom:8px}
+  .case-outcome p{margin:0}
+  .case-quotes-row{display:grid;grid-template-columns:repeat(2,1fr);gap:12px;margin-bottom:14px}
+  .case-quote-inline blockquote{font-size:13px;color:#4e5969;line-height:1.6;border-left:3px solid #722ED1;padding-left:12px;margin:0;font-style:italic;background:#faf5ff;padding:10px 12px;border-radius:0 8px 8px 0;border-left:3px solid #722ED1}
+
+  /* ===== Deploy ===== */
+  .deploy-section{background:#fff;border-top:1px solid #e5e6eb}
+  .deploy-simple{display:flex;gap:20px;align-items:center;justify-content:center;padding:20px 0}
+  .deploy-simple .deploy-icon{font-size:40px;flex-shrink:0}
+  .deploy-simple h3{font-size:18px;font-weight:600;color:#1d2129;margin-bottom:4px}
+  .deploy-simple p{font-size:14px;color:#86909c;line-height:1.6;margin:0}
+
+  /* ===== CTA ===== */
+  .cta-section{background:#fff;border-top:1px solid #e5e6eb;padding:48px 0;text-align:center}
+  .cta-btn{display:inline-flex;align-items:center;gap:8px;background:linear-gradient(135deg,#1677FF,#722ED1);color:#fff;font-size:16px;font-weight:600;padding:14px 32px;border-radius:10px;text-decoration:none;transition:all .2s ease;box-shadow:0 4px 16px rgba(22,119,255,.25)}
+  .cta-btn:hover{transform:translateY(-1px);box-shadow:0 6px 24px rgba(22,119,255,.35)}
+  .cta-hint{font-size:13px;color:#86909c;margin-top:12px}
+
+  /* ===== Footer ===== */
+  .footer{text-align:center;padding:24px 0;border-top:1px solid #e5e6eb;font-size:12px;color:#c9cdd4}
+  .footer a{color:#1677FF;text-decoration:none}
+
+  /* ===== Responsive ===== */
+  @media(max-width:768px){
+    .hero h1{font-size:28px}
+    .hero-sub{font-size:15px}
+    .pain-grid,.deploy-grid,.feedback-grid{grid-template-columns:1fr}
+    .cap-flow{flex-direction:column}
+    .cap-flow-arrow{transform:rotate(90deg)}
+    .flow-steps{flex-direction:column}
+    .flow-arrow{transform:rotate(90deg)}
+    .vision-metrics{flex-direction:column;gap:20px}
+    .hero-tags{flex-direction:column;align-items:center}
+  }
+</style>
+</head>
+<body>
+
+<!-- ===== Hero ===== -->
+<section class="hero">
+  <div class="container">
+    <div class="hero-badge">🚀 XRay × SEAL 首个官方 Skill 场景</div>
+    <h1>告警管理，<span>回归对话</span></h1>
+    <p class="hero-sub">把 XRay 告警中心的能力，装进你的个人助理。<br>没电脑、不在内网？一句话查询、认领、静默——随时随地，对话即操作。</p>
+    <div class="hero-tags">
+      <div class="hero-tag"><span class="icon">🔍</span> 事件查询</div>
+      <div class="hero-tag"><span class="icon">📋</span> 规则管理</div>
+      <div class="hero-tag"><span class="icon">✋</span> 认领 / 静默</div>
+      <div class="hero-tag"><span class="icon">🤖</span> 多端接入</div>
+    </div>
+  </div>
+</section>
+
+<!-- ===== Pain Points + Scenario Merged ===== -->
+<section class="section pain-section">
+  <div class="container">
+    <div class="section-label">WHY</div>
+    <h2 class="section-title">为什么需要这个 Skill？</h2>
+    <p class="section-desc">离了电脑和内网就失联？5 步操作只为认个领？把告警能力塞进对话框，一个 Skill 全解决。</p>
+    <div class="pain-grid">
+      <div class="pain-card">
+        <div class="pain-icon">📱</div>
+        <h3>离了电脑和内网就失联</h3>
+        <p>没有电脑或连不上公司内网时，XRay 页面完全不可达。告警来了只能干着急，没法查也没法操作。</p>
+        <div class="pain-tags">
+          <span class="pain-tag">🚇 通勤路上</span>
+          <span class="pain-tag">✈️ 出差途中</span>
+          <span class="pain-tag">🏠 周末在家</span>
+        </div>
+      </div>
+      <div class="pain-card">
+        <div class="pain-icon">🔄</div>
+        <h3>操作链路长</h3>
+        <p>进页面 → 找事件 → 点详情 → 点认领 → 填备注。5 步操作，其实只需要一个意图。</p>
+        <div class="pain-solution">
+          <span class="solution-tag">✅ 一句话完成</span>
+        </div>
+      </div>
+      <div class="pain-card">
+        <div class="pain-icon">🧩</div>
+        <h3>能力被锁死在平台</h3>
+        <p>告警能力只能在 XRay UI 里用，无法嵌入智能体、无法被其他系统调用，能力孤岛。</p>
+        <div class="pain-solution">
+          <span class="solution-tag">🔌 多端接入，能力随人走</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===== Capabilities + Flow Merged ===== -->
+<section class="section caps-section">
+  <div class="container">
+    <div class="section-label">WHAT &amp; HOW</div>
+    <h2 class="section-title">怎么用？一句话的事</h2>
+    <p class="section-desc">Skill 支持四类能力，覆盖从查告警到看规则的完整操作链路。每个场景都是用户真实对话动线。</p>
+
+    <!-- Scenario 1 -->
+    <div class="cap-scenario">
+      <div class="cap-scenario-header">
+        <div class="cap-scenario-num">1</div>
+        <div class="cap-scenario-title">
+          <h3>查我收到的告警</h3>
+          <p class="cap-scenario-quote">"帮我看看我最近 10 分钟收到了哪些告警"</p>
+        </div>
+      </div>
+      <div class="cap-scenario-body">
+        <div class="cap-flow">
+          <div class="cap-flow-step"><span class="step-label">对话</span>"昨天 base.obs 有哪些 P0 告警？"</div>
+          <div class="cap-flow-arrow">→</div>
+          <div class="cap-flow-step"><span class="step-label">能力</span>event list — 按产品线 + 时间范围查事件列表</div>
+          <div class="cap-flow-arrow">→</div>
+          <div class="cap-flow-step"><span class="step-label">返回</span>告警名称、级别、触发时间、持续时长、是否已认领</div>
+        </div>
+        <div class="cap-params">
+          <span class="param-tag">--apps</span>
+          <span class="param-tag">--start</span>
+          <span class="param-tag">--end</span>
+          <span class="param-tag">--receive-users</span>
+          <span class="param-tag">--rule-id</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Scenario 2 -->
+    <div class="cap-scenario">
+      <div class="cap-scenario-header">
+        <div class="cap-scenario-num">2</div>
+        <div class="cap-scenario-title">
+          <h3>查某条告警的详情</h3>
+          <p class="cap-scenario-quote">"这条告警影响了哪些机器？触发条件是什么？"</p>
+        </div>
+      </div>
+      <div class="cap-scenario-body">
+        <div class="cap-flow">
+          <div class="cap-flow-step"><span class="step-label">对话</span>"帮我看看 event_id=171238413 的详情"</div>
+          <div class="cap-flow-arrow">→</div>
+          <div class="cap-flow-step"><span class="step-label">能力</span>event get — 按 event_id 查单条事件完整信息</div>
+          <div class="cap-flow-arrow">→</div>
+          <div class="cap-flow-step"><span class="step-label">返回</span>告警级别、触发/恢复时间、受影响机器列表、采样值、规则配置链接</div>
+        </div>
+        <div class="cap-params">
+          <span class="param-tag">event_id</span>
+          <span class="param-tag">--show-link</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Scenario 3 -->
+    <div class="cap-scenario">
+      <div class="cap-scenario-header">
+        <div class="cap-scenario-num">3</div>
+        <div class="cap-scenario-title">
+          <h3>查某服务下有哪些告警规则</h3>
+          <p class="cap-scenario-quote">"帮我看看 xrayaiagent 这个服务配了哪些告警规则"</p>
+        </div>
+      </div>
+      <div class="cap-scenario-body">
+        <div class="cap-flow">
+          <div class="cap-flow-step"><span class="step-label">对话</span>"xrayaiagent 有哪些告警规则？"</div>
+          <div class="cap-flow-arrow">→</div>
+          <div class="cap-flow-step"><span class="step-label">能力</span>rule list — 按 app/prdLine/bizLine 搜索全部规则（PQL + 服务告警）</div>
+          <div class="cap-flow-arrow">→</div>
+          <div class="cap-flow-step"><span class="step-label">返回</span>规则 ID、名称、类型（PQL/服务）、启用状态</div>
+        </div>
+        <div class="cap-params">
+          <span class="param-tag">--app</span>
+          <span class="param-tag">--prdLine</span>
+          <span class="param-tag">--bizLine</span>
+          <span class="param-tag">--type</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Scenario 4 -->
+    <div class="cap-scenario">
+      <div class="cap-scenario-header">
+        <div class="cap-scenario-num">4</div>
+        <div class="cap-scenario-title">
+          <h3>查某条规则的完整配置</h3>
+          <p class="cap-scenario-quote">"这条 CPU 告警的 PromQL 是什么？触发条件怎么配的？"</p>
+        </div>
+      </div>
+      <div class="cap-scenario-body">
+        <div class="cap-flow">
+          <div class="cap-flow-step"><span class="step-label">对话</span>"帮我查 rule_id=1234 的完整配置"</div>
+          <div class="cap-flow-arrow">→</div>
+          <div class="cap-flow-step"><span class="step-label">能力</span>rule get — 按 rule_id 查规则配置，自动识别 PQL / 服务告警</div>
+          <div class="cap-flow-arrow">→</div>
+          <div class="cap-flow-step"><span class="step-label">返回</span>触发条件、PromQL 表达式、通知对象、启用状态</div>
+        </div>
+        <div class="cap-params">
+          <span class="param-tag">rule_id</span>
+          <span class="param-tag">--type</span>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+<!-- ===== Cases ===== -->
+<section class="section cases-section">
+  <div class="container">
+    <div class="section-label">CASES</div>
+    <h2 class="section-title">真实使用案例</h2>
+    <p class="section-desc">从"查告警"到"操作告警"，全在对话框里完成。</p>
+    <div class="cases-grid">
+      <!-- Case 1 -->
+      <div class="case-card">
+        <div class="case-tag">✋ 一句话批量认领</div>
+        <div class="case-scenario">
+          <h3>实时任务上线期间，手机一键认领告警</h3>
+          <p>同学在做实时任务迭代上线，持续收到多条告警通知。不用开电脑、不用进 XRay 页面，打开 Hi 个人助理说一句「帮我认领最近 10 分钟的告警」，批量认领一步到位。</p>
+        </div>
+        <div class="case-quote">
+          <blockquote>"能在手机上对话检索到自己的报警列表"</blockquote>
+          <blockquote>"帮我认领下我最近 2h 的告警"</blockquote>
+        </div>
+        <div class="case-screenshots">
+          <img src="https://ep-redim-i1.xhscdn.com/redim_file/1040g3g8320afe3mfli06ecc46g6j5r7hftvb948.png" alt="对话交互截图">
+          <img src="https://ep-redim-i2.xhscdn.com/redim_file/1040g3g8320afe3mfli0mecc46g6j5r7htk5d1v0.png" alt="事件列表截图">
+        </div>
+        <div class="case-outcome">
+          <div class="outcome-label">用户原声</div>
+          <p>✅ 验证了移动端可用性 &nbsp;|&nbsp; 💡 用户核心诉求：「最需要的是，和 agent 说给我认领最近 xx 时间的告警」</p>
+        </div>
+      </div>
+      <!-- Case 2 -->
+      <div class="case-card">
+        <div class="case-tag">🔇 认领 + 静默联动</div>
+        <div class="case-scenario">
+          <h3>认领后一键静默，告别重复告警轰炸</h3>
+          <p>认领告警后，通常还需要设置静默规则，避免同一告警反复通知。现在只需一句话：「帮我认领并静默最近 2 小时的告警」——认领 + 静默联动操作，减少重复步骤。</p>
+        </div>
+        <div class="case-quote">
+          <blockquote>"如果支持认领并静默更好"</blockquote>
+        </div>
+        <div class="case-outcome">
+          <div class="outcome-label">两种认领粒度</div>
+          <p>① 按人：「把我收到的告警都认领了」&nbsp; ② 按服务：「帮我把 xx 服务下的告警都认领了」</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===== Deploy ===== -->
+<section class="section deploy-section">
+  <div class="container">
+    <div class="deploy-simple">
+      <div class="deploy-icon">🔌</div>
+      <div>
+        <h3>一份 Skill，多种入口</h3>
+        <p>已接入 SEAL 个人助理，也可加载到各业务智能体、OpenClaw 等任何 Agent 平台。告警能力跟着对话走。</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===== Install CTA ===== -->
+<section class="cta-section">
+  <div class="container">
+    <a href="https://skills.devops.xiaohongshu.com/hub/search?q=xray-alarm&skill=xray-alarm" class="cta-btn" target="_blank">
+      🚀 前往 SkillHub 安装
+    </a>
+    <p class="cta-hint">搜索「xray-alarm」→ 安装 → XRay 授权 → 开始对话</p>
+  </div>
+</section>
+
+<!-- ===== Footer ===== -->
+<footer class="footer">
+  <div class="container">
+    XRay 可观测平台 · 告警智能诊断 · Agent Native 化实践<br>
+    <a href="https://skills.devops.xiaohongshu.com/hub/search?q=xray-alarm&skill=xray-alarm" target="_blank">SkillHub 地址</a> · 反馈请联系 <a href="#">@伯言</a> / <a href="#">@正一</a>
+  </div>
+</footer>
+
+</body>
+</html>

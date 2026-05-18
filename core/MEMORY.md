@@ -13,9 +13,10 @@
 
 ### 待跟进（一次性）
 - [ ] REQ-001 子需求推进（5/12 用户上线定级）：P0-1 页面嵌入（前端已排期✅）、P0-2 Langfuse 同步（接口已有✅）、P0-3 数据集上传（待开发）；P1×3、P2×4 → 详见 requirements.md + requirements-board.html
-- [ ] execute_tool Span 框架层采集现状确认（拖延 30 天+，跨 M1/M2）
-- [ ] 告警诊断需求文档 v0.6 与对话 v0.2 合并归档（拖延 30 天+，跨 M1/M2）
-- [ ] xray-log-query P0 SKILL 修复（subApplication 参数格式说明，拖延 30 天+，跨 M1/M2）
+- [ ] execute_tool Span 框架层采集现状确认（拖延 35 天+，跨 M1/M2）
+- [ ] 告警诊断需求文档 v0.6 与对话 v0.2 合并归档（拖延 35 天+，跨 M1/M2）
+- [ ] xray-log-query P0 SKILL 修复（subApplication 参数格式说明，拖延 35 天+，跨 M1/M2）
+- [ ] Trace 维度评估框架落为正式文档（REDoc 或文件，5/15 讨论完成 5 维度体系但未落文）
 - [ ] 新项目 `mahengyang/obs-token` 云效流水线创建（4/29 启动，Agent 已给 3 个方案，待用户确认语言栈和类型）
 - [ ] LangChain Deep Agents 学习笔记收集（4/29 建立协作机制，用户开始学习中，`langchain-learning-notes.md`）
 - [ ] 5-6 月双月 OKR 转 REDoc 文档（定稿已完成，待归档）
@@ -40,10 +41,19 @@
   - **XRAY-CLI 正式上线（2026-05-13）**：AI-First 设计，默认非交互 + 结构化 JSON 输出，`--human` 进入交互模式
   - Skill = 语言接口（人→AI→XRay），CLI = 程序接口（程序→XRay→JSON）
   - 架构方向：诊断 Skill 内数据采集可换 CLI，Skill 专注推理判断
+  - **Trace 维度评估框架（2026-05-15）**：基于 Trace 的 Skill 评估 5 维度体系
+    1. 准确性（最终 output vs 真实答案、有无幻觉）
+    2. 效率（span 数量、duration、token 消耗）
+    3. 路径合理性（span 顺序、冗余/遗漏）
+    4. 错误处理（降级、静默失败检测、结构化错误）
+    5. 覆盖率（关键数据源是否查全）
+    → 可直接作为公司内部 AI Skill 评估标准规范
+    → seal-sync SKILL 首次实战审计（4.17/10，发现 2 个 P0 问题）
 
 **第二大方向：PM 工作流自动化**
 - 把整个产品研发流程 Agent Native 化（革自己的命）
 - 链路：需求收集→创建→评审→设计→分发→上线文档
+- **claude-proxy + obs-token 调通（2026-05-15）**：内网 LLM 调用链路打通，PM 自动化基础设施就绪。根因：Claude Code settings.json 优先级高于环境变量（port 8090 vs 8089 冲突）
 - 当前状态：方向确定，落地方案待深入讨论
 
 **第三大方向：公司内部 AI 应用规范**
@@ -572,6 +582,31 @@ Kimi Claw 自建的 Python PPT 生成工具，存于 `skills/ppt-generator/ppt_g
 **周报文件**：`memory/weekly/2026-W17-growth-report.md`
 
 *最后更新: 2026-04-26 — W17 周报生成*
+
+---
+
+## 📈 W20 成长报告摘要（2026-05-17 更新）
+
+**本周特点**：M2 窗口重启 — 假期归来后首次密集执行，聚焦 AI 评估方向
+
+**关键事件**：
+1. **XRay AI 评估系统全链路推进**（5/13）— 现状探查 → 高保真 Prototype v1/v2（NEX 风格）→ 真实前端样式升级（数据集 TAB），仅 2 小时完成
+2. **需求管理系统建立**（5/13）— requirements.md + requirements-board.html，REQ-001 11 个子需求完成定级
+3. **claude-proxy + Claude Code 配置**（5/14）— 发现端口冲突/环境变量残留/credentials 优先级三层问题，部分解决
+4. **LangChain Deep Agents 学习材料重排**（5/14）— 12 个 HTML 文件加序号打包
+
+**关键洞察蒸馏**：
+- **数据飞轮已在运转**：sug 粗筛每天 537-617 条回流，122 版本/4 个月，77% 得分 0（有效过滤），23% 沉淀。REQ-001 是把它从 Langfuse 融合到 XRay/REDNA 统一平台
+- **容器 dev server 边界 → patch 交付模式**：formula dev 依赖本地 hosts + 外网 CDN，容器不满足。标准交付：生成 patch → HTTP 服务 → 用户本地 `curl | git apply`
+- **假期后冷启动速度快于预期**：5/12 M2 开启，5/13 就进入深度执行，Agent 整理的上下文有效降低启动成本
+- **Prototype 迭代模式再次验证**：给参考 > 给选项 > 凭空创作（用户提供 NEX 参考页，3 轮出成品）
+
+**下周 P0（W21）**：
+- REQ-001-3 数据集上传功能开发
+- XRay AI 评估其余 4 个 TAB 前端样式升级
+- claude-proxy 最终确认 Claude Code 走 proxy 通路
+
+**周报文件**：`memory/weekly/2026-W20-growth-report.md`
 
 ---
 
