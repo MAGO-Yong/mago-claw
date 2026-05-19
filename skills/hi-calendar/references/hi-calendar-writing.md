@@ -84,7 +84,7 @@ description: hi-calendar 的写操作参考。处理创建会议、修改会议�
 - 参会人：账号或可读名称；同名确认结果。
 - 会议室：具体会议室、线上/无会议室，或用户确认跳过。
 - 文档：文档链接/shortcutId/授权设置，或“无文档”。
-- 风险：冲突、非优先工作时段、跳过检查、权限限制。
+- 风险：冲突、非推荐时段、跳过检查、权限限制。
 - 即将执行的命令：例如 `calendar:create` / `calendar:create-recurring` / `calendar:edit-schedule`。
 
 只有用户明确确认后才能执行写命令。
