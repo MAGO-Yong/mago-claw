@@ -1,0 +1,139 @@
+{
+  "version": 1,
+  "updatedAt": "2026-05-20T00:05:04.484Z",
+  "entries": {
+    "memory:memory/2026-03-24.md:26:66": {
+      "key": "memory:memory/2026-03-24.md:26:66",
+      "path": "memory/2026-03-24.md",
+      "startLine": 26,
+      "endLine": 66,
+      "source": "memory",
+      "snippet": "se",
+      "recallCount": 1,
+      "dailyCount": 0,
+      "groundedCount": 0,
+      "totalScore": 0.37733719944953914,
+      "maxScore": 0.37733719944953914,
+      "firstRecalledAt": "2026-05-20T00:05:04.484Z",
+      "lastRecalledAt": "2026-05-20T00:05:04.484Z",
+      "queryHashes": [
+        "f19ceb3b4417"
+      ],
+      "recallDays": [
+        "2026-05-20"
+      ],
+      "conceptTags": []
+    },
+    "memory:memory/2026-03-23.md:61:91": {
+      "key": "memory:memory/2026-03-23.md:61:91",
+      "path": "memory/2026-03-23.md",
+      "startLine": 61,
+      "endLine": 91,
+      "source": "memory",
+      "snippet": "态",
+      "recallCount": 2,
+      "dailyCount": 0,
+      "groundedCount": 0,
+      "totalScore": 0.7387885630130767,
+      "maxScore": 0.36939428150653836,
+      "firstRecalledAt": "2026-05-20T00:05:04.484Z",
+      "lastRecalledAt": "2026-05-20T00:05:04.484Z",
+      "queryHashes": [
+        "f19ceb3b4417"
+      ],
+      "recallDays": [
+        "2026-05-20"
+      ],
+      "conceptTags": []
+    },
+    "memory:memory/2026-03-21.md:1:48": {
+      "key": "memory:memory/2026-03-21.md:1:48",
+      "path": "memory/2026-03-21.md",
+      "startLine": 1,
+      "endLine": 48,
+      "source": "memory",
+      "snippet": "oc | https://docs.xiaohongshu.com/doc/dcdcc54e8b94de98319b0b36bf9ad6eb | ## 待办",
+      "recallCount": 1,
+      "dailyCount": 0,
+      "groundedCount": 0,
+      "totalScore": 0.3629451602697372,
+      "maxScore": 0.3629451602697372,
+      "firstRecalledAt": "2026-05-20T00:05:04.484Z",
+      "lastRecalledAt": "2026-05-20T00:05:04.484Z",
+      "queryHashes": [
+        "f19ceb3b4417"
+      ],
+      "recallDays": [
+        "2026-05-20"
+      ],
+      "conceptTags": [
+        "https",
+        "docs.xiaohongshu.com",
+        "doc",
+        "dcdcc54e8b94de98319b0b36bf9ad6eb"
+      ]
+    },
+    "memory:memory/2026-03-23.md:26:66": {
+      "key": "memory:memory/2026-03-23.md:26:66",
+      "path": "memory/2026-03-23.md",
+      "startLine": 26,
+      "endLine": 66,
+      "source": "memory",
+      "snippet": "方向一/二A 用数字，方向二B 用里程碑式（探索期） 2. **v4 文档重大更新（多轮迭代）**",
+      "recallCount": 1,
+      "dailyCount": 0,
+      "groundedCount": 0,
+      "totalScore": 0.3551440596580505,
+      "maxScore": 0.3551440596580505,
+      "firstRecalledAt": "2026-05-20T00:05:04.484Z",
+      "lastRecalledAt": "2026-05-20T00:05:04.484Z",
+      "queryHashes": [
+        "f19ceb3b4417"
+      ],
+      "recallDays": [
+        "2026-05-20"
+      ],
+      "conceptTags": [
+        "方向一/二a",
+        "方向",
+        "数字",
+        "里程碑",
+        "探索",
+        "重大",
+        "更新",
+        "迭代"
+      ]
+    },
+    "memory:memory/2026-03-12.md:28:68": {
+      "key": "memory:memory/2026-03-12.md:28:68",
+      "path": "memory/2026-03-12.md",
+      "startLine": 28,
+      "endLine": 68,
+      "source": "memory",
+      "snippet": "HTTP 预览服务：`python3 -m http.server 19000`（在 workspace 目录下运行，session: keen-kelp） **四层结构（自顶向下）**： - 第四层（告警入口）：服务指标告警 | 业务指标告警 - 第三层（诊断层）：服务指标诊断（两层递进）| 业务指标诊断（技能化+工具化） - 第二层（能力层）：诊断 Agent（中控）| Skill 体系 - 第一层（数据底座）：可观测数据底座 **Skill 体系两行布局**： - 上行：Skill 能力矩阵（可观测基础/高阶算法/业务&三方） - 下行：Skill 孵化（创建+市场）| Skill 使用（告警触发+Agent集成） **服务指标诊断模块**（最新版本）： - ① 整体分析（定界）→ 识别 XX 类型异常 - ② 根因分析（定位）→ 接口分析（指标/链路/日志）+ 异常/系统负载/JVM GC/存储/K8S/XXX ### 待完成 - 服务指标诊断流程图（第二张） - 业务指标诊断流程图（第三张） - 业务指标诊断模块的架构图修改（用户还未说明需求） ### 背景知识 XPILOT 系统核心： - 服务指标（可观测内置）vs 业务指标（强业务语义，如推荐CTR/下单量）两种告警类型 - 服务诊断依赖：Agent（中控）+ 上下文工程 + Skill 集成 - Skill 孵化：低代码构建 → 公司级 Skill 市场双向打通 - Skill 使用：告警自动触发 + 研发个人助手（Claw等）集成 --- ## XPILOT 架构图进一步优化（17:00 以后）",
+      "recallCount": 1,
+      "dailyCount": 0,
+      "groundedCount": 0,
+      "totalScore": 0.35361602902412415,
+      "maxScore": 0.35361602902412415,
+      "firstRecalledAt": "2026-05-20T00:05:04.484Z",
+      "lastRecalledAt": "2026-05-20T00:05:04.484Z",
+      "queryHashes": [
+        "f19ceb3b4417"
+      ],
+      "recallDays": [
+        "2026-05-20"
+      ],
+      "conceptTags": [
+        "http.server",
+        "keen-kelp",
+        "可观测基础/高阶算法/业务",
+        "指标/链路/日志",
+        "异常/系统负载/jvm",
+        "gc/存储/k8s/xxx",
+        "如推荐ctr/下单量",
+        "http"
+      ]
+    }
+  }
+}

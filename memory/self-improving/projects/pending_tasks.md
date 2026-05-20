@@ -10,12 +10,12 @@
 
 ## 待跟进
 
-- [ ] 2026-04-18 确认 execute_tool Span 框架层采集现状（MaaS/Agent框架），更新可观测规范第五章 | 来源：可观测规范编写讨论 | ⚠️ 拖延 17 天
+- [ ] 2026-04-18 确认 execute_tool Span 框架层采集现状（MaaS/Agent框架），更新可观测规范第五章 | 来源：可观测规范编写讨论 | ⚠️ 拖延 39 天
 - [ ] 2026-04-29 obs-token 云效流水线创建（mahengyang/obs-token），Agent 已给 3 方案，待确认语言栈和项目类型 | 来源：Webchat 会话 | 状态：待用户回复
 - [ ] 2026-04-29 LangChain Deep Agents 学习笔记收集，协作机制已建立 | 来源：Hi 会话 | 状态：用户学习中，无卡点输入
-
+- [ ] 2026-05-15 Trace 维度评估框架落为正式文档（REDoc 或文件）— 5 维度体系讨论完成但未落文 | 来源：webchat · Trace 评估讨论 | ⚠️ 拖延 5 天
 
 ## 长期任务（持续执行，非一次性）
 
 - [x] 2026-04-19 【每天 08:00】对话精华提炼 → 写 daily-digest + 同步 MEMORY + Hi 通知正一新发现 | cron: daily-digest ✅ 已创建
-- [x] 2026-04-19 【每天 08:00】工作日报 → 按三大方向汇总 + 延续上期待做 + Hi 发送 | cron: work-daily-report ✅ 已创建
+- [x] 2026-04-19 【每天 08:00】工作日报 → 按三大方向汇总 + 延续上等待做 + Hi 发送 | cron: work-daily-report ✅ 已创建
