@@ -1,6 +1,6 @@
 ---
 name: ones-assistant
-description: "ones 发布平台操作助手。当用户需要进行以下操作时触发：查询有权限的应用/服务、查看服务部署组信息、查询可用镜像版本、查询或浏览发布流程模板、触发 SIT 或 staging 环境发布、查询发布进度或发布详情、查询发布历史、查询 Pod 状态、诊断发布卡住或异常、查询我的发布列表、查询我的测试项目、创建测试项目（创建测试泳道/创建泳道环境）、下线测试项目、对测试项目泳道发起自动发布、查询预算子账号信息（budget-sub-account-id）、对指定部署组发起扩缩容（修改副本数）、查询扩缩容状态与进度、在服务树中创建新服务（含查询 scene_path、引导 Git 仓库创建、可选绑定域名）、重启服务工作负载、重建 Pod。Use when: deploying services to ones platform, checking deploy status, querying workload groups, browsing image tags, diagnosing deploy failures, scaling workload replicas, querying budget accounts, creating new services in the service tree, restarting workloads, rebuilding pods, or managing person projects (create/delete/deploy)."
+description: "ones 发布平台操作助手。当用户需要进行以下操作时触发：查询有权限的应用/服务、查看服务部署组信息、查询可用镜像版本、查询或浏览发布流程模板、触发 SIT 或 staging 环境发布、查询发布进度或发布详情、查询发布历史、查询 Pod 状态、诊断发布卡住或异常、查询我的发布列表、查询我的测试项目、创建测试项目（创建测试泳道/创建泳道环境）、下线测试项目、对测试项目泳道发起发布（泳道发布）、查询预算子账号信息（budget-sub-account-id）、对指定部署组发起扩缩容（修改副本数）、查询扩缩容状态与进度、在服务树中创建新服务（含查询 scene_path、引导 Git 仓库创建、可选绑定域名）、重启服务工作负载、重建 Pod。Use when: deploying services to ones platform, checking deploy status, querying workload groups, browsing image tags, diagnosing deploy failures, scaling workload replicas, querying budget accounts, creating new services in the service tree, restarting workloads, rebuilding pods, or managing person projects (create/delete/deploy)."
 ---
 
 # ones 发布平台操作助手
@@ -96,7 +96,7 @@ ones-cli schema [--format pretty|json]   # 内省完整 tool schema（含参数�
 | 查测试项目详情 | `ones-cli project describe --project <项目名>` |
 | 创建测试项目 | `ones-cli project create --alias ... --lane ... --expire-days ... --applications '<json>'` |
 | 下线/删除测试项目 | `ones-cli project delete --project <项目名>` |
-| 测试项目泳道发布 | `ones-cli deploy create --service ... --image-tag ... --workload-groups '...' --is-person-project --person-project-name <项目名>` |
+| 测试项目泳道发布 | `ones-cli project deploy --project ... --service ... --image-tag ...` |
 | 重启服务工作负载 | `ones-cli meta workloads restart --application <app> --service <svc> --env <env> --zone <zone> --namespace <ns> --name <name> --workload-type <type>` |
 | 重建 Pod | `ones-cli meta pods rebuild --application <app> --service <svc> --cluster <cluster> --namespace <ns> --pod <pod>` |
 
@@ -271,23 +271,23 @@ ones-cli project describe --project <project_name> --output-format json
 ones-cli meta images list --service <service> --output-format json
 
 # Step 3 — 向测试项目泳道发布（展示参数后用户确认，代用户决策时加 -y）
-# 注意：--person-project-name 填写项目名称（非别名 alias），如 psit-songxixi
-# workload-groups 可选，不传则由后端自动查找项目下该服务的部署组
-ones-cli deploy create \
+# 注意：--project 填写项目名称（非别名 alias），如 psit-songxixi
+# --workload-groups 可选，不传则由后端自动查找项目下该服务的部署组
+ones-cli project deploy \
+  --project <project_name> \
   --service <service> \
   --image-tag <tag> \
-  --workload-groups '["<wg1>", "<wg2>"]' \
-  --is-person-project \
-  --person-project-name <project_name> \
+  [--workload-groups '["<wg1>", "<wg2>"]'] \
   -y \
   --output-format json
 # 返回：每个部署组对应的 changeflow_name，以及成功/失败统计
 ```
 
 **注意事项：**
-- `--person-project-name` 填写项目名（如 `psit-songxixi`），**不是别名 alias**
+- `--project` 填写项目名（如 `psit-songxixi`），**不是别名 alias**
 - 支持同时发布多个部署组，每个部署组独立创建一个发布流程
-- `--changeflow-info` 在测试项目发布时**不需要填写**
+- `workloadGroups` 为可选参数，不传时后端自动查找该项目下对应服务的部署组
+- 泳道发布**不需要**传 `--changeflow-info`
 - 发布成功后可通过 `ones-cli deploy detail --changeflow <name>` 查询各部署组进度
 
 ---
@@ -439,7 +439,7 @@ ones-cli meta pods rebuild \
 | `ones-cli project describe --project <项目名>` | 查询测试项目完整详情（应用、路由、成员等） |
 | `ones-cli project create --alias <别名> --lane <泳道名> --expire-days <天数> --applications '<json>' [-y]` | 创建测试项目 |
 | `ones-cli project delete --project <项目名> [-y]` | 下线/删除测试项目（不可逆，需二次确认） |
-| `ones-cli deploy create --service <svc> --image-tag <tag> --workload-groups '<json>' --is-person-project --person-project-name <项目名> [-y]` | 向测试项目泳道发布（支持多部署组并发，每组独立创建发布流程） |
+| `ones-cli project deploy --project <项目名> --service <svc> --image-tag <tag> [--workload-groups '<json>'] [-y]` | 向测试项目泳道发布（支持多部署组并发，每组独立创建发布流程） |
 
 ### 其他命令
 
@@ -463,5 +463,5 @@ ones-cli meta pods rebuild \
 | 扩缩容需指定资源池 | 先运行 `capacity budget-account list` 查询子账号 accountId，再加 `--budget-sub-account-id` 重试 |
 | 生产扩缩容需审批 | 提示用户关注 ones 平台审批进度，轮询 `capacity scale-status` 追踪结果 |
 | project create 参数格式错误 | 检查 `--applications` 是否为合法 JSON 数组，先通过 `meta services detail` 和 `meta images list` 查询填入 |
-| 测试项目发布 changeflow-info 报错 | 测试项目发布（`--is-person-project`）无需传 `--changeflow-info`，去掉该参数重试 |
+| 测试项目泳道发布报错 | 使用独立的 `ones-cli project deploy` 命令（不再使用 `deploy create --is-person-project`），检查参数 `--project`（项目名非别名）和 `--service` 是否正确 |
 | workloads restart maxSurge/maxUnavailable 格式错误 | 只支持百分比格式如 `0%`、`20%`，不接受整数，检查参数格式后重试 |
