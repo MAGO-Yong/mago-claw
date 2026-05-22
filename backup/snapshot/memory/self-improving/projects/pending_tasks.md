@@ -13,7 +13,8 @@
 - [ ] 2026-04-18 确认 execute_tool Span 框架层采集现状（MaaS/Agent框架），更新可观测规范第五章 | 来源：可观测规范编写讨论 | ⚠️ 拖延 39 天
 - [ ] 2026-04-29 obs-token 云效流水线创建（mahengyang/obs-token），Agent 已给 3 方案，待确认语言栈和项目类型 | 来源：Webchat 会话 | 状态：待用户回复
 - [ ] 2026-04-29 LangChain Deep Agents 学习笔记收集，协作机制已建立 | 来源：Hi 会话 | 状态：用户学习中，无卡点输入
-- [ ] 2026-05-15 Trace 维度评估框架落为正式文档（REDoc 或文件）— 5 维度体系讨论完成但未落文 | 来源：webchat · Trace 评估讨论 | ⚠️ 拖延 5 天
+- [ ] 2026-05-15 Trace 维度评估框架落为正式文档（REDoc 或文件）— 5 维度体系讨论完成但未落文 | 来源：webchat · Trace 评估讨论 | ⚠️ 拖延 7 天
+- [ ] 2026-05-21 diagnosis-skill-builder V1 与 biz-diagnosis-creator 的关系理清（合并 or 分工 or 保留两个）| 来源：5/21 诊断 Skill 创建对话
 
 ## 长期任务（持续执行，非一次性）
 
