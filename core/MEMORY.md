@@ -13,10 +13,11 @@
 
 ### 待跟进（一次性）
 - [ ] REQ-001 子需求推进（5/12 用户上线定级）：P0-1 页面嵌入（前端已排期✅）、P0-2 Langfuse 同步（接口已有✅）、P0-3 数据集上传（待开发）；P1×3、P2×4 → 详见 requirements.md + requirements-board.html
-- [ ] execute_tool Span 框架层采集现状确认（拖延 35 天+，跨 M1/M2）
-- [ ] 告警诊断需求文档 v0.6 与对话 v0.2 合并归档（拖延 35 天+，跨 M1/M2）
-- [ ] xray-log-query P0 SKILL 修复（subApplication 参数格式说明，拖延 35 天+，跨 M1/M2）
-- [ ] Trace 维度评估框架落为正式文档（REDoc 或文件，5/15 讨论完成 5 维度体系但未落文）
+- [ ] execute_tool Span 框架层采集现状确认（拖延 38 天+，跨 M1/M2）
+- [ ] 告警诊断需求文档 v0.6 与对话 v0.2 合并归档（拖延 38 天+，跨 M1/M2）
+- [ ] xray-log-query P0 SKILL 修复（subApplication 参数格式说明，拖延 38 天+，跨 M1/M2）
+- [ ] Trace 维度评估框架落为正式文档（REDoc 或文件，5/15 讨论完成 5 维度体系但未落文）—— 拖延至第 7 天
+- [ ] diagnosis-skill-builder V1 与 biz-diagnosis-creator 的关系理清（合并 or 分工 or 保留两个）
 - [ ] 新项目 `mahengyang/obs-token` 云效流水线创建（4/29 启动，Agent 已给 3 个方案，待用户确认语言栈和类型）
 - [ ] LangChain Deep Agents 学习笔记收集（4/29 建立协作机制，用户开始学习中，`langchain-learning-notes.md`）
 - [ ] 5-6 月双月 OKR 转 REDoc 文档（定稿已完成，待归档）
@@ -158,6 +159,23 @@
 - 上半部蓝紫渐变背景 + 3D 产品插画 + 标题文字，下半部白色区域 + 4 大支柱 + 品牌 footer
 - 使用团队提供的 3D 等距插画作为视觉主体，Agent 负责合成
 - **教训**：用户给参考图 = 直接用图做，不要过度分析「为什么难做」然后给选项
+
+**宣发内容设计规范**（2026-05-20 确立）
+- **只写已上线的能力**：宣发页面 ≠ 产品路线图，砍掉 Phase 2/3 规划、愿景区块、未上线案例
+- **核心叙事是操作不是查询**：认领、静默等操作能力才是卖点，查询只是入口
+- **部署方式一句话带过**：「一份 Skill，多种入口」即可，不需要三个卡片展开
+
+### Problem 类告警通用排查框架（2026-05-21 确认）
+- 三层递进：① Problem 异常趋势 → 定位具体飙升的 exception；② RPC 指标 → 判断上下游依赖问题；③ 服务自身 → CPU/内存/变更
+- 素材来源：adcenter-service-tob 真实 P1 告警（#194554127，UncheckedTApplicationException）
+- 可推广为 KR1 通用诊断能力的基础模板
+
+### 搜索广告 Trigger 告警 SOP（2026-05-21 确认）
+- ⚠️ **关键发现**：searchadstrigger 的可用性告警规则未在 XRay 平台注册，是独立自定义 PromQL。诊断 Agent 若只查平台注册规则会漏掉此类告警，对 KR2 告警中心闭环改造有影响。
+- 6 步排查链：流量突增 → 一/二段式时延判断 → 一段式算子级时延 → 二段式算子级时延 → 近期变更查询 → 原因未知
+- 数据源：vms-search（proxy:75）、vms-ads、XRay 变更查询
+- 时延四分支判断：仅一段涨/仅二段涨/都涨/都不涨，分别导向不同排查路径
+- 关键发现：searchadstrigger 的可用性告警规则未在平台注册，是独立自定义 PromQL
 
 ### 投资关注
 - 重点关注AI产业链：英伟达、AMD、台积电、SK海力士、三星
