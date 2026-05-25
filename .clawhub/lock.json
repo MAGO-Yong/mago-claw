@@ -47,46 +47,46 @@
     },
     "calendar": {
       "version": "1.0.8",
-      "installedAt": 1779463697876
+      "installedAt": 1779725262338
     },
     "summarize": {
       "version": "1.0.0",
-      "installedAt": 1779463698573
+      "installedAt": 1779725266843
     },
     "docx": {
       "version": "1.0.0",
-      "installedAt": 1779463699430
+      "installedAt": 1779725267504
     },
     "pptx": {
       "version": "1.0.0",
-      "installedAt": 1779463701428
+      "installedAt": 1779725268054
     },
     "xlsx": {
       "version": "1.0.0",
-      "installedAt": 1779463703228
+      "installedAt": 1779725269925
     },
     "hi-docs": {
       "version": "1.0.11",
-      "installedAt": 1779463705025
+      "installedAt": 1779725271825
     },
     "hi-im": {
       "version": "1.0.10",
-      "installedAt": 1779463706723
+      "installedAt": 1779725273525
     },
     "hi-search": {
       "version": "1.0.12",
-      "installedAt": 1779463708525
+      "installedAt": 1779725275226
     },
     "hi-todos": {
       "version": "1.0.11",
-      "installedAt": 1779463710224
+      "installedAt": 1779725276925
     },
     "hi-calendar": {
       "version": "1.0.11",
-      "installedAt": 1779463712029
+      "installedAt": 1779725278627
     },
     "ones-assistant": {
-      "version": "1.0.11",
+      "version": "1.0.12",
       "installedAt": 1779354069476
     },
     "rec-new-note-diagnosis": {

@@ -1,21 +1,16 @@
-# 每日备份差异报告
+# Daily Backup Diff: 2026-05-26 vs 2026-05-25
+Generated: 2026-05-26 02:01:43 CST
 
-**日期**: 2026-05-25 (对比 2026-05-24)
+## MEMORY.md
 
-### 新增文件
-- memory/daily-digest/2026-05-23.md
-- memory/weekly/2026-W21-growth-report.md
-- memory/work-log/2026-05-24.md
+## AGENTS.md
 
-### 移除文件 (昨日有今日无)
-- snapshot/HEARTBEAT.md (未纳入本次快照范围)
-- snapshot/IDENTITY.md (未纳入本次快照范围)
-- snapshot/TOOLS.md (未纳入本次快照范围)
-- snapshot/USER.md (未纳入本次快照范围)
+## SOUL.md
 
-### 修改文件
-- MEMORY.md
-- memory/self-improving.md
-- memory/self-improving/projects/pending_tasks.md
-- memory/.dreams/events.jsonl
-- memory/.dreams/short-term-recall.json
+## ROUTING.md
+
+## memory/ (new/changed files)
+只在 backup/2026-05-26/snapshot/memory/daily-digest 存在：2026-05-24.md
+文件 backup/2026-05-25/snapshot/memory/work-log/2026-05-24.md 和 backup/2026-05-26/snapshot/memory/work-log/2026-05-24.md 不同
+
+## agents/ (new/changed files)
