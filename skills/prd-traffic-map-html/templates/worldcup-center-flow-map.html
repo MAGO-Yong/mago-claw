@@ -1,0 +1,801 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>26 世界杯中心页流量地图</title>
+  <style>
+    :root {
+      --bg: #fafafa;
+      --ink: #1f2937;
+      --muted: #667085;
+      --line: #8d98a7;
+      --blue: #2f6bff;
+      --orange: #e67800;
+      --green: #059669;
+      --purple: #7c3aed;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      overflow: auto;
+      background: var(--bg);
+      color: var(--ink);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+    }
+
+    .topology {
+      position: relative;
+      width: 2320px;
+      height: 1580px;
+      background:
+        linear-gradient(rgba(17, 24, 39, .035) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(17, 24, 39, .035) 1px, transparent 1px),
+        #fafafa;
+      background-size: 48px 48px;
+    }
+
+    .title {
+      position: absolute;
+      left: 28px;
+      top: 22px;
+      z-index: 3;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 22px;
+      font-weight: 750;
+      letter-spacing: 0;
+    }
+
+    .title-mark {
+      display: grid;
+      place-items: center;
+      width: 26px;
+      height: 26px;
+      border-radius: 6px;
+      background: #e9efff;
+      color: var(--blue);
+      font-size: 16px;
+      font-weight: 800;
+    }
+
+    .hint {
+      color: #667085;
+      font-size: 13px;
+      font-weight: 500;
+    }
+
+    .section-label {
+      position: absolute;
+      z-index: 3;
+      padding: 5px 10px;
+      border-radius: 5px;
+      background: rgba(255, 255, 255, .92);
+      color: #344054;
+      font-size: 14px;
+      font-weight: 750;
+      box-shadow: 0 4px 12px rgba(31, 41, 55, .08);
+    }
+
+    .edge-layer {
+      position: absolute;
+      inset: 0;
+      z-index: 1;
+      width: 100%;
+      height: 100%;
+      overflow: visible;
+      pointer-events: none;
+    }
+
+    .edge {
+      fill: none;
+      stroke: var(--line);
+      stroke-width: 1.35;
+    }
+
+    .edge.orange { stroke: var(--orange); }
+    .edge.green { stroke: var(--green); }
+    .edge.purple { stroke: var(--purple); }
+
+    .node {
+      position: absolute;
+      z-index: 2;
+      width: 164px;
+      min-height: 78px;
+      padding: 9px 11px 8px;
+      border: 1.6px solid var(--blue);
+      border-radius: 4px;
+      background: #fff;
+      box-shadow: 0 10px 22px rgba(31, 41, 55, .06);
+      cursor: default;
+    }
+
+    .node.compact {
+      width: 150px;
+      min-height: 74px;
+    }
+
+    .node.main {
+      width: 184px;
+      min-height: 82px;
+    }
+
+    .node.orange { border-color: var(--orange); }
+    .node.green { border-color: var(--green); }
+    .node.purple { border-color: var(--purple); }
+
+    .node-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      margin-bottom: 6px;
+    }
+
+    .icon {
+      display: grid;
+      place-items: center;
+      width: 14px;
+      height: 14px;
+      border-radius: 3px;
+      background: var(--blue);
+      color: #fff;
+      font-size: 10px;
+      line-height: 1;
+    }
+
+    .orange .icon { background: var(--orange); }
+    .green .icon { background: var(--green); }
+    .purple .icon { background: var(--purple); }
+
+    .menu {
+      color: #475467;
+      font-size: 16px;
+      line-height: 10px;
+      transform: rotate(90deg);
+    }
+
+    .name {
+      margin: 0 0 7px;
+      font-size: 14px;
+      line-height: 1.25;
+      font-weight: 750;
+      color: #1f2937;
+    }
+
+    .metric {
+      margin: 2px 0 0;
+      font-size: 11px;
+      line-height: 1.25;
+      color: #475467;
+      white-space: nowrap;
+    }
+
+    .doc-ref {
+      margin: 7px 0 0;
+      padding-top: 6px;
+      border-top: 1px solid #eef2f7;
+      color: #344054;
+      font-size: 11px;
+      line-height: 1.3;
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+
+    .evidence-drawer {
+      position: fixed;
+      z-index: 20;
+      top: 0;
+      right: 0;
+      width: 460px;
+      height: 100vh;
+      overflow: auto;
+      padding: 18px;
+      border-left: 1px solid #d0d7e2;
+      background: rgba(255, 255, 255, .98);
+      box-shadow: -18px 0 42px rgba(31, 41, 55, .14);
+      transform: translateX(100%);
+      transition: transform .18s ease;
+    }
+
+    .evidence-drawer.visible { transform: translateX(0); }
+
+    .drawer-head {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 12px;
+    }
+
+    .evidence-title {
+      margin: 0;
+      font-size: 18px;
+      line-height: 1.3;
+      font-weight: 760;
+      color: #1f2937;
+    }
+
+    .evidence-copy {
+      margin: 0 0 14px;
+      color: #475467;
+      font-size: 14px;
+      line-height: 1.65;
+    }
+
+    .evidence-img {
+      display: block;
+      width: 100%;
+      max-height: 68vh;
+      object-fit: contain;
+      border: 1px solid #e5eaf2;
+      border-radius: 4px;
+      background: #f8fafc;
+    }
+
+    .evidence-source {
+      margin-top: 12px;
+      color: #667085;
+      font-size: 12px;
+      line-height: 1.5;
+    }
+
+    .drawer-empty {
+      margin-top: 42vh;
+      color: #667085;
+      font-size: 14px;
+      line-height: 1.6;
+      text-align: center;
+    }
+  </style>
+</head>
+<body>
+  <main class="topology" id="topology">
+    <div class="title"><span class="title-mark">流</span>26 世界杯中心页流量地图 <span class="hint">悬浮节点，在右侧查看 PRD 依据和截图</span></div>
+    <svg class="edge-layer" id="edges" aria-hidden="true"></svg>
+    <aside class="evidence-drawer" id="evidence">
+      <div class="drawer-empty">悬浮节点查看对应 PRD 描述和产品截图</div>
+    </aside>
+
+    <div class="section-label" style="left: 80px; top: 490px;">主会场平级功能模块</div>
+    <div class="section-label" style="left: 80px; top: 665px;">顶部阶段区：只有这里随预热/正式切换</div>
+
+    <section class="node main" data-id="app" style="left: 1008px; top: 70px;">
+      <div class="node-head"><span class="icon">▦</span><span class="menu">⋮</span></div>
+      <h2 class="name">用户进入小红书 App</h2>
+      <p class="metric">QPS -</p>
+      <p class="metric">成功率 -</p>
+    </section>
+
+    <section class="node" data-id="tab" style="left: 1018px; top: 214px;">
+      <div class="node-head"><span class="icon">▦</span><span class="menu">⋮</span></div>
+      <h2 class="name">世界杯 Tab</h2>
+      <p class="metric">QPS -</p>
+      <p class="metric">成功率 -</p>
+    </section>
+
+    <section class="node main" data-id="center" style="left: 1008px; top: 350px;">
+      <div class="node-head"><span class="icon">▦</span><span class="menu">⋮</span></div>
+      <h2 class="name">世界杯中心页/主会场</h2>
+      <p class="metric">QPS -</p>
+      <p class="metric">成功率 -</p>
+    </section>
+
+    <section class="node orange" data-id="stage-area" style="left: 80px; top: 540px;">
+      <div class="node-head"><span class="icon">▦</span><span class="menu">⋮</span></div>
+      <h2 class="name">顶部阶段区</h2>
+      <p class="metric">QPS -</p>
+      <p class="metric">成功率 -</p>
+    </section>
+
+    <section class="node purple compact" data-id="backpack" style="left: 360px; top: 540px;">
+      <div class="node-head"><span class="icon">▦</span><span class="menu">⋮</span></div>
+      <h2 class="name">活动背包</h2>
+      <p class="metric">QPS -</p>
+      <p class="metric">成功率 -</p>
+    </section>
+
+    <section class="node purple compact" data-id="team" style="left: 600px; top: 540px;">
+      <div class="node-head"><span class="icon">▦</span><span class="menu">⋮</span></div>
+      <h2 class="name">我的主队</h2>
+      <p class="metric">QPS -</p>
+      <p class="metric">成功率 -</p>
+    </section>
+
+    <section class="node purple compact" data-id="share" style="left: 840px; top: 540px;">
+      <div class="node-head"><span class="icon">▦</span><span class="menu">⋮</span></div>
+      <h2 class="name">页面分享</h2>
+      <p class="metric">QPS -</p>
+      <p class="metric">成功率 -</p>
+    </section>
+
+    <section class="node purple compact" data-id="king" style="left: 1080px; top: 540px;">
+      <div class="node-head"><span class="icon">▦</span><span class="menu">⋮</span></div>
+      <h2 class="name">4 个金刚位</h2>
+      <p class="metric">QPS -</p>
+      <p class="metric">成功率 -</p>
+    </section>
+
+    <section class="node green" data-id="content-floor" style="left: 1810px; top: 540px;">
+      <div class="node-head"><span class="icon">▦</span><span class="menu">⋮</span></div>
+      <h2 class="name">动态内容楼层</h2>
+      <p class="metric">QPS -</p>
+      <p class="metric">成功率 -</p>
+    </section>
+
+    <section class="node purple compact" data-id="schedule" style="left: 820px; top: 700px;">
+      <div class="node-head"><span class="icon">▦</span><span class="menu">⋮</span></div>
+      <h2 class="name">赛程数据</h2>
+      <p class="metric">QPS -</p>
+      <p class="metric">成功率 -</p>
+    </section>
+
+    <section class="node purple compact" data-id="guess" style="left: 1000px; top: 700px;">
+      <div class="node-head"><span class="icon">▦</span><span class="menu">⋮</span></div>
+      <h2 class="name">有奖竞猜</h2>
+      <p class="metric">QPS -</p>
+      <p class="metric">成功率 -</p>
+    </section>
+
+    <section class="node purple compact" data-id="gold" style="left: 1180px; top: 700px;">
+      <div class="node-head"><span class="icon">▦</span><span class="menu">⋮</span></div>
+      <h2 class="name">金球兑换</h2>
+      <p class="metric">QPS -</p>
+      <p class="metric">成功率 -</p>
+    </section>
+
+    <section class="node purple compact" data-id="chat" style="left: 1360px; top: 700px;">
+      <div class="node-head"><span class="icon">▦</span><span class="menu">⋮</span></div>
+      <h2 class="name">一起聊球</h2>
+      <p class="metric">QPS -</p>
+      <p class="metric">成功率 -</p>
+    </section>
+
+    <section class="node orange main" data-id="preheat-hero" style="left: 100px; top: 700px;">
+      <div class="node-head"><span class="icon">▦</span><span class="menu">⋮</span></div>
+      <h2 class="name">预热态顶部区</h2>
+      <p class="metric">QPS -</p>
+      <p class="metric">成功率 -</p>
+    </section>
+
+    <section class="node green main" data-id="formal-hero" style="left: 520px; top: 700px;">
+      <div class="node-head"><span class="icon">▦</span><span class="menu">⋮</span></div>
+      <h2 class="name">正式态顶部区</h2>
+      <p class="metric">QPS -</p>
+      <p class="metric">成功率 -</p>
+    </section>
+
+    <section class="node orange compact" data-id="reserve-card" style="left: 0px; top: 860px;">
+      <div class="node-head"><span class="icon">▦</span><span class="menu">⋮</span></div>
+      <h2 class="name">预约直播抽奖卡</h2>
+      <p class="metric">QPS -</p>
+      <p class="metric">成功率 -</p>
+    </section>
+
+    <section class="node orange compact" data-id="reserve-widget" style="left: 200px; top: 860px;">
+      <div class="node-head"><span class="icon">▦</span><span class="menu">⋮</span></div>
+      <h2 class="name">预约挂件</h2>
+      <p class="metric">QPS -</p>
+      <p class="metric">成功率 -</p>
+    </section>
+
+    <section class="node orange compact" data-id="lottery-play" style="left: 100px; top: 1000px;">
+      <div class="node-head"><span class="icon">▦</span><span class="menu">⋮</span></div>
+      <h2 class="name">预约抽奖玩法</h2>
+      <p class="metric">QPS -</p>
+      <p class="metric">成功率 -</p>
+    </section>
+
+    <section class="node orange compact" data-id="draw" style="left: 100px; top: 1140px;">
+      <div class="node-head"><span class="icon">▦</span><span class="menu">⋮</span></div>
+      <h2 class="name">立即抽奖</h2>
+      <p class="metric">QPS -</p>
+      <p class="metric">成功率 -</p>
+    </section>
+
+    <section class="node orange compact" data-id="show" style="left: 0px; top: 1280px;">
+      <div class="node-head"><span class="icon">▦</span><span class="menu">⋮</span></div>
+      <h2 class="name">晒一晒</h2>
+      <p class="metric">QPS -</p>
+      <p class="metric">成功率 -</p>
+    </section>
+
+    <section class="node orange compact" data-id="invite" style="left: 200px; top: 1280px;">
+      <div class="node-head"><span class="icon">▦</span><span class="menu">⋮</span></div>
+      <h2 class="name">邀好友预约</h2>
+      <p class="metric">QPS -</p>
+      <p class="metric">成功率 -</p>
+    </section>
+
+    <section class="node orange compact" data-id="poster" style="left: 200px; top: 1440px;">
+      <div class="node-head"><span class="icon">▦</span><span class="menu">⋮</span></div>
+      <h2 class="name">分享海报</h2>
+      <p class="metric">QPS -</p>
+      <p class="metric">成功率 -</p>
+    </section>
+
+    <section class="node green" data-id="live-card" style="left: 520px; top: 860px;">
+      <div class="node-head"><span class="icon">▦</span><span class="menu">⋮</span></div>
+      <h2 class="name">直播信息流大卡</h2>
+      <p class="metric">QPS -</p>
+      <p class="metric">成功率 -</p>
+    </section>
+
+    <section class="node green compact" data-id="reserve-entry" style="left: 320px; top: 1140px;">
+      <div class="node-head"><span class="icon">▦</span><span class="menu">⋮</span></div>
+      <h2 class="name">直播卡预约按钮</h2>
+      <p class="metric">QPS -</p>
+      <p class="metric">成功率 -</p>
+    </section>
+
+    <section class="node green compact" data-id="live-room" style="left: 520px; top: 1140px;">
+      <div class="node-head"><span class="icon">▦</span><span class="menu">⋮</span></div>
+      <h2 class="name">直播间</h2>
+      <p class="metric">QPS -</p>
+      <p class="metric">成功率 -</p>
+    </section>
+
+    <section class="node green compact" data-id="schedule-entry" style="left: 720px; top: 1140px;">
+      <div class="node-head"><span class="icon">▦</span><span class="menu">⋮</span></div>
+      <h2 class="name">赛程页入口</h2>
+      <p class="metric">QPS -</p>
+      <p class="metric">成功率 -</p>
+    </section>
+
+    <section class="node green compact" data-id="replay-entry" style="left: 920px; top: 1140px;">
+      <div class="node-head"><span class="icon">▦</span><span class="menu">⋮</span></div>
+      <h2 class="name">回放页入口</h2>
+      <p class="metric">QPS -</p>
+      <p class="metric">成功率 -</p>
+    </section>
+
+    <section class="node green compact" data-id="match-highlights" style="left: 1540px; top: 700px;">
+      <div class="node-head"><span class="icon">▦</span><span class="menu">⋮</span></div>
+      <h2 class="name">比赛看点</h2>
+      <p class="metric">QPS -</p>
+      <p class="metric">成功率 -</p>
+    </section>
+
+    <section class="node green compact" data-id="everyone-posting" style="left: 1720px; top: 700px;">
+      <div class="node-head"><span class="icon">▦</span><span class="menu">⋮</span></div>
+      <h2 class="name">大家都在发</h2>
+      <p class="metric">QPS -</p>
+      <p class="metric">成功率 -</p>
+    </section>
+
+    <section class="node green compact" data-id="fan-circle" style="left: 1900px; top: 700px;">
+      <div class="node-head"><span class="icon">▦</span><span class="menu">⋮</span></div>
+      <h2 class="name">热门球迷圈</h2>
+      <p class="metric">QPS -</p>
+      <p class="metric">成功率 -</p>
+    </section>
+
+    <section class="node green compact" data-id="event-hot" style="left: 2080px; top: 700px;">
+      <div class="node-head"><span class="icon">▦</span><span class="menu">⋮</span></div>
+      <h2 class="name">赛事热点</h2>
+      <p class="metric">QPS -</p>
+      <p class="metric">成功率 -</p>
+    </section>
+
+    <section class="node green compact" data-id="note-detail" style="left: 1540px; top: 840px;">
+      <div class="node-head"><span class="icon">▦</span><span class="menu">⋮</span></div>
+      <h2 class="name">笔记详情页</h2>
+      <p class="metric">QPS -</p>
+      <p class="metric">成功率 -</p>
+    </section>
+
+    <section class="node green compact" data-id="publish-template" style="left: 1720px; top: 840px;">
+      <div class="node-head"><span class="icon">▦</span><span class="menu">⋮</span></div>
+      <h2 class="name">发布模板/发布器</h2>
+      <p class="metric">QPS -</p>
+      <p class="metric">成功率 -</p>
+    </section>
+
+    <section class="node green compact" data-id="circle-detail" style="left: 1900px; top: 840px;">
+      <div class="node-head"><span class="icon">▦</span><span class="menu">⋮</span></div>
+      <h2 class="name">圈子详情/聚合页</h2>
+      <p class="metric">QPS -</p>
+      <p class="metric">成功率 -</p>
+    </section>
+
+    <section class="node green compact" data-id="search" style="left: 2080px; top: 840px;">
+      <div class="node-head"><span class="icon">▦</span><span class="menu">⋮</span></div>
+      <h2 class="name">搜索结果页</h2>
+      <p class="metric">QPS -</p>
+      <p class="metric">成功率 -</p>
+    </section>
+  </main>
+
+  <script>
+    const details = {
+      app: {
+        ref: "准入对象",
+        desc: "PRD 在“能不能看见”里定义用户是否能看到 Tab 入口和中心页面；用户资格包含实时 IP、账号国家、黑名单、活动风控、最低版本、青少年模式、Web/Mac 等限制。",
+        img: "https://xhs-doc.xhscdn.com/104004dg320h7j6t0li73jq1csk?redoc-w=3927&redoc-h=852&redoc-key=104004dg320h7j6t0li73jq1csk"
+      },
+      tab: {
+        ref: "顶 Tab 入口",
+        desc: "PRD 要求直接上顶 Tab，3Tab/4Tab 并行开发；Tab 支持点击前系统字体、点击后 Lottie 动画，以及图片/文字兜底。",
+        img: "https://xhs-doc.xhscdn.com/104004dg320h9veqa5c016ftm8c?redoc-w=207&redoc-h=206&redoc-key=104004dg320h9veqa5c016ftm8c"
+      },
+      center: {
+        ref: "中心页定位",
+        desc: "PRD 定位：围绕直播、赛事搭建的内容分发中心场。预热期通过裂变玩法打声量，正式期通过头版直播流牵引用户进直播间观赛、聊球。",
+        img: "https://xhs-doc.xhscdn.com/104004dg320jofddmmo0ehehlnc?redoc-w=1179&redoc-h=8265&redoc-key=104004dg320jofddmmo0ehehlnc"
+      },
+      "stage-area": {
+        ref: "顶部阶段区",
+        desc: "PRD 明确中心页架构基本一致，仅在模块对应功能上区分：预热期是倒计时氛围头图和预约直播抽大奖，正式期是开赛版氛围头图和直播信息流大卡。",
+        img: "https://xhs-doc.xhscdn.com/104004dg320joftgrli0a5s5a18?redoc-w=1179&redoc-h=9453&redoc-key=104004dg320joftgrli0a5s5a18"
+      },
+      backpack: {
+        ref: "活动背包",
+        desc: "点击背包 icon 拉起竞猜背包页；预热玩法下发的实物奖品和竞猜下发的实物奖品都在背包里。",
+        img: "https://xhs-doc.xhscdn.com/104004dg320he4fkk5c0d4in38k?redoc-w=1054&redoc-h=1106&redoc-key=104004dg320he4fkk5c0d4in38k"
+      },
+      team: {
+        ref: "我的主队",
+        desc: "球迷卡玩法与竞猜解耦，概念从球迷卡转为我的主队；中心页提供入口引导用户选择主队并获得主队权益。",
+        img: "https://xhs-doc.xhscdn.com/104004dg320hdn5f9le0b02tdek?redoc-w=227&redoc-h=244&redoc-key=104004dg320hdn5f9le0b02tdek"
+      },
+      share: {
+        ref: "页面分享",
+        desc: "页面分享是 5月25日新增；来不及时先做链接分享，分享到私信是消息卡片，后续需要分享图和分享对抗。",
+        img: "https://xhs-doc.xhscdn.com/104004dg320junbnklc01darfh8?redoc-w=1036&redoc-h=1146&redoc-key=104004dg320junbnklc01darfh8"
+      },
+      king: {
+        ref: "4 个金刚位",
+        desc: "金刚位做成配置化能力，包含坑位个数、icon、名称、排序。PRD 暂定 4 坑：赛程数据、有奖竞猜、金球兑换、一起聊球。",
+        img: "https://xhs-doc.xhscdn.com/104004dg320jt0iqkmo00b4jj84?redoc-w=1188&redoc-h=810&redoc-key=104004dg320jt0iqkmo00b4jj84"
+      },
+      schedule: {
+        ref: "赛程数据",
+        desc: "金刚位暂定内容之一：赛程数据，跳乃欣 ditto 数据集合页，PRD 标注预热期 ready。",
+        img: "https://xhs-doc.xhscdn.com/104004dg320jt0iqkmo00b4jj84?redoc-w=1188&redoc-h=810&redoc-key=104004dg320jt0iqkmo00b4jj84"
+      },
+      guess: {
+        ref: "有奖竞猜",
+        desc: "金刚位暂定内容之一：有奖竞猜，跳塞尔竞猜一级页；5月26日结论是预热期不 ready，入口放开后跳 ditto 预告页。",
+        img: "https://xhs-doc.xhscdn.com/104004dg320jt0iqkmo00b4jj84?redoc-w=1188&redoc-h=810&redoc-key=104004dg320jt0iqkmo00b4jj84"
+      },
+      gold: {
+        ref: "金球兑换",
+        desc: "金刚位暂定内容之一：金球兑奖，跳塞尔任务面板，并在面板上方增加兑奖入口和可兑奖时间提示。",
+        img: "https://xhs-doc.xhscdn.com/104004dg320jt0iqkmo00b4jj84?redoc-w=1188&redoc-h=810&redoc-key=104004dg320jt0iqkmo00b4jj84"
+      },
+      chat: {
+        ref: "一起聊球",
+        desc: "金刚位暂定内容之一：一起聊球，跳猫咪 ditto 活动页，PRD 标注预热期 ready。",
+        img: "https://xhs-doc.xhscdn.com/104004dg320jt0iqkmo00b4jj84?redoc-w=1188&redoc-h=810&redoc-key=104004dg320jt0iqkmo00b4jj84"
+      },
+      "content-floor": {
+        ref: "动态内容楼层",
+        desc: "PRD 消费内容模块在主会场下承接内容消费，当前地图只保留用户可见且可作为流量节点观察的一级内容模块：比赛看点、大家都在发、热门球迷圈、赛事热点。",
+        img: "https://xhs-doc.xhscdn.com/104004dg320j252rg5k0fbsu5hk?redoc-w=594&redoc-h=454&redoc-key=104004dg320j252rg5k0fbsu5hk"
+      },
+      "match-highlights": {
+        ref: "比赛看点",
+        desc: "比赛看点是动态内容楼层下的笔记指定类栏目，强运营、强时效；内容类型为运营指定笔记，点击整块热区进入笔记详情。",
+        img: "https://xhs-doc.xhscdn.com/104004dg320j252rg5k0fbsu5hk?redoc-w=594&redoc-h=454&redoc-key=104004dg320j252rg5k0fbsu5hk"
+      },
+      "note-detail": {
+        ref: "笔记详情页",
+        desc: "比赛看点模块的下钻落地页。PRD 描述点击整块热区进入笔记详情，因此这里作为比赛看点的下一层观察节点。",
+        img: "https://xhs-doc.xhscdn.com/104004dg320j252rg5k0fbsu5hk?redoc-w=594&redoc-h=454&redoc-key=104004dg320j252rg5k0fbsu5hk"
+      },
+      "preheat-hero": {
+        ref: "预热态顶部区",
+        desc: "预热态顶部区对应用户截图中的预约世界杯直播抽奖卡。PRD 一句话：完成官方赛事直播预约得 1 次抽奖机会；邀请好友完成官方赛事直播预约，可以得到更多抽奖机会。",
+        img: "https://xhs-doc.xhscdn.com/104004dg320jnmmqplk0adk6o9o?redoc-w=674&redoc-h=1438&redoc-key=104004dg320jnmmqplk0adk6o9o"
+      },
+      "formal-hero": {
+        ref: "正式态顶部区",
+        desc: "正式态顶部区对应用户截图中的开赛版直播内容。PRD 正式期特殊板块为直播信息流大卡，目标是通过头版直播流牵引用户来直播间观赛、聊球。",
+        img: "https://xhs-doc.xhscdn.com/104004dg320jqbnr96o03r9jjq0?redoc-w=870&redoc-h=1246&redoc-key=104004dg320jqbnr96o03r9jjq0"
+      },
+      "reserve-card": {
+        ref: "预约卡片",
+        desc: "预约内容为官方赛事直播，当前是一键预约揭幕赛和决赛；预约途径之一是卡片按钮，按钮文案暂定“预约揭幕赛和决赛直播”，角标“获得抽奖机会”。",
+        img: "https://xhs-doc.xhscdn.com/104004dg320hem4br5k0bv2qljo?redoc-w=698&redoc-h=1454&redoc-key=104004dg320hem4br5k0bv2qljo"
+      },
+      "reserve-widget": {
+        ref: "预约挂件",
+        desc: "当用户没有完成预约且滑出首屏后曝光预约挂件；点击挂件后的逻辑同点击活动卡片上的大按钮。",
+        img: "https://xhs-doc.xhscdn.com/104004dg320juuo53li0538p338?redoc-w=698&redoc-h=1460&redoc-key=104004dg320juuo53li0538p338"
+      },
+      "lottery-play": {
+        ref: "预约抽奖玩法",
+        desc: "预热玩法路径：预约揭幕赛和决赛直播、滑出首屏出挂件、点击挂件或活动按钮、预约完成获得抽奖机会、立即抽奖、中奖后晒一晒或邀好友继续抽。",
+        img: "https://xhs-doc.xhscdn.com/104004dg320i5pm6ili0ff3doq0?redoc-w=498&redoc-h=1044&redoc-key=104004dg320i5pm6ili0ff3doq0"
+      },
+      draw: {
+        ref: "抽奖弹窗",
+        desc: "PRD 将抽奖机会设计为可立即核销；预约成功弹窗里的抽奖按钮点击后开始抽奖、播放抽奖弹窗。",
+        img: "https://xhs-doc.xhscdn.com/104004dg320hhsvmv6o0cstmo74?redoc-w=548&redoc-h=1170&redoc-key=104004dg320hhsvmv6o0cstmo74"
+      },
+      show: {
+        ref: "晒一晒",
+        desc: "预热玩法链路中，抽中大奖后引导晒一晒；PRD 说明核心功能是用户抽中大奖时，按钮直接引导晒一晒。",
+        img: "https://xhs-doc.xhscdn.com/104004dg320i5iu4hlc07uvjb58?redoc-w=698&redoc-h=1476&redoc-key=104004dg320i5iu4hlc07uvjb58"
+      },
+      invite: {
+        ref: "邀请好友预约",
+        desc: "用户完成自己的预约并通过风控后才有邀人资格；每有 1 位好友完成预约，邀请人获得 1 次新的抽奖机会。",
+        img: "https://xhs-doc.xhscdn.com/104004dg320hi6hkq5k01goc8tg?redoc-w=1512&redoc-h=1532&redoc-key=104004dg320hi6hkq5k01goc8tg"
+      },
+      poster: {
+        ref: "分享海报",
+        desc: "邀请分享类型为海报，仅端外渠道；点击邀请入口唤起分享面板，支持海报分享并屏蔽端内渠道。",
+        img: "https://xhs-doc.xhscdn.com/104004dg320jv24rl6o0e4edbmg?redoc-w=160&redoc-h=163&redoc-key=104004dg320jv24rl6o0e4edbmg"
+      },
+      "live-card": {
+        ref: "直播信息流大卡",
+        desc: "区域定位是可以直接被消费的内容流；直播流支持左右滑动。PRD 里的“运营自制直播”不是一个独立入口，而是直播信息流大卡里的素材类型之一，和官方赛事直播一起参与排序。",
+        img: "https://xhs-doc.xhscdn.com/104004dg320jqbnr96o03r9jjq0?redoc-w=870&redoc-h=1246&redoc-key=104004dg320jqbnr96o03r9jjq0"
+      },
+      "reserve-entry": {
+        ref: "直播卡预约按钮",
+        desc: "这里不是预热抽奖预约，而是正式期直播信息流大卡内的按钮状态。赛事未开播时按钮为“预约直播”，走单场赛事预约路径。",
+        img: "https://xhs-doc.xhscdn.com/104004dg320j881nale08dtg5q8?redoc-w=124&redoc-h=76&redoc-key=104004dg320j881nale08dtg5q8"
+      },
+      "live-room": {
+        ref: "直播中进房",
+        desc: "直播信息流大卡里的直播素材支持直接播放直播画面；按钮在直播中、已结束状态会跳转直播间。",
+        img: "https://xhs-doc.xhscdn.com/104004dg320jqbnr96o03r9jjq0?redoc-w=870&redoc-h=1246&redoc-key=104004dg320jqbnr96o03r9jjq0"
+      },
+      "schedule-entry": {
+        ref: "赛程页入口",
+        desc: "赛程页入口来自赛事直播卡上的“赛事信息热区”：直播开始后，点击比赛信息支持跳转进赛程日历页。",
+        img: "https://xhs-doc.xhscdn.com/104004dg320j20o28lc07b12vi4?redoc-w=62&redoc-h=140&redoc-key=104004dg320j20o28lc07b12vi4"
+      },
+      "replay-entry": {
+        ref: "回放页入口",
+        desc: "回放页入口来自赛事直播卡按钮状态：当按钮状态为“查看回放”时，点击跳转回放页。",
+        img: "https://xhs-doc.xhscdn.com/104004dg320j20o28lc07b12vi4?redoc-w=62&redoc-h=140&redoc-key=104004dg320j20o28lc07b12vi4"
+      },
+      "everyone-posting": {
+        ref: "大家都在发",
+        desc: "大家都在发是动态内容楼层的一级内容模块，承接用户发布/模板类内容曝光，不再画成“发布链路”这种动作节点。",
+        img: "https://xhs-doc.xhscdn.com/104004dg320ju3iqi5i08maqgos?redoc-w=1158&redoc-h=946&redoc-key=104004dg320ju3iqi5i08maqgos"
+      },
+      "publish-template": {
+        ref: "发布模板/发布器",
+        desc: "大家都在发模块点击“我也发一个”后承接发布模板或发布器链路；它是模块下钻后的用户可见落地页/功能。",
+        img: "https://xhs-doc.xhscdn.com/104004dg320ju3iqi5i08maqgos?redoc-w=1158&redoc-h=946&redoc-key=104004dg320ju3iqi5i08maqgos"
+      },
+      "fan-circle": {
+        ref: "热门球迷圈",
+        desc: "热门球迷圈是动态内容楼层的一级内容模块，和比赛看点、大家都在发、赛事热点平级；点击后进入圈子详情页或对应聚合页。",
+        img: "https://xhs-doc.xhscdn.com/104004dg320jtvo815e04jmppcs?redoc-w=1154&redoc-h=584&redoc-key=104004dg320jtvo815e04jmppcs"
+      },
+      "circle-detail": {
+        ref: "圈子详情/聚合页",
+        desc: "热门球迷圈模块的下钻落地页。PRD 描述点击后进入圈子详情页或对应聚合页，因此这里作为热门球迷圈下一层。",
+        img: "https://xhs-doc.xhscdn.com/104004dg320jtvo815e04jmppcs?redoc-w=1154&redoc-h=584&redoc-key=104004dg320jtvo815e04jmppcs"
+      },
+      "event-hot": {
+        ref: "赛事热点",
+        desc: "赛事热点正式期下发，常规按热度取 TopN，支持运营强插；交互逻辑是点击热点进对应搜索结果页。",
+        img: "https://xhs-doc.xhscdn.com/104004dg320ju7g9alc05dkr9j0?redoc-w=1102&redoc-h=676&redoc-key=104004dg320ju7g9alc05dkr9j0"
+      },
+      search: {
+        ref: "搜索结果页",
+        desc: "搜索结果页是赛事热点的下一层落地页：用户点击热点词后进入对应搜索结果页。",
+        img: "https://xhs-doc.xhscdn.com/104004dg320ju7g9alc05dkr9j0?redoc-w=1102&redoc-h=676&redoc-key=104004dg320ju7g9alc05dkr9j0"
+      },
+    };
+
+    const edges = [
+      ["app", "tab", ""],
+      ["tab", "center", ""],
+      ["center", "stage-area", "orange"],
+      ["center", "backpack", "purple"],
+      ["center", "team", "purple"],
+      ["center", "share", "purple"],
+      ["center", "king", "purple"],
+      ["center", "content-floor", "green"],
+      ["king", "schedule", "purple"],
+      ["king", "guess", "purple"],
+      ["king", "gold", "purple"],
+      ["king", "chat", "purple"],
+      ["stage-area", "preheat-hero", "orange"],
+      ["stage-area", "formal-hero", "green"],
+      ["preheat-hero", "reserve-card", "orange"],
+      ["preheat-hero", "reserve-widget", "orange"],
+      ["reserve-card", "lottery-play", "orange"],
+      ["reserve-widget", "lottery-play", "orange"],
+      ["lottery-play", "draw", "orange"],
+      ["draw", "show", "orange"],
+      ["draw", "invite", "orange"],
+      ["invite", "poster", "orange"],
+      ["formal-hero", "live-card", "green"],
+      ["live-card", "reserve-entry", "green"],
+      ["live-card", "live-room", "green"],
+      ["live-card", "schedule-entry", "green"],
+      ["live-card", "replay-entry", "green"],
+      ["content-floor", "match-highlights", "green"],
+      ["content-floor", "everyone-posting", "green"],
+      ["content-floor", "fan-circle", "green"],
+      ["content-floor", "event-hot", "green"],
+      ["match-highlights", "note-detail", "green"],
+      ["everyone-posting", "publish-template", "green"],
+      ["fan-circle", "circle-detail", "green"],
+      ["event-hot", "search", "green"]
+    ];
+
+    const svg = document.getElementById("edges");
+    const canvas = document.getElementById("topology");
+    const evidence = document.getElementById("evidence");
+
+    function point(id, side) {
+      const el = document.querySelector(`[data-id="${id}"]`);
+      const box = el.getBoundingClientRect();
+      const root = canvas.getBoundingClientRect();
+      return {
+        x: box.left - root.left + box.width / 2,
+        y: side === "top" ? box.top - root.top : box.bottom - root.top
+      };
+    }
+
+    function draw() {
+      svg.innerHTML = "";
+      for (const [from, to, color] of edges) {
+        const a = point(from, "bottom");
+        const b = point(to, "top");
+        const verticalGap = Math.max(26, b.y - a.y);
+        const curve = Math.min(82, Math.max(36, verticalGap * 0.45));
+        const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+        path.setAttribute("class", `edge ${color}`);
+        path.setAttribute("d", `M ${a.x} ${a.y} C ${a.x} ${a.y + curve}, ${b.x} ${b.y - curve}, ${b.x} ${b.y}`);
+        svg.appendChild(path);
+      }
+    }
+
+    function enhanceNodes() {
+      for (const node of document.querySelectorAll(".node")) {
+        const id = node.dataset.id;
+        const item = details[id];
+        if (!item) continue;
+
+        if (!node.querySelector(".doc-ref")) {
+          const ref = document.createElement("p");
+          ref.className = "doc-ref";
+          ref.textContent = `依据：${item.ref}`;
+          node.appendChild(ref);
+        }
+
+        node.addEventListener("mouseenter", () => showEvidence(node, item));
+        node.addEventListener("mouseleave", hideEvidence);
+      }
+    }
+
+    function showEvidence(node, item) {
+      evidence.innerHTML = `
+        <div class="drawer-head">
+          <h3 class="evidence-title">${node.querySelector(".name").textContent}</h3>
+        </div>
+        <p class="evidence-copy">${item.desc}</p>
+        ${item.img ? `<img class="evidence-img" src="${item.img}" alt="${item.ref} 产品截图">` : ""}
+        <div class="evidence-source">来源：PRD《【重开版PRD】26世界杯-中心页》｜${item.ref}</div>
+      `;
+      evidence.classList.add("visible");
+    }
+
+    function hideEvidence() {
+      evidence.classList.remove("visible");
+    }
+
+    window.addEventListener("load", () => {
+      enhanceNodes();
+      draw();
+    });
+    window.addEventListener("resize", draw);
+  </script>
+</body>
+</html>
