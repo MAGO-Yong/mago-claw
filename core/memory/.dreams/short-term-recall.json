@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updatedAt": "2026-05-26T00:03:36.522Z",
+  "updatedAt": "2026-05-28T00:03:35.565Z",
   "entries": {
     "memory:memory/2026-03-24.md:26:66": {
       "key": "memory:memory/2026-03-24.md:26:66",
@@ -562,18 +562,22 @@
       "endLine": 118,
       "source": "memory",
       "snippet": "天） |",
-      "recallCount": 1,
+      "recallCount": 3,
       "dailyCount": 0,
       "groundedCount": 0,
-      "totalScore": 0.48719812929630274,
+      "totalScore": 1.4287857055664062,
       "maxScore": 0.48719812929630274,
       "firstRecalledAt": "2026-05-26T00:03:36.522Z",
-      "lastRecalledAt": "2026-05-26T00:03:36.522Z",
+      "lastRecalledAt": "2026-05-28T00:03:35.565Z",
       "queryHashes": [
-        "5601a4f18d36"
+        "5601a4f18d36",
+        "4f2975ffb8c2",
+        "864df8c4a916"
       ],
       "recallDays": [
-        "2026-05-26"
+        "2026-05-26",
+        "2026-05-27",
+        "2026-05-28"
       ],
       "conceptTags": []
     },
@@ -584,18 +588,20 @@
       "endLine": 143,
       "source": "memory",
       "snippet": "→ 日报推送",
-      "recallCount": 1,
+      "recallCount": 2,
       "dailyCount": 0,
       "groundedCount": 0,
-      "totalScore": 0.4761925369501114,
+      "totalScore": 0.9317780226469039,
       "maxScore": 0.4761925369501114,
       "firstRecalledAt": "2026-05-26T00:03:36.522Z",
-      "lastRecalledAt": "2026-05-26T00:03:36.522Z",
+      "lastRecalledAt": "2026-05-27T00:04:04.580Z",
       "queryHashes": [
-        "5601a4f18d36"
+        "5601a4f18d36",
+        "4f2975ffb8c2"
       ],
       "recallDays": [
-        "2026-05-26"
+        "2026-05-26",
+        "2026-05-27"
       ],
       "conceptTags": [
         "日报",
@@ -609,18 +615,20 @@
       "endLine": 86,
       "source": "memory",
       "snippet": "效率报告 |",
-      "recallCount": 1,
+      "recallCount": 2,
       "dailyCount": 0,
       "groundedCount": 0,
-      "totalScore": 0.472951266169548,
-      "maxScore": 0.472951266169548,
+      "totalScore": 0.9490710377693176,
+      "maxScore": 0.47611977159976954,
       "firstRecalledAt": "2026-05-26T00:03:36.522Z",
-      "lastRecalledAt": "2026-05-26T00:03:36.522Z",
+      "lastRecalledAt": "2026-05-28T00:03:35.565Z",
       "queryHashes": [
-        "5601a4f18d36"
+        "5601a4f18d36",
+        "864df8c4a916"
       ],
       "recallDays": [
-        "2026-05-26"
+        "2026-05-26",
+        "2026-05-28"
       ],
       "conceptTags": [
         "效率",
@@ -634,18 +642,214 @@
       "endLine": 152,
       "source": "memory",
       "snippet": "）",
+      "recallCount": 6,
+      "dailyCount": 0,
+      "groundedCount": 0,
+      "totalScore": 2.6756690084934234,
+      "maxScore": 0.47716631591320036,
+      "firstRecalledAt": "2026-05-26T00:03:36.522Z",
+      "lastRecalledAt": "2026-05-28T00:03:35.565Z",
+      "queryHashes": [
+        "5601a4f18d36",
+        "4f2975ffb8c2",
+        "d59ea679510a",
+        "cadaf8b3c403",
+        "3ffd0798d417",
+        "864df8c4a916"
+      ],
+      "recallDays": [
+        "2026-05-26",
+        "2026-05-27",
+        "2026-05-28"
+      ],
+      "conceptTags": []
+    },
+    "memory:memory/work-log/2026-04-26.md:1:55": {
+      "key": "memory:memory/work-log/2026-04-26.md:1:55",
+      "path": "memory/work-log/2026-04-26.md",
+      "startLine": 1,
+      "endLine": 55,
+      "source": "memory",
+      "snippet": "归档 --- ## 方向二：PM 工作流自动化",
       "recallCount": 1,
       "dailyCount": 0,
       "groundedCount": 0,
-      "totalScore": 0.4673785001039505,
-      "maxScore": 0.4673785001039505,
-      "firstRecalledAt": "2026-05-26T00:03:36.522Z",
-      "lastRecalledAt": "2026-05-26T00:03:36.522Z",
+      "totalScore": 0.4803613156080246,
+      "maxScore": 0.4803613156080246,
+      "firstRecalledAt": "2026-05-27T00:04:04.580Z",
+      "lastRecalledAt": "2026-05-27T00:04:04.580Z",
       "queryHashes": [
-        "5601a4f18d36"
+        "4f2975ffb8c2"
       ],
       "recallDays": [
-        "2026-05-26"
+        "2026-05-27"
+      ],
+      "conceptTags": [
+        "归档",
+        "方向",
+        "工作",
+        "自动"
+      ]
+    },
+    "memory:memory/work-log/2026-05-17.md:1:55": {
+      "key": "memory:memory/work-log/2026-05-17.md:1:55",
+      "path": "memory/work-log/2026-05-17.md",
+      "startLine": 1,
+      "endLine": 55,
+      "source": "memory",
+      "snippet": "趁记忆还在推进） --- ## 方向二：PM 工作流自动化 ### 今日做了什么",
+      "recallCount": 1,
+      "dailyCount": 0,
+      "groundedCount": 0,
+      "totalScore": 0.47529269158840176,
+      "maxScore": 0.47529269158840176,
+      "firstRecalledAt": "2026-05-27T00:04:04.580Z",
+      "lastRecalledAt": "2026-05-27T00:04:04.580Z",
+      "queryHashes": [
+        "4f2975ffb8c2"
+      ],
+      "recallDays": [
+        "2026-05-27"
+      ],
+      "conceptTags": [
+        "记忆",
+        "推进",
+        "方向",
+        "工作",
+        "自动",
+        "今日",
+        "做了",
+        "什么"
+      ]
+    },
+    "memory:memory/work-log/2026-05-25.md:57:100": {
+      "key": "memory:memory/work-log/2026-05-25.md:57:100",
+      "path": "memory/work-log/2026-05-25.md",
+      "startLine": 57,
+      "endLine": 100,
+      "source": "memory",
+      "snippet": "- **P0（M3 首周）**: M2 复盘 — KR3/KR4 滑点原因分析 + M3 排期调整（避免同一模式重演） - **P1**: Trace 评估框架写为正式规范文档（已拖延 11 天，可作为公司内部 AI Skill 评估标准） - **P1**: diagnosis-skill-builder 与 biz-diagnosis-creator 关系决策（合并 or 分工 or 保留两个） - **P1**: Problem 类告警通用排查框架固化为 Skill 模板（三层递进结构可推广为 KR1 通用诊断能力基础模板） --- ## 方向二：PM 工作流自动化 ### 今日做了什么 **⚪ 无新进展** - diagnosis-skill-builder 的 SOP→Skill 管道已验证可行（5/20 安装成功），但连续 6 天未实际执行转化 - obs-token 云效流水线 — 基础设施已就绪（5/15 调通），11 天未动 - QS AutoFlow — 方案文档仍停滞，45+ 天零产出 ### 待做方向 - **P0（M3 首周）**: obs-token 云效流水线正式搭建（基础设施就绪 11 天未动，方向二第一个可落地的基础设施） - **P1**: QS AutoFlow 方案初稿（方向二的第一个 MVP 仍是需求管理机制，AutoFlow 方案无产出） --- ## 方向三：公司内部 AI 应用规范 ### 今日做了什么 **⚪ 无新进展** - 诊断 Skill 创建方法论（场景确认→SOP 追问→流程图→细节确认→打包安装",
+      "recallCount": 1,
+      "dailyCount": 0,
+      "groundedCount": 0,
+      "totalScore": 0.4625239789485931,
+      "maxScore": 0.4625239789485931,
+      "firstRecalledAt": "2026-05-27T00:04:04.580Z",
+      "lastRecalledAt": "2026-05-27T00:04:04.580Z",
+      "queryHashes": [
+        "4f2975ffb8c2"
+      ],
+      "recallDays": [
+        "2026-05-27"
+      ],
+      "conceptTags": [
+        "kr3/kr4",
+        "diagnosis-skill-builder",
+        "biz-diagnosis-creator",
+        "5/20",
+        "obs-token",
+        "5/15",
+        "kr3",
+        "kr4"
+      ]
+    },
+    "memory:memory/work-log/2026-05-14.md:57:86": {
+      "key": "memory:memory/work-log/2026-05-14.md:57:86",
+      "path": "memory/work-log/2026-05-14.md",
+      "startLine": 57,
+      "endLine": 86,
+      "source": "memory",
+      "snippet": "P0，应启动 --- ## 方向二：PM 工作流自动化",
+      "recallCount": 1,
+      "dailyCount": 0,
+      "groundedCount": 0,
+      "totalScore": 0.44964363574981686,
+      "maxScore": 0.44964363574981686,
+      "firstRecalledAt": "2026-05-27T00:04:04.580Z",
+      "lastRecalledAt": "2026-05-27T00:04:04.580Z",
+      "queryHashes": [
+        "4f2975ffb8c2"
+      ],
+      "recallDays": [
+        "2026-05-27"
+      ],
+      "conceptTags": [
+        "启动",
+        "方向",
+        "工作",
+        "自动"
+      ]
+    },
+    "memory:memory/work-log/2026-04-20.md:79:116": {
+      "key": "memory:memory/work-log/2026-04-20.md:79:116",
+      "path": "memory/work-log/2026-04-20.md",
+      "startLine": 79,
+      "endLine": 116,
+      "source": "memory",
+      "snippet": "--",
+      "recallCount": 4,
+      "dailyCount": 0,
+      "groundedCount": 0,
+      "totalScore": 1.7665496736764907,
+      "maxScore": 0.4714791655540466,
+      "firstRecalledAt": "2026-05-27T00:06:01.845Z",
+      "lastRecalledAt": "2026-05-28T00:03:35.565Z",
+      "queryHashes": [
+        "d59ea679510a",
+        "cadaf8b3c403",
+        "3ffd0798d417",
+        "864df8c4a916"
+      ],
+      "recallDays": [
+        "2026-05-27",
+        "2026-05-28"
+      ],
+      "conceptTags": []
+    },
+    "memory:memory/2026-04-16.md:1:54": {
+      "key": "memory:memory/2026-04-16.md:1:54",
+      "path": "memory/2026-04-16.md",
+      "startLine": 1,
+      "endLine": 54,
+      "source": "memory",
+      "snippet": "） ---",
+      "recallCount": 3,
+      "dailyCount": 0,
+      "groundedCount": 0,
+      "totalScore": 1.2802634686231613,
+      "maxScore": 0.4450517416000366,
+      "firstRecalledAt": "2026-05-27T00:06:01.845Z",
+      "lastRecalledAt": "2026-05-28T00:02:19.322Z",
+      "queryHashes": [
+        "d59ea679510a",
+        "cadaf8b3c403",
+        "3ffd0798d417"
+      ],
+      "recallDays": [
+        "2026-05-27",
+        "2026-05-28"
+      ],
+      "conceptTags": []
+    },
+    "memory:memory/2026-05-13.md:121:151": {
+      "key": "memory:memory/2026-05-13.md:121:151",
+      "path": "memory/2026-05-13.md",
+      "startLine": 121,
+      "endLine": 151,
+      "source": "memory",
+      "snippet": "**：",
+      "recallCount": 1,
+      "dailyCount": 0,
+      "groundedCount": 0,
+      "totalScore": 0.43457317650318145,
+      "maxScore": 0.43457317650318145,
+      "firstRecalledAt": "2026-05-27T13:48:03.802Z",
+      "lastRecalledAt": "2026-05-27T13:48:03.802Z",
+      "queryHashes": [
+        "cadaf8b3c403"
+      ],
+      "recallDays": [
+        "2026-05-27"
       ],
       "conceptTags": []
     }
