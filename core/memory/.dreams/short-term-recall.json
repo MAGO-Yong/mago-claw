@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updatedAt": "2026-05-28T00:03:35.565Z",
+  "updatedAt": "2026-05-29T00:03:35.801Z",
   "entries": {
     "memory:memory/2026-03-24.md:26:66": {
       "key": "memory:memory/2026-03-24.md:26:66",
@@ -852,6 +852,285 @@
         "2026-05-27"
       ],
       "conceptTags": []
+    },
+    "memory:memory/work-log/2026-05-17.md:118:153": {
+      "key": "memory:memory/work-log/2026-05-17.md:118:153",
+      "path": "memory/work-log/2026-05-17.md",
+      "startLine": 118,
+      "endLine": 153,
+      "source": "memory",
+      "snippet": "├── KR1 通用 Skill 开发 → 🟡 评估框架已定，待落文 + CLI/Skill 分层已确认 ├── KR2 告警中心诊断闭环 → 🟡 Prototype v2 已交付，前端升级第二批搁置 ├── KR3 业务线 Skill 接入 → 🔴 尚未涉及 └── KR4 诊断有效性基线 → 🔴 尚未涉及 M2 第 1 周回顾（5/12-5/16，5 个工作日）： ├── 评估体系：Prototype v2 ✅ + Trace 维度框架 ✅ + 首次 SKILL 审计 ✅ ├── 基础设施：claude-proxy + obs-token 调通 ✅ ├── 前端升级：第一批完成 ✅，第二批搁置 ⏳ ├── 需求管理：机制稳定运行 ✅ ├── 老 P0：3 个拖延 36 天，零进展 🔴 ├── 业务线接入（KR3）：零进展 🔴 └── 诊断基线（KR4）：零进展 🔴 M2 剩余 9 天（5/17-5/25），含周末 2 天 → 实际工作日 7 天 风险：KR3/KR4 需在 7 个工作日内从零启动并完成，时间极度紧张 ``` ### ⚠️ 风险提示 | 风险 | 严重程度 | 说明 | |------|---------|------| | M2 时间过半，KR3/KR4 未启动 | 🔴 高 | 仅剩 7 个工作日，业务线接入和基线建立零进展 | | 3 个老 P0 拖延 36 天 | 🔴 高 | 跨 M1/M2 技术债务，每次用户上线都被新需求覆盖 | | Trace 评估框架未落文 | 🟡 中 | 讨论完成 2 天+仍未固化，知识流失风险 |",
+      "recallCount": 1,
+      "dailyCount": 0,
+      "groundedCount": 0,
+      "totalScore": 0.7606819210391267,
+      "maxScore": 0.7606819210391267,
+      "firstRecalledAt": "2026-05-29T00:03:35.801Z",
+      "lastRecalledAt": "2026-05-29T00:03:35.801Z",
+      "queryHashes": [
+        "7467a2b13e73"
+      ],
+      "recallDays": [
+        "2026-05-29"
+      ],
+      "conceptTags": [
+        "cli/skill",
+        "5/12-5/16",
+        "claude-proxy",
+        "obs-token",
+        "5/17-5/25",
+        "kr3/kr4",
+        "m1/m2",
+        "kr1"
+      ]
+    },
+    "memory:memory/work-log/2026-05-04.md:127:163": {
+      "key": "memory:memory/work-log/2026-05-04.md:127:163",
+      "path": "memory/work-log/2026-05-04.md",
+      "startLine": 127,
+      "endLine": 163,
+      "source": "memory",
+      "snippet": "5. **GitHub PAT 已自动修复** ✅ - daily-backup 在 5/4 凌晨 02:01 成功 push 并修正了 remote URL 中的过期 token - 无需用户手动处理 ### 与上次日报对比（5/03 → 5/04） | 指标 | 5/03 日报 | 5/04 日报 | 变化 | |------|----------|----------|------| | P0 待办拖延天数 | 第 17-19 天 | 第 21 天+ | 🔴 +2~4 天 | | 用户工作交互 | 无 | 无 | ➡️ 假期最后 1 天 | | GitHub PAT 状态 | ❌ 过期 | ✅ 已修复 | 🟢 风险解除 | | 连续日报结论一致 | 第 6 次 | 第 7 次 | 🔴 疲劳确认 | | 本报告格式 | 完整版 | 精简版 | 🔄 策略切换 | ### 风险矩阵（假期后） | 风险项 | 严重程度 | 说明 | |--------|---------|------| | 3 个 P0 技术待办 | 🔴 高 | 21 天拖延，假期后必须立即启动 | | M1 剩余 9 个工作日 | 🟡 中高 | 5/6-5/9 + 5/11，需每天聚焦一个里程碑 | | QS AutoFlow 19 天零产出 | 🟡 中 | 方案初稿仍未启动 | | 日报策略疲劳 | 🟡 中 | 已连续 7 次相同结论，本报告起精简处理 | ### M1 执行窗口时间账（5/4 更新） | 时间段 | 天数 | 说明 | |--------|-----",
+      "recallCount": 1,
+      "dailyCount": 0,
+      "groundedCount": 0,
+      "totalScore": 0.7523733466237519,
+      "maxScore": 0.7523733466237519,
+      "firstRecalledAt": "2026-05-29T00:03:35.801Z",
+      "lastRecalledAt": "2026-05-29T00:03:35.801Z",
+      "queryHashes": [
+        "7467a2b13e73"
+      ],
+      "recallDays": [
+        "2026-05-29"
+      ],
+      "conceptTags": [
+        "backup",
+        "daily-backup",
+        "5/4",
+        "5/03",
+        "5/04",
+        "17-19",
+        "5/6-5/9",
+        "5/11"
+      ]
+    },
+    "memory:memory/work-log/2026-05-16.md:139:176": {
+      "key": "memory:memory/work-log/2026-05-16.md:139:176",
+      "path": "memory/work-log/2026-05-16.md",
+      "startLine": 139,
+      "endLine": 176,
+      "source": "memory",
+      "snippet": "├── KR1 通用 Skill 开发 → 🟡 评估体系框架完善中，Trace 维度待落文 ├── KR2 告警中心诊断闭环 → 🔴 Prototype v2 已交付，前端升级第二批搁置 ├── KR3 业务线 Skill 接入 → 🔴 尚未涉及 └── KR4 诊断有效性基线 → 🔴 尚未涉及 本周回顾（5/12-5/16，M2 第 1 周结束）： ├── 评估体系：Prototype v2 交付 + Trace 维度框架 + 首次 SKILL 审计 ✅ ├── 基础设施：claude-proxy + obs-token 调通 ✅ ├── 前端升级：第一批（数据集 TAB）完成，第二批搁置 ⏳ ├── 需求管理：机制稳定运行 ✅ ├── 老 P0：3 个拖延 35 天，零进展 🔴 ├── 业务线接入：零进展 🔴 └── 诊断基线：零进展 🔴 风险未解： ├── Trace 评估框架未落文 → 🟡 知识流失风险 ├── 3 个老 P0 拖延 35 天 → 🔴 高，跨 M1/M2 技术债务 ├── M2 KR3/KR4 尚未涉及 → 🔴 M2 只剩 10 天，时间紧迫 └── 评估前端升级第二批搁置 → 🟡 热度可能冷却 ``` ### ⚠️ 风险提示 | 风险 | 严重程度 | 说明 | |------|---------|------| | M2 时间过半，KR3/KR4 未启动 | 🔴 高 | M2（5/12-5/25）只剩 10 天，业务线接入和基线建立零进展 | | 3 个老 P0 拖延 35 天 | 🔴 高 | 跨 M1/M2 技术债",
+      "recallCount": 1,
+      "dailyCount": 0,
+      "groundedCount": 0,
+      "totalScore": 0.7486999076083929,
+      "maxScore": 0.7486999076083929,
+      "firstRecalledAt": "2026-05-29T00:03:35.801Z",
+      "lastRecalledAt": "2026-05-29T00:03:35.801Z",
+      "queryHashes": [
+        "7467a2b13e73"
+      ],
+      "recallDays": [
+        "2026-05-29"
+      ],
+      "conceptTags": [
+        "5/12-5/16",
+        "claude-proxy",
+        "obs-token",
+        "m1/m2",
+        "kr3/kr4",
+        "5/12-5/25",
+        "kr1",
+        "通用"
+      ]
+    },
+    "memory:memory/work-log/2026-05-12.md:108:151": {
+      "key": "memory:memory/work-log/2026-05-12.md:108:151",
+      "path": "memory/work-log/2026-05-12.md",
+      "startLine": 108,
+      "endLine": 151,
+      "source": "memory",
+      "snippet": "**核心变化**：M1 窗口已于 5/11 静默结束，M2 从 5/12 正式开启。但 3 个 P0 技术待办全部跨里程碑遗留，M2 启动即面临输入缺口。 ### 与上次日报对比（5/07 → 5/12） | 指标 | 5/07 | 5/12 | 变化 | |------|------|------|------| | P0 待办拖延 | 第 24 天+ | 第 29 天+ | 🔴 +5 | | 当前里程碑 | M1（剩余 8 工作日） | M2（首日） | 🔄 切换 | | M1 实际交付 | 0/4 KR | 0/4 KR | 🔴 全未完成 | | 连续零交互 | 第 11 天 | 第 13 天 | 🔴 +2 | | work-daily-report | ✅ 正常 | ✅ 恢复（5/8-5/11 401 失败） | ⚠️ token 仍失效 | | GitHub push | ✅ 成功 | ✅ 成功 | 网络稳定 | ### M1 回顾 vs M2 展望 ``` M1（4/28-5/11）结果： ├── KR1 通用 Skill 开发 → ❌ 零进展（输入依赖未确认） ├── KR2 告警中心方案设计 → ❌ 零进展 ├── KR3 广告/搜索 SOP 对齐 → ❌ 零进展 └── 阻塞根因：3 个 P0 待办（execute_tool Span/需求文档合并/SKILL 修复）未确认 M2（5/12-5/25）启动条件评估： ├── 通用 Skill 准确率达标 → ⚠️ 需先完成 M1 Skill 开发 ├── 灰度验证 → ⚠️ 依赖 Skill",
+      "recallCount": 1,
+      "dailyCount": 0,
+      "groundedCount": 0,
+      "totalScore": 0.7423467586850516,
+      "maxScore": 0.7423467586850516,
+      "firstRecalledAt": "2026-05-29T00:03:35.801Z",
+      "lastRecalledAt": "2026-05-29T00:03:35.801Z",
+      "queryHashes": [
+        "7467a2b13e73"
+      ],
+      "recallDays": [
+        "2026-05-29"
+      ],
+      "conceptTags": [
+        "网络",
+        "5/11",
+        "5/12",
+        "5/07",
+        "0/4",
+        "work-daily-report",
+        "5/8-5/11",
+        "4/28-5/11"
+      ]
+    },
+    "memory:memory/work-log/2026-05-07.md:117:134": {
+      "key": "memory:memory/work-log/2026-05-07.md:117:134",
+      "path": "memory/work-log/2026-05-07.md",
+      "startLine": 117,
+      "endLine": 134,
+      "source": "memory",
+      "snippet": "├── 5/6-5/7: 复工 2 天（零交互） └── 5/8-5/9 + 5/11: 剩余 8 个工作日 ⚠️ 窗口收窄 ``` ### ⚠️ 风险提示 | 风险 | 严重程度 | 说明 | |------|---------|------| | 3 个 P0 技术待办 | 🔴 高 | 24 天拖延，M1 剩余 8 天窗口 | | M1 窗口压缩至 8 天 | 🔴 高 | 4KR + 5 里程碑，已消耗 2 天复工日无进展 | | 冷启动恢复成本 | 🟡 中 | 连续 11 天零交互，上下文恢复难度递增 | | 日报信息疲劳 | 🟡 中 | 连续多天输出相同结构，信息增量递减 | --- *生成方式：work-daily-report cron · 读取 daily-digest/2026-05-06.md + work-log/2026-05-06.md + MEMORY.md + session list* *报告对象：正一*",
+      "recallCount": 1,
+      "dailyCount": 0,
+      "groundedCount": 0,
+      "totalScore": 0.7371801789131104,
+      "maxScore": 0.7371801789131104,
+      "firstRecalledAt": "2026-05-29T00:03:35.801Z",
+      "lastRecalledAt": "2026-05-29T00:03:35.801Z",
+      "queryHashes": [
+        "7467a2b13e73"
+      ],
+      "recallDays": [
+        "2026-05-29"
+      ],
+      "conceptTags": [
+        "5/6-5/7",
+        "5/8-5/9",
+        "5/11",
+        "work-daily-report",
+        "daily-digest/2026-05-06.md",
+        "work-log/2026-05-06.md",
+        "memory.md",
+        "交互"
+      ]
+    },
+    "memory:memory/daily-digest/2026-05-16.md:1:49": {
+      "key": "memory:memory/daily-digest/2026-05-16.md:1:49",
+      "path": "memory/daily-digest/2026-05-16.md",
+      "startLine": 1,
+      "endLine": 49,
+      "source": "memory",
+      "snippet": "# 每日精华 · 2026-05-16（周六） > **关键标签：零交互日** --- ## 扫描结果 | 类别 | 发现 | |------|------| | 💡 用户的好问题/好思考 | ❌ 无用户交互 | | 🔑 关键决策 | ❌ 无 | | 🆕 新发现/新知识 | ❌ 无 | | 📐 流程/规则变化 | ❌ 无 | | ⚠️ 教训/问题 | ❌ 无 | --- ## 详细提炼 **5/16 为纯零交互日**，用户无任何对话。系统自动任务正常执行： - daily-digest（5/15 精华提炼）✅ - work-daily-report（5/15 日报）✅ - daily-backup（git commit 成功，push 因 TLS 网络异常失败）⚠️ **备注**：上一个用户交互日为 5/15，最后一条消息是深夜 ChatGPT 扫码路径问题（~21:11 CST）。 --- ## 状态延续（无变化） ### 老 P0 拖延天数 - execute_tool Span 确认：第 36 天 - 告警诊断需求文档合并：第 36 天 - xray-log-query P0 SKILL 修复：第 36 天 ### M2 OKR 状态 - M2（5/12-5/25）剩余 9 天 - KR3（业务线接入）/ KR4（诊断基线）仍未启动 ### 待办 - [ ] Trace 维度评估框架落为正式文档（延续自 5/15） - [ ] obs-token 云效流水线创建（待用户确认） - [ ] LangChain 学习笔记收集（用户学习中）",
+      "recallCount": 1,
+      "dailyCount": 0,
+      "groundedCount": 0,
+      "totalScore": 0.7182759501646954,
+      "maxScore": 0.7182759501646954,
+      "firstRecalledAt": "2026-05-29T00:03:35.801Z",
+      "lastRecalledAt": "2026-05-29T00:03:35.801Z",
+      "queryHashes": [
+        "7467a2b13e73"
+      ],
+      "recallDays": [
+        "2026-05-29"
+      ],
+      "conceptTags": [
+        "backup",
+        "gpt",
+        "网络",
+        "用户的好问题/好思考",
+        "新发现/新知识",
+        "流程/规则变化",
+        "教训/问题",
+        "5/16"
+      ]
+    },
+    "memory:memory/daily-digest/2026-05-06.md:28:45": {
+      "key": "memory:memory/daily-digest/2026-05-06.md:28:45",
+      "path": "memory/daily-digest/2026-05-06.md",
+      "startLine": 28,
+      "endLine": 45,
+      "source": "memory",
+      "snippet": "## 📐 流程/规则变化 无新变化。 ## ⚠️ 教训/问题 - **连续零交互的\"沉默螺旋\"**：复工首日用户不交互 → Agent 继续等 → 拖延继续累积 → 下次交互的冷启动成本更高。这不是 Agent 的错，但需要设计一种\"低摩擦重启\"机制，让用户复工后可以 30 秒内恢复上下文并选择行动，而非被 P0 待办列表吓退。 - **work-daily-report 内容重复度偏高**：已连续多天输出相同结构的\"零交互\"报告，信息增量递减。需要考虑在连续 N 天零交互后改变报告策略（如从\"报告现状\"改为\"提供一键重启入口\"）。 --- ## 会话来源 1. Cron: work-daily-report（08:00，生成 work-log/2026-05-06.md，已 Hi 发送给正一） 2. Cron: daily-backup（次日凌晨 02:01，push 成功 ✅） 3. Cron: daily-digest（08:00，本文件） > **注**：本日无任何用户对话，精华提炼基于自动任务延续性观察。复工 Day 1，期待用户重新连接。",
+      "recallCount": 1,
+      "dailyCount": 0,
+      "groundedCount": 0,
+      "totalScore": 0.7132567241599009,
+      "maxScore": 0.7132567241599009,
+      "firstRecalledAt": "2026-05-29T00:03:35.801Z",
+      "lastRecalledAt": "2026-05-29T00:03:35.801Z",
+      "queryHashes": [
+        "7467a2b13e73"
+      ],
+      "recallDays": [
+        "2026-05-29"
+      ],
+      "conceptTags": [
+        "backup",
+        "流程/规则变化",
+        "教训/问题",
+        "work-daily-report",
+        "work-log/2026-05-06.md",
+        "daily-backup",
+        "daily-digest",
+        "流程"
+      ]
+    },
+    "memory:memory/work-log/2026-05-02.md:155:172": {
+      "key": "memory:memory/work-log/2026-05-02.md:155:172",
+      "path": "memory/work-log/2026-05-02.md",
+      "startLine": 155,
+      "endLine": 172,
+      "source": "memory",
+      "snippet": "| 方向三只产出零输入 | 🟡 中 | 可观测规范 V1 完成但未推广 | | GitHub PAT 过期 | 🟢 低 | 基础设施风险，不影响功能但需假期后修复 | | OKR 文档未归档 | 🟢 低 | 内容已定稿，优先级最低 | ### 假期后建议行动优先级（用户返程后） 1. **execute_tool Span 确认** — 最高杠杆，15 天不能再拖 2. **xray-log-query P0 SKILL 修复** — 工具链修复 3. **告警诊断需求文档合并** — M1 通用 Skill 开发输入 4. **obs-token 流水线确认** — 方案就绪，等确认即执行 5. **GitHub PAT 更新** — 恢复备份远端同步 --- *生成方式：work-daily-report cron · 读取 daily-digest/2026-05-01.md + work-log/2026-05-01.md + session list* *报告对象：正一* *注：五一假期首日零交互属正常，3 个 P0 拖延 15 天，M1 实际工作日压缩至 9 天，假期后需加速*",
+      "recallCount": 1,
+      "dailyCount": 0,
+      "groundedCount": 0,
+      "totalScore": 0.7099030120430845,
+      "maxScore": 0.7099030120430845,
+      "firstRecalledAt": "2026-05-29T00:03:35.801Z",
+      "lastRecalledAt": "2026-05-29T00:03:35.801Z",
+      "queryHashes": [
+        "7467a2b13e73"
+      ],
+      "recallDays": [
+        "2026-05-29"
+      ],
+      "conceptTags": [
+        "备份",
+        "execute-tool",
+        "xray-log-query",
+        "obs-token",
+        "work-daily-report",
+        "daily-digest/2026-05-01.md",
+        "work-log/2026-05-01.md",
+        "方向"
+      ]
+    },
+    "memory:memory/work-log/2026-05-06.md:117:141": {
+      "key": "memory:memory/work-log/2026-05-06.md:117:141",
+      "path": "memory/work-log/2026-05-06.md",
+      "startLine": 117,
+      "endLine": 141,
+      "source": "memory",
+      "snippet": "| GitHub push | ⚠️ 502 | ⚠️ 502 | 网络持续不稳 | ### M1 执行窗口倒计时 ``` 4/28 ───────────── 5/11 [M1 执行窗口 14 天] ├── 4/28-4/29: 有效交互（2 天） ├── 5/1-5/5: 五一假期（5 天，零交互） └── 5/6-5/9 + 5/11: 剩余 9 个工作日 ← 今天开始 ``` ### ⚠️ 风险提示 | 风险 | 严重程度 | 说明 | |------|---------|------| | 3 个 P0 技术待办 | 🔴 高 | 23 天拖延，复工首日必须启动 | | M1 窗口压缩至 9 天 | 🟡 中高 | 4KR + 5 里程碑，节奏极紧 | | 冷启动恢复成本 | 🟡 中 | 3 个搁置 23 天的 P0 需重新理解上下文 | | GitHub push 502 | 🟢 低 | 网络问题，本地 commit 已安全 | --- *生成方式：work-daily-report cron · 读取 daily-digest/2026-05-05.md + work-log/2026-05-05.md + MEMORY.md + session list* *报告对象：正一*",
+      "recallCount": 1,
+      "dailyCount": 0,
+      "groundedCount": 0,
+      "totalScore": 0.7082882831758476,
+      "maxScore": 0.7082882831758476,
+      "firstRecalledAt": "2026-05-29T00:03:35.801Z",
+      "lastRecalledAt": "2026-05-29T00:03:35.801Z",
+      "queryHashes": [
+        "7467a2b13e73"
+      ],
+      "recallDays": [
+        "2026-05-29"
+      ],
+      "conceptTags": [
+        "网络",
+        "4/28",
+        "5/11",
+        "4/28-4/29",
+        "5/1-5/5",
+        "5/6-5/9",
+        "work-daily-report",
+        "daily-digest/2026-05-05.md"
+      ]
     }
   }
 }
