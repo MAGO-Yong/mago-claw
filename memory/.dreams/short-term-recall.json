@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updatedAt": "2026-05-29T00:03:35.801Z",
+  "updatedAt": "2026-05-30T00:03:36.122Z",
   "entries": {
     "memory:memory/2026-03-24.md:26:66": {
       "key": "memory:memory/2026-03-24.md:26:66",
@@ -1130,6 +1130,280 @@
         "5/6-5/9",
         "work-daily-report",
         "daily-digest/2026-05-05.md"
+      ]
+    },
+    "memory:memory/work-log/2026-05-24.md:51:90": {
+      "key": "memory:memory/work-log/2026-05-24.md:51:90",
+      "path": "memory/work-log/2026-05-24.md",
+      "startLine": 51,
+      "endLine": 90,
+      "source": "memory",
+      "snippet": "- **3 个老 P0 拖延 40+ 天** — execute_tool Span 确认、告警诊断需求文档合并、xray-log-query P0 SKILL 修复 ### 待做方向 - **P0（M3 首日执行）**: 将 searchadstrigger 6 步 SOP 落为正式诊断 Skill 文件并安装（素材最完整，预计 1-2 小时可交付） - **P0（M3 首周）**: 完成广告收入诊断 SOP 追问（5 维度每个维度的具体排查逻辑 + 判定标准） - **P0（M3 首周）**: 完成 RPC 异常排查 SOP 细节确认（具体图表/指标/先后顺序） - **P1**: Trace 评估框架写为正式规范文档（已拖延 10 天，可作为公司内部 AI Skill 评估标准） - **P1**: diagnosis-skill-builder 与 biz-diagnosis-creator 关系决策（合并 or 分工 or 保留两个） - **P1**: Problem 类告警通用排查框架固化为 Skill 模板（三层递进结构可推广） --- ## 方向二：PM 工作流自动化 ### 今日做了什么 **⚪ 无新进展** - diagnosis-skill-builder 的 SOP→Skill 管道已验证可行（5/20 安装成功），但连续 4 天未实际执行转化 - obs-token 云效流水线 — 基础设施已就绪（5/15 调通），10 天未动 - QS AutoFlow — 方案文档仍停滞，40+ 天零产出 ### 待做方向 - **P0**: ob",
+      "recallCount": 1,
+      "dailyCount": 0,
+      "groundedCount": 0,
+      "totalScore": 0.47984315454959864,
+      "maxScore": 0.47984315454959864,
+      "firstRecalledAt": "2026-05-30T00:03:36.122Z",
+      "lastRecalledAt": "2026-05-30T00:03:36.122Z",
+      "queryHashes": [
+        "f133c9272bca"
+      ],
+      "recallDays": [
+        "2026-05-30"
+      ],
+      "conceptTags": [
+        "execute-tool",
+        "xray-log-query",
+        "1-2",
+        "具体图表/指标/先后顺序",
+        "diagnosis-skill-builder",
+        "biz-diagnosis-creator",
+        "5/20",
+        "obs-token"
+      ]
+    },
+    "memory:memory/work-log/2026-05-06.md:40:88": {
+      "key": "memory:memory/work-log/2026-05-06.md:40:88",
+      "path": "memory/work-log/2026-05-06.md",
+      "startLine": 40,
+      "endLine": 88,
+      "source": "memory",
+      "snippet": "- 3 个 P0 累积至 **23 天**，M1 剩余仅 **9 个工作日**（5/6-5/9 + 5/11），压力峰值已到 - 冷启动成本最高：用户复工第一天，需要同时恢复 3 个搁置 23 天的上下文 ### 待做方向（复工 Day 1 优先级） - **P0-1**: execute_tool Span 确认 — 23 天，最高杠杆，一处解阻方向一 + 方向三 - **P0-2**: xray-log-query P0 SKILL 修复 — 恢复 Agent 日志查询能力 - **P0-3**: 告警诊断需求文档合并 — M1 通用 Skill 开发的必要输入 --- ## 方向二：PM 工作流自动化 ### 今日做了什么 **⏸️ 复工首日，零交互，无新进展。** ### 待办状态延续 | 待办 | 5/5 状态 | 5/6 状态 | 拖延天数 | 趋势 | |------|---------|---------|---------|------| | QS AutoFlow 合作方案文档 | ⏳ 第 20 天 | ⏳ 第 21 天 | 🔴 +1 | 方案初稿未启动 | | 与小庄下一次讨论 | ⏳ 未安排 | ⏳ 未安排 | 🔴 停滞 | 无变化 | | obs-token 云效流水线 | 🔄 待确认（10 天） | 🔄 待确认（11 天） | 🟢 第 11 天 | 方案就绪等确认 | | LangChain 学习笔记 | 🔄 进行中 | 🔄 进行中 | ➡️ 暂停 | 协作机制已建立 | ### 做得好的 - obs-token 流水线",
+      "recallCount": 1,
+      "dailyCount": 0,
+      "groundedCount": 0,
+      "totalScore": 0.46833871901035307,
+      "maxScore": 0.46833871901035307,
+      "firstRecalledAt": "2026-05-30T00:03:36.122Z",
+      "lastRecalledAt": "2026-05-30T00:03:36.122Z",
+      "queryHashes": [
+        "f133c9272bca"
+      ],
+      "recallDays": [
+        "2026-05-30"
+      ],
+      "conceptTags": [
+        "5/6-5/9",
+        "5/11",
+        "p0-1",
+        "execute-tool",
+        "p0-2",
+        "xray-log-query",
+        "p0-3",
+        "5/5"
+      ]
+    },
+    "memory:memory/work-log/2026-04-19.md:1:53": {
+      "key": "memory:memory/work-log/2026-04-19.md:1:53",
+      "path": "memory/work-log/2026-04-19.md",
+      "startLine": 1,
+      "endLine": 53,
+      "source": "memory",
+      "snippet": "# 工作日报 · 2026-04-19（周日） > **首次生成说明**：work-log 目录此前仅有 README.md，无历史日报可延续对比。本报告基于 daily-digest + weekly report + session 记录逆向整理。 --- ## 方向一：XRay 平台 Agent Native 化（告警诊断 / AgentOps / 评估体系 / AI基础能力） ### 今天做了什么 - **无直接进展**。周日无 XRay 相关讨论。 ### 上周遗留待办进展对比 - ⏳ 告警诊断需求文档 v0.6 与对话 v0.2 合并 → **仍未完成**（W16 遗留 P0） - ⏳ execute_tool Span 框架层采集现状确认 → **仍未完成**（4/18 遗留） - ⏳ xray-log-query P0 SKILL 修复 → **仍未完成** ### 做得好的 - 无 ### 做得不好的 - 三个 P0 待办持续搁置，已进入 W17 需立即处理 ### 待做方向 - **P0**: 合并 v0.6 与对话 v0.2 需求文档，写入正式文件（`memory/alarm-agent-requirements-v0.7.md`） - **P0**: 确认 execute_tool Span 框架层采集现状，补充可观测规范第五章 - **P0**: xray-log-query SKILL subApplication 参数格式修复 --- ## 方向二：PM 工作流自动化 ### 今天做了什么 - **无直接进展**。周日无 PM",
+      "recallCount": 1,
+      "dailyCount": 0,
+      "groundedCount": 0,
+      "totalScore": 0.46325436532497405,
+      "maxScore": 0.46325436532497405,
+      "firstRecalledAt": "2026-05-30T00:03:36.122Z",
+      "lastRecalledAt": "2026-05-30T00:03:36.122Z",
+      "queryHashes": [
+        "f133c9272bca"
+      ],
+      "recallDays": [
+        "2026-05-30"
+      ],
+      "conceptTags": [
+        "work-log",
+        "readme.md",
+        "daily-digest",
+        "v0.6",
+        "v0.2",
+        "execute-tool",
+        "4/18",
+        "xray-log-query"
+      ]
+    },
+    "memory:memory/2026-04-07.md:1:35": {
+      "key": "memory:memory/2026-04-07.md:1:35",
+      "path": "memory/2026-04-07.md",
+      "startLine": 1,
+      "endLine": 35,
+      "source": "memory",
+      "snippet": "点，规范埋点才算完成\"",
+      "recallCount": 1,
+      "dailyCount": 0,
+      "groundedCount": 0,
+      "totalScore": 0.4562555611133575,
+      "maxScore": 0.4562555611133575,
+      "firstRecalledAt": "2026-05-30T00:03:36.122Z",
+      "lastRecalledAt": "2026-05-30T00:03:36.122Z",
+      "queryHashes": [
+        "f133c9272bca"
+      ],
+      "recallDays": [
+        "2026-05-30"
+      ],
+      "conceptTags": [
+        "规范",
+        "才算",
+        "完成"
+      ]
+    },
+    "memory:memory/work-log/2026-05-16.md:69:118": {
+      "key": "memory:memory/work-log/2026-05-16.md:69:118",
+      "path": "memory/work-log/2026-05-16.md",
+      "startLine": 69,
+      "endLine": 118,
+      "source": "memory",
+      "snippet": "**无新进展** — 5/15 用户未就方向二进行任何交互或讨论。 claude-proxy + obs-token 基础设施在 5/14 已调通，后续未推进流水线正式搭建。 ### 待办状态对比（5/15 → 5/16） | 待办 | 5/15 状态 | 5/16 状态 | 变化 | |------|----------|----------|------| | 需求管理机制 | ✅ 持续运行 | ✅ 持续运行 | ➡️ 稳定 | | obs-token 流水线 | 🟡 基础设施就绪 | 🟡 待正式搭建 | ➡️ 无变化 | | QS AutoFlow 方案 | ⏳ 第 30 天 | ⏳ 第 31 天 | 🔴 +1 | | 与小庄讨论 | ⏳ 未安排 | ⏳ 未安排 | ➡️ 停滞 | | LangChain 学习 | 🟢 材料整理完成 | 🟢 待用户开始学习 | ➡️ 无变化 | ### 待做方向 - **P0**: obs-token 流水线正式搭建 — proxy 已通，趁热搭建 - **P1**: QS AutoFlow 方案初稿 — 31 天零产出 --- ## 方向三：公司内部 AI 应用规范 ### 今日做了什么 **🔵 Trace 维度评估框架 = 规范核心内容（延续方向一）** - 5 维度评估体系可作为公司内部 AI Skill 评估的标准规范 - 5/15 未新增讨论或文档产出 **🟡 ChatGPT 扫码路径问题暴露 Agent 知识盲区** - 用户深夜问 ChatGPT 移动端扫码路径 - Agent 无法提供准确答",
+      "recallCount": 1,
+      "dailyCount": 0,
+      "groundedCount": 0,
+      "totalScore": 0.4542529076337814,
+      "maxScore": 0.4542529076337814,
+      "firstRecalledAt": "2026-05-30T00:03:36.122Z",
+      "lastRecalledAt": "2026-05-30T00:03:36.122Z",
+      "queryHashes": [
+        "f133c9272bca"
+      ],
+      "recallDays": [
+        "2026-05-30"
+      ],
+      "conceptTags": [
+        "gpt",
+        "5/15",
+        "claude-proxy",
+        "obs-token",
+        "5/14",
+        "5/16",
+        "进展",
+        "用户"
+      ]
+    },
+    "memory:memory/work-log/2026-05-01.md:41:97": {
+      "key": "memory:memory/work-log/2026-05-01.md:41:97",
+      "path": "memory/work-log/2026-05-01.md",
+      "startLine": 41,
+      "endLine": 97,
+      "source": "memory",
+      "snippet": "- **M1 交付框架就绪**：OKR 4KR + 5 里程碑 + 卡片 v4 设计 + 三大方向树状结构，全部到位，假期后可直接执行 ### 做得不好的 - **3 个 P0 连续 15 天零推进**（假期前即已存在），M1 通用 Skill 开发的前提输入仍缺 ### 待做方向（假期后优先级） - **P0**: execute_tool Span 确认 — 15 天，一处解阻两个方向（方向一 + 方向三） - **P0**: xray-log-query P0 SKILL 修复 — 工具链修复 - **P0**: 告警诊断需求文档合并 — M1 通用 Skill 开发输入依赖 - **P1**: Agent 诊断 UI 对比稿 — 方向已确认，可执行 - **P1**: LangChain 学习笔记 — 用户学习中产生卡点后记录 --- ## 方向二：PM 工作流自动化 ### 今日做了什么 **⏸️ 零交互，无新进展。** ### 待办状态延续 | 待办 | 4/30 状态 | 5/1 状态 | 拖延天数 | 趋势 | |------|----------|----------|---------|------| | QS AutoFlow 合作方案文档 | ⏳ 第 12 天 | ⏳ 第 13 天 | 🔴 +1 | 📈 假期搁置 | | 与小庄下一次讨论 | ⏳ 未安排 | ⏳ 未安排 | 🔴 停滞 | ➡️ 无变化 | | Coding Agent + Harness 可行性评估 | ⏳ 未评估 | ⏳ 未评估 | 🟡 停滞 | ➡️ 无变",
+      "recallCount": 1,
+      "dailyCount": 0,
+      "groundedCount": 0,
+      "totalScore": 0.45321362316608427,
+      "maxScore": 0.45321362316608427,
+      "firstRecalledAt": "2026-05-30T00:03:36.122Z",
+      "lastRecalledAt": "2026-05-30T00:03:36.122Z",
+      "queryHashes": [
+        "f133c9272bca"
+      ],
+      "recallDays": [
+        "2026-05-30"
+      ],
+      "conceptTags": [
+        "execute-tool",
+        "xray-log-query",
+        "4/30",
+        "5/1",
+        "交付",
+        "框架",
+        "就绪",
+        "okr"
+      ]
+    },
+    "memory:memory/work-log/2026-05-03.md:41:97": {
+      "key": "memory:memory/work-log/2026-05-03.md:41:97",
+      "path": "memory/work-log/2026-05-03.md",
+      "startLine": 41,
+      "endLine": 97,
+      "source": "memory",
+      "snippet": "- M1 交付框架（OKR 4KR + 5 里程碑 + 卡片 v4 + 三大方向树状结构）已就位，假期后可直接执行 ### 做得不好的 - **3 个 P0 连续 17 天零推进**，M1 通用 Skill 开发的前提输入仍缺 - 假期后冷启动成本预估：用户需要重新理解每个 P0 的背景、上下文、阻塞点，至少需要 1-2 小时才能完全恢复上下文 ### 待做方向（假期后优先级） - **P0**: execute_tool Span 确认 — 17 天，最高杠杆，一处解阻两个方向 - **P0**: xray-log-query P0 SKILL 修复 — 工具链修复 - **P0**: 告警诊断需求文档合并 — M1 通用 Skill 开发输入依赖 - **P1**: Agent 诊断 UI 对比稿 — 方向已确认，可执行 --- ## 方向二：PM 工作流自动化 ### 今日做了什么 **⏸️ 零交互，无新进展。** ### 待办状态延续 | 待办 | 5/1 状态 | 5/3 状态 | 拖延天数 | 趋势 | |------|---------|---------|---------|------| | QS AutoFlow 合作方案文档 | ⏳ 第 13 天 | ⏳ 第 15 天 | 🔴 +2 | 📈 假期搁置 | | 与小庄下一次讨论 | ⏳ 未安排 | ⏳ 未安排 | 🔴 停滞 | ➡️ 无变化 | | Coding Agent + Harness 可行性评估 | ⏳ 未评估 | ⏳ 未评估 | 🟡 停滞 | ➡️ 无变化 | | ob",
+      "recallCount": 1,
+      "dailyCount": 0,
+      "groundedCount": 0,
+      "totalScore": 0.4519453197717666,
+      "maxScore": 0.4519453197717666,
+      "firstRecalledAt": "2026-05-30T00:03:36.122Z",
+      "lastRecalledAt": "2026-05-30T00:03:36.122Z",
+      "queryHashes": [
+        "f133c9272bca"
+      ],
+      "recallDays": [
+        "2026-05-30"
+      ],
+      "conceptTags": [
+        "1-2",
+        "execute-tool",
+        "xray-log-query",
+        "5/1",
+        "5/3",
+        "交付",
+        "框架",
+        "okr"
+      ]
+    },
+    "memory:memory/work-log/2026-05-17.md:43:96": {
+      "key": "memory:memory/work-log/2026-05-17.md:43:96",
+      "path": "memory/work-log/2026-05-17.md",
+      "startLine": 43,
+      "endLine": 96,
+      "source": "memory",
+      "snippet": "- **Trace 评估框架落文拖延进入第 2 天** — 讨论成果仅存于对话上下文，有知识流失风险 ### 待做方向 - **P0**: Trace 维度评估框架落为正式文档（讨论完成 2 天+，需固化） - **P0**: 3 个老 P0 至少解决一个（建议 xray-log-query SKILL 修复，最小改动） - **P1**: 评估前端样式升级第二批（热度可能冷却，需趁记忆还在推进） --- ## 方向二：PM 工作流自动化 ### 今日做了什么 **❌ 零进展** — 无用户交互，方向二所有待办停滞。 ### 待办状态对比（5/16 → 5/17） | 待办 | 5/16 状态 | 5/17 状态 | 变化 | |------|----------|----------|------| | 需求管理机制 | ✅ 持续运行 | ✅ 持续运行 | ➡️ 稳定 | | obs-token 流水线 | 🟡 待正式搭建 | 🟡 待搭建 | ➡️ 无变化 | | QS AutoFlow 方案 | ⏳ 第 31 天 | ⏳ 第 32 天 | 🔴 +1 | | 与小庄讨论 | ⏳ 未安排 | ⏳ 未安排 | ➡️ 停滞 | | LangChain 学习 | 🟢 材料已整理 | 🟢 待用户学习 | ➡️ 无变化 | ### 待做方向 - **P0**: obs-token 云效流水线正式搭建（基础设施已就绪，趁热执行） - **P1**: QS AutoFlow 方案初稿（32 天零产出，方向二首个 MVP 仍为空白） --- ## 方向三：公司内部",
+      "recallCount": 1,
+      "dailyCount": 0,
+      "groundedCount": 0,
+      "totalScore": 0.44777533113956447,
+      "maxScore": 0.44777533113956447,
+      "firstRecalledAt": "2026-05-30T00:03:36.122Z",
+      "lastRecalledAt": "2026-05-30T00:03:36.122Z",
+      "queryHashes": [
+        "f133c9272bca"
+      ],
+      "recallDays": [
+        "2026-05-30"
+      ],
+      "conceptTags": [
+        "xray-log-query",
+        "5/16",
+        "5/17",
+        "obs-token",
+        "trace",
+        "评估",
+        "框架",
+        "拖延"
+      ]
+    },
+    "memory:memory/work-log/2026-05-18.md:43:96": {
+      "key": "memory:memory/work-log/2026-05-18.md:43:96",
+      "path": "memory/work-log/2026-05-18.md",
+      "startLine": 43,
+      "endLine": 96,
+      "source": "memory",
+      "snippet": "- **Trace 评估框架落文拖延进入第 3 天** — 5/15 讨论完成的成果持续未固化，知识流失风险递增 ### 待做方向 - **P0**: Trace 维度评估框架落为正式文档（讨论完成 3 天+，知识流失风险已从🟡升级为🔴） - **P0**: 3 个老 P0 至少解决一个（建议 xray-log-query SKILL 修复，最小改动） - **P1**: 评估前端样式升级第二批（热度持续冷却中） --- ## 方向二：PM 工作流自动化 ### 今日做了什么 **❌ 零进展** — 无用户交互，方向二所有待办停滞。 ### 待办状态对比（5/17 → 5/18） | 待办 | 5/17 状态 | 5/18 状态 | 变化 | |------|----------|----------|------| | 需求管理机制 | ✅ 持续运行 | ✅ 持续运行 | ➡️ 稳定 | | obs-token 流水线 | 🟡 待正式搭建 | 🟡 待搭建 | ➡️ 无变化 | | QS AutoFlow 方案 | ⏳ 第 32 天 | ⏳ 第 33 天 | 🔴 +1 | | 与小庄讨论 | ⏳ 未安排 | ⏳ 未安排 | ➡️ 停滞 | | LangChain 学习 | 🟢 材料已整理 | 🟢 待用户学习 | ➡️ 无变化 | ### 待做方向 - **P0**: obs-token 云效流水线正式搭建（基础设施已就绪，趁热执行） - **P1**: QS AutoFlow 方案初稿（33 天零产出，方向二首个 MVP 仍为空白） --- #",
+      "recallCount": 1,
+      "dailyCount": 0,
+      "groundedCount": 0,
+      "totalScore": 0.4456465065479278,
+      "maxScore": 0.4456465065479278,
+      "firstRecalledAt": "2026-05-30T00:03:36.122Z",
+      "lastRecalledAt": "2026-05-30T00:03:36.122Z",
+      "queryHashes": [
+        "f133c9272bca"
+      ],
+      "recallDays": [
+        "2026-05-30"
+      ],
+      "conceptTags": [
+        "5/15",
+        "xray-log-query",
+        "5/17",
+        "5/18",
+        "obs-token",
+        "trace",
+        "评估",
+        "框架"
       ]
     }
   }
