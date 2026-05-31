@@ -1,48 +1,75 @@
-# 备份差异报告 — 2026-05-30
+# Workspace Diff: 2026-05-31 → 2026-06-01
 
-对比基准：2026-05-29 → 2026-05-30
+_Generated: 2026-06-01 02:01:29 CST_
 
-## 新增文件
+## MEMORY.md
 
-- `HEARTBEAT.md` — heartbeat 配置文件（昨日 snapshot 中缺失，已补入）
-- `memory/daily-digest/2026-05-28.md` — 每日摘要
-- `memory/work-log/2026-05-29.md` — 工作日志
+```diff
+17,20c17,20
+< - [ ] execute_tool Span 框架层采集现状确认（拖延 40+ 天，跨 M1/M2/M3）
+< - [ ] 告警诊断需求文档 v0.6 与对话 v0.2 合并归档（拖延 40+ 天，跨 M1/M2/M3）
+< - [ ] xray-log-query P0 SKILL 修复（subApplication 参数格式说明，拖延 40+ 天，跨 M1/M2/M3）
+< - [ ] Trace 维度评估框架落为正式文档（REDoc 或文件，5/15 讨论完成 5 维度体系但未落文）—— 拖延至第 10 天
+---
+> - [ ] execute_tool Span 框架层采集现状确认（拖延 46+ 天，跨 M1/M2/M3）
+> - [ ] 告警诊断需求文档 v0.6 与对话 v0.2 合并归档（拖延 46+ 天，跨 M1/M2/M3）
+> - [ ] xray-log-query P0 SKILL 修复（subApplication 参数格式说明，拖延 46+ 天，跨 M1/M2/M3）
+> - [ ] Trace 维度评估框架落为正式文档（REDoc 或文件，5/15 讨论完成 5 维度体系但未落文）—— 拖延至第 16 天
+24c24
+< - [ ] 新项目 `mahengyang/obs-token` 云效流水线创建（4/29 启动，Agent 已给 3 个方案，待用户确认语言栈和类型）
+---
+> - [ ] 新项目 `mahengyang/obs-token` 云效流水线创建（4/29 启动，Agent 已给 3 个方案，待用户确认语言栈和类型，拖延 32+ 天）
+607a608,630
+> 
+> ---
+> 
+> ## 📈 W22 成长报告摘要（2026-05-31 更新）
+> 
+> **本周特点**：零交互周 — M3 窗口开启即冷却（连续第三窗口同一模式）
+> 
+> **关键事件**：
+> 1. **连续 10 天零交互** — 用户最后活跃 5/21，M3（5/26-6/8）已开启无推进
+> 2. **alipayservice-success-rate-diagnosis Skill 已就绪** — 真实告警诊断成功，待绑定规则 151469 实现平台自动触发
+> 3. **searchadstrigger SOP 框架已确认但连续 3 窗口未落地** — M1/M2/M3 均为同一模式：前半周高产出→后半周冷却
+> 
+> **关键洞察蒸馏**：
+> - **M1→M2→M3 冷却模式已确认**：SOP→Skill 需要至少 3 轮会话，但框架确认后没有锁定下次会话时间
+> - **认知到规律 ≠ 行为改变**：W21 已记录此规律，M3 仍重演，需外部干预
+> - **46+ 天拖延项出现警报疲劳**：连续三周提醒无效，应切换到「5 分钟最小推进步骤」策略
+> - **端午假期将压缩 M3 可用工作日**：约 6 个工作日可用，时间压力极大
+> 
+> **M3 剩余窗口 P0**：
+> - searchadstrigger SOP 落地（素材最完整，1-2 小时可交付）
+> - alipayservice 绑定告警规则 151469（Skill 已就绪，5 分钟可闭环）
+> 
+> **周报文件**：`memory/weekly/2026-W22-growth-report.md`
+```
 
-## 变更文件
+## SOUL.md
 
-### memory/.dreams/events.jsonl
-- 新增 1 条事件记录：`memory.recall.recorded` (2026-05-29T00:03:35)
-- 查询：`work log daily report 2026-05`，返回 9 条匹配结果
+_No changes_
 
-### memory/.dreams/short-term-recall.json
-- `updatedAt` 更新：`2026-05-28T00:03:35` → `2026-05-29T00:03:35`
-- 新增 279 条 recall 记录（M2 第 1 周回顾相关记忆索引）
-- 涉及文件：`memory/work-log/2026-05-17.md` 等多个工作日志片段
+## AGENTS.md
 
-### memory/self-improving/projects/pending_tasks.md
-- Trace 维度评估框架落文任务：拖延天数从 7 天 → 14 天
-- 3 个 M2 已关闭任务状态更新：
-  - searchadstrigger SOP：`M2 已关闭，M3 承接` → `顺延 4 天，M3 承接`
-  - 广告收入诊断 SOP：`M2 已关闭，M3 承接` → `顺延 4 天，M3 承接`
-  - RPC 异常排查 SOP：`M2 已关闭，M3 承接` → `顺延 4 天，M3 承接`
+_No changes_
 
-## 未变更文件
+## ROUTING.md
 
-- `MEMORY.md` — 无变化
-- `SOUL.md` — 无变化
-- `AGENTS.md` — 无变化
-- `ROUTING.md` — 无变化
-- `USER.md` — 无变化
-- `IDENTITY.md` — 无变化
-- `TOOLS.md` — 无变化
-- `agents/` 目录 — 无变化
-- `memory/` 目录下其余文件 — 无变化
+_No changes_
 
-## 摘要
+## memory/ directory
 
-| 指标 | 数值 |
-|------|------|
-| 新增文件 | 3 |
-| 变更文件 | 3 |
-| 未变更核心文件 | 7 |
-| 核心配置文件变更 | 0 |
+```
+只在 backup/2026-06-01/snapshot/memory/daily-digest 存在：2026-05-30.md
+只在 backup/2026-06-01/snapshot/memory/weekly 存在：2026-W22-growth-report.md
+文件 backup/2026-05-31/snapshot/memory/work-log/2026-05-30.md 和 backup/2026-06-01/snapshot/memory/work-log/2026-05-30.md 不同
+```
+
+## agents/ directory
+
+_No changes_
+
+---
+### Change Summary
+
+- Files/dirs compared: 6
