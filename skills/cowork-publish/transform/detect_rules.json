@@ -1,0 +1,130 @@
+{
+  "_doc": "stage 10 探测器消费的'信号关键词'词典。增量加新 AI / DB / 外部基础设施库时只改本文件，不必改 Python 代码。值都是 regex 字符串数组，运行时会被 OR 拼接成大正则。",
+
+  "db_keywords": [
+    "psycopg",
+    "sqlalchemy",
+    "\"pg\"",
+    "sequelize",
+    "prisma",
+    "mongoose",
+    "sqlite3",
+    "mysql",
+    "asyncpg"
+  ],
+  "_doc_ai": "ai_keywords 保留向后兼容（has_ai 字段仍输出）。新代码请使用 has_ai_text / has_ai_image 分别判断。ai_text_keywords 覆盖文本对话 SDK；ai_image_keywords 只用'图像专用'关键词（DALL·E / SD / 万相 / Flux / Midjourney / Nova Canvas / images.create 等方法名），不用纯包名（openai/dashscope/zhipuai/google-generativeai 等多用途包会同时被文本工程命中导致误判）。",
+  "ai_keywords": [
+    "openai",
+    "anthropic",
+    "@anthropic-ai",
+    "google-generativeai",
+    "@google/generative-ai",
+    "zhipuai",
+    "dashscope",
+    "langchain"
+  ],
+  "ai_text_keywords": [
+    "openai",
+    "anthropic",
+    "@anthropic-ai/sdk",
+    "google-generativeai",
+    "@google/generative-ai",
+    "zhipuai",
+    "langchain",
+    "langchain-openai",
+    "langchain-anthropic",
+    "@langchain/openai",
+    "@langchain/anthropic",
+    "bedrock_runtime",
+    "anthropic_version"
+  ],
+  "ai_image_keywords": [
+    "dall-e",
+    "dalle",
+    "stability_sdk",
+    "stability-sdk",
+    "@google/genai",
+    "google-genai",
+    "nova-canvas",
+    "nova_canvas",
+    "midjourney",
+    "wanx",
+    "ImageSynthesis",
+    "images\\.create",
+    "images\\.generate",
+    "images\\.edit",
+    "image-synthesis",
+    "text-to-image",
+    "image_generation",
+    "imagegeneration",
+    "responseModalities",
+    "inlineData",
+    "ai\\.image_base_url",
+    "ai\\.image_api_key"
+  ],
+
+  "_doc_external_infra": "Pod 不提供 Redis/MQ/S3/ES，统一识别为 has_external_infra=1，触发 stage 20 的 remove_external_infra 子任务。redis_keywords 仅做向后兼容（has_redis 字段仍输出，但已被 has_external_infra 包含）。",
+
+  "redis_keywords": [
+    "\"(ioredis|redis|node-redis|bullmq)\"",
+    "^(redis|aioredis|celery|hotqueue|rq)([><=!~ ]|$)"
+  ],
+  "mq_keywords": [
+    "\"(amqplib|amqp-connection-manager|rhea|kafkajs|@nestjs/microservices|nats|nats\\.ws|node-rdkafka|@confluentinc/kafka-javascript)\"",
+    "^(pika|kombu|aio-pika|aiokafka|confluent-kafka|nats-py|stomp\\.py)([><=!~ ]|$)"
+  ],
+  "s3_keywords": [
+    "\"(@aws-sdk/client-s3|aws-sdk|minio|@minio/minio|@google-cloud/storage|cos-nodejs-sdk-v5|ali-oss)\"",
+    "^(boto3|aioboto3|minio|google-cloud-storage|cos-python-sdk-v5|oss2)([><=!~ ]|$)"
+  ],
+  "es_keywords": [
+    "\"(@elastic/elasticsearch|@opensearch-project/opensearch|@meilisearch/meilisearch|meilisearch|typesense)\"",
+    "^(elasticsearch|opensearch-py|meilisearch|typesense)([><=!~ ]|$)"
+  ],
+
+  "_doc_sso": "通过依赖关键词或源码语义信号推断有 SSO 接入，触发 stage 20 的 rewrite_sso 子任务。信号分三类：(1) 已接入 Decrypted-Userinfo header；(2) 后端有获取当前用户的 API 路由/函数（即使用 mock 也算）；(3) 前端有展示当前用户信息的 hook/组件/store（即使用 mock 数据也算）。",
+  "sso_dep_keywords": [
+    "\"(passport|passport-[a-z-]+|next-auth|@auth/.*|@nextauth/.*|express-session|cookie-session|@auth0/.*|firebase-auth)\"",
+    "^(flask-login|flask-jwt|flask-jwt-extended|authlib|django-allauth|python-jose|pyjwt|fastapi-users)([><=!~ ]|$)"
+  ],
+  "sso_code_keywords": [
+    "Decrypted-Userinfo",
+    "x-decrypted-userinfo",
+    "/api/user/me",
+    "/api/me",
+    "/api/auth/me",
+    "/api/current-user",
+    "/api/currentUser",
+    "/api/profile",
+    "getCurrentUser",
+    "get_current_user",
+    "currentUser\\(",
+    "current_user\\(",
+    "req\\.user",
+    "request\\.user",
+    "ctx\\.user",
+    "g\\.user",
+    "useUser\\(",
+    "useCurrentUser\\(",
+    "useAuth\\(",
+    "useSession\\(",
+    "userStore",
+    "authStore",
+    "currentUser\\s*=",
+    "user\\.name",
+    "user\\.avatar",
+    "user\\.nickname",
+    "user\\.username",
+    "user\\.email"
+  ],
+
+  "docker_db_image_keywords": [
+    "image:\\s*(postgres|mysql|mariadb|mongo)"
+  ],
+  "docker_redis_image_keywords": [
+    "image:\\s*redis"
+  ],
+  "docker_external_infra_image_keywords": [
+    "image:\\s*(redis|valkey|memcached|rabbitmq|kafka|cp-kafka|cp-zookeeper|nats|activemq|minio|localstack|elasticsearch|opensearch|meilisearch|typesense)"
+  ]
+}

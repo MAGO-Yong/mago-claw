@@ -1,0 +1,28 @@
+{
+  "name": "react-fastapi-monorepo",
+  "description": "前端 React/Vite SPA + 后端 FastAPI（monorepo，backend/ + frontend/）",
+  "priority": 100,
+  "match": {
+    "lang": "python",
+    "framework": "fastapi",
+    "has_static_spa": 1
+  },
+  "scripts": {
+    "install": "templates/install.sh.tpl",
+    "start": "templates/start.sh.tpl",
+    "health": "templates/health.sh.tpl"
+  },
+  "build": {
+    "frontend": "cd ${frontend_dir} && npm install --no-audit --prefer-offline && npm run build",
+    "backend": "cd ${backend_dir} && pip install --no-cache-dir -r requirements.txt"
+  },
+  "smoke_test": {
+    "port": "8000",
+    "endpoints": ["/", "/api/health"],
+    "wait_seconds": 8
+  },
+  "vars": {
+    "PORT": "8000",
+    "PYTHON": "python3"
+  }
+}

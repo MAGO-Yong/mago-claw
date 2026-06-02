@@ -1,0 +1,26 @@
+{
+  "name": "nextjs-fullstack",
+  "description": "Next.js 全栈（含 standalone 输出），单仓",
+  "priority": 110,
+  "match": {
+    "lang": "node",
+    "framework": ["nextjs", "nextjs-standalone"]
+  },
+  "scripts": {
+    "install": "templates/install.sh.tpl",
+    "start": "templates/start.sh.tpl",
+    "health": "templates/health.sh.tpl"
+  },
+  "build": {
+    "all": "npm install --no-audit --prefer-offline && npm run build"
+  },
+  "smoke_test": {
+    "port": "3000",
+    "endpoints": ["/", "/api/health"],
+    "wait_seconds": 10
+  },
+  "vars": {
+    "PORT": "3000",
+    "NODE_ENV": "production"
+  }
+}

@@ -1,0 +1,27 @@
+{
+  "name": "fastapi-only",
+  "description": "纯 FastAPI 后端（无前端 SPA）",
+  "priority": 150,
+  "match": {
+    "lang": "python",
+    "framework": "fastapi",
+    "has_static_spa": 0
+  },
+  "scripts": {
+    "install": "templates/install.sh.tpl",
+    "start": "templates/start.sh.tpl",
+    "health": "templates/health.sh.tpl"
+  },
+  "build": {
+    "backend": "${PYTHON} -m pip install --no-cache-dir -r requirements.txt"
+  },
+  "smoke_test": {
+    "port": "8000",
+    "endpoints": ["/", "/health", "/docs"],
+    "wait_seconds": 5
+  },
+  "vars": {
+    "PORT": "8000",
+    "PYTHON": "python3"
+  }
+}

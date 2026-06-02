@@ -1,0 +1,26 @@
+{
+  "name": "flask-only",
+  "description": "Flask 后端（含可选 SPA dist 静态托管）",
+  "priority": 160,
+  "match": {
+    "lang": "python",
+    "framework": "flask"
+  },
+  "scripts": {
+    "install": "templates/install.sh.tpl",
+    "start": "templates/start.sh.tpl",
+    "health": "templates/health.sh.tpl"
+  },
+  "build": {
+    "backend": "${PYTHON} -m pip install --no-cache-dir -r requirements.txt"
+  },
+  "smoke_test": {
+    "port": "5000",
+    "endpoints": ["/", "/health"],
+    "wait_seconds": 5
+  },
+  "vars": {
+    "PORT": "5000",
+    "PYTHON": "python3"
+  }
+}

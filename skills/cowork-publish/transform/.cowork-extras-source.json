@@ -1,0 +1,11 @@
+{
+  "name": "cowork-app",
+  "vendoredAt": "2026-05-21T17:32:19Z",
+  "upstream": {
+    "repo": "git@code.devops.xiaohongshu.com:enterprise-informatization/aicoder-mvp/ai-demo-platform-guard-transform-skill.git",
+    "commit": "d25120e296806b2dbe8da4c49b0bfff73b82f978",
+    "subdir": "skills/codewiz (post-install snapshot)"
+  },
+  "notes": "Vendored 安装后产物（已平铺 core/ 到 skill 顶层，但不含 .venv）。plugin start 时跑 install.sh 重建依赖。",
+  "license": "see upstream README.md / openclaw.md"
+}

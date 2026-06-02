@@ -1,0 +1,26 @@
+{
+  "name": "pure-spa-vite",
+  "description": "Vite SPA 单仓，无后端。stage 30 渲染自包含 server.cjs（serve-handler lib + /health endpoint + SPA history fallback），不依赖 nginx / serve CLI；install.sh 在 Pod 上隔离安装 serve-handler 到 .guard-runtime/，业务 package.json 完全不动",
+  "priority": 200,
+  "match": {
+    "lang": "node",
+    "framework": "vite-spa"
+  },
+  "scripts": {
+    "install": "templates/install.sh.tpl",
+    "start": "templates/start.sh.tpl",
+    "health": "templates/health.sh.tpl",
+    "static_entry": "templates/server.cjs.tpl"
+  },
+  "build": {
+    "all": "npm install --no-audit --prefer-offline && npm run build"
+  },
+  "smoke_test": {
+    "port": "8080",
+    "endpoints": ["/health", "/"],
+    "wait_seconds": 3
+  },
+  "vars": {
+    "PORT": "8080"
+  }
+}
