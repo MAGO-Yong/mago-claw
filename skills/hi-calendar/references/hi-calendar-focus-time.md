@@ -30,5 +30,5 @@ description: hi-calendar 的专注时间参考。处理创建、编辑、取消�
 
 ## 与其他 reference 的关系
 
-- 若涉及循环实例确认，可参考 `references/hi-calendar-manage-existing.md` 的系列/单次判断思路。
-- 若要说明日程冲突或展示输出结果，遵循 `references/hi-calendar-output-guidelines.md`。
+- 若涉及循环实例确认，可参考 `hi-calendar-manage-existing.md` 的系列/单次判断思路。
+- 若要说明日程冲突或展示输出结果，遵循 `hi-calendar-output-guidelines.md`。

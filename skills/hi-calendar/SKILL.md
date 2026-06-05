@@ -47,6 +47,7 @@ bun install -g @xhs/hi-cli --registry=http://npm.devops.xiaohongshu.com:7001
 | `get-timezone` / 时区确认 | 自然语言时间、相对时间、跨时区、多人会议、本地推荐时段判断     | 使用 `calendar:get-timezone` 获取创建人和参会人的时区，再解释时间和推荐时段 | 完整 ISO 时间不重复换算；自然语言时间不能默认按宿主机或中国时区猜    |
 | 创建 + 查询日程           | 创建会议、查日程、查忙闲、创建前冲突检查                       | 先查询事实和补齐时间/人/空间/文档，再生成候选或写前确认                     | 写操作前必须复述最终计划并获得明确确认；查询失败不能当作无冲突       |
 | 智能推荐会议              | 单次会议，已明确开始时间、结束时间、参会人，且未明确排除会议室 | 优先使用 `calendar:get-intelligent-recommendation` 生成时间 + 会议室候选    | 候选必须展示并让用户选择；不得静默选择第一个；用户选择后仍需写前确认 |
+| 日程到会议纪要            | 用户用“会议/日程”措辞询问纪要、转写、AI 待办                   | 定位候选日程后，仅将 `tencentMeetingDetail.meetingId` 作为内部参数交给 `hi-meeting` | `meetingCode` / `txMeetingCode` / `joinUrl` 不能直接查纪要 |
 
 ### 高频参数速查
 
@@ -106,6 +107,7 @@ hi calendar:get-timezone --account-ids a@xiaohongshu.com,b@xiaohongshu.com
 - 创建或编辑会议的最终确认**必须包含文档决策**：具体文档或明确无文档。
 - 查询失败按失败处理；不要把失败解释成无结果，不要换日期、换目标或用相似结果替代。
 - 用户明确要求跳过检查时可以继续，但必须说明跳过了什么、风险是什么。
+- 会议纪要定位只交接 `tencentMeetingDetail.meetingId`；字段缺失时停止说明。候选展示遵循 `references/hi-calendar-output-guidelines.md` 的最小披露规则。
 
 ## 按需读取 references
 

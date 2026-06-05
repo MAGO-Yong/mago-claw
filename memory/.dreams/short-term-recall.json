@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updatedAt": "2026-06-03T00:03:36.911Z",
+  "updatedAt": "2026-06-05T00:03:36.242Z",
   "entries": {
     "memory:memory/2026-03-24.md:26:66": {
       "key": "memory:memory/2026-03-24.md:26:66",
@@ -1157,20 +1157,22 @@
       "endLine": 90,
       "source": "memory",
       "snippet": "- **3 个老 P0 拖延 40+ 天** — execute_tool Span 确认、告警诊断需求文档合并、xray-log-query P0 SKILL 修复 ### 待做方向 - **P0（M3 首日执行）**: 将 searchadstrigger 6 步 SOP 落为正式诊断 Skill 文件并安装（素材最完整，预计 1-2 小时可交付） - **P0（M3 首周）**: 完成广告收入诊断 SOP 追问（5 维度每个维度的具体排查逻辑 + 判定标准） - **P0（M3 首周）**: 完成 RPC 异常排查 SOP 细节确认（具体图表/指标/先后顺序） - **P1**: Trace 评估框架写为正式规范文档（已拖延 10 天，可作为公司内部 AI Skill 评估标准） - **P1**: diagnosis-skill-builder 与 biz-diagnosis-creator 关系决策（合并 or 分工 or 保留两个） - **P1**: Problem 类告警通用排查框架固化为 Skill 模板（三层递进结构可推广） --- ## 方向二：PM 工作流自动化 ### 今日做了什么 **⚪ 无新进展** - diagnosis-skill-builder 的 SOP→Skill 管道已验证可行（5/20 安装成功），但连续 4 天未实际执行转化 - obs-token 云效流水线 — 基础设施已就绪（5/15 调通），10 天未动 - QS AutoFlow — 方案文档仍停滞，40+ 天零产出 ### 待做方向 - **P0**: ob",
-      "recallCount": 2,
+      "recallCount": 3,
       "dailyCount": 0,
       "groundedCount": 0,
-      "totalScore": 0.9421502351760863,
+      "totalScore": 1.4096978813409804,
       "maxScore": 0.47984315454959864,
       "firstRecalledAt": "2026-05-30T00:03:36.122Z",
-      "lastRecalledAt": "2026-06-01T00:03:36.923Z",
+      "lastRecalledAt": "2026-06-05T00:03:36.242Z",
       "queryHashes": [
         "f133c9272bca",
-        "2886f1069979"
+        "2886f1069979",
+        "b80ce953b7c7"
       ],
       "recallDays": [
         "2026-05-30",
-        "2026-06-01"
+        "2026-06-01",
+        "2026-06-05"
       ],
       "conceptTags": [
         "execute-tool",
@@ -1223,22 +1225,24 @@
       "endLine": 53,
       "source": "memory",
       "snippet": "# 工作日报 · 2026-04-19（周日） > **首次生成说明**：work-log 目录此前仅有 README.md，无历史日报可延续对比。本报告基于 daily-digest + weekly report + session 记录逆向整理。 --- ## 方向一：XRay 平台 Agent Native 化（告警诊断 / AgentOps / 评估体系 / AI基础能力） ### 今天做了什么 - **无直接进展**。周日无 XRay 相关讨论。 ### 上周遗留待办进展对比 - ⏳ 告警诊断需求文档 v0.6 与对话 v0.2 合并 → **仍未完成**（W16 遗留 P0） - ⏳ execute_tool Span 框架层采集现状确认 → **仍未完成**（4/18 遗留） - ⏳ xray-log-query P0 SKILL 修复 → **仍未完成** ### 做得好的 - 无 ### 做得不好的 - 三个 P0 待办持续搁置，已进入 W17 需立即处理 ### 待做方向 - **P0**: 合并 v0.6 与对话 v0.2 需求文档，写入正式文件（`memory/alarm-agent-requirements-v0.7.md`） - **P0**: 确认 execute_tool Span 框架层采集现状，补充可观测规范第五章 - **P0**: xray-log-query SKILL subApplication 参数格式修复 --- ## 方向二：PM 工作流自动化 ### 今天做了什么 - **无直接进展**。周日无 PM",
-      "recallCount": 3,
+      "recallCount": 4,
       "dailyCount": 0,
       "groundedCount": 0,
-      "totalScore": 1.3577650338411331,
-      "maxScore": 0.47281195223331446,
+      "totalScore": 1.8441646635532378,
+      "maxScore": 0.48639962971210476,
       "firstRecalledAt": "2026-05-30T00:03:36.122Z",
-      "lastRecalledAt": "2026-06-03T00:03:36.911Z",
+      "lastRecalledAt": "2026-06-05T00:03:36.242Z",
       "queryHashes": [
         "f133c9272bca",
         "2886f1069979",
-        "4997cc3be1bc"
+        "4997cc3be1bc",
+        "b80ce953b7c7"
       ],
       "recallDays": [
         "2026-05-30",
         "2026-06-01",
-        "2026-06-03"
+        "2026-06-03",
+        "2026-06-05"
       ],
       "conceptTags": [
         "work-log",
@@ -1631,18 +1635,20 @@
       "endLine": 85,
       "source": "memory",
       "snippet": "- **P0 通胀持续恶化** — searchadstrigger SOP 顺延 8 天、alipayservice 绑定顺延 7 天，\"P0 通胀\"模式已固化 - **老 P0 跨 M1/M2/M3 超 44 天** — execute_tool Span / 需求文档合并 / xray-log-query 修复已成沉没成本 - **Trace 评估框架拖延 18 天** — 5/15 讨论完成的 5 维度体系（准确性/效率/路径/错误处理/覆盖率）至今未固化，知识流失风险极高 - **M3 KR3 持续 0 业务线接入** — 要求 4 条线 ≥30%，当前 0/4，剩余 8 天且含端午假期压缩 - **W22 周报已确认 M1→M2→M3 冷却模式第三次复现** — 认知到规律 ≠ 行为改变，需外部干预 ### 待做方向 - **P0**: alipayservice Skill 绑定规则 151469 — 最快闭环（upload 已完成，只需确认） - **P0**: searchadstrigger SOP 落地 — 素材最完整，1-2 小时可交付 - **P0**: 广告收入诊断 + RPC 异常排查 SOP 合并确认 — 一次交互完成两个 SOP - **P1**: Trace 评估框架落文（**18 天拖延**，可作为公司内部 AI Skill 评估标准规范） - **P1**: 老 P0（execute_tool Span / 需求文档合并 / xray-log-query SKILL）三选一优先解阻 --- ## 方向二：PM 工作流自动化 ##",
-      "recallCount": 1,
+      "recallCount": 2,
       "dailyCount": 0,
       "groundedCount": 0,
-      "totalScore": 0.44000193476676935,
-      "maxScore": 0.44000193476676935,
+      "totalScore": 0.9366520702838896,
+      "maxScore": 0.49665013551712034,
       "firstRecalledAt": "2026-06-03T00:03:36.911Z",
-      "lastRecalledAt": "2026-06-03T00:03:36.911Z",
+      "lastRecalledAt": "2026-06-05T00:03:36.242Z",
       "queryHashes": [
-        "4997cc3be1bc"
+        "4997cc3be1bc",
+        "b80ce953b7c7"
       ],
       "recallDays": [
-        "2026-06-03"
+        "2026-06-03",
+        "2026-06-05"
       ],
       "conceptTags": [
         "m1/m2/m3",
@@ -1693,18 +1699,20 @@
       "endLine": 87,
       "source": "memory",
       "snippet": "- **P0 通胀模式持续固化** — searchadstrigger SOP 顺延 9 天、alipayservice 绑定顺延 8 天，P0 通胀已进入\"惯性滑行\"阶段 - **老 P0 跨 M1/M2/M3 超 45 天** — execute_tool Span / 需求文档合并 / xray-log-query 修复已成沉没成本 - **Trace 评估框架拖延 19 天** — 5/15 讨论完成的 5 维度体系（准确性/效率/路径/错误处理/覆盖率）至今未固化 - **M3 KR3 持续 0 业务线接入** — 要求 4 条线 ≥30%，当前 0/4，剩余 7 天 - **连续 12 天零 XRay 交互** — 5/21→6/1，跨越 M3 启动点 ### 待做方向 - **P0**: alipayservice Skill 绑定规则 151469 — 最快闭环（upload 已完成，只需确认） - **P0**: searchadstrigger SOP 落地 — 素材最完整，1-2 小时可交付 - **P0**: 广告收入诊断 + RPC 异常排查 SOP 合并确认 — 一次交互完成两个 SOP - **P1**: Trace 评估框架落文（**19 天拖延**，可作为公司内部 AI Skill 评估标准规范） - **P1**: 老 P0（execute_tool Span / 需求文档合并 / xray-log-query SKILL）三选一优先解阻 --- ## 方向二：PM 工作流自动化 ### 今日做了什么 **⚪ 无进展** ##",
-      "recallCount": 1,
+      "recallCount": 2,
       "dailyCount": 0,
       "groundedCount": 0,
-      "totalScore": 0.42911754846572875,
-      "maxScore": 0.42911754846572875,
+      "totalScore": 0.9095505446195602,
+      "maxScore": 0.48043299615383145,
       "firstRecalledAt": "2026-06-03T00:03:36.911Z",
-      "lastRecalledAt": "2026-06-03T00:03:36.911Z",
+      "lastRecalledAt": "2026-06-05T00:03:36.242Z",
       "queryHashes": [
-        "4997cc3be1bc"
+        "4997cc3be1bc",
+        "b80ce953b7c7"
       ],
       "recallDays": [
-        "2026-06-03"
+        "2026-06-03",
+        "2026-06-05"
       ],
       "conceptTags": [
         "m1/m2/m3",
@@ -1777,6 +1785,130 @@
         "main/draft",
         "memory.md",
         "self-improving.md"
+      ]
+    },
+    "memory:memory/work-log/2026-06-04.md:41:86": {
+      "key": "memory:memory/work-log/2026-06-04.md:41:86",
+      "path": "memory/work-log/2026-06-04.md",
+      "startLine": 41,
+      "endLine": 86,
+      "source": "memory",
+      "snippet": "- **老 P0 跨 M1/M2/M3 超 48 天** — execute_tool Span / 需求文档合并 / xray-log-query 修复，沉没成本持续累积 - **Trace 评估框架拖延 21 天** — 5/15 讨论完成的 5 维度体系至今未落文，知识流失风险极高 - **M3 KR3 持续 0 业务线接入** — 要求 4 条线 ≥30%，当前 0/4，剩余 5 天含端午压缩 - **连续 14 天零 XRay 交互** — 5/21→6/3，跨越 M3 启动点，已触发深度「警报疲劳」 ### 待做方向 - **P0**: alipayservice Skill 绑定规则 151469 — 最快闭环（upload 已完成，只需确认） - **P0**: searchadstrigger SOP 落地 — 素材最完整，1-2 小时可交付 - **P0**: 广告收入诊断 + RPC 异常排查 SOP 合并确认 — 一次交互完成两个 SOP - **P1**: Trace 评估框架落文（**21 天拖延**，可作为公司内部 AI Skill 评估标准规范） - **P1**: 老 P0（execute_tool Span / 需求文档合并 / xray-log-query SKILL）三选一优先解阻 --- ## 方向二：PM 工作流自动化 ### 今日做了什么 **⚪ 无进展** - obs-token 云效流水线 — 基础设施已就绪 19+ 天未动 - QS AutoFlow 方案文档 — 拖延 41+ 天零产出 - prd-traffi",
+      "recallCount": 1,
+      "dailyCount": 0,
+      "groundedCount": 0,
+      "totalScore": 0.4862196773290634,
+      "maxScore": 0.4862196773290634,
+      "firstRecalledAt": "2026-06-05T00:03:36.242Z",
+      "lastRecalledAt": "2026-06-05T00:03:36.242Z",
+      "queryHashes": [
+        "b80ce953b7c7"
+      ],
+      "recallDays": [
+        "2026-06-05"
+      ],
+      "conceptTags": [
+        "m1/m2/m3",
+        "execute-tool",
+        "xray-log-query",
+        "5/15",
+        "0/4",
+        "5/21",
+        "6/3",
+        "1-2"
+      ]
+    },
+    "memory:memory/work-log/2026-06-03.md:41:86": {
+      "key": "memory:memory/work-log/2026-06-03.md:41:86",
+      "path": "memory/work-log/2026-06-03.md",
+      "startLine": 41,
+      "endLine": 86,
+      "source": "memory",
+      "snippet": "- **老 P0 跨 M1/M2/M3 超 47 天** — execute_tool Span / 需求文档合并 / xray-log-query 修复，沉没成本持续累积 - **Trace 评估框架拖延 20 天** — 5/15 讨论完成的 5 维度体系至今未落文，知识流失风险极高 - **M3 KR3 持续 0 业务线接入** — 要求 4 条线 ≥30%，当前 0/4，剩余 6 天含端午压缩 - **连续 13 天零 XRay 交互** — 5/21→6/2，跨越 M3 启动点，已触发「警报疲劳」 ### 待做方向 - **P0**: alipayservice Skill 绑定规则 151469 — 最快闭环（upload 已完成，只需确认） - **P0**: searchadstrigger SOP 落地 — 素材最完整，1-2 小时可交付 - **P0**: 广告收入诊断 + RPC 异常排查 SOP 合并确认 — 一次交互完成两个 SOP - **P1**: Trace 评估框架落文（**20 天拖延**，可作为公司内部 AI Skill 评估标准规范） - **P1**: 老 P0（execute_tool Span / 需求文档合并 / xray-log-query SKILL）三选一优先解阻 --- ## 方向二：PM 工作流自动化 ### 今日做了什么 **⚪ 无进展** - obs-token 云效流水线 — 基础设施已就绪 18+ 天未动 - QS AutoFlow 方案文档 — 拖延 40+ 天零产出 - prd-traffic-",
+      "recallCount": 1,
+      "dailyCount": 0,
+      "groundedCount": 0,
+      "totalScore": 0.4827688097953796,
+      "maxScore": 0.4827688097953796,
+      "firstRecalledAt": "2026-06-05T00:03:36.242Z",
+      "lastRecalledAt": "2026-06-05T00:03:36.242Z",
+      "queryHashes": [
+        "b80ce953b7c7"
+      ],
+      "recallDays": [
+        "2026-06-05"
+      ],
+      "conceptTags": [
+        "m1/m2/m3",
+        "execute-tool",
+        "xray-log-query",
+        "5/15",
+        "0/4",
+        "5/21",
+        "6/2",
+        "1-2"
+      ]
+    },
+    "memory:memory/work-log/2026-05-12.md:1:43": {
+      "key": "memory:memory/work-log/2026-05-12.md:1:43",
+      "path": "memory/work-log/2026-05-12.md",
+      "startLine": 1,
+      "endLine": 43,
+      "source": "memory",
+      "snippet": "# 工作日报 · 2026-05-12（周二） > M2 启动日 · 连续零交互第 13 天 / M2 执行周第 1 天（5/12-5/25） > ⚠️ 5/8-5/11 日报缺失（work-daily-report cron 因 Hi token 失效报 401） --- ## 概览 | 项目 | 状态 | |------|------| | 用户会话数 | 0 | | 上次用户交互 | 2026-04-29 21:51 — obs-token 流水线需求 + LangChain 学习协作机制 | | 自动任务 | ✅ daily-digest / ⚠️ work-daily-report（5/8-5/11 401 失败，5/12 恢复）/ ✅ daily-backup | | 备注 | 🔵 **M2 首日启动**，连续零交互第 13 天，M1 在沉默中结束 | --- ## 方向一：XRay 平台 Agent Native 化 ### 今日做了什么 **⏸️ 零交互，无新进展。** 但有一个关键时间节点变化： **🔄 M1 → M2 里程碑切换** - M1（4/28-5/11）：通用 Skill 开发完成 + 广告/搜索 SOP 对齐 + 告警中心方案设计 - **实际结果：零交付** — 3 个 P0 输入依赖均未确认，M1 目标全部未达成 - M2（5/12-5/25）：通用 Skill 准确率达标 + 灰度验证 + 告警中心卡片+埋点上线 - **今日启动，但输入仍缺失** — M1 未完成导致 M2 启动即面临输入缺口 ### 待办",
+      "recallCount": 1,
+      "dailyCount": 0,
+      "groundedCount": 0,
+      "totalScore": 0.4699806541204452,
+      "maxScore": 0.4699806541204452,
+      "firstRecalledAt": "2026-06-05T00:03:36.242Z",
+      "lastRecalledAt": "2026-06-05T00:03:36.242Z",
+      "queryHashes": [
+        "b80ce953b7c7"
+      ],
+      "recallDays": [
+        "2026-06-05"
+      ],
+      "conceptTags": [
+        "backup",
+        "5/12-5/25",
+        "5/8-5/11",
+        "work-daily-report",
+        "obs-token",
+        "daily-digest",
+        "5/12",
+        "daily-backup"
+      ]
+    },
+    "memory:memory/2026-04-16.md:116:157": {
+      "key": "memory:memory/2026-04-16.md:116:157",
+      "path": "memory/2026-04-16.md",
+      "startLine": 116,
+      "endLine": 157,
+      "source": "memory",
+      "snippet": "| 5~6月 | CPU/GC/JVM 通用指标；首批4条业务线正式推广；告警中心重构（单卡片动态更新） | | 7~12月 | 业务自定义 Skill 广场；诊断评估体系；告警运营总结；覆盖率达标 | **烽火文档里的量化里程碑表（完整）**： | 维度 | 4月 | 6月 | 8月 | 12月 | |------|-----|-----|-----|------| | 告警 Agent + Skill 框架 | 基建完成，链路打通 | - | - | - | | 交互形态 | 诊断卡片推送 | 告警中心重构，诊断结果自动回写 | - | - | | 通用服务诊断(Java) | - | JVM/限流/接口/异常/系统负载上线 | 覆盖60% | 覆盖全量 | | 通用服务诊断(C++) | - | 建设初版C++能力 | 核心S0/S1覆盖 | 覆盖60% | | 诊断准确率（采纳率） | - | baseline建立 | 70% | ≥80% | | 核心业务P2+覆盖率 | - | 首批4条业务线50% | 70% | ≥80% | | 业务自定义Skill数量 | - | ≥30个 | ≥50个 | ≥70个 | | 告警触发→诊断完成 | - | <5min | <3min | <2min | | 知识库案例沉淀 | 100+ | - | 200+ | ≥300条 | | 告警总结 | - | - | MVP：个人oncall日报推送 | 自动化覆盖率≥80% | --- ### 四、Agent 引擎（底座层）详细需求 #### 4.1 通用能力 - 基于",
+      "recallCount": 1,
+      "dailyCount": 0,
+      "groundedCount": 0,
+      "totalScore": 0.46924907863140103,
+      "maxScore": 0.46924907863140103,
+      "firstRecalledAt": "2026-06-05T00:03:36.242Z",
+      "lastRecalledAt": "2026-06-05T00:03:36.242Z",
+      "queryHashes": [
+        "b80ce953b7c7"
+      ],
+      "recallDays": [
+        "2026-06-05"
+      ],
+      "conceptTags": [
+        "cpu/gc/jvm",
+        "jvm/限流/接口/异常/系统负载上线",
+        "核心s0/s1覆盖",
+        "4.1",
+        "cpu",
+        "jvm",
+        "通用",
+        "指标"
       ]
     }
   }

@@ -19,6 +19,8 @@ description: hi-calendar 的已有日程管理参考。处理定位、取消、�
 - 查看会议详情时，用 `calendar:get-schedule-detail --schedule-items "scheduleId:type"`。
 - 输出保留标题、时间、参会人、会议室、创建人、循环信息、文档等关键字段。
 - 用户基于上一步列表说“第二个 / 那个会”时，可以使用上一轮已展示的 `scheduleId` 和 `scheduleInstanceType`。
+- 若用户询问的是会议纪要/转写/AI 待办，查看详情后只从 `tencentMeetingDetail.meetingId` 提取内部入参并转交 `hi-meeting`；不要使用 `meetingCode`、`txMeetingCode` 或 `joinUrl` 查询纪要。
+- 会议纪要候选展示遵循 `references/hi-calendar-output-guidelines.md` 的最小披露规则。
 
 ## 编辑已有日程
 
@@ -52,4 +54,4 @@ description: hi-calendar 的已有日程管理参考。处理定位、取消、�
 
 - 编辑变更涉及写入字段时，转 `hi-calendar-writing.md`。
 - 需要解释忙闲、时区或冲突时，读 `hi-calendar-checks-and-timezone.md`。
-- 输出遵循 `hi-calendar-output-guidelines.md`。
+- 输出遵循 `references/hi-calendar-output-guidelines.md`。

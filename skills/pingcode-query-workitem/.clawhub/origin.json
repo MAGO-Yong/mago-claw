@@ -1,7 +1,7 @@
 {
   "version": 1,
-  "registry": "http://codewiz.devops.xiaohongshu.com/agent-manage/clawhub",
+  "registry": "https://codewiz.devops.xiaohongshu.com/agent-manage/clawhub",
   "slug": "pingcode-query-workitem",
   "installedVersion": "1.0.0",
-  "installedAt": 1776250098050
+  "installedAt": 1780669831784
 }

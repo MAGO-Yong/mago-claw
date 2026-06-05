@@ -46,6 +46,13 @@ description: hi-calendar 的输出规范参考。需要将结果结构化表达�
 - 可用性或限制：`timeEnough`、`meetingEnough`、冲突、非推荐时段。
 - 下一步：选择某个候选、调整条件，或确认继续。
 
+会议纪要定位场景下，候选展示应最小披露：
+
+- 展示编号、标题、时间、创建人/主持人展示名、是否有可用 `meetingId`、纪要查询状态。
+- 不展示 `meetingCode`、`txMeetingCode`、`joinUrl`、完整参会人账号列表、文档链接、头像 URL 或原始 payload。
+- `meetingId` 默认作为内部字段使用；只有用户明确需要排查时才脱敏展示。
+- 若候选没有 `tencentMeetingDetail.meetingId`，只说明“该候选缺少可查询纪要所需 meetingId”，不要把会议号或链接暴露出来让用户复制。
+
 示例结构：
 
 | 候选 | 时间 | 会议室选项 | 状态 | 下一步 |

@@ -1,7 +1,7 @@
 {
   "version": 1,
-  "registry": "http://codewiz.devops.xiaohongshu.com/agent-manage/clawhub",
+  "registry": "https://codewiz.devops.xiaohongshu.com/agent-manage/clawhub",
   "slug": "docx",
   "installedVersion": "1.0.0",
-  "installedAt": 1780345271049
+  "installedAt": 1780669829551
 }
