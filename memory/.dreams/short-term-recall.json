@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updatedAt": "2026-06-05T00:03:36.242Z",
+  "updatedAt": "2026-06-06T00:03:36.149Z",
   "entries": {
     "memory:memory/2026-03-24.md:26:66": {
       "key": "memory:memory/2026-03-24.md:26:66",
@@ -675,20 +675,22 @@
       "endLine": 55,
       "source": "memory",
       "snippet": "归档 --- ## 方向二：PM 工作流自动化",
-      "recallCount": 2,
+      "recallCount": 3,
       "dailyCount": 0,
       "groundedCount": 0,
-      "totalScore": 0.9358230084180832,
+      "totalScore": 1.3732267528772355,
       "maxScore": 0.4803613156080246,
       "firstRecalledAt": "2026-05-27T00:04:04.580Z",
-      "lastRecalledAt": "2026-06-02T00:03:42.272Z",
+      "lastRecalledAt": "2026-06-06T00:03:36.149Z",
       "queryHashes": [
         "4f2975ffb8c2",
-        "64a5c1548af3"
+        "64a5c1548af3",
+        "61762a821ecc"
       ],
       "recallDays": [
         "2026-05-27",
-        "2026-06-02"
+        "2026-06-02",
+        "2026-06-06"
       ],
       "conceptTags": [
         "归档",
@@ -704,22 +706,24 @@
       "endLine": 55,
       "source": "memory",
       "snippet": "趁记忆还在推进） --- ## 方向二：PM 工作流自动化 ### 今日做了什么",
-      "recallCount": 3,
+      "recallCount": 4,
       "dailyCount": 0,
       "groundedCount": 0,
-      "totalScore": 1.42012080848217,
+      "totalScore": 1.8949385434389112,
       "maxScore": 0.4898914068937301,
       "firstRecalledAt": "2026-05-27T00:04:04.580Z",
-      "lastRecalledAt": "2026-06-03T00:03:36.911Z",
+      "lastRecalledAt": "2026-06-06T00:03:36.149Z",
       "queryHashes": [
         "4f2975ffb8c2",
         "64a5c1548af3",
-        "4997cc3be1bc"
+        "4997cc3be1bc",
+        "61762a821ecc"
       ],
       "recallDays": [
         "2026-05-27",
         "2026-06-02",
-        "2026-06-03"
+        "2026-06-03",
+        "2026-06-06"
       ],
       "conceptTags": [
         "记忆",
@@ -739,20 +743,22 @@
       "endLine": 100,
       "source": "memory",
       "snippet": "- **P0（M3 首周）**: M2 复盘 — KR3/KR4 滑点原因分析 + M3 排期调整（避免同一模式重演） - **P1**: Trace 评估框架写为正式规范文档（已拖延 11 天，可作为公司内部 AI Skill 评估标准） - **P1**: diagnosis-skill-builder 与 biz-diagnosis-creator 关系决策（合并 or 分工 or 保留两个） - **P1**: Problem 类告警通用排查框架固化为 Skill 模板（三层递进结构可推广为 KR1 通用诊断能力基础模板） --- ## 方向二：PM 工作流自动化 ### 今日做了什么 **⚪ 无新进展** - diagnosis-skill-builder 的 SOP→Skill 管道已验证可行（5/20 安装成功），但连续 6 天未实际执行转化 - obs-token 云效流水线 — 基础设施已就绪（5/15 调通），11 天未动 - QS AutoFlow — 方案文档仍停滞，45+ 天零产出 ### 待做方向 - **P0（M3 首周）**: obs-token 云效流水线正式搭建（基础设施就绪 11 天未动，方向二第一个可落地的基础设施） - **P1**: QS AutoFlow 方案初稿（方向二的第一个 MVP 仍是需求管理机制，AutoFlow 方案无产出） --- ## 方向三：公司内部 AI 应用规范 ### 今日做了什么 **⚪ 无新进展** - 诊断 Skill 创建方法论（场景确认→SOP 追问→流程图→细节确认→打包安装",
-      "recallCount": 2,
+      "recallCount": 3,
       "dailyCount": 0,
       "groundedCount": 0,
-      "totalScore": 0.9165211021900177,
+      "totalScore": 1.354288277029991,
       "maxScore": 0.4625239789485931,
       "firstRecalledAt": "2026-05-27T00:04:04.580Z",
-      "lastRecalledAt": "2026-06-03T00:03:36.911Z",
+      "lastRecalledAt": "2026-06-06T00:03:36.149Z",
       "queryHashes": [
         "4f2975ffb8c2",
-        "4997cc3be1bc"
+        "4997cc3be1bc",
+        "61762a821ecc"
       ],
       "recallDays": [
         "2026-05-27",
-        "2026-06-03"
+        "2026-06-03",
+        "2026-06-06"
       ],
       "conceptTags": [
         "kr3/kr4",
@@ -1668,18 +1674,20 @@
       "endLine": 71,
       "source": "memory",
       "snippet": "### 上周遗留待办进展对比 | 待办 | 4/20 状态 | 4/21 进展 | |------|----------|----------| | 告警诊断需求文档 v0.6+v0.2 合并 | ⏳ 未完成 | ⏳ 仍未完成 ❌ | | execute_tool Span 采集现状 | ⏳ 未完成 | ⏳ 仍未完成 ❌ | | xray-log-query P0 SKILL 修复 | ⏳ 未完成 | ⏳ 仍未完成 ❌ | | AI 诊断卡片集成到正式设计稿 | ⏳ 未完成 | ⏳ 仍未完成 ❌ | ### 做得好的 - **PR 稿定位准确**：用户意识到「除了内容外，更多是样式」——从信息罗列升级为视觉传达，这是产品思维的重要升级 - **CLI 与 Skill 并列为两大入口**：CLI 面向 Agent/CI/CD，Skill 面向人对话 AI，产品定位清晰 - **REDoc 操作经验沉淀**：fillColor 8 色体系、批量编辑最佳实践，后续可复用 ### 做得不好的 - **V2 PR 稿初稿缺少样式分层**：第一次发布只有内容没有视觉设计，导致额外迭代轮次。下次类似 PR 稿应在初稿阶段就包含颜色分层方案 - **4 个 P0 技术待办连续第四天未动**（需求文档合并 / Span 采集 / SKILL 修复 / 卡片集成） - 设计说明文档仍在个人空间根目录，未关联到正式告警诊断需求文档体系 ### 待做方向 - **P0**: 告警诊断需求文档 v0.7 合并归档（含卡片设计规范附录） - **P0**: execute_tool Span 框架层",
-      "recallCount": 1,
+      "recallCount": 2,
       "dailyCount": 0,
       "groundedCount": 0,
-      "totalScore": 0.43322618305683136,
-      "maxScore": 0.43322618305683136,
+      "totalScore": 0.8704394608736038,
+      "maxScore": 0.43721327781677244,
       "firstRecalledAt": "2026-06-03T00:03:36.911Z",
-      "lastRecalledAt": "2026-06-03T00:03:36.911Z",
+      "lastRecalledAt": "2026-06-06T00:03:36.149Z",
       "queryHashes": [
-        "4997cc3be1bc"
+        "4997cc3be1bc",
+        "61762a821ecc"
       ],
       "recallDays": [
-        "2026-06-03"
+        "2026-06-03",
+        "2026-06-06"
       ],
       "conceptTags": [
         "4/20",
@@ -1732,18 +1740,20 @@
       "endLine": 172,
       "source": "memory",
       "snippet": "| 评估前端样式升级搁置 | 🟡 中 | 第一批完成后第二批未排，热度冷却中 | | Hi token 持续 401 | 🟡 中 | 日报/通知无法自动推送给正一，需手动转发 | ### ✅ 正面进展 - **PR 页面重构交付** — 从 6 区块技术文档精简为产品宣发落地页，叙事聚焦「操作」而非「查询」 - **产品经验积累** — 宣发材料写作原则（每块内容问「用户看完会更想装吗？」）可作为通用规范 - **daily-backup push 持续正常** — GitHub 推送连续 2 天成功 - **用户交互恢复** — 结束 3 天零交互，5/18 晚间完成实质性交付 --- *生成方式：work-daily-report cron · 读取 daily-digest/2026-05-18.md + 主会话记录 + MEMORY.md + work-log/2026-05-18.md + xray-alarm-skill-pr.html* *报告对象：正一* *⚠️ Hi token 仍失效（401），本日报无法通过 Hi 自动发送，需手动转发给正一*",
-      "recallCount": 1,
+      "recallCount": 2,
       "dailyCount": 0,
       "groundedCount": 0,
-      "totalScore": 0.4223346620798111,
-      "maxScore": 0.4223346620798111,
+      "totalScore": 0.855379244685173,
+      "maxScore": 0.43304458260536194,
       "firstRecalledAt": "2026-06-03T00:03:36.911Z",
-      "lastRecalledAt": "2026-06-03T00:03:36.911Z",
+      "lastRecalledAt": "2026-06-06T00:03:36.149Z",
       "queryHashes": [
-        "4997cc3be1bc"
+        "4997cc3be1bc",
+        "61762a821ecc"
       ],
       "recallDays": [
-        "2026-06-03"
+        "2026-06-03",
+        "2026-06-06"
       ],
       "conceptTags": [
         "backup",
@@ -1825,18 +1835,20 @@
       "endLine": 86,
       "source": "memory",
       "snippet": "- **老 P0 跨 M1/M2/M3 超 47 天** — execute_tool Span / 需求文档合并 / xray-log-query 修复，沉没成本持续累积 - **Trace 评估框架拖延 20 天** — 5/15 讨论完成的 5 维度体系至今未落文，知识流失风险极高 - **M3 KR3 持续 0 业务线接入** — 要求 4 条线 ≥30%，当前 0/4，剩余 6 天含端午压缩 - **连续 13 天零 XRay 交互** — 5/21→6/2，跨越 M3 启动点，已触发「警报疲劳」 ### 待做方向 - **P0**: alipayservice Skill 绑定规则 151469 — 最快闭环（upload 已完成，只需确认） - **P0**: searchadstrigger SOP 落地 — 素材最完整，1-2 小时可交付 - **P0**: 广告收入诊断 + RPC 异常排查 SOP 合并确认 — 一次交互完成两个 SOP - **P1**: Trace 评估框架落文（**20 天拖延**，可作为公司内部 AI Skill 评估标准规范） - **P1**: 老 P0（execute_tool Span / 需求文档合并 / xray-log-query SKILL）三选一优先解阻 --- ## 方向二：PM 工作流自动化 ### 今日做了什么 **⚪ 无进展** - obs-token 云效流水线 — 基础设施已就绪 18+ 天未动 - QS AutoFlow 方案文档 — 拖延 40+ 天零产出 - prd-traffic-",
-      "recallCount": 1,
+      "recallCount": 2,
       "dailyCount": 0,
       "groundedCount": 0,
-      "totalScore": 0.4827688097953796,
+      "totalScore": 0.9223735392093657,
       "maxScore": 0.4827688097953796,
       "firstRecalledAt": "2026-06-05T00:03:36.242Z",
-      "lastRecalledAt": "2026-06-05T00:03:36.242Z",
+      "lastRecalledAt": "2026-06-06T00:03:36.149Z",
       "queryHashes": [
-        "b80ce953b7c7"
+        "b80ce953b7c7",
+        "61762a821ecc"
       ],
       "recallDays": [
-        "2026-06-05"
+        "2026-06-05",
+        "2026-06-06"
       ],
       "conceptTags": [
         "m1/m2/m3",
@@ -1909,6 +1921,37 @@
         "jvm",
         "通用",
         "指标"
+      ]
+    },
+    "memory:memory/work-log/2026-04-22.md:1:36": {
+      "key": "memory:memory/work-log/2026-04-22.md:1:36",
+      "path": "memory/work-log/2026-04-22.md",
+      "startLine": 1,
+      "endLine": 36,
+      "source": "memory",
+      "snippet": "# 工作日报 · 2026-04-22（周三） > 延续自 2026-04-21 日报，重点关注专利总结产出与 P0 待办持续延期风险。 --- ## 方向一：XRay 平台 Agent Native 化（告警诊断 / AgentOps / 评估体系 / AI基础能力） ### 今天做了什么 **📋 部门专利项目三年脉络梳理（2023-2025）** - 按**技术风险**和**云原生**两个方向拆分，逐年总结核心迭代描述 - 技术风险方向演进：可观测基础设施 → 主动评估与深度诊断 → 高可用中台 + AI 原生 - 2023：6 项（Prometheus 高基数/降采样、秒级告警、智能无阈值告警、性能退化分析、Flume 采集） - 2024：4 项（无侵入 Profiling、容量极限估算×3） - 2025：2 项（coredump 流式上传、core 堆栈自动还原） - 云原生方向演进：动态配置与服务治理 → 容量评估 → 高可用中台软硬一体化 - 2023：5 项（K8s 超售、动态配置网关、服务编排引擎、多机房流控、灰度发布） - 2024：3 项（容量估算×3） - 2025：2 项（Raft 去中心化流控、PDU/机柜硬件创新） - 通过 draft 会话（Webchat）完成，采用二维矩阵组织法（方向×年份），而非简单按年份罗列 - 产出：每个方向各年份的核心迭代描述段落，可直接用于汇报/归档 **⏸️ 无其他 XRay 平台相关进展** - V2 PR 稿发布后无后续迭代 - Skills 无新增/修改 ### 与上",
+      "recallCount": 1,
+      "dailyCount": 0,
+      "groundedCount": 0,
+      "totalScore": 0.4325003236532211,
+      "maxScore": 0.4325003236532211,
+      "firstRecalledAt": "2026-06-06T00:03:36.149Z",
+      "lastRecalledAt": "2026-06-06T00:03:36.149Z",
+      "queryHashes": [
+        "61762a821ecc"
+      ],
+      "recallDays": [
+        "2026-06-06"
+      ],
+      "conceptTags": [
+        "网关",
+        "2023-2025",
+        "高基数/降采样",
+        "pdu/机柜硬件创新",
+        "可直接用于汇报/归档",
+        "无新增/修改",
+        "工作",
+        "日报"
       ]
     }
   }

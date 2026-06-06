@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updatedAt": "2026-05-30T00:03:36.122Z",
+  "updatedAt": "2026-06-06T00:03:36.149Z",
   "entries": {
     "memory:memory/2026-03-24.md:26:66": {
       "key": "memory:memory/2026-03-24.md:26:66",
@@ -158,20 +158,22 @@
       "endLine": 37,
       "source": "memory",
       "snippet": "# 2026-03-25 记忆日志 ## 上午（承接昨日上下文） ### Harness Engineering 研究报告 v2 发布 完成了报告的第二次重大升级，发布至 Redoc。 **Redoc 链接（v2 正式版）：** https://docs.xiaohongshu.com/doc/af56692ecbee237311e9c958c4175a18 **本地文件：** `/home/node/.openclaw/workspace/Harness_Engineering_研究报告_v2.md`（656 行） 新增来源（从 5 篇升至 11 篇 Tier 1）： - Anthropic Engineering Blog 完整系列（7 篇），之前完全未扫描 - OpenAI Codex 三篇系列（Unrolling agent loop / Unlocking the harness App Server / Harness Engineering） - 之前只读了 LangChain + arXiv + Mitchell Hashimoto + OpenAI HE 主文章 新增了 4 个核心概念： 1. **Context Anxiety（上下文焦虑）**：Agent 快没 context 时提前收尾，比 Doom Loop 更隐蔽 2. **Context Rot（上下文腐化）**：长任务中约束被遗忘，n² 注意力架构约束导致 3. **Eval Harness vs Agent Harness** 的正式区分（Anthropic 官方定义） 4. **H",
-      "recallCount": 2,
+      "recallCount": 3,
       "dailyCount": 0,
       "groundedCount": 0,
-      "totalScore": 0.837013566493988,
-      "maxScore": 0.4480700016021728,
+      "totalScore": 1.3031454801559448,
+      "maxScore": 0.4661319136619568,
       "firstRecalledAt": "2026-05-21T00:04:03.648Z",
-      "lastRecalledAt": "2026-05-24T00:03:48.227Z",
+      "lastRecalledAt": "2026-06-01T00:03:36.923Z",
       "queryHashes": [
         "d04d4f29cecb",
-        "5fae4dd2eaaa"
+        "5fae4dd2eaaa",
+        "2886f1069979"
       ],
       "recallDays": [
         "2026-05-21",
-        "2026-05-24"
+        "2026-05-24",
+        "2026-06-01"
       ],
       "conceptTags": [
         "openai",
@@ -191,20 +193,22 @@
       "endLine": 36,
       "source": "memory",
       "snippet": "# 2026-03-23 日志 ## 上午会话（~10:54 - 11:32 GMT+8） ### 主要工作 1. **确认 SKILL.md 更新完成** - 昨晚 commit `1d63395` 已推送到 GitHub `MAGO-Yong/SKILL` - 更新内容：Pre-Research Source Coverage Checklist、China check 强制触发、微信处理（one attempt only）、工具优先级表、交叉验证、证据强度标签、冲突数据显示 2. **Agent Harness Engineering 专题调研（Round 1 + Round 2）** - 用户选方向 C：AI/LLM Harness Engineering - Round 1：概念溯源、三阶段演进（Prompt → Context → Harness）、核心三大能力层（信息供给/架构约束/熵管理）、Eval Harness、行业案例（OpenAI/Stripe/LangChain/Databricks）、成熟度判断 - Round 2：用户优先级 3→2→1，聚焦「PM 能主导什么」 - 关键结论：Harness Engineering 是 Skills RE 的方法论锚点 - 新度量框架：Layer 1-4（基础设施→链路追踪→认知行为→业务结果） - Agent SLO 核心命题：「系统在跑，但答案是错的」是传统 SLO 盲区 - PM 主导三件事：定义 Agent 稳定性标准、推动 Tr",
-      "recallCount": 2,
+      "recallCount": 3,
       "dailyCount": 0,
       "groundedCount": 0,
-      "totalScore": 0.8122661083936691,
-      "maxScore": 0.41744571924209595,
+      "totalScore": 1.2909118682146072,
+      "maxScore": 0.4786457598209381,
       "firstRecalledAt": "2026-05-21T00:04:03.648Z",
-      "lastRecalledAt": "2026-05-24T00:03:48.227Z",
+      "lastRecalledAt": "2026-06-01T00:03:36.923Z",
       "queryHashes": [
         "d04d4f29cecb",
-        "5fae4dd2eaaa"
+        "5fae4dd2eaaa",
+        "2886f1069979"
       ],
       "recallDays": [
         "2026-05-21",
-        "2026-05-24"
+        "2026-05-24",
+        "2026-06-01"
       ],
       "conceptTags": [
         "openai",
@@ -671,18 +675,22 @@
       "endLine": 55,
       "source": "memory",
       "snippet": "归档 --- ## 方向二：PM 工作流自动化",
-      "recallCount": 1,
+      "recallCount": 3,
       "dailyCount": 0,
       "groundedCount": 0,
-      "totalScore": 0.4803613156080246,
+      "totalScore": 1.3732267528772355,
       "maxScore": 0.4803613156080246,
       "firstRecalledAt": "2026-05-27T00:04:04.580Z",
-      "lastRecalledAt": "2026-05-27T00:04:04.580Z",
+      "lastRecalledAt": "2026-06-06T00:03:36.149Z",
       "queryHashes": [
-        "4f2975ffb8c2"
+        "4f2975ffb8c2",
+        "64a5c1548af3",
+        "61762a821ecc"
       ],
       "recallDays": [
-        "2026-05-27"
+        "2026-05-27",
+        "2026-06-02",
+        "2026-06-06"
       ],
       "conceptTags": [
         "归档",
@@ -698,18 +706,24 @@
       "endLine": 55,
       "source": "memory",
       "snippet": "趁记忆还在推进） --- ## 方向二：PM 工作流自动化 ### 今日做了什么",
-      "recallCount": 1,
+      "recallCount": 4,
       "dailyCount": 0,
       "groundedCount": 0,
-      "totalScore": 0.47529269158840176,
-      "maxScore": 0.47529269158840176,
+      "totalScore": 1.8949385434389112,
+      "maxScore": 0.4898914068937301,
       "firstRecalledAt": "2026-05-27T00:04:04.580Z",
-      "lastRecalledAt": "2026-05-27T00:04:04.580Z",
+      "lastRecalledAt": "2026-06-06T00:03:36.149Z",
       "queryHashes": [
-        "4f2975ffb8c2"
+        "4f2975ffb8c2",
+        "64a5c1548af3",
+        "4997cc3be1bc",
+        "61762a821ecc"
       ],
       "recallDays": [
-        "2026-05-27"
+        "2026-05-27",
+        "2026-06-02",
+        "2026-06-03",
+        "2026-06-06"
       ],
       "conceptTags": [
         "记忆",
@@ -729,18 +743,22 @@
       "endLine": 100,
       "source": "memory",
       "snippet": "- **P0（M3 首周）**: M2 复盘 — KR3/KR4 滑点原因分析 + M3 排期调整（避免同一模式重演） - **P1**: Trace 评估框架写为正式规范文档（已拖延 11 天，可作为公司内部 AI Skill 评估标准） - **P1**: diagnosis-skill-builder 与 biz-diagnosis-creator 关系决策（合并 or 分工 or 保留两个） - **P1**: Problem 类告警通用排查框架固化为 Skill 模板（三层递进结构可推广为 KR1 通用诊断能力基础模板） --- ## 方向二：PM 工作流自动化 ### 今日做了什么 **⚪ 无新进展** - diagnosis-skill-builder 的 SOP→Skill 管道已验证可行（5/20 安装成功），但连续 6 天未实际执行转化 - obs-token 云效流水线 — 基础设施已就绪（5/15 调通），11 天未动 - QS AutoFlow — 方案文档仍停滞，45+ 天零产出 ### 待做方向 - **P0（M3 首周）**: obs-token 云效流水线正式搭建（基础设施就绪 11 天未动，方向二第一个可落地的基础设施） - **P1**: QS AutoFlow 方案初稿（方向二的第一个 MVP 仍是需求管理机制，AutoFlow 方案无产出） --- ## 方向三：公司内部 AI 应用规范 ### 今日做了什么 **⚪ 无新进展** - 诊断 Skill 创建方法论（场景确认→SOP 追问→流程图→细节确认→打包安装",
-      "recallCount": 1,
+      "recallCount": 3,
       "dailyCount": 0,
       "groundedCount": 0,
-      "totalScore": 0.4625239789485931,
+      "totalScore": 1.354288277029991,
       "maxScore": 0.4625239789485931,
       "firstRecalledAt": "2026-05-27T00:04:04.580Z",
-      "lastRecalledAt": "2026-05-27T00:04:04.580Z",
+      "lastRecalledAt": "2026-06-06T00:03:36.149Z",
       "queryHashes": [
-        "4f2975ffb8c2"
+        "4f2975ffb8c2",
+        "4997cc3be1bc",
+        "61762a821ecc"
       ],
       "recallDays": [
-        "2026-05-27"
+        "2026-05-27",
+        "2026-06-03",
+        "2026-06-06"
       ],
       "conceptTags": [
         "kr3/kr4",
@@ -860,18 +878,20 @@
       "endLine": 153,
       "source": "memory",
       "snippet": "├── KR1 通用 Skill 开发 → 🟡 评估框架已定，待落文 + CLI/Skill 分层已确认 ├── KR2 告警中心诊断闭环 → 🟡 Prototype v2 已交付，前端升级第二批搁置 ├── KR3 业务线 Skill 接入 → 🔴 尚未涉及 └── KR4 诊断有效性基线 → 🔴 尚未涉及 M2 第 1 周回顾（5/12-5/16，5 个工作日）： ├── 评估体系：Prototype v2 ✅ + Trace 维度框架 ✅ + 首次 SKILL 审计 ✅ ├── 基础设施：claude-proxy + obs-token 调通 ✅ ├── 前端升级：第一批完成 ✅，第二批搁置 ⏳ ├── 需求管理：机制稳定运行 ✅ ├── 老 P0：3 个拖延 36 天，零进展 🔴 ├── 业务线接入（KR3）：零进展 🔴 └── 诊断基线（KR4）：零进展 🔴 M2 剩余 9 天（5/17-5/25），含周末 2 天 → 实际工作日 7 天 风险：KR3/KR4 需在 7 个工作日内从零启动并完成，时间极度紧张 ``` ### ⚠️ 风险提示 | 风险 | 严重程度 | 说明 | |------|---------|------| | M2 时间过半，KR3/KR4 未启动 | 🔴 高 | 仅剩 7 个工作日，业务线接入和基线建立零进展 | | 3 个老 P0 拖延 36 天 | 🔴 高 | 跨 M1/M2 技术债务，每次用户上线都被新需求覆盖 | | Trace 评估框架未落文 | 🟡 中 | 讨论完成 2 天+仍未固化，知识流失风险 |",
-      "recallCount": 1,
+      "recallCount": 2,
       "dailyCount": 0,
       "groundedCount": 0,
-      "totalScore": 0.7606819210391267,
+      "totalScore": 1.1865927455764038,
       "maxScore": 0.7606819210391267,
       "firstRecalledAt": "2026-05-29T00:03:35.801Z",
-      "lastRecalledAt": "2026-05-29T00:03:35.801Z",
+      "lastRecalledAt": "2026-06-02T00:00:48.401Z",
       "queryHashes": [
-        "7467a2b13e73"
+        "7467a2b13e73",
+        "45b96ba161be"
       ],
       "recallDays": [
-        "2026-05-29"
+        "2026-05-29",
+        "2026-06-02"
       ],
       "conceptTags": [
         "cli/skill",
@@ -1015,18 +1035,20 @@
       "endLine": 49,
       "source": "memory",
       "snippet": "# 每日精华 · 2026-05-16（周六） > **关键标签：零交互日** --- ## 扫描结果 | 类别 | 发现 | |------|------| | 💡 用户的好问题/好思考 | ❌ 无用户交互 | | 🔑 关键决策 | ❌ 无 | | 🆕 新发现/新知识 | ❌ 无 | | 📐 流程/规则变化 | ❌ 无 | | ⚠️ 教训/问题 | ❌ 无 | --- ## 详细提炼 **5/16 为纯零交互日**，用户无任何对话。系统自动任务正常执行： - daily-digest（5/15 精华提炼）✅ - work-daily-report（5/15 日报）✅ - daily-backup（git commit 成功，push 因 TLS 网络异常失败）⚠️ **备注**：上一个用户交互日为 5/15，最后一条消息是深夜 ChatGPT 扫码路径问题（~21:11 CST）。 --- ## 状态延续（无变化） ### 老 P0 拖延天数 - execute_tool Span 确认：第 36 天 - 告警诊断需求文档合并：第 36 天 - xray-log-query P0 SKILL 修复：第 36 天 ### M2 OKR 状态 - M2（5/12-5/25）剩余 9 天 - KR3（业务线接入）/ KR4（诊断基线）仍未启动 ### 待办 - [ ] Trace 维度评估框架落为正式文档（延续自 5/15） - [ ] obs-token 云效流水线创建（待用户确认） - [ ] LangChain 学习笔记收集（用户学习中）",
-      "recallCount": 1,
+      "recallCount": 2,
       "dailyCount": 0,
       "groundedCount": 0,
-      "totalScore": 0.7182759501646954,
+      "totalScore": 1.1474278368662791,
       "maxScore": 0.7182759501646954,
       "firstRecalledAt": "2026-05-29T00:03:35.801Z",
-      "lastRecalledAt": "2026-05-29T00:03:35.801Z",
+      "lastRecalledAt": "2026-06-02T00:00:48.401Z",
       "queryHashes": [
-        "7467a2b13e73"
+        "7467a2b13e73",
+        "45b96ba161be"
       ],
       "recallDays": [
-        "2026-05-29"
+        "2026-05-29",
+        "2026-06-02"
       ],
       "conceptTags": [
         "backup",
@@ -1046,18 +1068,20 @@
       "endLine": 45,
       "source": "memory",
       "snippet": "## 📐 流程/规则变化 无新变化。 ## ⚠️ 教训/问题 - **连续零交互的\"沉默螺旋\"**：复工首日用户不交互 → Agent 继续等 → 拖延继续累积 → 下次交互的冷启动成本更高。这不是 Agent 的错，但需要设计一种\"低摩擦重启\"机制，让用户复工后可以 30 秒内恢复上下文并选择行动，而非被 P0 待办列表吓退。 - **work-daily-report 内容重复度偏高**：已连续多天输出相同结构的\"零交互\"报告，信息增量递减。需要考虑在连续 N 天零交互后改变报告策略（如从\"报告现状\"改为\"提供一键重启入口\"）。 --- ## 会话来源 1. Cron: work-daily-report（08:00，生成 work-log/2026-05-06.md，已 Hi 发送给正一） 2. Cron: daily-backup（次日凌晨 02:01，push 成功 ✅） 3. Cron: daily-digest（08:00，本文件） > **注**：本日无任何用户对话，精华提炼基于自动任务延续性观察。复工 Day 1，期待用户重新连接。",
-      "recallCount": 1,
+      "recallCount": 2,
       "dailyCount": 0,
       "groundedCount": 0,
-      "totalScore": 0.7132567241599009,
+      "totalScore": 1.1459075853039669,
       "maxScore": 0.7132567241599009,
       "firstRecalledAt": "2026-05-29T00:03:35.801Z",
-      "lastRecalledAt": "2026-05-29T00:03:35.801Z",
+      "lastRecalledAt": "2026-06-02T00:03:42.272Z",
       "queryHashes": [
-        "7467a2b13e73"
+        "7467a2b13e73",
+        "64a5c1548af3"
       ],
       "recallDays": [
-        "2026-05-29"
+        "2026-05-29",
+        "2026-06-02"
       ],
       "conceptTags": [
         "backup",
@@ -1139,18 +1163,22 @@
       "endLine": 90,
       "source": "memory",
       "snippet": "- **3 个老 P0 拖延 40+ 天** — execute_tool Span 确认、告警诊断需求文档合并、xray-log-query P0 SKILL 修复 ### 待做方向 - **P0（M3 首日执行）**: 将 searchadstrigger 6 步 SOP 落为正式诊断 Skill 文件并安装（素材最完整，预计 1-2 小时可交付） - **P0（M3 首周）**: 完成广告收入诊断 SOP 追问（5 维度每个维度的具体排查逻辑 + 判定标准） - **P0（M3 首周）**: 完成 RPC 异常排查 SOP 细节确认（具体图表/指标/先后顺序） - **P1**: Trace 评估框架写为正式规范文档（已拖延 10 天，可作为公司内部 AI Skill 评估标准） - **P1**: diagnosis-skill-builder 与 biz-diagnosis-creator 关系决策（合并 or 分工 or 保留两个） - **P1**: Problem 类告警通用排查框架固化为 Skill 模板（三层递进结构可推广） --- ## 方向二：PM 工作流自动化 ### 今日做了什么 **⚪ 无新进展** - diagnosis-skill-builder 的 SOP→Skill 管道已验证可行（5/20 安装成功），但连续 4 天未实际执行转化 - obs-token 云效流水线 — 基础设施已就绪（5/15 调通），10 天未动 - QS AutoFlow — 方案文档仍停滞，40+ 天零产出 ### 待做方向 - **P0**: ob",
-      "recallCount": 1,
+      "recallCount": 3,
       "dailyCount": 0,
       "groundedCount": 0,
-      "totalScore": 0.47984315454959864,
+      "totalScore": 1.4096978813409804,
       "maxScore": 0.47984315454959864,
       "firstRecalledAt": "2026-05-30T00:03:36.122Z",
-      "lastRecalledAt": "2026-05-30T00:03:36.122Z",
+      "lastRecalledAt": "2026-06-05T00:03:36.242Z",
       "queryHashes": [
-        "f133c9272bca"
+        "f133c9272bca",
+        "2886f1069979",
+        "b80ce953b7c7"
       ],
       "recallDays": [
-        "2026-05-30"
+        "2026-05-30",
+        "2026-06-01",
+        "2026-06-05"
       ],
       "conceptTags": [
         "execute-tool",
@@ -1170,18 +1198,20 @@
       "endLine": 88,
       "source": "memory",
       "snippet": "- 3 个 P0 累积至 **23 天**，M1 剩余仅 **9 个工作日**（5/6-5/9 + 5/11），压力峰值已到 - 冷启动成本最高：用户复工第一天，需要同时恢复 3 个搁置 23 天的上下文 ### 待做方向（复工 Day 1 优先级） - **P0-1**: execute_tool Span 确认 — 23 天，最高杠杆，一处解阻方向一 + 方向三 - **P0-2**: xray-log-query P0 SKILL 修复 — 恢复 Agent 日志查询能力 - **P0-3**: 告警诊断需求文档合并 — M1 通用 Skill 开发的必要输入 --- ## 方向二：PM 工作流自动化 ### 今日做了什么 **⏸️ 复工首日，零交互，无新进展。** ### 待办状态延续 | 待办 | 5/5 状态 | 5/6 状态 | 拖延天数 | 趋势 | |------|---------|---------|---------|------| | QS AutoFlow 合作方案文档 | ⏳ 第 20 天 | ⏳ 第 21 天 | 🔴 +1 | 方案初稿未启动 | | 与小庄下一次讨论 | ⏳ 未安排 | ⏳ 未安排 | 🔴 停滞 | 无变化 | | obs-token 云效流水线 | 🔄 待确认（10 天） | 🔄 待确认（11 天） | 🟢 第 11 天 | 方案就绪等确认 | | LangChain 学习笔记 | 🔄 进行中 | 🔄 进行中 | ➡️ 暂停 | 协作机制已建立 | ### 做得好的 - obs-token 流水线",
-      "recallCount": 1,
+      "recallCount": 2,
       "dailyCount": 0,
       "groundedCount": 0,
-      "totalScore": 0.46833871901035307,
+      "totalScore": 0.9282230973243712,
       "maxScore": 0.46833871901035307,
       "firstRecalledAt": "2026-05-30T00:03:36.122Z",
-      "lastRecalledAt": "2026-05-30T00:03:36.122Z",
+      "lastRecalledAt": "2026-06-01T00:03:36.923Z",
       "queryHashes": [
-        "f133c9272bca"
+        "f133c9272bca",
+        "2886f1069979"
       ],
       "recallDays": [
-        "2026-05-30"
+        "2026-05-30",
+        "2026-06-01"
       ],
       "conceptTags": [
         "5/6-5/9",
@@ -1201,18 +1231,24 @@
       "endLine": 53,
       "source": "memory",
       "snippet": "# 工作日报 · 2026-04-19（周日） > **首次生成说明**：work-log 目录此前仅有 README.md，无历史日报可延续对比。本报告基于 daily-digest + weekly report + session 记录逆向整理。 --- ## 方向一：XRay 平台 Agent Native 化（告警诊断 / AgentOps / 评估体系 / AI基础能力） ### 今天做了什么 - **无直接进展**。周日无 XRay 相关讨论。 ### 上周遗留待办进展对比 - ⏳ 告警诊断需求文档 v0.6 与对话 v0.2 合并 → **仍未完成**（W16 遗留 P0） - ⏳ execute_tool Span 框架层采集现状确认 → **仍未完成**（4/18 遗留） - ⏳ xray-log-query P0 SKILL 修复 → **仍未完成** ### 做得好的 - 无 ### 做得不好的 - 三个 P0 待办持续搁置，已进入 W17 需立即处理 ### 待做方向 - **P0**: 合并 v0.6 与对话 v0.2 需求文档，写入正式文件（`memory/alarm-agent-requirements-v0.7.md`） - **P0**: 确认 execute_tool Span 框架层采集现状，补充可观测规范第五章 - **P0**: xray-log-query SKILL subApplication 参数格式修复 --- ## 方向二：PM 工作流自动化 ### 今天做了什么 - **无直接进展**。周日无 PM",
-      "recallCount": 1,
+      "recallCount": 4,
       "dailyCount": 0,
       "groundedCount": 0,
-      "totalScore": 0.46325436532497405,
-      "maxScore": 0.46325436532497405,
+      "totalScore": 1.8441646635532378,
+      "maxScore": 0.48639962971210476,
       "firstRecalledAt": "2026-05-30T00:03:36.122Z",
-      "lastRecalledAt": "2026-05-30T00:03:36.122Z",
+      "lastRecalledAt": "2026-06-05T00:03:36.242Z",
       "queryHashes": [
-        "f133c9272bca"
+        "f133c9272bca",
+        "2886f1069979",
+        "4997cc3be1bc",
+        "b80ce953b7c7"
       ],
       "recallDays": [
-        "2026-05-30"
+        "2026-05-30",
+        "2026-06-01",
+        "2026-06-03",
+        "2026-06-05"
       ],
       "conceptTags": [
         "work-log",
@@ -1351,18 +1387,20 @@
       "endLine": 96,
       "source": "memory",
       "snippet": "- **Trace 评估框架落文拖延进入第 2 天** — 讨论成果仅存于对话上下文，有知识流失风险 ### 待做方向 - **P0**: Trace 维度评估框架落为正式文档（讨论完成 2 天+，需固化） - **P0**: 3 个老 P0 至少解决一个（建议 xray-log-query SKILL 修复，最小改动） - **P1**: 评估前端样式升级第二批（热度可能冷却，需趁记忆还在推进） --- ## 方向二：PM 工作流自动化 ### 今日做了什么 **❌ 零进展** — 无用户交互，方向二所有待办停滞。 ### 待办状态对比（5/16 → 5/17） | 待办 | 5/16 状态 | 5/17 状态 | 变化 | |------|----------|----------|------| | 需求管理机制 | ✅ 持续运行 | ✅ 持续运行 | ➡️ 稳定 | | obs-token 流水线 | 🟡 待正式搭建 | 🟡 待搭建 | ➡️ 无变化 | | QS AutoFlow 方案 | ⏳ 第 31 天 | ⏳ 第 32 天 | 🔴 +1 | | 与小庄讨论 | ⏳ 未安排 | ⏳ 未安排 | ➡️ 停滞 | | LangChain 学习 | 🟢 材料已整理 | 🟢 待用户学习 | ➡️ 无变化 | ### 待做方向 - **P0**: obs-token 云效流水线正式搭建（基础设施已就绪，趁热执行） - **P1**: QS AutoFlow 方案初稿（32 天零产出，方向二首个 MVP 仍为空白） --- ## 方向三：公司内部",
-      "recallCount": 1,
+      "recallCount": 2,
       "dailyCount": 0,
       "groundedCount": 0,
-      "totalScore": 0.44777533113956447,
+      "totalScore": 0.8953272759914397,
       "maxScore": 0.44777533113956447,
       "firstRecalledAt": "2026-05-30T00:03:36.122Z",
-      "lastRecalledAt": "2026-05-30T00:03:36.122Z",
+      "lastRecalledAt": "2026-06-01T00:03:36.923Z",
       "queryHashes": [
-        "f133c9272bca"
+        "f133c9272bca",
+        "2886f1069979"
       ],
       "recallDays": [
-        "2026-05-30"
+        "2026-05-30",
+        "2026-06-01"
       ],
       "conceptTags": [
         "xray-log-query",
@@ -1404,6 +1442,516 @@
         "trace",
         "评估",
         "框架"
+      ]
+    },
+    "memory:memory/work-log/2026-05-18.md:118:154": {
+      "key": "memory:memory/work-log/2026-05-18.md:118:154",
+      "path": "memory/work-log/2026-05-18.md",
+      "startLine": 118,
+      "endLine": 154,
+      "source": "memory",
+      "snippet": "n · 读取 daily-digest/2026-05-17.md + work-log/2026-05-17.md + MEMORY.md + 会话记录* *报告对象：正一*",
+      "recallCount": 2,
+      "dailyCount": 0,
+      "groundedCount": 0,
+      "totalScore": 0.8669998794794083,
+      "maxScore": 0.4467336267232895,
+      "firstRecalledAt": "2026-06-01T00:03:36.923Z",
+      "lastRecalledAt": "2026-06-02T00:00:48.401Z",
+      "queryHashes": [
+        "2886f1069979",
+        "45b96ba161be"
+      ],
+      "recallDays": [
+        "2026-06-01",
+        "2026-06-02"
+      ],
+      "conceptTags": [
+        "daily-digest/2026-05-17.md",
+        "work-log/2026-05-17.md",
+        "memory.md",
+        "digest",
+        "log",
+        "会话",
+        "记录",
+        "报告"
+      ]
+    },
+    "memory:memory/daily-digest/2026-05-30.md:1:52": {
+      "key": "memory:memory/daily-digest/2026-05-30.md:1:52",
+      "path": "memory/daily-digest/2026-05-30.md",
+      "startLine": 1,
+      "endLine": 52,
+      "source": "memory",
+      "snippet": "# 每日精华 · 2026-05-30（周六） ## 核心摘要 **连续零交互日** — 全天无用户会话，仅 cron 自动运行。M3 第 5 天，连续 5 天零 XRay 交互，所有 P0 继续顺延。 --- ## 1. 💡 用户的好问题/好思考 （无用户会话，本类为空） --- ## 2. 🔑 关键决策 （无用户会话，本类为空） --- ## 3. 🆕 新发现/新知识 ### 基础设施状态 - **daily-backup 成功推送** — 提交 `35a02e1`，清理了 git 索引中长期存在的 `core/agents/agents/` 和 `core/memory/memory/` 双层嵌套错误路径，snapshot 结构恢复正常 - **work-daily-report 成功投递 Hi 私信** — target `mahengyang@xiaohongshu.com`，messageId `5a7b0f2a493d2499f4054353e6d35021` - **所有 cron 正常** — daily-digest / work-daily-report / daily-backup / weekly-growth-report 均按期运行 - **工作区结构稳定** — 零变更（MEMORY.md / SOUL.md / AGENTS.md 均无改动），无异常文件 --- ## 4. 📐 流程/规则变化 （无新变化） --- ## 5. ⚠️ 教训/问题 ### M3 偏离持续（Day 5） - 连续 5 天零用户",
+      "recallCount": 1,
+      "dailyCount": 0,
+      "groundedCount": 0,
+      "totalScore": 0.4275397419929504,
+      "maxScore": 0.4275397419929504,
+      "firstRecalledAt": "2026-06-02T00:00:48.401Z",
+      "lastRecalledAt": "2026-06-02T00:00:48.401Z",
+      "queryHashes": [
+        "45b96ba161be"
+      ],
+      "recallDays": [
+        "2026-06-02"
+      ],
+      "conceptTags": [
+        "backup",
+        "用户的好问题/好思考",
+        "新发现/新知识",
+        "daily-backup",
+        "core/agents/agents",
+        "core/memory/memory",
+        "work-daily-report",
+        "xiaohongshu.com"
+      ]
+    },
+    "memory:memory/work-log/2026-04-19.md:78:111": {
+      "key": "memory:memory/work-log/2026-04-19.md:78:111",
+      "path": "memory/work-log/2026-04-19.md",
+      "startLine": 78,
+      "endLine": 111,
+      "source": "memory",
+      "snippet": "1. `agent_from_zero_to_one_course.md`（27KB）— 12 章 Agent 从 0 到 1 实战课 2. `agent_technology_evolution.md`（11.6KB）— 十大核心技术发明史 - 首次系统整理 Agent 技术发展时间线（2022.11 → 2026.04），覆盖 10 大技术节点的\"问题→旧方案→突破→谁最早落地→演进路径\" - 三份演进主线：能做→可控 / 单干→协作 / 堆能力→管信息 - 通过 Hi 发送给用户，适配移动端通勤阅读 ### 系统维护 - ✅ MEMORY.md 万豪 Q1 注册残留清理（4/18 用户要求取消，4/19 确认清除完毕） - ✅ self-improving/memory.md 重复条目修复 - ✅ pending_tasks.md 结构优化（长期任务归口到 MEMORY.md） - ✅ daily-backup cron 正常执行 + git push --- ## 与上次周会对比（W16 → W17 交接） | 维度 | W16（上周） | W17 本周期望 | |------|------------|-------------| | 工作重心 | 方向梳理（轻量周） | 执行落地（3 个 P0 待办） | | 交付物 | 需求倒出 + 方向确认 + 规范 V1 | 需求文档合并 + 方案讨论 + 规范补充 | | 代码/Skill | 无 | 至少完成 xray-log-query P0 修复 | | 策略 | 磨刀不误砍柴工 | 开始砍柴 | #",
+      "recallCount": 1,
+      "dailyCount": 0,
+      "groundedCount": 0,
+      "totalScore": 0.4266613215208053,
+      "maxScore": 0.4266613215208053,
+      "firstRecalledAt": "2026-06-02T00:00:48.401Z",
+      "lastRecalledAt": "2026-06-02T00:00:48.401Z",
+      "queryHashes": [
+        "45b96ba161be"
+      ],
+      "recallDays": [
+        "2026-06-02"
+      ],
+      "conceptTags": [
+        "backup",
+        "agent-from-zero-to-one-course.md",
+        "agent-technology-evolution.md",
+        "11.6kb",
+        "2022.11",
+        "2026.04",
+        "memory.md",
+        "4/18"
+      ]
+    },
+    "memory:memory/daily-digest/2026-05-01.md:27:53": {
+      "key": "memory:memory/daily-digest/2026-05-01.md:27:53",
+      "path": "memory/daily-digest/2026-05-01.md",
+      "startLine": 27,
+      "endLine": 53,
+      "source": "memory",
+      "snippet": "- 这是基础设施层面的已知风险，需要用户手动更新 GitHub Developer Settings 中的 PAT - **影响**：工作区备份和版本管理暂时退化为本地状态，假期后需要修复 ## 🆕 新发现/新知识 - **M1 执行窗口时间账**：4/28-5/11 共 14 天，假期（5/1-5/5）占 5 天，实际工作日剩 9 天。假期前有效交互仅 4/28-4/29 两天，且主要精力用于 LangChain 学习和 obs-token 流水线启动，3 个 P0 核心待办仍未触碰 - **连续零交互天数达 5 天**（4/30 + 5/1），但 5/1 是假期首日，属合理归零 ## 📐 流程/规则变化 无新变化。 ## ⚠️ 教训/问题 - **P0 待办拖延突破 15 天**：3 个核心待办（execute_tool Span / 需求文档合并 / xray-log-query SKILL）从 M1 启动第 1 天（4/28）至今 15 天零推进。假期是合理原因，但假期前 4/28-4/29 两天也零触碰，说明用户在有意调整优先级（可能是 LangChain 学习优先级高于 P0 技术债） - **日报\"警报疲劳\"风险加剧**：连续 5 天 work-daily-report 结论一致（P0 拖延/零交互/方向二停滞）。第 4 次（5/1）加了\"假期属正常\"的合理化，第 5 次可能需要切换提醒方式——从\"报告问题\"到\"提供具体的下一步动作\" - **GitHub PAT 过期**：daily-backup 首次 push 失败，说明 token 管理缺乏",
+      "recallCount": 1,
+      "dailyCount": 0,
+      "groundedCount": 0,
+      "totalScore": 0.4531169086694717,
+      "maxScore": 0.4531169086694717,
+      "firstRecalledAt": "2026-06-02T00:03:42.272Z",
+      "lastRecalledAt": "2026-06-02T00:03:42.272Z",
+      "queryHashes": [
+        "64a5c1548af3"
+      ],
+      "recallDays": [
+        "2026-06-02"
+      ],
+      "conceptTags": [
+        "backup",
+        "备份",
+        "新发现/新知识",
+        "4/28-5/11",
+        "5/1-5/5",
+        "4/28-4/29",
+        "obs-token",
+        "4/30"
+      ]
+    },
+    "memory:memory/daily-digest/2026-04-30.md:29:50": {
+      "key": "memory:memory/daily-digest/2026-04-30.md:29:50",
+      "path": "memory/daily-digest/2026-04-30.md",
+      "startLine": 29,
+      "endLine": 50,
+      "source": "memory",
+      "snippet": "- **日报时间窗口偏差再次确认**：08:00 生成的 work-daily-report 覆盖的是前一日 08:00 到当日 08:00 的数据，4/29 的用户活跃（19:07-21:51）被 4/30 08:00 的日报捕获，但 4/30 全天零交互意味着 5/1 08:00 的日报将再次报告「零交互」 - **连续零交互天数**：4/30 是连续第 4 个零交互日（4/27 非工作交互不算纯工作日），4/29 的短暂活跃只是中间的一个小波动 ## 📐 流程/规则变化 无新变化。 ## ⚠️ 教训/问题 - **P0 待办拖延天数突破临界值**：3 个核心待办（execute_tool Span / 需求文档合并 / xray-log-query SKILL）从 4/29 的 13 天拖延到 4/30 的 **14 天**，M1 执行窗口已开 3 天但零执行 - **日报的\"警报疲劳\"风险**：连续多天的 work-daily-report 都在报告相同的问题（P0 拖延/零交互/方向二停滞），如果用户已经看过但选择不行动，继续报告同样的内容可能变成噪音而非提醒 - **反思**：是否需要改变提醒方式？从\"报告问题\"切换到\"提供具体的下一步动作\"？ --- ## 会话来源 1. Cron: work-daily-report（08:04，报告 4/29 数据） 2. Cron: daily-backup（08:00） 3. Cron: daily-digest（08:00，报告 4/29） > **注**：本日无用户直接对话，精华提炼主要基于自动任务产出",
+      "recallCount": 1,
+      "dailyCount": 0,
+      "groundedCount": 0,
+      "totalScore": 0.43626255095005034,
+      "maxScore": 0.43626255095005034,
+      "firstRecalledAt": "2026-06-02T00:03:42.272Z",
+      "lastRecalledAt": "2026-06-02T00:03:42.272Z",
+      "queryHashes": [
+        "64a5c1548af3"
+      ],
+      "recallDays": [
+        "2026-06-02"
+      ],
+      "conceptTags": [
+        "backup",
+        "work-daily-report",
+        "4/29",
+        "07-21",
+        "4/30",
+        "5/1",
+        "4/27",
+        "流程/规则变化"
+      ]
+    },
+    "memory:memory/work-log/2026-05-14.md:177:188": {
+      "key": "memory:memory/work-log/2026-05-14.md:177:188",
+      "path": "memory/work-log/2026-05-14.md",
+      "startLine": 177,
+      "endLine": 188,
+      "source": "memory",
+      "snippet": "|------|---------|------| | 3 个老 P0 拖延 31 天 | 🔴 高 | 用户上线后仍聚焦新需求，技术债务无人处理 | | 前端样式升级后续 4 批未排期 | 🟡 中 | 第一批交付后节奏断档，可能冷却 | | Hi token 持续 401 | 🟡 中 | 日报可运行但无法自动推送给正一 | | REQ-001-3（数据集上传）停滞 | 🟡 中 | P0 级、无外部依赖，但被其他事项覆盖 | --- *生成方式：work-daily-report cron · 读取 daily-digest/2026-05-13.md + 5 个 webchat 会话 + MEMORY.md* *报告对象：正一* *⚠️ Hi token 仍失效（401），本日报无法通过 Hi 自动发送，需手动转发给正一*",
+      "recallCount": 2,
+      "dailyCount": 0,
+      "groundedCount": 0,
+      "totalScore": 0.8574548095464706,
+      "maxScore": 0.4337631821632385,
+      "firstRecalledAt": "2026-06-02T00:03:42.272Z",
+      "lastRecalledAt": "2026-06-03T00:03:36.911Z",
+      "queryHashes": [
+        "64a5c1548af3",
+        "4997cc3be1bc"
+      ],
+      "recallDays": [
+        "2026-06-02",
+        "2026-06-03"
+      ],
+      "conceptTags": [
+        "req-001-3",
+        "work-daily-report",
+        "daily-digest/2026-05-13.md",
+        "memory.md",
+        "拖延",
+        "用户",
+        "上线",
+        "聚焦"
+      ]
+    },
+    "memory:memory/work-log/2026-06-01.md:40:85": {
+      "key": "memory:memory/work-log/2026-06-01.md:40:85",
+      "path": "memory/work-log/2026-06-01.md",
+      "startLine": 40,
+      "endLine": 85,
+      "source": "memory",
+      "snippet": "- **P0 通胀持续恶化** — searchadstrigger SOP 顺延 8 天、alipayservice 绑定顺延 7 天，\"P0 通胀\"模式已固化 - **老 P0 跨 M1/M2/M3 超 44 天** — execute_tool Span / 需求文档合并 / xray-log-query 修复已成沉没成本 - **Trace 评估框架拖延 18 天** — 5/15 讨论完成的 5 维度体系（准确性/效率/路径/错误处理/覆盖率）至今未固化，知识流失风险极高 - **M3 KR3 持续 0 业务线接入** — 要求 4 条线 ≥30%，当前 0/4，剩余 8 天且含端午假期压缩 - **W22 周报已确认 M1→M2→M3 冷却模式第三次复现** — 认知到规律 ≠ 行为改变，需外部干预 ### 待做方向 - **P0**: alipayservice Skill 绑定规则 151469 — 最快闭环（upload 已完成，只需确认） - **P0**: searchadstrigger SOP 落地 — 素材最完整，1-2 小时可交付 - **P0**: 广告收入诊断 + RPC 异常排查 SOP 合并确认 — 一次交互完成两个 SOP - **P1**: Trace 评估框架落文（**18 天拖延**，可作为公司内部 AI Skill 评估标准规范） - **P1**: 老 P0（execute_tool Span / 需求文档合并 / xray-log-query SKILL）三选一优先解阻 --- ## 方向二：PM 工作流自动化 ##",
+      "recallCount": 2,
+      "dailyCount": 0,
+      "groundedCount": 0,
+      "totalScore": 0.9366520702838896,
+      "maxScore": 0.49665013551712034,
+      "firstRecalledAt": "2026-06-03T00:03:36.911Z",
+      "lastRecalledAt": "2026-06-05T00:03:36.242Z",
+      "queryHashes": [
+        "4997cc3be1bc",
+        "b80ce953b7c7"
+      ],
+      "recallDays": [
+        "2026-06-03",
+        "2026-06-05"
+      ],
+      "conceptTags": [
+        "m1/m2/m3",
+        "execute-tool",
+        "xray-log-query",
+        "5/15",
+        "准确性/效率/路径/错误处理/覆盖率",
+        "0/4",
+        "1-2",
+        "持续"
+      ]
+    },
+    "memory:memory/work-log/2026-04-21.md:34:71": {
+      "key": "memory:memory/work-log/2026-04-21.md:34:71",
+      "path": "memory/work-log/2026-04-21.md",
+      "startLine": 34,
+      "endLine": 71,
+      "source": "memory",
+      "snippet": "### 上周遗留待办进展对比 | 待办 | 4/20 状态 | 4/21 进展 | |------|----------|----------| | 告警诊断需求文档 v0.6+v0.2 合并 | ⏳ 未完成 | ⏳ 仍未完成 ❌ | | execute_tool Span 采集现状 | ⏳ 未完成 | ⏳ 仍未完成 ❌ | | xray-log-query P0 SKILL 修复 | ⏳ 未完成 | ⏳ 仍未完成 ❌ | | AI 诊断卡片集成到正式设计稿 | ⏳ 未完成 | ⏳ 仍未完成 ❌ | ### 做得好的 - **PR 稿定位准确**：用户意识到「除了内容外，更多是样式」——从信息罗列升级为视觉传达，这是产品思维的重要升级 - **CLI 与 Skill 并列为两大入口**：CLI 面向 Agent/CI/CD，Skill 面向人对话 AI，产品定位清晰 - **REDoc 操作经验沉淀**：fillColor 8 色体系、批量编辑最佳实践，后续可复用 ### 做得不好的 - **V2 PR 稿初稿缺少样式分层**：第一次发布只有内容没有视觉设计，导致额外迭代轮次。下次类似 PR 稿应在初稿阶段就包含颜色分层方案 - **4 个 P0 技术待办连续第四天未动**（需求文档合并 / Span 采集 / SKILL 修复 / 卡片集成） - 设计说明文档仍在个人空间根目录，未关联到正式告警诊断需求文档体系 ### 待做方向 - **P0**: 告警诊断需求文档 v0.7 合并归档（含卡片设计规范附录） - **P0**: execute_tool Span 框架层",
+      "recallCount": 2,
+      "dailyCount": 0,
+      "groundedCount": 0,
+      "totalScore": 0.8704394608736038,
+      "maxScore": 0.43721327781677244,
+      "firstRecalledAt": "2026-06-03T00:03:36.911Z",
+      "lastRecalledAt": "2026-06-06T00:03:36.149Z",
+      "queryHashes": [
+        "4997cc3be1bc",
+        "61762a821ecc"
+      ],
+      "recallDays": [
+        "2026-06-03",
+        "2026-06-06"
+      ],
+      "conceptTags": [
+        "4/20",
+        "4/21",
+        "v0.6",
+        "v0.2",
+        "execute-tool",
+        "xray-log-query",
+        "agent/ci/cd",
+        "v0.7"
+      ]
+    },
+    "memory:memory/work-log/2026-06-02.md:40:87": {
+      "key": "memory:memory/work-log/2026-06-02.md:40:87",
+      "path": "memory/work-log/2026-06-02.md",
+      "startLine": 40,
+      "endLine": 87,
+      "source": "memory",
+      "snippet": "- **P0 通胀模式持续固化** — searchadstrigger SOP 顺延 9 天、alipayservice 绑定顺延 8 天，P0 通胀已进入\"惯性滑行\"阶段 - **老 P0 跨 M1/M2/M3 超 45 天** — execute_tool Span / 需求文档合并 / xray-log-query 修复已成沉没成本 - **Trace 评估框架拖延 19 天** — 5/15 讨论完成的 5 维度体系（准确性/效率/路径/错误处理/覆盖率）至今未固化 - **M3 KR3 持续 0 业务线接入** — 要求 4 条线 ≥30%，当前 0/4，剩余 7 天 - **连续 12 天零 XRay 交互** — 5/21→6/1，跨越 M3 启动点 ### 待做方向 - **P0**: alipayservice Skill 绑定规则 151469 — 最快闭环（upload 已完成，只需确认） - **P0**: searchadstrigger SOP 落地 — 素材最完整，1-2 小时可交付 - **P0**: 广告收入诊断 + RPC 异常排查 SOP 合并确认 — 一次交互完成两个 SOP - **P1**: Trace 评估框架落文（**19 天拖延**，可作为公司内部 AI Skill 评估标准规范） - **P1**: 老 P0（execute_tool Span / 需求文档合并 / xray-log-query SKILL）三选一优先解阻 --- ## 方向二：PM 工作流自动化 ### 今日做了什么 **⚪ 无进展** ##",
+      "recallCount": 2,
+      "dailyCount": 0,
+      "groundedCount": 0,
+      "totalScore": 0.9095505446195602,
+      "maxScore": 0.48043299615383145,
+      "firstRecalledAt": "2026-06-03T00:03:36.911Z",
+      "lastRecalledAt": "2026-06-05T00:03:36.242Z",
+      "queryHashes": [
+        "4997cc3be1bc",
+        "b80ce953b7c7"
+      ],
+      "recallDays": [
+        "2026-06-03",
+        "2026-06-05"
+      ],
+      "conceptTags": [
+        "m1/m2/m3",
+        "execute-tool",
+        "xray-log-query",
+        "5/15",
+        "准确性/效率/路径/错误处理/覆盖率",
+        "0/4",
+        "5/21",
+        "6/1"
+      ]
+    },
+    "memory:memory/work-log/2026-05-19.md:158:172": {
+      "key": "memory:memory/work-log/2026-05-19.md:158:172",
+      "path": "memory/work-log/2026-05-19.md",
+      "startLine": 158,
+      "endLine": 172,
+      "source": "memory",
+      "snippet": "| 评估前端样式升级搁置 | 🟡 中 | 第一批完成后第二批未排，热度冷却中 | | Hi token 持续 401 | 🟡 中 | 日报/通知无法自动推送给正一，需手动转发 | ### ✅ 正面进展 - **PR 页面重构交付** — 从 6 区块技术文档精简为产品宣发落地页，叙事聚焦「操作」而非「查询」 - **产品经验积累** — 宣发材料写作原则（每块内容问「用户看完会更想装吗？」）可作为通用规范 - **daily-backup push 持续正常** — GitHub 推送连续 2 天成功 - **用户交互恢复** — 结束 3 天零交互，5/18 晚间完成实质性交付 --- *生成方式：work-daily-report cron · 读取 daily-digest/2026-05-18.md + 主会话记录 + MEMORY.md + work-log/2026-05-18.md + xray-alarm-skill-pr.html* *报告对象：正一* *⚠️ Hi token 仍失效（401），本日报无法通过 Hi 自动发送，需手动转发给正一*",
+      "recallCount": 2,
+      "dailyCount": 0,
+      "groundedCount": 0,
+      "totalScore": 0.855379244685173,
+      "maxScore": 0.43304458260536194,
+      "firstRecalledAt": "2026-06-03T00:03:36.911Z",
+      "lastRecalledAt": "2026-06-06T00:03:36.149Z",
+      "queryHashes": [
+        "4997cc3be1bc",
+        "61762a821ecc"
+      ],
+      "recallDays": [
+        "2026-06-03",
+        "2026-06-06"
+      ],
+      "conceptTags": [
+        "backup",
+        "日报/通知无法自动推送给正一",
+        "daily-backup",
+        "5/18",
+        "work-daily-report",
+        "daily-digest/2026-05-18.md",
+        "memory.md",
+        "work-log/2026-05-18.md"
+      ]
+    },
+    "memory:memory/work-log/2026-04-24.md:142:151": {
+      "key": "memory:memory/work-log/2026-04-24.md:142:151",
+      "path": "memory/work-log/2026-04-24.md",
+      "startLine": 142,
+      "endLine": 151,
+      "source": "memory",
+      "snippet": "- **亮点**：OKR 定稿 + UI 设计评审 — 方向一从规划阶段正式进入执行阶段。识别出 OKR 指标不一致避免了评审返工，体现了高质量的前置风险识别 - **风险**：3 个 P0 技术待办拖延至第 7 天。这些是方向一\"基础设施\"类的待办（文档归档 / 采集框架 / SKILL 修复），不直接影响 OKR 执行，但长期积累会成为技术债 - **认知升级**：ENTJ 用户的\"先穷举再收敛\"决策模式 — 先要精确到周，再降维到两周一节点。这不是前后矛盾，而是拿到细节后主动降维到可汇报节奏。Agent 应理解这种模式，遇到\"太细了\"的反馈时直接降一维输出 - **建议**：下周一（4/27）优先处理 execute_tool Span 确认（杠杆动作，一处解阻双方向），同时确认 AI 诊断 UI 对比稿出图计划 --- *生成方式：work-daily-report cron · 读取 daily-digest/2026-04-24.md + work-log/2026-04-23.md + main/draft session 记录 + MEMORY.md + self-improving.md* *报告对象：正一*",
+      "recallCount": 1,
+      "dailyCount": 0,
+      "groundedCount": 0,
+      "totalScore": 0.4189810514450073,
+      "maxScore": 0.4189810514450073,
+      "firstRecalledAt": "2026-06-03T00:03:36.911Z",
+      "lastRecalledAt": "2026-06-03T00:03:36.911Z",
+      "queryHashes": [
+        "4997cc3be1bc"
+      ],
+      "recallDays": [
+        "2026-06-03"
+      ],
+      "conceptTags": [
+        "4/27",
+        "execute-tool",
+        "work-daily-report",
+        "daily-digest/2026-04-24.md",
+        "work-log/2026-04-23.md",
+        "main/draft",
+        "memory.md",
+        "self-improving.md"
+      ]
+    },
+    "memory:memory/work-log/2026-06-04.md:41:86": {
+      "key": "memory:memory/work-log/2026-06-04.md:41:86",
+      "path": "memory/work-log/2026-06-04.md",
+      "startLine": 41,
+      "endLine": 86,
+      "source": "memory",
+      "snippet": "- **老 P0 跨 M1/M2/M3 超 48 天** — execute_tool Span / 需求文档合并 / xray-log-query 修复，沉没成本持续累积 - **Trace 评估框架拖延 21 天** — 5/15 讨论完成的 5 维度体系至今未落文，知识流失风险极高 - **M3 KR3 持续 0 业务线接入** — 要求 4 条线 ≥30%，当前 0/4，剩余 5 天含端午压缩 - **连续 14 天零 XRay 交互** — 5/21→6/3，跨越 M3 启动点，已触发深度「警报疲劳」 ### 待做方向 - **P0**: alipayservice Skill 绑定规则 151469 — 最快闭环（upload 已完成，只需确认） - **P0**: searchadstrigger SOP 落地 — 素材最完整，1-2 小时可交付 - **P0**: 广告收入诊断 + RPC 异常排查 SOP 合并确认 — 一次交互完成两个 SOP - **P1**: Trace 评估框架落文（**21 天拖延**，可作为公司内部 AI Skill 评估标准规范） - **P1**: 老 P0（execute_tool Span / 需求文档合并 / xray-log-query SKILL）三选一优先解阻 --- ## 方向二：PM 工作流自动化 ### 今日做了什么 **⚪ 无进展** - obs-token 云效流水线 — 基础设施已就绪 19+ 天未动 - QS AutoFlow 方案文档 — 拖延 41+ 天零产出 - prd-traffi",
+      "recallCount": 1,
+      "dailyCount": 0,
+      "groundedCount": 0,
+      "totalScore": 0.4862196773290634,
+      "maxScore": 0.4862196773290634,
+      "firstRecalledAt": "2026-06-05T00:03:36.242Z",
+      "lastRecalledAt": "2026-06-05T00:03:36.242Z",
+      "queryHashes": [
+        "b80ce953b7c7"
+      ],
+      "recallDays": [
+        "2026-06-05"
+      ],
+      "conceptTags": [
+        "m1/m2/m3",
+        "execute-tool",
+        "xray-log-query",
+        "5/15",
+        "0/4",
+        "5/21",
+        "6/3",
+        "1-2"
+      ]
+    },
+    "memory:memory/work-log/2026-06-03.md:41:86": {
+      "key": "memory:memory/work-log/2026-06-03.md:41:86",
+      "path": "memory/work-log/2026-06-03.md",
+      "startLine": 41,
+      "endLine": 86,
+      "source": "memory",
+      "snippet": "- **老 P0 跨 M1/M2/M3 超 47 天** — execute_tool Span / 需求文档合并 / xray-log-query 修复，沉没成本持续累积 - **Trace 评估框架拖延 20 天** — 5/15 讨论完成的 5 维度体系至今未落文，知识流失风险极高 - **M3 KR3 持续 0 业务线接入** — 要求 4 条线 ≥30%，当前 0/4，剩余 6 天含端午压缩 - **连续 13 天零 XRay 交互** — 5/21→6/2，跨越 M3 启动点，已触发「警报疲劳」 ### 待做方向 - **P0**: alipayservice Skill 绑定规则 151469 — 最快闭环（upload 已完成，只需确认） - **P0**: searchadstrigger SOP 落地 — 素材最完整，1-2 小时可交付 - **P0**: 广告收入诊断 + RPC 异常排查 SOP 合并确认 — 一次交互完成两个 SOP - **P1**: Trace 评估框架落文（**20 天拖延**，可作为公司内部 AI Skill 评估标准规范） - **P1**: 老 P0（execute_tool Span / 需求文档合并 / xray-log-query SKILL）三选一优先解阻 --- ## 方向二：PM 工作流自动化 ### 今日做了什么 **⚪ 无进展** - obs-token 云效流水线 — 基础设施已就绪 18+ 天未动 - QS AutoFlow 方案文档 — 拖延 40+ 天零产出 - prd-traffic-",
+      "recallCount": 2,
+      "dailyCount": 0,
+      "groundedCount": 0,
+      "totalScore": 0.9223735392093657,
+      "maxScore": 0.4827688097953796,
+      "firstRecalledAt": "2026-06-05T00:03:36.242Z",
+      "lastRecalledAt": "2026-06-06T00:03:36.149Z",
+      "queryHashes": [
+        "b80ce953b7c7",
+        "61762a821ecc"
+      ],
+      "recallDays": [
+        "2026-06-05",
+        "2026-06-06"
+      ],
+      "conceptTags": [
+        "m1/m2/m3",
+        "execute-tool",
+        "xray-log-query",
+        "5/15",
+        "0/4",
+        "5/21",
+        "6/2",
+        "1-2"
+      ]
+    },
+    "memory:memory/work-log/2026-05-12.md:1:43": {
+      "key": "memory:memory/work-log/2026-05-12.md:1:43",
+      "path": "memory/work-log/2026-05-12.md",
+      "startLine": 1,
+      "endLine": 43,
+      "source": "memory",
+      "snippet": "# 工作日报 · 2026-05-12（周二） > M2 启动日 · 连续零交互第 13 天 / M2 执行周第 1 天（5/12-5/25） > ⚠️ 5/8-5/11 日报缺失（work-daily-report cron 因 Hi token 失效报 401） --- ## 概览 | 项目 | 状态 | |------|------| | 用户会话数 | 0 | | 上次用户交互 | 2026-04-29 21:51 — obs-token 流水线需求 + LangChain 学习协作机制 | | 自动任务 | ✅ daily-digest / ⚠️ work-daily-report（5/8-5/11 401 失败，5/12 恢复）/ ✅ daily-backup | | 备注 | 🔵 **M2 首日启动**，连续零交互第 13 天，M1 在沉默中结束 | --- ## 方向一：XRay 平台 Agent Native 化 ### 今日做了什么 **⏸️ 零交互，无新进展。** 但有一个关键时间节点变化： **🔄 M1 → M2 里程碑切换** - M1（4/28-5/11）：通用 Skill 开发完成 + 广告/搜索 SOP 对齐 + 告警中心方案设计 - **实际结果：零交付** — 3 个 P0 输入依赖均未确认，M1 目标全部未达成 - M2（5/12-5/25）：通用 Skill 准确率达标 + 灰度验证 + 告警中心卡片+埋点上线 - **今日启动，但输入仍缺失** — M1 未完成导致 M2 启动即面临输入缺口 ### 待办",
+      "recallCount": 1,
+      "dailyCount": 0,
+      "groundedCount": 0,
+      "totalScore": 0.4699806541204452,
+      "maxScore": 0.4699806541204452,
+      "firstRecalledAt": "2026-06-05T00:03:36.242Z",
+      "lastRecalledAt": "2026-06-05T00:03:36.242Z",
+      "queryHashes": [
+        "b80ce953b7c7"
+      ],
+      "recallDays": [
+        "2026-06-05"
+      ],
+      "conceptTags": [
+        "backup",
+        "5/12-5/25",
+        "5/8-5/11",
+        "work-daily-report",
+        "obs-token",
+        "daily-digest",
+        "5/12",
+        "daily-backup"
+      ]
+    },
+    "memory:memory/2026-04-16.md:116:157": {
+      "key": "memory:memory/2026-04-16.md:116:157",
+      "path": "memory/2026-04-16.md",
+      "startLine": 116,
+      "endLine": 157,
+      "source": "memory",
+      "snippet": "| 5~6月 | CPU/GC/JVM 通用指标；首批4条业务线正式推广；告警中心重构（单卡片动态更新） | | 7~12月 | 业务自定义 Skill 广场；诊断评估体系；告警运营总结；覆盖率达标 | **烽火文档里的量化里程碑表（完整）**： | 维度 | 4月 | 6月 | 8月 | 12月 | |------|-----|-----|-----|------| | 告警 Agent + Skill 框架 | 基建完成，链路打通 | - | - | - | | 交互形态 | 诊断卡片推送 | 告警中心重构，诊断结果自动回写 | - | - | | 通用服务诊断(Java) | - | JVM/限流/接口/异常/系统负载上线 | 覆盖60% | 覆盖全量 | | 通用服务诊断(C++) | - | 建设初版C++能力 | 核心S0/S1覆盖 | 覆盖60% | | 诊断准确率（采纳率） | - | baseline建立 | 70% | ≥80% | | 核心业务P2+覆盖率 | - | 首批4条业务线50% | 70% | ≥80% | | 业务自定义Skill数量 | - | ≥30个 | ≥50个 | ≥70个 | | 告警触发→诊断完成 | - | <5min | <3min | <2min | | 知识库案例沉淀 | 100+ | - | 200+ | ≥300条 | | 告警总结 | - | - | MVP：个人oncall日报推送 | 自动化覆盖率≥80% | --- ### 四、Agent 引擎（底座层）详细需求 #### 4.1 通用能力 - 基于",
+      "recallCount": 1,
+      "dailyCount": 0,
+      "groundedCount": 0,
+      "totalScore": 0.46924907863140103,
+      "maxScore": 0.46924907863140103,
+      "firstRecalledAt": "2026-06-05T00:03:36.242Z",
+      "lastRecalledAt": "2026-06-05T00:03:36.242Z",
+      "queryHashes": [
+        "b80ce953b7c7"
+      ],
+      "recallDays": [
+        "2026-06-05"
+      ],
+      "conceptTags": [
+        "cpu/gc/jvm",
+        "jvm/限流/接口/异常/系统负载上线",
+        "核心s0/s1覆盖",
+        "4.1",
+        "cpu",
+        "jvm",
+        "通用",
+        "指标"
+      ]
+    },
+    "memory:memory/work-log/2026-04-22.md:1:36": {
+      "key": "memory:memory/work-log/2026-04-22.md:1:36",
+      "path": "memory/work-log/2026-04-22.md",
+      "startLine": 1,
+      "endLine": 36,
+      "source": "memory",
+      "snippet": "# 工作日报 · 2026-04-22（周三） > 延续自 2026-04-21 日报，重点关注专利总结产出与 P0 待办持续延期风险。 --- ## 方向一：XRay 平台 Agent Native 化（告警诊断 / AgentOps / 评估体系 / AI基础能力） ### 今天做了什么 **📋 部门专利项目三年脉络梳理（2023-2025）** - 按**技术风险**和**云原生**两个方向拆分，逐年总结核心迭代描述 - 技术风险方向演进：可观测基础设施 → 主动评估与深度诊断 → 高可用中台 + AI 原生 - 2023：6 项（Prometheus 高基数/降采样、秒级告警、智能无阈值告警、性能退化分析、Flume 采集） - 2024：4 项（无侵入 Profiling、容量极限估算×3） - 2025：2 项（coredump 流式上传、core 堆栈自动还原） - 云原生方向演进：动态配置与服务治理 → 容量评估 → 高可用中台软硬一体化 - 2023：5 项（K8s 超售、动态配置网关、服务编排引擎、多机房流控、灰度发布） - 2024：3 项（容量估算×3） - 2025：2 项（Raft 去中心化流控、PDU/机柜硬件创新） - 通过 draft 会话（Webchat）完成，采用二维矩阵组织法（方向×年份），而非简单按年份罗列 - 产出：每个方向各年份的核心迭代描述段落，可直接用于汇报/归档 **⏸️ 无其他 XRay 平台相关进展** - V2 PR 稿发布后无后续迭代 - Skills 无新增/修改 ### 与上",
+      "recallCount": 1,
+      "dailyCount": 0,
+      "groundedCount": 0,
+      "totalScore": 0.4325003236532211,
+      "maxScore": 0.4325003236532211,
+      "firstRecalledAt": "2026-06-06T00:03:36.149Z",
+      "lastRecalledAt": "2026-06-06T00:03:36.149Z",
+      "queryHashes": [
+        "61762a821ecc"
+      ],
+      "recallDays": [
+        "2026-06-06"
+      ],
+      "conceptTags": [
+        "网关",
+        "2023-2025",
+        "高基数/降采样",
+        "pdu/机柜硬件创新",
+        "可直接用于汇报/归档",
+        "无新增/修改",
+        "工作",
+        "日报"
       ]
     }
   }
