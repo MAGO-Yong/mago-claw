@@ -1,0 +1,37 @@
+module: compress
+action: create
+
+dependency_chain:
+  - model_name
+  - model_version
+  - algorithm
+  - target_bits
+  - resources
+
+inference_rules:
+  model_version: "选最新版本"
+  algorithm: >
+    根据用户意图推导：提到 INT4/GPTQ/AWQ → gptq 或 awq；
+    提到 INT8/QLoRA → qlora。无明确意图时默认 gptq。
+  target_bits: "从 algorithm 推导：INT4 → 4, INT8 → 8"
+  resources: >
+    从模型参数量推导 GPU 需求。粗略映射：
+    ≤8B → 1×H20, ≤70B → 4×H20, ≤405B → 8×H20。
+
+queries:
+  model: "qs model list --name <keyword> --format json -q"
+
+selection:
+  model: "精确匹配优先，0/多条 → ask"
+
+defaults:
+  algorithm: gptq
+  target_bits: 4
+
+memory_keys: [models, resources]
+naming: "compress-<model_short>-<algorithm>-<YYYYMMDD>"
+
+required_for_noninteractive:
+  - --model-id
+  - --model-version
+  - --algorithm

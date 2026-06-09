@@ -1,7 +1,7 @@
 ---
 name: diagnosis-skill-builder
-version: 2.4.0
-description: "用于通过对话帮助用户创建、改造或打包告警诊断 Skill。这个 Builder 只负责把用户的告警场景、排障经验、输入输出和运行约束整理成一个可被告警 Agent 调用的 Skill；诊断步骤本身由用户和具体场景决定。生成的告警 Skill 必须只使用 xray-cli 原子能力、无人值守运行，并避免写操作。"
+version: 2.5.0
+description: "用于通过对话帮助用户创建、改造或打包告警诊断 Skill。这个 Builder 只负责把用户的告警场景、排障经验、输入输出和运行约束整理成一个可被告警 Agent 调用的 Skill；诊断步骤本身由用户和具体场景决定。生成的告警 Skill 必须只使用 xray-cli 或已登记的 diagnosis-cli 只读原子能力、无人值守运行，并避免写操作。"
 ---
 
 # 告警 Skill Builder
@@ -18,12 +18,14 @@ description: "用于通过对话帮助用户创建、改造或打包告警诊断
 
 生成出来的告警 Skill 必须满足：
 
-1. **只使用 `xray-cli` 原子能力**
-   - 自动取证只能调用 `xray-cli` 的原子能力。
-   - 不得依赖其他 Skill、ONES、REDoc、浏览器状态、直接 HTTP API、`curl`、kubectl、自定义外部 CLI 或创建者本机缓存。
-   - 如果需要组合多个能力，组合逻辑必须写在生成的告警 Skill 内部；内部封装也只能调用 `xray-cli` 和本地数据处理。
+1. **只使用已登记的只读原子能力**
+   - 自动取证只能调用 `xray-cli` 原子能力，或 `references/diagnosis-cli.md` 明确登记的 `diagnosis-cli` 只读原子能力。
+   - `diagnosis-cli` 只用于封装三方或诊断语义下不适合放进 `xray-cli` 的小型原子能力；不得把它当成任意 shell 出口或完整 SOP 容器。
+   - 当前已登记的 `diagnosis-cli` 能力只有变更事件查询：`diagnosis-cli change query <app> --start "<开始时间>" --end "<结束时间>" --output-format json`。
+   - 不得依赖其他 Skill、ONES、REDoc、浏览器状态、直接 HTTP API、`curl`、kubectl、未登记外部 CLI 或创建者本机缓存。
+   - 如果需要组合多个能力，组合逻辑必须写在生成的告警 Skill 内部；内部封装也只能调用 `xray-cli`、已登记的 `diagnosis-cli` 子命令和本地数据处理。
    - 如果内部封装使用 Python 脚本，必须对齐 `alarm-skill-agent` 当前运行时 Python 3.12，并且只使用 Python 标准库；不得引入第三方包，也不得要求运行时 `pip install`。
-   - `xray-cli` 当前不能提供的证据，要明确标成“依赖缺口”或“人工背景”，不要伪装成可自动执行。
+   - `xray-cli` 和已登记 `diagnosis-cli` 当前不能提供的证据，要明确标成“依赖缺口”或“人工背景”，不要伪装成可自动执行。
 
 2. **运行时无人值守**
    - 告警 Skill 是给自动化排障链路用的，运行时不得向用户提问、等待确认、要求交互式登录或依赖人工选择。
@@ -43,6 +45,43 @@ description: "用于通过对话帮助用户创建、改造或打包告警诊断
 - 如果缺失、版本过低或认证失败，读取 `references/xray-cli-setup.md`。
 - 安装、升级和登录只属于创建/验证阶段的准备动作，不应写进生成后的告警 Skill 运行时逻辑。
 
+如果生成的告警 Skill 会使用 `diagnosis-cli`，还要确认 `diagnosis-cli` 已安装且目标运行环境可执行：
+
+- 用 `diagnosis-cli --version` 和 `diagnosis-cli change query <app> --help` 做预检。
+- 缺失时按 `references/xray-cli-setup.md` 的 `diagnosis-cli` 小节安装；能力边界读取 `references/diagnosis-cli.md`。
+- 运行时不得安装、升级或交互式修复 `diagnosis-cli`；缺失、鉴权失败或命令失败时按 `blocked` / `unknown` 报告。
+
+## diagnosis-cli 原子能力
+
+`diagnosis-cli` 用于承载三方平台或诊断语义下的小型只读原子能力，不替代 `xray-cli`。
+
+当前 Builder 只允许生成的告警 Skill 使用这一项：
+
+```bash
+diagnosis-cli change query <app> \
+  --start "<YYYY-MM-DD HH:mm:ss>" \
+  --end "<YYYY-MM-DD HH:mm:ss>" \
+  --output-format json
+```
+
+示例：
+
+```bash
+diagnosis-cli change query xrayaiagent \
+  --start "2026-05-29 00:00:00" \
+  --end "2026-06-01 00:00:00" \
+  --output-format json
+```
+
+使用约束：
+
+- `<app>`、`--start`、`--end` 必须来自告警上下文、用户给定范围或 Skill 明确写定的输入契约；不要把示例时间硬编码进通用 Skill。
+- 查询时间使用目标告警时间窗，通常可围绕 trigger time 前后扩展；时区按 `Asia/Shanghai` 表达。
+- 自动化消费必须使用 JSON 输出。
+- 空结果只能说明该时间窗未查到变更事件，不能直接推出“无变更导致”或“变更无关”。
+- 非 0 返回、超时、鉴权失败、字段缺失要进入报告的未知项或阻塞项。
+- 未写进 `references/diagnosis-cli.md` 的其他 `diagnosis-cli` 子命令仍视为不可用能力。
+
 ## 开发 Skill 流程
 
 Skill 开发必须是 **开发 -> 验证 -> 开发** 的循环，不是一次性写完。保持轻量，不要把用户拖进表单。
@@ -53,7 +92,7 @@ Skill 开发必须是 **开发 -> 验证 -> 开发** 的循环，不是一次性
 2. **验证**：用真实历史告警执行 `upload -> test -> 观察输出`，检查它是否满足预期和三条原则。
 3. **再开发**：只根据本轮验证暴露的问题做最小修改，然后进入下一轮验证。
 
-开发阶段可使用轻量 Grill 方法把模糊点问清楚：一次只问一个关键问题，每个问题给推荐答案；能从代码、文档、告警或 `xray-cli` 查到的，不反问用户。详细方法见 `references/lightweight-grill.md`。
+开发阶段可使用轻量 Grill 方法把模糊点问清楚：一次只问一个关键问题，每个问题给推荐答案；能从代码、文档、告警、`xray-cli` 或已登记 `diagnosis-cli` 能力查到的，不反问用户。详细方法见 `references/lightweight-grill.md`。
 
 不要把大量未经验证的流程一次性写进 Skill。每次只推进一个清楚的改动，让真实告警验证结果驱动下一步开发。
 
@@ -65,7 +104,7 @@ Skill 开发必须是 **开发 -> 验证 -> 开发** 的循环，不是一次性
 
 1. 用 `xray-cli alarm skill upload <skill_dir>` 上传新版本。
 2. 用 `xray-cli alarm skill test --skill-name <skill_name> --alarm-event-id <历史告警记录>` 测试。
-3. 观察输出过程：是否按预期触发、是否调用正确的 `xray-cli` 取证、失败是否清楚报告、结论是否有证据支撑。
+3. 观察输出过程：是否按预期触发、是否调用正确的 `xray-cli` / `diagnosis-cli` 取证、失败是否清楚报告、结论是否有证据支撑。
 4. 根据测试输出修改告警诊断 Skill。
 5. 重复 upload、test、观察、修改，直到告警 Skill 在目标历史告警上表现稳定。
 
@@ -73,7 +112,7 @@ Skill 开发必须是 **开发 -> 验证 -> 开发** 的循环，不是一次性
 
 建议在 5 次循环内收敛。如果 5 次后仍不稳定，不要继续盲目叠加逻辑；应回到场景范围、输入契约、证据来源或判断规则重新切小问题。
 
-验证时不要只看最终结论。要重点看运行过程是否满足三条原则：只使用 `xray-cli` 原子能力、无人值守、尽量无写操作。
+验证时不要只看最终结论。要重点看运行过程是否满足三条原则：只使用已登记的只读原子能力、无人值守、尽量无写操作。
 
 ## 绑定到告警规则
 
@@ -89,7 +128,7 @@ Skill 开发必须是 **开发 -> 验证 -> 开发** 的循环，不是一次性
 
 - 适用的告警场景。
 - 输入参数，例如 event id、rule id、service、app、trigger time、payload 等。
-- 自动执行步骤，以及每步使用的 `xray-cli` 能力。
+- 自动执行步骤，以及每步使用的 `xray-cli` 或已登记 `diagnosis-cli` 能力。
 - 脚本运行边界：Python 脚本按 `alarm-skill-agent` 当前 Python 3.12 编写，只能用标准库；不能依赖第三方包、宿主项目依赖或额外安装步骤。
 - 无法自动执行的依赖缺口或人工背景。
 - 空数据、权限失败、命令失败、字段缺失时怎么报告。
@@ -102,18 +141,19 @@ Skill 开发必须是 **开发 -> 验证 -> 开发** 的循环，不是一次性
 - 用中文，短句，直接。
 - 每轮只问一个关键问题。
 - 能从用户给的链接、ID、SOP 或上下文里抽取的信息，不要重复要求用户填写。
-- 如果需要验证 `xray-cli` 能力，优先使用 `xray-cli schema` 或廉价只读查询。
+- 如果需要验证 `xray-cli` 能力，优先使用 `xray-cli schema` 或廉价只读查询；如果需要验证 `diagnosis-cli` 能力，先看 `diagnosis-cli <group> --help`，再做小范围只读查询。
 - 不要展示复杂内部状态表，除非用户要求 review 或调试。
-- 不要承诺“已验证可执行”，除非真实运行过对应 `xray-cli` 取证并拿到判断所需字段。
+- 不要承诺“已验证可执行”，除非真实运行过对应 `xray-cli` / `diagnosis-cli` 取证并拿到判断所需字段。
 
 ## 术语表
 
 - **告警 Skill**：面向告警自动化排障的 Skill，输入通常来自告警事件、规则、服务、时间窗或 payload。
 - **Builder**：当前这个方法论 Skill，负责帮助用户创建告警 Skill，不直接定义具体排障 SOP。
-- **xray-cli 原子能力**：`xray-cli` 提供的单个可调用能力，例如查询告警、指标、日志、trace 等。组合逻辑必须留在告警 Skill 内部。
+- **已登记的只读原子能力**：`xray-cli` 提供的单个可调用能力，或 `references/diagnosis-cli.md` 明确登记的 `diagnosis-cli` 子命令。组合逻辑必须留在告警 Skill 内部。
+- **diagnosis-cli**：用于封装三方或诊断语义下小型只读原子能力的 CLI。当前 Builder 只登记 `change query <app>` 变更事件查询。
 - **创建阶段**：用户和 Builder 对话、整理 SOP、生成和修改 Skill 的阶段，可以交互。
 - **运行时**：告警 Skill 被告警 Agent 调用执行的阶段，必须无人值守。
-- **依赖缺口**：排障需要某类证据，但当前 `xray-cli` 无法提供，不能自动执行。
+- **依赖缺口**：排障需要某类证据，但当前 `xray-cli` 和已登记 `diagnosis-cli` 能力无法提供，不能自动执行。
 - **人工背景**：用户提供的经验、文档或背景信息，可进入报告说明，但不作为自动取证。
 - **历史告警记录**：用于 `xray-cli alarm skill test --alarm-event-id` 的真实历史告警事件。
 - **验证循环**：upload、test、观察、修改的重复过程，用真实告警输出持续优化 Skill。

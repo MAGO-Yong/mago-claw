@@ -1,17 +1,17 @@
 %%{init: {
   'theme': 'base',
   'themeVariables': {
-    'primaryColor': '#FF2442',
+    'primaryColor': '#087EA4',
     'primaryTextColor': '#FFFFFF',
-    'primaryBorderColor': '#CC1D35',
-    'secondaryColor': '#FFE0E6',
-    'secondaryTextColor': '#2D2D2D',
-    'secondaryBorderColor': '#FFB3C1',
-    'tertiaryColor': '#FFF5F7',
-    'tertiaryTextColor': '#2D2D2D',
-    'tertiaryBorderColor': '#FFD6DE',
-    'lineColor': '#8C8C8C',
-    'textColor': '#2D2D2D',
+    'primaryBorderColor': '#044E68',
+    'secondaryColor': '#E6F7FF',
+    'secondaryTextColor': '#23272F',
+    'secondaryBorderColor': '#99D6F0',
+    'tertiaryColor': '#F6F7F9',
+    'tertiaryTextColor': '#23272F',
+    'tertiaryBorderColor': '#E0E3E8',
+    'lineColor': '#99A1B3',
+    'textColor': '#23272F',
     'fontSize': '13px',
     'fontFamily': '"PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif'
   },
@@ -23,10 +23,10 @@
   }
 }}%%
 flowchart LR
-    classDef primary fill:#FF2442,stroke:#CC1D35,color:#FFFFFF,stroke-width:2px,rx:12,ry:12
-    classDef secondary fill:#FFE0E6,stroke:#FFB3C1,color:#2D2D2D,stroke-width:1.5px,rx:8,ry:8
-    classDef accent fill:#FF6B35,stroke:#CC5529,color:#FFFFFF,stroke-width:2px,rx:8,ry:8
-    classDef decision fill:#FFF5F7,stroke:#FF2442,color:#2D2D2D,stroke-width:2px
+    classDef primary fill:#087EA4,stroke:#044E68,color:#FFFFFF,stroke-width:2px,rx:12,ry:12
+    classDef secondary fill:#E6F7FF,stroke:#99D6F0,color:#23272F,stroke-width:1.5px,rx:8,ry:8
+    classDef accent fill:#149ECA,stroke:#0D7EA8,color:#FFFFFF,stroke-width:2px,rx:8,ry:8
+    classDef decision fill:#F6F7F9,stroke:#087EA4,color:#23272F,stroke-width:2px
 
     Start([开始]):::primary --> Input[/输入数据/]:::secondary
     Input --> Process[处理数据]:::secondary
@@ -36,6 +36,6 @@ flowchart LR
     ErrorHandler --> Input
     Success --> End([结束]):::primary
 
-    linkStyle 0,1,2,3 stroke:#FF2442,stroke-width:2px
-    linkStyle 4 stroke:#FF6B35,stroke-width:2px,stroke-dasharray:5 5
-    linkStyle 5 stroke:#8C8C8C,stroke-width:1.5px,stroke-dasharray:4 4
+    linkStyle 0,1,2,3 stroke:#087EA4,stroke-width:2px
+    linkStyle 4 stroke:#149ECA,stroke-width:2px,stroke-dasharray:5 5
+    linkStyle 5 stroke:#99A1B3,stroke-width:1.5px,stroke-dasharray:4 4

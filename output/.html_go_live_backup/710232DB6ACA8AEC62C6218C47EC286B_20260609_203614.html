@@ -1,0 +1,4576 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <title>大模型训练闯关</title>
+  <link rel="icon" href="https://picasso-static.xiaohongshu.com/fe-platform/49d0aa573e1b645939ee59afef61f774d4a25652.png">
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  
+  <style>
+    :root {
+      --bg: #f5f7fb;
+      --panel: #ffffff;
+      --panel-2: #f9fbff;
+      --ink: #16202e;
+      --muted: #647286;
+      --line: #d7e0ec;
+      --blue: #2563eb;
+      --blue-soft: #eaf1ff;
+      --green: #15966b;
+      --green-soft: #e8f7f1;
+      --amber: #b7791f;
+      --amber-soft: #fff4df;
+      --red: #d04444;
+      --red-soft: #fff0f0;
+      --violet: #7c3aed;
+      --violet-soft: #f2edff;
+      --teal: #0f8b9b;
+      --teal-soft: #e7f8fa;
+      --shadow: 0 18px 45px rgba(28, 39, 60, 0.11);
+      --radius: 8px;
+    }
+
+    * { box-sizing: border-box; }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      margin: 0;
+      color: var(--ink);
+      background:
+        linear-gradient(180deg, #eef4ff 0, rgba(246,248,251,0) 360px),
+        var(--bg);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+      line-height: 1.55;
+      letter-spacing: 0;
+    }
+
+    button, input {
+      font: inherit;
+    }
+
+    button {
+      cursor: pointer;
+      border: 0;
+    }
+
+    .app {
+      display: grid;
+      grid-template-columns: 304px minmax(0, 1fr);
+      gap: 22px;
+      max-width: 1480px;
+      margin: 0 auto;
+      padding: 22px;
+    }
+
+    .sidebar {
+      position: sticky;
+      top: 16px;
+      display: grid;
+      gap: 14px;
+      height: calc(100vh - 32px);
+      overflow: auto;
+      align-content: start;
+    }
+
+    .panel {
+      background: rgba(255,255,255,0.92);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      box-shadow: 0 10px 28px rgba(35, 47, 70, 0.07);
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 18px;
+    }
+
+    .brand-mark {
+      width: 42px;
+      height: 42px;
+      display: grid;
+      place-items: center;
+      border-radius: 8px;
+      color: #fff;
+      font-weight: 900;
+      background: var(--blue);
+      box-shadow: inset 0 -10px 20px rgba(0,0,0,0.12);
+    }
+
+    .brand-title {
+      font-size: 16px;
+      font-weight: 850;
+      line-height: 1.2;
+    }
+
+    .brand-sub {
+      margin-top: 3px;
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 8px;
+      padding: 0 18px 18px;
+    }
+
+    .stat {
+      display: grid;
+      gap: 3px;
+      min-height: 72px;
+      padding: 10px;
+      border: 1px solid var(--line);
+      border-radius: 7px;
+      background: #fff;
+    }
+
+    .stat b {
+      font-size: 22px;
+      line-height: 1;
+    }
+
+    .stat span {
+      color: var(--muted);
+      font-size: 11px;
+    }
+
+    .side-actions {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+      padding: 0 18px 18px;
+    }
+
+    .cloud-status {
+      margin: -8px 18px 18px;
+      padding: 9px 10px;
+      border: 1px solid var(--line);
+      border-radius: 7px;
+      background: #fff;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 720;
+    }
+
+    .cloud-status.ready {
+      border-color: #bfe8d8;
+      background: var(--green-soft);
+      color: #0b7654;
+    }
+
+    .cloud-status.error {
+      border-color: #ffc4c4;
+      background: var(--red-soft);
+      color: #a82727;
+    }
+
+    .run-hud {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-bottom: 8px;
+    }
+
+    .run-pill {
+      display: inline-flex;
+      align-items: baseline;
+      gap: 6px;
+      min-height: 30px;
+      padding: 5px 9px;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      background: #fff;
+    }
+
+    .run-pill b {
+      display: block;
+      font-size: 15px;
+      line-height: 1.1;
+    }
+
+    .run-pill span {
+      display: block;
+      color: var(--muted);
+      font-size: 11px;
+      font-weight: 760;
+    }
+
+    .path-strip {
+      position: relative;
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 0;
+      margin: 4px 0 10px;
+      padding: 8px 0 4px;
+    }
+
+    .path-strip::before {
+      content: "";
+      position: absolute;
+      left: 12.5%;
+      right: 12.5%;
+      top: 22px;
+      height: 2px;
+      background: #d7e0ec;
+    }
+
+    .path-step {
+      position: relative;
+      z-index: 1;
+      display: grid;
+      justify-items: center;
+      gap: 5px;
+      min-height: 48px;
+      padding: 0 4px;
+      border: 0;
+      border-radius: 0;
+      background: transparent;
+      color: var(--muted);
+    }
+
+    .path-step::before {
+      content: attr(data-index);
+      width: 28px;
+      height: 28px;
+      display: grid;
+      place-items: center;
+      border: 2px solid #cbd8ea;
+      border-radius: 999px;
+      background: #fff;
+      color: #51627a;
+      font-size: 12px;
+      font-weight: 900;
+    }
+
+    .path-step b {
+      display: block;
+      color: #28364a;
+      font-size: 11px;
+      line-height: 1.2;
+      text-align: center;
+    }
+
+    .path-step span {
+      display: none;
+    }
+
+    .path-step.active {
+      color: #234b94;
+    }
+
+    .path-step.active::before {
+      border-color: var(--blue);
+      background: var(--blue);
+      color: #fff;
+      box-shadow: 0 0 0 5px rgba(37, 99, 235, 0.11);
+    }
+
+    .path-step.done {
+      color: #0b7654;
+    }
+
+    .path-step.done::before {
+      content: "✓";
+      border-color: var(--green);
+      background: var(--green-soft);
+      color: var(--green);
+    }
+
+    .small-btn {
+      height: 36px;
+      border: 1px solid var(--line);
+      border-radius: 7px;
+      color: #344154;
+      background: #fff;
+      font-size: 13px;
+      font-weight: 750;
+    }
+
+    .small-btn:hover {
+      border-color: #a8b8cf;
+      background: var(--panel-2);
+    }
+
+    .map-panel {
+      padding: 16px;
+    }
+
+    .side-title {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 12px;
+      color: #344154;
+      font-size: 13px;
+      font-weight: 850;
+    }
+
+    .map {
+      display: grid;
+      gap: 8px;
+    }
+
+    .level-node {
+      display: grid;
+      grid-template-columns: 34px minmax(0, 1fr) auto;
+      gap: 10px;
+      align-items: center;
+      width: 100%;
+      min-height: 54px;
+      padding: 8px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fff;
+      color: var(--ink);
+      text-align: left;
+    }
+
+    .level-node:hover:not(:disabled) {
+      border-color: #9fb2ce;
+      background: #fbfdff;
+    }
+
+    .level-node.active {
+      border-color: var(--blue);
+      background: var(--blue-soft);
+      box-shadow: 0 0 0 3px rgba(37,99,235,0.10);
+    }
+
+    .level-node:disabled {
+      cursor: not-allowed;
+      opacity: 0.55;
+    }
+
+    .level-index {
+      width: 30px;
+      height: 30px;
+      display: grid;
+      place-items: center;
+      border-radius: 8px;
+      background: #eef2f7;
+      color: #415067;
+      font-size: 12px;
+      font-weight: 900;
+    }
+
+    .level-node.done .level-index {
+      background: var(--green);
+      color: #fff;
+    }
+
+    .level-copy {
+      min-width: 0;
+    }
+
+    .level-copy b {
+      display: block;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      font-size: 13px;
+    }
+
+    .level-copy span {
+      display: block;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      color: var(--muted);
+      font-size: 11px;
+    }
+
+    .stars {
+      color: #c78618;
+      font-size: 13px;
+      white-space: nowrap;
+    }
+
+    .main {
+      display: grid;
+      gap: 18px;
+      min-width: 0;
+    }
+
+    .hero {
+      position: relative;
+      order: 0;
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 300px;
+      gap: 16px;
+      min-height: 156px;
+      overflow: hidden;
+      padding: 18px;
+      border-radius: var(--radius);
+      color: #fff;
+      background:
+        linear-gradient(115deg, rgba(13, 37, 79, 0.94), rgba(33, 91, 129, 0.82)),
+        linear-gradient(135deg, #183356, #2b6b82);
+      box-shadow: var(--shadow);
+    }
+
+    .hero h1 {
+      max-width: 720px;
+      margin: 0;
+      font-size: clamp(28px, 3vw, 40px);
+      line-height: 1.08;
+      letter-spacing: 0;
+    }
+
+    .hero p {
+      max-width: 720px;
+      margin: 8px 0 0;
+      color: rgba(255,255,255,0.86);
+      font-size: 14px;
+    }
+
+    .hero-meta {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 12px;
+    }
+
+    .hero-chip {
+      border: 1px solid rgba(255,255,255,0.22);
+      background: rgba(255,255,255,0.10);
+      border-radius: 7px;
+      padding: 7px 9px;
+      color: rgba(255,255,255,0.86);
+      font-size: 12px;
+      font-weight: 700;
+    }
+
+    .cluster-card {
+      align-self: stretch;
+      display: grid;
+      grid-template-rows: auto 1fr;
+      min-height: 118px;
+      border: 1px solid rgba(255,255,255,0.20);
+      border-radius: 8px;
+      background: rgba(255,255,255,0.10);
+      overflow: hidden;
+    }
+
+    .cluster-title {
+      display: flex;
+      justify-content: space-between;
+      padding: 8px 10px;
+      border-bottom: 1px solid rgba(255,255,255,0.18);
+      color: rgba(255,255,255,0.84);
+      font-size: 12px;
+      font-weight: 850;
+    }
+
+    #clusterCanvas {
+      width: 100%;
+      height: 100%;
+      min-height: 78px;
+    }
+
+    .game-grid {
+      order: 1;
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 342px;
+      gap: 18px;
+      align-items: start;
+    }
+
+    .quest {
+      padding: 20px;
+    }
+
+    .quest-head {
+      display: flex;
+      gap: 18px;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: 10px;
+    }
+
+    .kicker {
+      color: var(--blue);
+      font-size: 13px;
+      font-weight: 850;
+    }
+
+    .quest h2 {
+      margin: 4px 0 6px;
+      font-size: clamp(22px, 2.4vw, 30px);
+      line-height: 1.12;
+      letter-spacing: 0;
+    }
+
+    .quest-desc {
+      max-width: 760px;
+      margin: 0;
+      color: var(--muted);
+      font-size: 15px;
+    }
+
+    .progress-ring {
+      flex: 0 0 auto;
+      width: 78px;
+      height: 78px;
+      display: grid;
+      place-items: center;
+      border-radius: 999px;
+      background:
+        conic-gradient(var(--blue) calc(var(--pct) * 1%), #e8eef7 0);
+    }
+
+    .progress-ring span {
+      width: 60px;
+      height: 60px;
+      display: grid;
+      place-items: center;
+      border-radius: 999px;
+      background: #fff;
+      color: #2f4058;
+      font-weight: 900;
+    }
+
+    .mission {
+      display: none;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin: 10px 0;
+    }
+
+    .mission-card {
+      min-height: 0;
+      padding: 10px 12px;
+      border: 1px solid var(--line);
+      border-radius: 7px;
+      background: var(--panel-2);
+    }
+
+    .mission-card b {
+      display: block;
+      font-size: 14px;
+    }
+
+    .mission-card span {
+      display: block;
+      margin-top: 3px;
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .principle-strip {
+      display: grid;
+      gap: 7px;
+      margin: 6px 0 10px;
+      padding: 10px;
+      border: 1px solid #c8d7ee;
+      border-radius: 8px;
+      background: #f7fbff;
+    }
+
+    .principle-line {
+      display: grid;
+      grid-template-columns: 72px minmax(0, 1fr);
+      gap: 10px;
+      align-items: start;
+      color: #243247;
+      font-size: 12px;
+      line-height: 1.4;
+    }
+
+    .principle-line b {
+      color: #174e8a;
+      font-size: 12px;
+      white-space: nowrap;
+    }
+
+    .principle-chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+
+    .principle-chips span {
+      padding: 4px 7px;
+      border: 1px solid #c7d7ee;
+      border-radius: 7px;
+      background: #fff;
+      color: #35506f;
+      font-size: 11px;
+      font-weight: 800;
+    }
+
+    .principle-visual {
+      display: grid;
+      grid-template-columns: repeat(6, minmax(0, 1fr));
+      gap: 6px;
+      align-items: center;
+    }
+
+    .flow-node {
+      position: relative;
+      min-height: 34px;
+      display: grid;
+      place-items: center;
+      padding: 5px 6px;
+      border: 1px solid #c7d7ee;
+      border-radius: 999px;
+      background: #fff;
+      color: #31516f;
+      font-size: 11px;
+      font-weight: 850;
+      text-align: center;
+      white-space: nowrap;
+    }
+
+    .flow-node:not(:last-child)::after {
+      content: "";
+      position: absolute;
+      right: -7px;
+      width: 8px;
+      height: 2px;
+      background: #b8c9e2;
+    }
+
+    .principle-hint {
+      padding-top: 2px;
+    }
+
+    .principle-hint summary {
+      cursor: pointer;
+      color: #174e8a;
+      font-size: 12px;
+      font-weight: 900;
+      list-style: none;
+    }
+
+    .principle-hint summary::-webkit-details-marker {
+      display: none;
+    }
+
+    .principle-hint p {
+      margin: 6px 0 0;
+      color: #4b5f78;
+      font-size: 12px;
+      line-height: 1.45;
+    }
+
+    .study-guide {
+      margin-top: 16px;
+      padding: 14px;
+      border: 1px solid #c8d7ee;
+      border-radius: 8px;
+      background: #f7fbff;
+    }
+
+    .study-guide summary {
+      cursor: pointer;
+      color: #243247;
+      font-size: 14px;
+      font-weight: 900;
+      list-style: none;
+    }
+
+    .study-guide summary::-webkit-details-marker {
+      display: none;
+    }
+
+    .study-guide summary::after {
+      content: "展开";
+      float: right;
+      color: var(--blue);
+      font-size: 12px;
+      font-weight: 850;
+    }
+
+    .study-guide[open] {
+      display: grid;
+      gap: 12px;
+    }
+
+    .study-guide[open] summary::after {
+      content: "收起";
+    }
+
+    .compact-side details {
+      display: grid;
+      gap: 10px;
+    }
+
+    .compact-side summary {
+      cursor: pointer;
+      color: #101827;
+      font-size: 16px;
+      font-weight: 900;
+      list-style: none;
+    }
+
+    .compact-side summary::-webkit-details-marker {
+      display: none;
+    }
+
+    .compact-side summary::after {
+      content: "展开";
+      float: right;
+      color: var(--blue);
+      font-size: 12px;
+      font-weight: 850;
+    }
+
+    .compact-side details[open] summary::after {
+      content: "收起";
+    }
+
+    .compact-side .concept-list {
+      max-height: 340px;
+      overflow: auto;
+      padding-right: 2px;
+    }
+
+    .study-guide h3 {
+      margin: 0;
+      font-size: 16px;
+      line-height: 1.25;
+    }
+
+    .guide-grid {
+      display: grid;
+      grid-template-columns: minmax(0, 1.15fr) minmax(0, 0.85fr);
+      gap: 10px;
+    }
+
+    .guide-cell {
+      padding: 11px;
+      border: 1px solid var(--line);
+      border-radius: 7px;
+      background: #fff;
+    }
+
+    .guide-cell b {
+      display: block;
+      margin-bottom: 4px;
+      color: #243247;
+      font-size: 12px;
+    }
+
+    .guide-cell span {
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .source-focus {
+      display: grid;
+      gap: 8px;
+      margin-top: 2px;
+    }
+
+    .focus-item {
+      display: grid;
+      grid-template-columns: 92px minmax(0, 1fr);
+      gap: 10px;
+      align-items: start;
+      padding: 10px;
+      border: 1px solid #d7e5f6;
+      border-radius: 8px;
+      background: rgba(255,255,255,0.78);
+    }
+
+    .focus-item b {
+      color: #174e8a;
+      font-size: 12px;
+    }
+
+    .focus-item span {
+      color: #4b5f78;
+      font-size: 13px;
+    }
+
+    .badge-strip {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 10px;
+    }
+
+    .ability-badge {
+      padding: 6px 9px;
+      border: 1px solid #c5dbff;
+      border-radius: 999px;
+      background: #f6f9ff;
+      color: #2457a7;
+      font-size: 12px;
+      font-weight: 800;
+    }
+
+    .guide-flow {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 7px;
+      align-items: center;
+      color: #35506f;
+      font-size: 12px;
+      font-weight: 800;
+    }
+
+    .guide-flow span {
+      padding: 5px 8px;
+      border: 1px solid #c7d7ee;
+      border-radius: 7px;
+      background: #fff;
+    }
+
+    .quiz {
+      display: grid;
+      gap: 14px;
+      margin-top: 0;
+    }
+
+    .question-card {
+      display: none;
+      padding: 18px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fff;
+    }
+
+    .question-card.active {
+      display: grid;
+      gap: 14px;
+    }
+
+    .question-top {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 14px;
+    }
+
+    .question-top span {
+      color: var(--muted);
+      font-size: 13px;
+      font-weight: 800;
+    }
+
+    .question-type {
+      padding: 4px 8px;
+      border: 1px solid #c7d7ee;
+      border-radius: 999px;
+      background: #f7fbff;
+      color: #2457a7;
+      font-size: 12px;
+      font-weight: 850;
+    }
+
+    .question {
+      margin: 0;
+      font-size: 20px;
+      line-height: 1.35;
+      font-weight: 850;
+    }
+
+    .options {
+      display: grid;
+      gap: 9px;
+    }
+
+    .option {
+      width: 100%;
+      min-height: 48px;
+      padding: 11px 13px;
+      border: 1px solid var(--line);
+      border-radius: 7px;
+      background: #fff;
+      color: #243247;
+      text-align: left;
+      font-weight: 720;
+    }
+
+    .option:hover:not(:disabled) {
+      border-color: #9db1ce;
+      background: #fbfdff;
+    }
+
+    .option.correct {
+      border-color: rgba(21,150,107,0.45);
+      background: var(--green-soft);
+      color: #0a6849;
+    }
+
+    .option.wrong {
+      border-color: rgba(208,68,68,0.38);
+      background: var(--red-soft);
+      color: #9d2d2d;
+    }
+
+    .option.inspecting {
+      box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.14);
+    }
+
+    .option:disabled {
+      cursor: default;
+    }
+
+    .feedback {
+      display: none;
+      padding: 13px;
+      border-radius: 7px;
+      font-size: 14px;
+      line-height: 1.55;
+    }
+
+    .feedback.show {
+      display: block;
+    }
+
+    .feedback.good {
+      color: #0a6849;
+      background: var(--green-soft);
+    }
+
+    .feedback.bad {
+      color: #9d2d2d;
+      background: var(--red-soft);
+    }
+
+    .feedback-title {
+      display: block;
+      margin-bottom: 6px;
+      color: inherit;
+      font-size: 14px;
+      font-weight: 900;
+    }
+
+    .feedback-row {
+      margin: 4px 0;
+    }
+
+    .feedback-row b {
+      color: #243247;
+    }
+
+    .quest-actions {
+      display: flex;
+      justify-content: space-between;
+      gap: 10px;
+      margin-top: 16px;
+    }
+
+    .primary, .secondary {
+      min-height: 42px;
+      padding: 0 16px;
+      border-radius: 7px;
+      font-weight: 850;
+    }
+
+    .primary {
+      color: #fff;
+      background: var(--blue);
+    }
+
+    .primary:hover:not(:disabled) {
+      background: #1d55cf;
+    }
+
+    .primary:disabled,
+    .secondary:disabled {
+      cursor: not-allowed;
+      opacity: 0.52;
+    }
+
+    .secondary {
+      border: 1px solid var(--line);
+      color: #344154;
+      background: #fff;
+    }
+
+    .secondary:hover:not(:disabled) {
+      background: var(--panel-2);
+    }
+
+    .result {
+      display: none;
+      gap: 14px;
+      margin-top: 18px;
+      padding: 18px;
+      border-radius: 8px;
+      border: 1px solid var(--line);
+      background: var(--panel-2);
+    }
+
+    .result.show {
+      display: grid;
+    }
+
+    .result h3 {
+      margin: 0;
+      font-size: 24px;
+      line-height: 1.2;
+    }
+
+    .result p {
+      margin: 0;
+      color: var(--muted);
+    }
+
+    .codex-panel {
+      display: grid;
+      gap: 14px;
+    }
+
+    .codex-card {
+      padding: 18px;
+    }
+
+    .codex-card h3 {
+      margin: 0 0 12px;
+      font-size: 17px;
+    }
+
+    .concept-list {
+      display: grid;
+      gap: 8px;
+    }
+
+    .concept {
+      padding: 10px;
+      border: 1px solid var(--line);
+      border-radius: 7px;
+      background: #fff;
+    }
+
+    .concept b {
+      display: block;
+      font-size: 13px;
+    }
+
+    .concept span {
+      display: block;
+      margin-top: 2px;
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .wrong-list {
+      display: grid;
+      gap: 8px;
+      max-height: 420px;
+      overflow: auto;
+    }
+
+    .wrong-empty {
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .wrong-item {
+      display: grid;
+      gap: 5px;
+      padding: 10px;
+      border: 1px solid rgba(208,68,68,0.24);
+      border-radius: 7px;
+      background: var(--red-soft);
+      font-size: 12px;
+    }
+
+    .wrong-item b {
+      color: #842121;
+    }
+
+    .toast {
+      position: fixed;
+      right: 18px;
+      bottom: 18px;
+      z-index: 10;
+      display: none;
+      max-width: min(420px, calc(100vw - 36px));
+      padding: 13px 14px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fff;
+      box-shadow: var(--shadow);
+      color: #344154;
+      font-size: 14px;
+      font-weight: 780;
+    }
+
+    .toast.show {
+      display: block;
+    }
+
+    @media (max-width: 1120px) {
+      .app {
+        grid-template-columns: 1fr;
+      }
+
+      .main {
+        order: 1;
+      }
+
+      .sidebar {
+        order: 2;
+        position: static;
+        height: auto;
+      }
+
+      .map {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+
+      .hero,
+      .game-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .hero {
+        min-height: 0;
+        padding: 14px;
+      }
+
+      .hero h1 {
+        font-size: clamp(24px, 4vw, 32px);
+      }
+
+      .hero p {
+        font-size: 13px;
+      }
+
+      .hero-meta {
+        margin-top: 8px;
+      }
+
+      .cluster-card {
+        display: none;
+      }
+
+      .guide-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    @media (max-width: 680px) {
+      .app {
+        padding: 12px;
+      }
+
+      .hero,
+      .quest {
+        padding: 18px;
+      }
+
+      .map,
+      .mission,
+      .stats {
+        grid-template-columns: 1fr;
+      }
+
+      .quest-head {
+        display: grid;
+      }
+
+      .path-step b {
+        font-size: 10px;
+      }
+
+      .flow-node {
+        min-height: 30px;
+        padding: 4px;
+        font-size: 10px;
+      }
+
+      .progress-ring {
+        width: 80px;
+        height: 80px;
+      }
+
+      .progress-ring span {
+        width: 62px;
+        height: 62px;
+      }
+    }
+  </style>
+<script id="supabase-data-layer">
+
+/* ============================================================
+   SYSTEM INJECTED CODE — DO NOT MODIFY!
+   Modifying this block will break Supabase data functionality!!
+   html-go-live Supabase 数据层（自动注入）
+   appId      : bld_b6203275f2ac4bd584050638ce1f5c8e
+   appName    : 大模型训练闯关
+   env        : prod
+   generated  : 2026-06-09 20:22:27
+   ============================================================ */
+(function () {
+  'use strict';
+
+  /* ── 配置 ── */
+  var CFG = {
+    appId          : 'bld_b6203275f2ac4bd584050638ce1f5c8e',
+    appName        : '大模型训练闯关',
+    env            : 'prod',
+    builderOrigin  : 'https://builder.devops.xiaohongshu.com',
+    builderBase    : 'https://builder.devops.xiaohongshu.com/builder-api/v1',
+  };
+
+  /* ── 占位符强阻断 ──
+     appId 含 __PLACEHOLDER__ 或为空 → 所有 API 禁用，
+     不触发 supabaseapi:ready，避免页面误用占位符 appId 调真实接口。
+  */
+  if (!CFG.appId ||
+      CFG.appId.indexOf('__PLACEHOLDER__') !== -1 ||
+      CFG.appId === '__PLACEHOLDER_APP_ID__') {
+    var _blockedMsg = '[SupabaseAPI] 数据功能未就绪：appId 是占位符或为空，请先为此站点配置真实的 appId。当前值：' + CFG.appId;
+    var _blockedFn = function() {
+      console.error(_blockedMsg);
+      return Promise.reject(new Error(_blockedMsg));
+    };
+    window.SupabaseAPI = {
+      init    : _blockedFn,
+      getUser : function() { return null; },
+      isReady : function() { return false; },
+      onReady : function() { console.error(_blockedMsg); },
+      logout  : function() {},
+      query   : _blockedFn,
+      insert  : _blockedFn,
+      update  : _blockedFn,
+      delete  : _blockedFn,
+      _config : CFG,
+      _blocked: true,
+    };
+    window.SUPABASE_CONFIG = CFG;
+    console.error('[SupabaseAPI] 初始化中止：appId 是占位符或为空，数据功能已全部禁用。站点：' + location.href);
+    return;
+  }
+
+  /* ── 本地存储工具 ── */
+  var _store = window['local' + 'Storage'];
+  var _stKey = 'bst_' + CFG.appId;
+  function _stGet() { try { return _store.getItem(_stKey); } catch (e) { return null; } }
+  function _stSet(v) { try { _store.setItem(_stKey, v); } catch (e) {} }
+  function _stRm()  { try { _store.removeItem(_stKey); } catch (e) {} }
+
+  /* ── 鉴权状态 ── */
+  var _user = null;        // {nameEn, nameCn, email, role, ...} 或 null
+  var _ready = false;      // OAuth 流程完成
+  var _initPromise = null; // 单例化 init Promise
+
+  /* ── HTTP 封装 ──
+     带上 X-Builder-App-Id + X-Builder-Session；
+     401 自动清 token + 重走 OAuth（一次内）。
+  */
+  function _headers(extra) {
+    var h = {
+      'Content-Type'    : 'application/json;charset=UTF-8',
+      'X-Builder-App-Id': CFG.appId,
+    };
+    var tok = _stGet();
+    if (tok) h['X-Builder-Session'] = tok;
+    if (extra) for (var k in extra) h[k] = extra[k];
+    return h;
+  }
+
+  function _request(method, path, body, opts) {
+    opts = opts || {};
+    var url = CFG.builderBase + (path.charAt(0) === '/' ? path : '/' + path);
+    var init = {
+      method      : method,
+      headers     : _headers(opts.headers),
+      credentials : 'omit',   // 跨域不带 cookie，纯靠 X-Builder-Session
+    };
+    if (body !== undefined && body !== null) {
+      init.body = (typeof body === 'string') ? body : JSON.stringify(body);
+    }
+    return fetch(url, init).then(function (res) {
+      // 401 → token 失效，清掉并触发 OAuth
+      if (res.status === 401 && !opts.noRetry) {
+        _stRm();
+        if (!opts.silent) {
+          console.warn('[SupabaseAPI] session 失效，正在重新登录…');
+          _redirectToLogin();
+        }
+        throw new Error('UNAUTHORIZED');
+      }
+      if (!res.ok) {
+        return res.text().then(function (t) {
+          throw new Error('HTTP ' + res.status + ': ' + (t || res.statusText));
+        });
+      }
+      return res.json();
+    }).then(function (data) {
+      // Builder 标准信封 {code, data, message}
+      if (data && typeof data.code !== 'undefined' && data.code !== 0) {
+        throw new Error(data.message || data.errorMsg || ('接口返回 code=' + data.code));
+      }
+      return data && data.data !== undefined ? data.data : data;
+    });
+  }
+
+  /* ── OAuth 流程 ──
+     1. 检测 query string 是否带 builder_auth_code → 兑换 session
+     2. 检测 localStorage 是否有 token → /auth/me 验证
+     3. 都没有 → 整页跳转 Builder /auth/start
+  */
+  function _redirectToLogin() {
+    // ⚠️ redirect_uri 不能带 #，参数在 query string 返回
+    var redirect = location.origin + location.pathname + (location.search || '');
+    // 但 search 不能带 builder_auth_code，否则会循环跳转——先清掉
+    redirect = redirect.replace(/[?&]builder_auth_code=[^&]*/g, '').replace(/[?&]expires_in=\d+/g, '');
+    redirect = redirect.replace(/[?&]+$/, '');
+    var url = CFG.builderOrigin + '/auth/start' +
+              '?redirect_uri=' + encodeURIComponent(redirect) +
+              '&app_id=' + encodeURIComponent(CFG.appId);
+    location.href = url;
+  }
+
+  function _exchangeCode(code) {
+    return fetch(CFG.builderBase + '/auth/exchange', {
+      method      : 'POST',
+      headers     : {'Content-Type': 'application/json;charset=UTF-8'},
+      credentials : 'omit',
+      body        : JSON.stringify({builder_auth_code: code}),
+    }).then(function (r) {
+      if (!r.ok) throw new Error('exchange HTTP ' + r.status);
+      return r.json();
+    }).then(function (d) {
+      if (d.code !== 0) throw new Error(d.message || 'exchange failed');
+      _stSet(d.data.builder_session_token);
+      // 清掉 URL 里的 code 参数，避免刷新页面再触发
+      var clean = location.pathname + location.search.replace(/[?&]builder_auth_code=[^&]*/g, '').replace(/[?&]expires_in=\d+/g, '').replace(/^&/, '?').replace(/[?&]+$/, '') + location.hash;
+      try { history.replaceState(null, '', clean || location.pathname); } catch (e) {}
+      return d.data.user || null;
+    });
+  }
+
+  function _fetchMe() {
+    return _request('GET', '/auth/me', null, {noRetry: true, silent: true})
+      .then(function (data) {
+        // /auth/me 响应：data.user.* （不是 data.*）
+        return (data && data.user) ? data.user : data;
+      });
+  }
+
+  function _init() {
+    if (_initPromise) return _initPromise;
+    _initPromise = (function () {
+      // 1. 优先处理 callback
+      var params = new URLSearchParams(location.search);
+      var code = params.get('builder_auth_code');
+      var step;
+      if (code) {
+        step = _exchangeCode(code);
+      } else {
+        step = Promise.resolve(null);
+      }
+      return step.then(function (userFromExchange) {
+        // 2. 如果有 token，用 /auth/me 拿用户信息
+        if (_stGet()) {
+          return _fetchMe().catch(function () {
+            // /auth/me 401 → token 失效 → 跳登录
+            _stRm();
+            _redirectToLogin();
+            return null;
+          });
+        }
+        // 3. 无 token + 无 code → 跳登录
+        if (!userFromExchange) {
+          _redirectToLogin();
+          return null;
+        }
+        return userFromExchange;
+      }).then(function (user) {
+        _user = user;
+        _ready = !!user;
+        if (_ready) {
+          // dispatch ready 事件
+          setTimeout(function () {
+            document.dispatchEvent(new CustomEvent('supabaseapi:ready', {
+              detail: {appId: CFG.appId, user: _user}
+            }));
+          }, 0);
+        }
+        return _user;
+      });
+    })();
+    return _initPromise;
+  }
+
+  /* ── 公开 API ── */
+  var SupabaseAPI = {
+
+    /** 触发鉴权流程（页面加载时自动调，也可手动调）
+     * @returns Promise<user|null>
+     */
+    init: _init,
+
+    /** 当前登录用户（OAuth 完成后才有值）
+     * @returns {nameEn, nameCn, email, role, ...} | null
+     */
+    getUser: function () { return _user; },
+
+    /** OAuth 是否完成
+     * @returns boolean
+     */
+    isReady: function () { return _ready; },
+
+    /** OAuth 完成回调（已就绪时立即触发；未就绪时等 supabaseapi:ready 事件）
+     * @param {function} cb  cb(user)
+     */
+    onReady: function (cb) {
+      if (typeof cb !== 'function') return;
+      if (_ready) { try { cb(_user); } catch (e) { console.error(e); } return; }
+      document.addEventListener('supabaseapi:ready', function (e) {
+        try { cb(e.detail && e.detail.user); } catch (er) { console.error(er); }
+      }, {once: true});
+    },
+
+    /** 登出（清 token + 跳登录）*/
+    logout: function () { _stRm(); _redirectToLogin(); },
+
+    /**
+     * 查询数据（PostgREST 语法）
+     * @param {string} table  表名（逻辑名，无 bld_xxx__ 前缀）
+     * @param {object} opts
+     *   - select:  字段列表，如 '*' 或 'id,title,user(name)'
+     *   - filters: {column: 'op.value'}，如 {done: 'eq.false', title: 'like.*test*'}
+     *   - order:   排序，如 'id.desc' 或 'created_at.desc.nullslast'
+     *   - limit:   分页大小（上限 500，默认 20）
+     *   - offset:  分页偏移（上限 10000）
+     * @returns Promise<{rows: Array, count?: number}>
+     */
+    query: function (table, opts) {
+      opts = opts || {};
+      var q = {};
+      if (opts.select) q.select = opts.select;
+      if (opts.order)  q.order  = opts.order;
+      if (opts.filters) for (var k in opts.filters) q[k] = opts.filters[k];
+      if (opts.limit !== undefined)  q.limit  = String(opts.limit);
+      if (opts.offset !== undefined) q.offset = String(opts.offset);
+      return _request('POST', '/supabase/rows/query', {
+        table_name: table,
+        limit     : opts.limit || 20,
+        query     : q,
+      });
+    },
+
+    /**
+     * 插入数据
+     * @param {string} table
+     * @param {Array<object>} rows  非 public 表的 user_id 由后端自动覆盖为当前用户 nameEn
+     * @returns Promise<{rows: Array}>  含自动生成的 id
+     */
+    insert: function (table, rows) {
+      if (!Array.isArray(rows)) rows = [rows];
+      return _request('POST', '/supabase/rows/insert', {
+        table_name: table,
+        rows      : rows,
+      });
+    },
+
+    /**
+     * 更新数据
+     * @param {string} table
+     * @param {object} filters  PostgREST 语法，如 {id: 'eq.1'}
+     * @param {object} values   要更新的字段
+     * @returns Promise
+     */
+    update: function (table, filters, values) {
+      return _request('POST', '/supabase/rows/update', {
+        table_name: table,
+        filters   : filters,
+        values    : values,
+      });
+    },
+
+    /**
+     * 删除数据
+     * @param {string} table
+     * @param {object} filters  PostgREST 语法
+     * @returns Promise
+     */
+    delete: function (table, filters) {
+      return _request('POST', '/supabase/rows/delete', {
+        table_name: table,
+        filters   : filters,
+      });
+    },
+
+    /* ── 内部调试 ── */
+    _config: CFG,
+    _request: _request,   // 暴露给高级用法（如调 /supabase/tables/columns 查 schema）
+  };
+
+  window.SupabaseAPI = SupabaseAPI;
+  window.SUPABASE_CONFIG = CFG;
+
+  /* 页面加载完成后自动触发 init（DOMContentLoaded 之后） */
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', function () { _init(); });
+  } else {
+    setTimeout(function () { _init(); }, 0);
+  }
+
+})();
+
+</script>
+</head>
+<body>
+  <div class="app">
+    <aside class="sidebar">
+      <section class="panel">
+        <div class="brand">
+          <div class="brand-mark">AI</div>
+          <div>
+            <div class="brand-title">大模型训练<br/>闯关</div>
+            <div class="brand-sub">从 Node 到稳定性</div>
+          </div>
+        </div>
+        <div class="stats">
+          <div class="stat"><b id="statStars">0</b><span>星级</span></div>
+          <div class="stat"><b id="statUnlocked">1</b><span>已解锁</span></div>
+          <div class="stat"><b id="statWrong">0</b><span>错题</span></div>
+        </div>
+        <div class="side-actions">
+          <button class="small-btn" id="reviewBtn" type="button">错题复习</button>
+          <button class="small-btn" id="resetBtn" type="button">重置进度</button>
+        </div>
+        <div class="cloud-status" id="cloudStatus">本机学习进度</div>
+      </section>
+
+      <section class="panel map-panel">
+        <div class="side-title">
+          <span>训练地图</span>
+          <span id="mapStatus">1 / 14</span>
+        </div>
+        <div class="map" id="levelMap"></div>
+      </section>
+    </aside>
+
+    <main class="main">
+      <section class="hero">
+        <div>
+          <h1>从一台机器闯到 3000 卡训练</h1>
+          <p>把原来的大模型训练小白 QA 改成可玩的知识闯关。你要一路理解 Node、GPU、Pod、rank、batch、step、NCCL、并行策略和稳定性问题。</p>
+          <div class="hero-meta">
+            <span class="hero-chip">14 个知识关卡</span>
+            <span class="hero-chip">每关 12 题</span>
+            <span class="hero-chip">完成学习即可解锁</span>
+            <span class="hero-chip">错题自动收集</span>
+          </div>
+        </div>
+        <div class="cluster-card" aria-label="训练集群动画">
+          <div class="cluster-title">
+            <span>Training Cluster Run</span>
+            <span id="clusterLabel">rank sync</span>
+          </div>
+          <canvas id="clusterCanvas" width="720" height="430"></canvas>
+        </div>
+      </section>
+
+      <div class="game-grid">
+        <section class="panel quest">
+          <div class="quest-head">
+            <div>
+              <div class="kicker" id="levelKicker">Chapter 0</div>
+              <h2 id="levelTitle">先用 30 秒建立总览</h2>
+              <p class="quest-desc" id="levelDesc">训练就是模型一批批看数据，每一步算出自己错在哪里，然后微调参数。</p>
+            </div>
+            <div class="progress-ring" id="progressRing" style="--pct: 0"><span id="progressText">0/12</span></div>
+          </div>
+
+          <div class="mission">
+            <div class="mission-card">
+              <b id="missionGoal">学习目标</b>
+              <span>完成 12 个辨析题，解锁下一关；正确率只影响星级。</span>
+            </div>
+            <div class="mission-card">
+              <b id="missionMemory">小白记忆</b>
+              <span>训练 = 数据一批批喂给模型，模型每一步学一点。</span>
+            </div>
+          </div>
+
+          <div class="run-hud" aria-label="本轮战报">
+            <div class="run-pill"><b id="comboStat">0</b><span>连击</span></div>
+            <div class="run-pill"><b id="badgeStat">0</b><span>能力徽章</span></div>
+            <div class="run-pill"><b id="coverageStat">0/0</b><span>素材覆盖</span></div>
+          </div>
+
+          <div class="path-strip" id="pathStrip" aria-label="本关学习路径"></div>
+
+          <div class="principle-strip" id="principleStrip"></div>
+
+          <div class="quiz" id="quiz"></div>
+
+          <div class="quest-actions">
+            <button class="secondary" id="prevQuestionBtn" type="button">上一题</button>
+            <button class="primary" id="nextQuestionBtn" type="button" disabled>下一题</button>
+          </div>
+
+          <div class="result" id="resultBox">
+            <h3 id="resultTitle">通关成功</h3>
+            <p id="resultCopy"></p>
+            <div class="quest-actions">
+              <button class="secondary" id="retryBtn" type="button">重打一遍</button>
+              <button class="primary" id="nextLevelBtn" type="button">进入下一关</button>
+            </div>
+          </div>
+
+          <details class="study-guide" id="studyGuide"></details>
+        </section>
+
+        <aside class="codex-panel">
+          <section class="panel codex-card compact-side">
+            <details open>
+              <summary>本关概念卡</summary>
+              <div class="concept-list" id="conceptList"></div>
+            </details>
+          </section>
+          <section class="panel codex-card">
+            <h3>错题本</h3>
+            <div class="wrong-list" id="wrongList"></div>
+          </section>
+        </aside>
+      </div>
+    </main>
+  </div>
+
+  <div class="toast" id="toast"></div>
+
+  <script>
+    const levels = [
+      {
+        title: "先用 30 秒建立总览",
+        desc: "训练的本质是：很多机器上的很多 GPU，一起反复看数据、算错多少、更新模型参数。",
+        memory: "训练 = 数据一批批喂给模型，模型每一步学一点。",
+        concepts: [
+          ["sample / token", "训练数据被切成模型可处理的基本单位。"],
+          ["loss", "这批数据上模型错得多不多。"],
+          ["optimizer", "按梯度方向更新模型参数。"]
+        ],
+        questions: [
+          {
+            text: "大模型训练任务最核心是在做什么？",
+            options: ["反复看数据、计算错误、更新参数", "只把模型部署到 GPU 上", "把所有数据一次性塞进显存", "让 CPU 替代 GPU 做矩阵计算"],
+            answer: 0,
+            explain: "训练是一个循环：读数据、forward、算 loss、backward、optimizer 更新参数。"
+          },
+          {
+            text: "为什么训练稳定性会比单机程序复杂？",
+            options: ["因为它由硬件、厂商软件栈、调度、进程和算法共同组成", "因为训练任务不需要网络", "因为所有 GPU 行为完全一致", "因为只要模型代码对就不会失败"],
+            answer: 0,
+            explain: "大规模训练是分布式系统，任何一层抖动都可能放大成慢、Hang 或失败。"
+          },
+          {
+            text: "下面哪句话更适合作为小白记忆？",
+            options: ["训练每一步学一点", "训练只发生在最后一个 step", "训练稳定性只和模型结构有关", "训练不会受硬件影响"],
+            answer: 0,
+            explain: "从 step 循环理解训练，会比死记术语更稳。"
+          }
+        ]
+      },
+      {
+        title: "Node：一台训练机器里有什么？",
+        desc: "Node 不是 GPU 本身，而是一台完整服务器，里面有 GPU、CPU、RAM、网卡、本地盘、系统和驱动。",
+        memory: "Node 是训练服务器；GPU 是其中的主力计算资源。",
+        concepts: [
+          ["Node", "被集群管理的一台训练服务器。"],
+          ["HBM", "GPU 身边的高速显存。"],
+          ["NIC", "跨机通信和远端数据读写会用到的网卡。"]
+        ],
+        questions: [
+          {
+            text: "Node 和 GPU 的关系更准确是哪一个？",
+            options: ["Node 是机器，GPU 是机器里的计算卡", "Node 就是一张 GPU", "GPU 是调度系统里的 Pod", "Node 只能有 8 张 GPU"],
+            answer: 0,
+            explain: "一台 Node 里通常包含多张 GPU，也有 CPU、内存、网卡和本地盘。"
+          },
+          {
+            text: "HBM 指的是什么？",
+            options: ["GPU 自己身边的高速显存", "CPU 的系统内存", "远端对象存储", "K8s 的调度队列"],
+            answer: 0,
+            explain: "HBM 用来放模型参数、激活值、梯度和临时 buffer。"
+          },
+          {
+            text: "8 卡 Node 应该怎么理解？",
+            options: ["常见形态，不是绝对标准", "所有训练机器必须是 8 卡", "8 卡意味着只有 8 个 Pod", "8 卡意味着没有 CPU/RAM 影响"],
+            answer: 0,
+            explain: "1/2/4/8/16 卡甚至超节点形态都存在，不能把例子当标准。"
+          }
+        ]
+      },
+      {
+        title: "加速卡与厂商生态",
+        desc: "GPU、NPU、TPU 都是训练加速器，不同厂商会带来不同 runtime、通信库、监控和诊断工具。",
+        memory: "换卡不是只换算力，而是换一整套生态。",
+        concepts: [
+          ["GPU / NPU / TPU", "不同厂商和生态下的 AI 加速器。"],
+          ["GB200 NVL72", "更接近整机或超节点形态，不只是普通单卡名。"],
+          ["厂商生态", "runtime、通信库、监控、profile 工具和调度适配。"]
+        ],
+        questions: [
+          {
+            text: "A100/H100/B200 更准确属于什么？",
+            options: ["NVIDIA GPU 型号", "K8s Pod 类型", "通信算子", "训练平台名称"],
+            answer: 0,
+            explain: "这些是 NVIDIA GPU 型号；GB200/NVL72 更接近高密互联形态。"
+          },
+          {
+            text: "大规模训练通常为什么不建议混用不同厂商的卡？",
+            options: ["算力、显存、通信库、精度和框架适配都可能不同", "因为所有厂商卡都只能跑推理", "因为不同卡一定不能联网", "因为 K8s 不支持多种资源"],
+            answer: 0,
+            explain: "混用会更容易产生慢 rank、通信不兼容和诊断困难。"
+          },
+          {
+            text: "换一种加速卡，稳定性平台最应该注意什么？",
+            options: ["底层采集、诊断和工具链要按生态适配", "只改页面颜色", "只扩大 batch size", "删除所有监控"],
+            answer: 0,
+            explain: "不同生态的 runtime、通信库、健康事件和 profile 工具都可能不同。"
+          }
+        ]
+      },
+      {
+        title: "GPU 不是孤立工作的",
+        desc: "训练数据要经过存储、网卡、CPU/RAM，再进入 GPU；任何一段慢，GPU 都可能空等。",
+        memory: "GPU 利用率低，不一定是 GPU 坏了。",
+        concepts: [
+          ["dataloader", "把数据准备好再喂给模型。"],
+          ["noisy neighbor", "共享 CPU/RAM/网卡/磁盘的旁边任务影响你。"],
+          ["checkpoint", "训练中保存状态，存储慢会拖累任务。"]
+        ],
+        questions: [
+          {
+            text: "GPU 利用率低时，哪种判断更稳？",
+            options: ["先看数据、CPU、内存、存储和网络是否让 GPU 等待", "直接判断 GPU 坏了", "直接扩大 world size", "说明 loss 一定异常"],
+            answer: 0,
+            explain: "GPU 可能只是等数据或等通信，不一定是计算芯片本身异常。"
+          },
+          {
+            text: "noisy neighbor 主要指什么？",
+            options: ["旁边任务抢共享资源，间接拖慢你的任务", "训练任务里有太多注释", "模型参数命名混乱", "所有 rank 都在同一张卡上"],
+            answer: 0,
+            explain: "CPU、RAM、网卡、本地盘都可能被其他任务影响。"
+          },
+          {
+            text: "数据到 GPU 的常见路径是哪一个？",
+            options: ["远端存储 -> 网卡 -> CPU/RAM -> GPU/HBM", "GPU -> Pod -> 网页 -> HBM", "NCCL -> loss -> CPU -> 数据集", "rank -> epoch -> Node -> CUDA"],
+            answer: 0,
+            explain: "这个路径帮助定位数据供给慢在哪里。"
+          }
+        ]
+      },
+      {
+        title: "厂商训练栈：Runtime、通信库、监控",
+        desc: "训练程序不能裸用加速卡，需要驱动、运行时、通信库和监控管理接口。",
+        memory: "CUDA 管计算，NCCL 管通信。",
+        concepts: [
+          ["CUDA / ROCm / CANN / XLA", "不同生态的运行时或编译执行底座。"],
+          ["NCCL / RCCL / HCCL", "多卡通信库。"],
+          ["DCGM / NVML", "NVIDIA 设备监控与管理相关能力。"]
+        ],
+        questions: [
+          {
+            text: "CUDA 和 NCCL 最好怎么区分？",
+            options: ["CUDA 偏计算，NCCL 偏多 GPU 通信", "CUDA 是 Pod，NCCL 是 Node", "CUDA 只用于 CPU", "NCCL 只用于日志采集"],
+            answer: 0,
+            explain: "这个区分对看错误栈和定位故障域很重要。"
+          },
+          {
+            text: "下列哪组对应更合理？",
+            options: ["NVIDIA: CUDA / NCCL / DCGM", "AMD: CANN / HCCL / npu-smi", "昇腾: CUDA / NCCL / NVML", "TPU: ROCm / RCCL / rocm-smi"],
+            answer: 0,
+            explain: "AMD 常见 ROCm/RCCL；昇腾常见 CANN/HCCL；TPU 常见 XLA/TPU runtime。"
+          },
+          {
+            text: "稳定性平台为什么不能写死只认 DCGM/NCCL？",
+            options: ["因为不同加速卡生态的采集和诊断工具不同", "因为 DCGM 只能显示网页", "因为 NCCL 只能训练小模型", "因为所有平台都不用监控"],
+            answer: 0,
+            explain: "上层问题模型可以统一，底层采集和诊断要按厂商适配。"
+          }
+        ]
+      },
+      {
+        title: "Pod / Job / 调度",
+        desc: "平台把一个训练 Job 拆成多个 Pod，再调度到多个 Node 上承载训练进程。",
+        memory: "Job 是任务整体，Pod 是运行单元，Node 是机器。",
+        concepts: [
+          ["Job", "训练任务整体。"],
+          ["Pod", "K8s 调度和运行单元。"],
+          ["Scheduler", "决定 Pod 落到哪些 Node 上。"]
+        ],
+        questions: [
+          {
+            text: "Job、Pod、Node 的关系更准确是哪一个？",
+            options: ["一个 Job 通常由多个 Pod 承载，Pod 被调度到 Node 上", "一个 Pod 必须包含多个 Job", "Node 是训练题目的章节", "Job 和 GPU 永远 1:1"],
+            answer: 0,
+            explain: "这是理解训练平台生命周期的基础关系。"
+          },
+          {
+            text: "Pod 是否天然等于 worker？",
+            options: ["不是，Pod 是调度单元，worker 是训练进程", "是，Pod 就是 Python 进程", "是，Pod 就是 GPU", "不是，Pod 只能表示网卡"],
+            answer: 0,
+            explain: "Pod 里可以启动一个或多个 worker，但这不是 K8s 自带语义。"
+          },
+          {
+            text: "为什么大训练一个 Job 会有很多 Pod？",
+            options: ["因为需要很多 GPU，而 GPU 分布在多个 Node 上", "因为每个样本都要一个 Pod", "因为 loss 越大 Pod 越多", "因为 CUDA 要求每行代码一个 Pod"],
+            answer: 0,
+            explain: "平台用多个 Pod 承载多机多卡训练进程。"
+          }
+        ]
+      },
+      {
+        title: "worker、rank、GPU 映射",
+        desc: "worker 是训练进程；rank 是进程在分布式训练里的编号；大训练常见一个 rank 绑定一张 GPU。",
+        memory: "worker 是进程，rank 是编号，GPU 是计算设备。",
+        concepts: [
+          ["global rank", "全任务唯一编号。"],
+          ["local rank", "当前 Node/Pod 内编号。"],
+          ["world size", "整个训练任务的 rank 总数。"]
+        ],
+        questions: [
+          {
+            text: "2 台 8 卡机器，常见 world size 是多少？",
+            options: ["16", "2", "8", "3000"],
+            answer: 0,
+            explain: "常见 1 rank = 1 GPU，所以 2 x 8 = 16。"
+          },
+          {
+            text: "rank 和 GPU 一定 1:1 吗？",
+            options: ["大训练常见 1:1，但不是数学定律", "永远 1:1，没有例外", "rank 是 Node 编号，不能对应 GPU", "rank 只能对应 CPU"],
+            answer: 0,
+            explain: "MIG、调试、小任务、推理共享等场景可能不同。"
+          },
+          {
+            text: "local rank 指什么？",
+            options: ["当前 Node/Pod 内的 rank 编号", "整个任务的唯一编号", "K8s 集群编号", "一次 step 的编号"],
+            answer: 0,
+            explain: "local rank 常用于决定当前进程绑定本机哪张 GPU。"
+          }
+        ]
+      },
+      {
+        title: "batch、step、loss、梯度",
+        desc: "一个 step 通常处理一个 global batch，并完成一次参数更新。",
+        memory: "forward 答题，loss 判分，backward 追责，optimizer 改参数。",
+        concepts: [
+          ["batch", "一次喂给模型的一批样本。"],
+          ["step", "处理一个 global batch 并更新一次参数。"],
+          ["梯度", "参数应该往哪个方向调整。"]
+        ],
+        questions: [
+          {
+            text: "一个 step 里通常发生什么？",
+            options: ["读数据、forward、loss、backward、同步、更新", "只启动 Pod", "只下载模型权重", "只生成一张监控图"],
+            answer: 0,
+            explain: "这条链路也是拆 profile 和定位慢阶段的基础。"
+          },
+          {
+            text: "loss 更像什么？",
+            options: ["这批数据上模型错得多不多", "GPU 温度", "Pod 数量", "Node 的显卡型号"],
+            answer: 0,
+            explain: "loss 是训练优化的信号，不是硬件指标。"
+          },
+          {
+            text: "大模型预训练一定按 epoch 结束吗？",
+            options: ["不一定，常按 step/token/算力预算结束", "一定，所有大模型必须 1 个 epoch", "一定按 Pod 数结束", "只按 GPU 温度结束"],
+            answer: 0,
+            explain: "大规模预训练常常不以完整扫完数据集为唯一结束条件。"
+          }
+        ]
+      },
+      {
+        title: "多 GPU 如何一起学习",
+        desc: "数据并行里，多张 GPU 各看不同数据，算出各自梯度，然后同步成统一修改意见。",
+        memory: "global batch = 多卡 local batch 累加，再考虑梯度累积。",
+        concepts: [
+          ["local batch", "单张 GPU 一次处理多少样本。"],
+          ["global batch", "整个任务一次 step 处理的数据量。"],
+          ["straggler", "拖慢其他 rank 的慢 rank。"]
+        ],
+        questions: [
+          {
+            text: "8 卡，每卡 local batch=4，梯度累积 2 次，global batch 是多少？",
+            options: ["64", "8", "16", "32"],
+            answer: 0,
+            explain: "8 x 4 x 2 = 64。"
+          },
+          {
+            text: "为什么一个 rank 慢，大家都慢？",
+            options: ["同步梯度时快 rank 要等慢 rank", "因为快 rank 会自动关机", "因为所有 GPU 共用一个 HBM", "因为 CPU 会替换慢 rank"],
+            answer: 0,
+            explain: "分布式同步阶段会放大慢 rank 的影响。"
+          },
+          {
+            text: "数据并行 DP 最核心切的是什么？",
+            options: ["数据", "模型层", "MoE 专家", "服务器机柜"],
+            answer: 0,
+            explain: "DP 是多张 GPU 看不同 batch，最后同步梯度。"
+          }
+        ]
+      },
+      {
+        title: "DP / TP / PP / EP / FSDP",
+        desc: "模型太大时，不仅要切数据，还要切层、层内矩阵、MoE 专家和训练状态。",
+        memory: "DP 切数据；PP 切层；TP 切矩阵；EP 切专家；FSDP/ZeRO 切训练状态。",
+        concepts: [
+          ["TP", "Tensor Parallel，切层内矩阵。"],
+          ["PP", "Pipeline Parallel，切模型层。"],
+          ["EP", "Expert Parallel，切 MoE 专家。"]
+        ],
+        questions: [
+          {
+            text: "PP 最准确是在切什么？",
+            options: ["模型层", "训练数据", "网卡队列", "GPU 温度"],
+            answer: 0,
+            explain: "PP 把不同 Transformer 层放到不同 GPU 或 stage 上。"
+          },
+          {
+            text: "TP 为什么对拓扑敏感？",
+            options: ["同一层内部频繁交换矩阵分片结果", "它完全不通信", "它只在 CPU 上运行", "它只负责保存 checkpoint"],
+            answer: 0,
+            explain: "TP 通信密集，机内高速互联质量会明显影响性能。"
+          },
+          {
+            text: "FSDP / ZeRO 更像在切什么？",
+            options: ["参数、梯度、优化器状态等训练状态", "用户账号", "K8s Namespace", "日志文件名"],
+            answer: 0,
+            explain: "它们用切分训练状态来降低单卡显存压力。"
+          }
+        ]
+      },
+      {
+        title: "通信算子",
+        desc: "多 GPU 训练一定要交换数据，通信算子决定 GPU 之间怎么交换。",
+        memory: "AllReduce 像大家求平均；All-to-All 像每个人给每个人发不同数据。",
+        concepts: [
+          ["AllReduce", "大家求平均，再每人拿一份。"],
+          ["AllGather", "每人拿一片，最后大家拼完整。"],
+          ["All-to-All", "每个人给每个人发不同数据。"]
+        ],
+        questions: [
+          {
+            text: "DP 梯度同步常见用哪个通信算子？",
+            options: ["AllReduce", "Broadcast only", "HTTP GET", "SQL Join"],
+            answer: 0,
+            explain: "AllReduce 常用于把各 rank 梯度聚合后分发给所有 rank。"
+          },
+          {
+            text: "MoE/EP 经常会用到哪种通信模式？",
+            options: ["All-to-All", "只读本地文件", "只写日志", "只更新 CPU cache"],
+            answer: 0,
+            explain: "MoE 会按 expert 重分发 token，所以 All-to-All 很常见。"
+          },
+          {
+            text: "通信算子为什么是慢和 Hang 的高发区？",
+            options: ["多 rank 必须同步交换数据，一个异常可能卡住整体", "因为通信算子只在浏览器运行", "因为通信算子会删除训练数据", "因为通信算子不受网络影响"],
+            answer: 0,
+            explain: "collective 通信要求多个 rank 协作，一个 rank 或链路异常就可能放大。"
+          }
+        ]
+      },
+      {
+        title: "拓扑与网络",
+        desc: "拓扑就是 GPU、CPU、网卡之间怎么连接；TP/EP 这类通信密集策略特别敏感。",
+        memory: "越靠近 GPU 内部越快，跨机器通信成本更高。",
+        concepts: [
+          ["NVLink / NVSwitch", "同机 GPU 高速互联。"],
+          ["IB / RoCE", "跨机器高速网络常见技术。"],
+          ["拓扑不完整", "训练期望的高速互联域没有被满足。"]
+        ],
+        questions: [
+          {
+            text: "从快到慢的通信层级更合理是哪一个？",
+            options: ["GPU 内部 HBM -> 同机 GPU 互联 -> 跨机器网络", "跨机器网络 -> HBM -> 本地寄存器", "浏览器 -> Pod -> HBM", "日志 -> loss -> 网卡"],
+            answer: 0,
+            explain: "跨机器通常比机内互联成本高得多。"
+          },
+          {
+            text: "GPU 拓扑不完整是什么意思？",
+            options: ["期望高速互联的一组 GPU 实际连接不理想或分散", "GPU 图标没有画圆", "Node 没有 hostname", "训练没有使用 HTML"],
+            answer: 0,
+            explain: "拓扑不理想会让通信走慢路。"
+          },
+          {
+            text: "为什么 TP/EP 比普通 DP 更怕拓扑差？",
+            options: ["它们通信更频繁、更依赖高速互联", "它们完全不需要通信", "它们只训练 CPU", "它们不处理 token"],
+            answer: 0,
+            explain: "TP 和 EP 的通信形态比普通 DP 更细、更频繁。"
+          }
+        ]
+      },
+      {
+        title: "训练框架和训练平台",
+        desc: "PyTorch、Megatron、DeepSpeed、FSDP 更偏训练框架；QS/K8s/Slurm/Launcher 更偏平台和生命周期。",
+        memory: "框架负责怎么训，平台负责怎么跑、怎么管、怎么诊断。",
+        concepts: [
+          ["PyTorch / JAX", "基础深度学习框架。"],
+          ["Megatron / DeepSpeed", "大模型并行训练和优化框架。"],
+          ["训练平台", "任务创建、调度、监控、诊断、止损。"]
+        ],
+        questions: [
+          {
+            text: "Megatron 更偏什么？",
+            options: ["大模型并行训练框架", "GPU 硬件型号", "K8s Pod 状态", "监控数据库"],
+            answer: 0,
+            explain: "Megatron 擅长 TP/PP/EP 等大模型并行能力，常被工程团队魔改。"
+          },
+          {
+            text: "训练平台更应该负责哪类能力？",
+            options: ["任务创建、调度、监控、诊断、恢复和止损", "只实现矩阵乘法", "只定义 Transformer 层", "只生产 GPU 芯片"],
+            answer: 0,
+            explain: "平台关注任务生命周期和稳定性治理。"
+          },
+          {
+            text: "PyTorch、Megatron、QS/K8s 的层次关系更合理是哪一个？",
+            options: ["深度学习框架 / 大模型训练框架 / 训练平台", "硬件型号 / 网卡型号 / CPU 指令", "通信算子 / 题库 / 浏览器", "loss / epoch / HTML"],
+            answer: 0,
+            explain: "分清层次，才能把问题归到合适团队和证据域。"
+          }
+        ]
+      },
+      {
+        title: "稳定性：慢、Hang、失败",
+        desc: "任务层看到的是起不来、跑得慢、Hang、失败；底层根因可能来自硬件、通信、数据、框架、调度、拓扑。",
+        memory: "不要只看现象，要把 step 拆开找证据。",
+        concepts: [
+          ["slow rank", "某个 rank 拖慢整体。"],
+          ["Hang", "不报错但训练不前进。"],
+          ["Profile", "把一个 step 拆成数据、计算、通信、更新等阶段。"]
+        ],
+        questions: [
+          {
+            text: "跑得慢通常要优先拆什么？",
+            options: ["step time，区分数据、forward/backward、通信、optimizer/checkpoint", "页面字号", "文件扩展名", "用户昵称"],
+            answer: 0,
+            explain: "Profile 的价值就是把慢拆到具体阶段。"
+          },
+          {
+            text: "Hang 更像什么表现？",
+            options: ["不报错但训练不前进", "模型 loss 正常下降", "任务启动更快", "显存自动增加"],
+            answer: 0,
+            explain: "Hang 常和 collective 卡住、rank 无响应等有关。"
+          },
+          {
+            text: "看到 NCCL 报错时，最稳的判断是什么？",
+            options: ["它提示通信链路或协作异常，需要结合网络、rank、拓扑和设备证据", "一定是模型代码写错", "一定是卡坏", "一定是网页缓存问题"],
+            answer: 0,
+            explain: "NCCL 报错不等于单一根因，要结合上下文证据。"
+          }
+        ]
+      }
+    ];
+
+    const levelExpansions = [
+      {
+        concepts: [
+          ["forward / backward", "forward 负责预测，backward 负责计算梯度。"],
+          ["训练闭环", "数据、预测、判分、追责、更新不断循环。"]
+        ],
+        questions: [
+          {
+            text: "forward 阶段更像在做什么？",
+            options: ["模型根据输入做一次预测", "根据错误更新参数", "把 Pod 调度到 Node", "检查网卡重传"],
+            answer: 0,
+            explain: "forward 是模型先给出预测；后面才会根据 loss 和 backward 更新参数。"
+          },
+          {
+            text: "backward 阶段主要产出什么？",
+            options: ["梯度", "Pod 列表", "GPU 型号清单", "训练任务 ID"],
+            answer: 0,
+            explain: "backward 会计算参数应该往哪个方向调整，也就是梯度。"
+          },
+          {
+            text: "如果只盯模型代码，不看机器和通信，会漏掉什么？",
+            options: ["硬件、调度、数据供给、通信等系统性问题", "所有语法错误", "HTML 页面标题", "浏览器缓存"],
+            answer: 0,
+            explain: "训练稳定性是系统问题，不是模型代码单点问题。"
+          }
+        ]
+      },
+      {
+        concepts: [
+          ["共享资源", "CPU、RAM、网卡、本地盘常被多任务共享。"],
+          ["设备健康", "坏卡、降频、ECC、温度和功耗都可能影响训练。"]
+        ],
+        questions: [
+          {
+            text: "CPU 在训练 Node 里常见作用是什么？",
+            options: ["调度进程、数据预处理、运行 dataloader/tokenizer", "替代所有 GPU 训练大模型", "只负责显示网页", "只保存模型参数"],
+            answer: 0,
+            explain: "CPU 供给跟不上时，GPU 可能空等，表现为利用率低。"
+          },
+          {
+            text: "本地盘或远端存储慢，最可能影响什么？",
+            options: ["数据读取、缓存、checkpoint 写入", "rank 编号是否从 0 开始", "模型层数是否变少", "CUDA 是否存在"],
+            answer: 0,
+            explain: "I/O 慢会拖慢 batch 供给和 checkpoint 等阶段。"
+          },
+          {
+            text: "GPU 设备健康事件里，哪类值得重点关注？",
+            options: ["ECC、XID、温度、功耗、降频", "CSS 圆角", "题目数量", "页面滚动条"],
+            answer: 0,
+            explain: "这些信号能帮助判断是否有坏卡、降频或设备异常。"
+          }
+        ]
+      },
+      {
+        concepts: [
+          ["精度支持", "不同加速卡对 BF16/FP16/FP8 等支持和性能曲线不同。"],
+          ["框架适配", "训练框架往往要按厂商生态做 kernel、通信和 profile 适配。"]
+        ],
+        questions: [
+          {
+            text: "为什么卡型号会影响训练框架适配？",
+            options: ["不同生态的 kernel、通信库、精度和工具链不同", "因为题目选项不同", "因为 HTML 文件更大", "因为 CPU 不再存在"],
+            answer: 0,
+            explain: "大模型训练框架经常要针对具体硬件生态优化。"
+          },
+          {
+            text: "GB200 NVL72 更应该被理解为什么？",
+            options: ["高密互联的整机或超节点形态", "K8s 的 Pod 名称", "loss 函数", "单个 Python 线程"],
+            answer: 0,
+            explain: "它不是简单等同于一张普通卡，更多涉及系统形态和互联方式。"
+          },
+          {
+            text: "跨厂商建设稳定性能力时，最稳的抽象方式是什么？",
+            options: ["上层问题模型统一，底层采集诊断按生态适配", "所有生态都强行命名成 CUDA", "只支持一个厂商", "删除设备监控"],
+            answer: 0,
+            explain: "这样既能统一产品体验，又能保留真实底层差异。"
+          }
+        ]
+      },
+      {
+        concepts: [
+          ["GPU wait", "GPU 等数据、等通信、等同步时，利用率可能下降。"],
+          ["资源瓶颈证据", "CPU run queue、I/O 延迟、网络重传、dataloader timeline 都是证据。"]
+        ],
+        questions: [
+          {
+            text: "dataloader 慢时，训练现象常是什么？",
+            options: ["GPU 等数据，利用率低或 step time 抖动", "所有 rank 自动变快", "loss 一定为 0", "Pod 不再需要 Node"],
+            answer: 0,
+            explain: "数据供给慢会让计算资源吃不饱。"
+          },
+          {
+            text: "checkpoint 慢通常应该看哪个方向？",
+            options: ["存储吞吐、延迟、文件系统错误和写入路径", "只看模型层数", "只看浏览器性能", "只看题库长度"],
+            answer: 0,
+            explain: "checkpoint 是训练状态写入，存储路径很关键。"
+          },
+          {
+            text: "跨机同步阶段变长，优先看哪些证据？",
+            options: ["IB/RoCE 指标、重传、NCCL timeline、慢 rank", "页面主题色", "用户头像", "HTML title"],
+            answer: 0,
+            explain: "通信慢需要网络、通信库和 rank 维度的证据一起看。"
+          }
+        ]
+      },
+      {
+        concepts: [
+          ["driver", "驱动让操作系统和硬件设备正确协作。"],
+          ["profile 工具", "用于拆解计算、通信、内存和 kernel 执行耗时。"]
+        ],
+        questions: [
+          {
+            text: "驱动、runtime、通信库三者从下到上更接近哪个顺序？",
+            options: ["驱动 -> runtime -> 通信库/训练框架调用", "通信库 -> 网页 -> 题库", "loss -> Pod -> CPU", "HTML -> CUDA -> Node"],
+            answer: 0,
+            explain: "驱动贴近硬件，runtime 提供执行能力，通信库支持多卡协作。"
+          },
+          {
+            text: "DCGM/NVML 这类工具通常不负责什么？",
+            options: ["决定模型学习率是否合理", "采集 GPU 利用率", "查看显存和温度", "识别设备健康事件"],
+            answer: 0,
+            explain: "它们偏设备监控管理，不负责训练算法超参是否正确。"
+          },
+          {
+            text: "看到通信库报错时，为什么不能只归因给卡厂商？",
+            options: ["通信还可能受网络、拓扑、rank 状态、框架调用影响", "因为通信库不运行", "因为所有报错都是浏览器问题", "因为没有任何日志"],
+            answer: 0,
+            explain: "通信链路跨越硬件、网络、库和训练进程，需要联动定位。"
+          }
+        ]
+      },
+      {
+        concepts: [
+          ["资源请求", "训练任务会声明 GPU、CPU、内存等资源需求。"],
+          ["亲和性/拓扑调度", "为了性能，Pod 可能需要按机器、机架、网络拓扑约束放置。"]
+        ],
+        questions: [
+          {
+            text: "调度器做出的核心决策是什么？",
+            options: ["把 Pod 放到满足资源和约束的 Node 上", "计算 loss", "切 Transformer 矩阵", "生成训练数据"],
+            answer: 0,
+            explain: "调度结果会影响资源可用性、拓扑和后续稳定性。"
+          },
+          {
+            text: "为什么训练任务会声明 GPU/CPU/内存资源？",
+            options: ["平台需要据此分配机器资源并做隔离", "为了改变题目答案", "为了让 HTML 能滚动", "为了禁用通信"],
+            answer: 0,
+            explain: "资源请求是调度和隔离的基础。"
+          },
+          {
+            text: "拓扑调度失败可能带来什么后果？",
+            options: ["拿到的 GPU 或 Node 距离不理想，通信变慢", "loss 自动下降", "模型参数变少", "训练不再需要数据"],
+            answer: 0,
+            explain: "TP/EP 等通信密集训练尤其容易受拓扑影响。"
+          }
+        ]
+      },
+      {
+        concepts: [
+          ["rank group", "并行策略会把 rank 分成 DP/TP/PP/EP 等不同通信组。"],
+          ["进程绑定", "训练进程通常会绑定本地 GPU、CPU 和网络上下文。"]
+        ],
+        questions: [
+          {
+            text: "global rank 和 local rank 的区别是什么？",
+            options: ["global 全任务唯一，local 是本机/本 Pod 内编号", "global 是 GPU 温度，local 是 loss", "二者都是 Pod 名称", "二者都表示 epoch"],
+            answer: 0,
+            explain: "这个区别常用于定位某个进程在全局和本机的位置。"
+          },
+          {
+            text: "rank group 的意义是什么？",
+            options: ["把不同 rank 组织成 DP/TP/PP/EP 等通信组", "把所有日志改名", "把数据集删除", "把 GPU 变成 CPU"],
+            answer: 0,
+            explain: "并行策略依赖不同 rank group 来完成不同类型通信。"
+          },
+          {
+            text: "排查某个慢 rank 时，为什么要映射到 GPU/Node/Pod？",
+            options: ["才能找到它对应的设备、机器和调度上下文", "为了改变页面颜色", "为了把题库变短", "为了跳过 profile"],
+            answer: 0,
+            explain: "rank 是进程身份，最终要落到实际资源上才能定位根因。"
+          }
+        ]
+      },
+      {
+        concepts: [
+          ["gradient accumulation", "多次前后向累积梯度后再更新一次参数。"],
+          ["optimizer state", "优化器维护的动量、方差等额外训练状态。"]
+        ],
+        questions: [
+          {
+            text: "gradient accumulation 的作用是什么？",
+            options: ["多次累积梯度后再更新，以模拟更大的 global batch", "让 GPU 不再需要显存", "让 Pod 自动扩容", "删除 backward 阶段"],
+            answer: 0,
+            explain: "它常用于显存受限但想扩大有效 batch 的场景。"
+          },
+          {
+            text: "optimizer state 为什么会占显存？",
+            options: ["优化器会维护参数相关的额外状态", "因为它保存网页截图", "因为它存 Pod yaml", "因为它替代 CPU 内存"],
+            answer: 0,
+            explain: "Adam 等优化器会维护动量、方差等状态，大模型下开销很大。"
+          },
+          {
+            text: "step time 变长时，为什么要拆 forward/backward/通信/更新？",
+            options: ["不同阶段对应不同根因域和证据", "因为题目必须变多", "因为所有阶段都由浏览器执行", "因为这样能改变模型大小"],
+            answer: 0,
+            explain: "只看总耗时无法判断慢在数据、计算、通信还是更新。"
+          }
+        ]
+      },
+      {
+        concepts: [
+          ["同步点", "多 rank 必须对齐等待的阶段，比如梯度同步。"],
+          ["尾延迟", "少数慢 rank 会拉长整体 step time。"]
+        ],
+        questions: [
+          {
+            text: "数据并行里每张 GPU 是否看同一批样本？",
+            options: ["通常看不同 local batch，然后同步梯度", "必须看完全相同样本", "只看模型参数", "只看日志"],
+            answer: 0,
+            explain: "DP 的核心是切数据，多卡各算一份梯度再同步。"
+          },
+          {
+            text: "同步点为什么容易放大尾延迟？",
+            options: ["快的 rank 必须等待慢的 rank", "快的 rank 会删除慢 rank", "同步点不需要通信", "同步点只影响 CSS"],
+            answer: 0,
+            explain: "分布式系统常见问题：整体速度受慢节点拖累。"
+          },
+          {
+            text: "local batch 变大最直接增加什么压力？",
+            options: ["单卡显存和计算压力", "K8s 命名空间数量", "HTML 文件名长度", "浏览器标签数量"],
+            answer: 0,
+            explain: "local batch 直接影响单卡处理的数据量和激活值显存。"
+          }
+        ]
+      },
+      {
+        concepts: [
+          ["组合并行", "DP/TP/PP/EP/FSDP 常组合使用，不是互斥选项。"],
+          ["显存压力", "参数、激活、梯度、优化器状态都会占显存。"]
+        ],
+        questions: [
+          {
+            text: "为什么大模型常常要组合多种并行策略？",
+            options: ["单一切法往往无法同时解决显存、计算和通信问题", "因为题库要求", "因为所有策略互斥", "因为 Pod 不能超过 1 个"],
+            answer: 0,
+            explain: "超大模型通常需要多维度切分才能跑起来并跑得快。"
+          },
+          {
+            text: "EP 主要服务于哪类模型结构？",
+            options: ["MoE 专家模型", "普通单机脚本", "HTML 表格", "K8s 日志插件"],
+            answer: 0,
+            explain: "EP 会把不同专家分布到不同 GPU 或 rank 上。"
+          },
+          {
+            text: "显存压力不只来自参数，还来自什么？",
+            options: ["激活值、梯度、优化器状态、临时 buffer", "页面标题", "用户点击次数", "Pod 名字颜色"],
+            answer: 0,
+            explain: "理解显存组成，才能解释为什么模型参数没满也可能 OOM。"
+          }
+        ]
+      },
+      {
+        concepts: [
+          ["collective", "多个 rank 共同参与的通信操作。"],
+          ["通信 timeline", "用时间线观察通信算子何时发生、耗时多长。"]
+        ],
+        questions: [
+          {
+            text: "AllGather 更像什么？",
+            options: ["每人拿一片，最后大家拼完整", "大家求平均", "每个人给每个人发不同数据", "一个人发给所有人"],
+            answer: 0,
+            explain: "AllGather 常用于把分片重新聚合成完整视图。"
+          },
+          {
+            text: "ReduceScatter 更像什么？",
+            options: ["先汇总，再切分给大家", "只广播一个人的数据", "只写本地日志", "只做前向计算"],
+            answer: 0,
+            explain: "它常和 ZeRO/FSDP 等切分训练状态的策略相关。"
+          },
+          {
+            text: "collective 通信最怕哪类问题？",
+            options: ["部分 rank 没进入同一通信或进入顺序不一致", "页面按钮太少", "题目太简单", "浏览器窗口太大"],
+            answer: 0,
+            explain: "多个 rank 必须按预期协作，否则可能报错或 Hang。"
+          }
+        ]
+      },
+      {
+        concepts: [
+          ["GPU-NIC 亲和", "GPU 到网卡路径会影响跨机通信效率。"],
+          ["机架/交换机域", "跨机距离和交换路径会影响通信延迟和带宽。"]
+        ],
+        questions: [
+          {
+            text: "GPU-NIC 亲和性为什么重要？",
+            options: ["GPU 到网卡路径不同会影响跨机通信效率", "因为它决定网页字体", "因为它决定题目顺序", "因为它能改变模型语义"],
+            answer: 0,
+            explain: "GPU 走到合适网卡的路径越理想，通信性能越稳定。"
+          },
+          {
+            text: "跨机训练为什么关注机架和交换机域？",
+            options: ["不同物理距离和网络路径会影响带宽、延迟和故障域", "因为机架决定 loss 函数", "因为交换机运行 PyTorch", "因为 Pod 只能在交换机里运行"],
+            answer: 0,
+            explain: "大规模训练的网络拓扑会直接影响通信阶段。"
+          },
+          {
+            text: "TP 组最好放在哪里？",
+            options: ["尽量放在高速互联更好的 GPU 组内", "随机跨越所有机房", "只放在 CPU 上", "放到浏览器缓存里"],
+            answer: 0,
+            explain: "TP 组内通信频繁，拓扑越近越稳。"
+          }
+        ]
+      },
+      {
+        concepts: [
+          ["Launcher", "负责按训练配置拉起多进程、多节点任务。"],
+          ["Resume", "任务失败或中断后从 checkpoint 恢复。"]
+        ],
+        questions: [
+          {
+            text: "Launcher 在训练平台里常做什么？",
+            options: ["按配置拉起多节点多进程训练", "计算 Transformer 注意力", "生产 GPU 芯片", "渲染 HTML 动画"],
+            answer: 0,
+            explain: "Launcher 把训练配置转成实际进程启动和环境设置。"
+          },
+          {
+            text: "Resume 能力依赖什么？",
+            options: ["可靠 checkpoint 和任务状态管理", "页面刷新动画", "题目排序", "CSS 变量"],
+            answer: 0,
+            explain: "没有可用 checkpoint 和状态管理，恢复训练就不可靠。"
+          },
+          {
+            text: "训练框架问题和平台问题怎么初步区分？",
+            options: ["看问题发生在算法/并行实现，还是任务生命周期/调度/监控诊断", "所有问题都算平台", "所有问题都算框架", "按文件名长短判断"],
+            answer: 0,
+            explain: "分层判断能减少扯皮，也能更快找到证据。"
+          }
+        ]
+      },
+      {
+        concepts: [
+          ["根因域", "硬件、网络、数据、框架、调度、拓扑等可能的归因范围。"],
+          ["止损", "发现坏趋势时及时降级、暂停、迁移或终止，减少资源浪费。"]
+        ],
+        questions: [
+          {
+            text: "任务起不来，优先看哪些根因域？",
+            options: ["调度、镜像、权限、驱动和环境", "MoE 专家分布", "模型评估指标", "页面截图大小"],
+            answer: 0,
+            explain: "起不来常发生在资源、环境和启动阶段。"
+          },
+          {
+            text: "效果异常但任务没挂，应该关注什么？",
+            options: ["数据、学习率、梯度、配置、eval 口径", "只看 GPU 温度", "只看 Pod 数量", "只看浏览器按钮"],
+            answer: 0,
+            explain: "效果异常常不是硬件故障，而是训练语义和配置问题。"
+          },
+          {
+            text: "稳定性平台的止损能力解决什么问题？",
+            options: ["发现明显异常后减少继续烧算力和扩大影响", "自动把所有题答对", "修改浏览器历史", "让模型不需要数据"],
+            answer: 0,
+            explain: "大训练成本高，及时止损是稳定性产品的重要能力。"
+          }
+        ]
+      }
+    ];
+
+    levelExpansions.forEach((expansion, index) => {
+      levels[index].concepts.push(...expansion.concepts);
+      levels[index].questions.push(...expansion.questions);
+    });
+
+    const learningExpansions = [
+      {
+        concepts: [
+          ["参数更新", "模型能力变化来自参数被一点点更新，而不是显存里临时数据变多。"],
+          ["系统视角", "训练任务要同时看算法语义和运行底座。"],
+          ["学习信号", "loss 和梯度是模型知道自己该怎么改的信号。"]
+        ],
+        questions: [
+          {
+            text: "如果有人说“训练就是把知识写进显存”，你会怎么纠正？",
+            options: ["显存只是临时承载参数、激活和梯度；训练真正改变的是模型参数", "这句话完全正确，显存越大知识越多", "训练只会改变数据集，不会改变模型", "显存只负责网络通信，和训练无关"],
+            answer: 0,
+            explain: "显存是运行时空间；训练通过 loss 和梯度更新参数，参数才是长期承载模型能力的核心。"
+          },
+          {
+            text: "为什么“loss 下降”不等于“系统一定健康”？",
+            options: ["loss 是学习信号，系统健康还要看 step time、错误、资源、通信和数据链路", "loss 下降说明所有 GPU 温度都正常", "loss 下降说明没有慢 rank", "loss 下降说明 checkpoint 一定成功"],
+            answer: 0,
+            explain: "训练效果和运行稳定性是两类观察面；效果正常也可能存在性能浪费或隐藏风险。"
+          },
+          {
+            text: "看到训练慢时，最有学习价值的问题是什么？",
+            options: ["慢发生在数据、计算、通信、更新还是调度启动阶段？", "哪个按钮颜色更像训练？", "是不是所有慢都等于 GPU 坏？", "能不能直接跳过所有日志？"],
+            answer: 0,
+            explain: "先把总现象拆成阶段，才能把术语和真实诊断连接起来。"
+          },
+          {
+            text: "为什么小白先学训练闭环，比先背 CUDA/NCCL 更稳？",
+            options: ["闭环能说明数据、loss、梯度、更新的因果关系，再去看底层工具更容易定位作用", "CUDA/NCCL 没有任何用", "闭环只适用于单机训练", "背术语一定能解决所有故障"],
+            answer: 0,
+            explain: "工具名只是实现层，训练闭环能先建立问题地图。"
+          },
+          {
+            text: "“训练稳定性”里的稳定，通常不只指什么？",
+            options: ["不只是不崩溃，还包括跑得稳、可恢复、可诊断、效果不异常", "只指页面不会刷新", "只指 loss 必须永远下降", "只指 GPU 数量不能变化"],
+            answer: 0,
+            explain: "大训练的稳定性包含可用性、性能、可观测、恢复和效果风险。"
+          },
+          {
+            text: "如果一个任务每步都能更新参数，但偶尔 step time 抖动很大，应该怎么理解？",
+            options: ["训练逻辑能跑，但运行系统可能有数据、通信、资源争用或 checkpoint 抖动", "只要能更新参数就完全没问题", "step time 和训练成本无关", "这一定是 tokenizer 语法错误"],
+            answer: 0,
+            explain: "学习是否推进和推进成本是否稳定，是两个都要看的维度。"
+          }
+        ]
+      },
+      {
+        concepts: [
+          ["资源域", "CPU、RAM、GPU、网卡、磁盘各自形成不同排查域。"],
+          ["机内互联", "同一 Node 内 GPU 之间也有不同互联质量。"],
+          ["独享与共享", "GPU 常独享，但 CPU、RAM、网卡、磁盘可能共享。"]
+        ],
+        questions: [
+          {
+            text: "为什么“我只申请 GPU”这个说法不完整？",
+            options: ["训练还依赖 CPU、RAM、网卡、磁盘、驱动和容器运行环境", "训练完全不需要 CPU", "申请 GPU 会自动独占整台机器所有资源", "只要 GPU 够多，数据就会自动变干净"],
+            answer: 0,
+            explain: "GPU 是主力计算资源，但训练链路不是只有 GPU。"
+          },
+          {
+            text: "HBM 不足时，常见表现更接近哪一个？",
+            options: ["OOM、batch 受限，或需要切分参数/激活/优化器状态", "网络重传自动消失", "Pod 数量自动减少", "loss 一定变成 0"],
+            answer: 0,
+            explain: "HBM 承载训练时的关键张量，显存压力会限制模型规模和 batch。"
+          },
+          {
+            text: "如果 GPU 温度高导致降频，它最直接影响什么？",
+            options: ["计算阶段变慢，可能拖长 step time 并形成慢 rank", "题目选项顺序", "K8s 命名空间", "训练数据语义"],
+            answer: 0,
+            explain: "降频会让同样计算花更久，分布式同步时会拖慢其他 rank。"
+          },
+          {
+            text: "Node 内 8 张 GPU 都在同一台机器里，是否代表通信成本完全一样？",
+            options: ["不一定，GPU 间可能经过 NVLink/NVSwitch/PCIe 等不同路径", "一定完全一样", "同机 GPU 永远不通信", "同机通信只走 HTTP"],
+            answer: 0,
+            explain: "机内拓扑也会影响通信性能，不是只要同机就万事大吉。"
+          },
+          {
+            text: "为什么 CPU run queue 值高可能影响训练？",
+            options: ["CPU 任务排队会拖慢数据预处理、tokenizer 或训练进程调度", "run queue 只影响网页动画", "CPU 忙会让 GPU 显存变大", "run queue 高说明网络一定更快"],
+            answer: 0,
+            explain: "CPU 是数据和进程调度的重要底座，排队严重会让 GPU 等。"
+          },
+          {
+            text: "一个 Node 上多个任务共享网卡时，哪种现象最合理？",
+            options: ["跨机同步或数据读取可能抖动，GPU 看起来在等", "所有任务都会自动变快", "NCCL 不再需要网络", "HBM 自动翻倍"],
+            answer: 0,
+            explain: "共享网络资源会引入带宽、延迟和重传风险。"
+          }
+        ]
+      },
+      {
+        concepts: [
+          ["迁移成本", "换卡会影响镜像、框架、算子、监控、诊断和运维经验。"],
+          ["生态绑定", "硬件型号经常绑定特定 runtime、通信库和 profile 工具。"],
+          ["性能曲线", "峰值算力不等于真实训练吞吐。"]
+        ],
+        questions: [
+          {
+            text: "为什么不能只拿 TFLOPS 判断哪张卡训练更快？",
+            options: ["真实吞吐还受显存、互联、通信库、框架 kernel、数据供给影响", "TFLOPS 越高 loss 一定越低", "TFLOPS 会决定 Pod 名称", "训练完全不使用通信"],
+            answer: 0,
+            explain: "峰值算力只是一个维度，训练是系统吞吐。"
+          },
+          {
+            text: "把 NVIDIA 生态任务迁到昇腾/AMD 时，最容易被低估的是什么？",
+            options: ["runtime、通信库、算子兼容、监控和诊断工具的适配成本", "HTML 文件大小", "题目字体", "浏览器缓存策略"],
+            answer: 0,
+            explain: "换生态是工程迁移，不是只改一行设备名。"
+          },
+          {
+            text: "“NPU/TPU/GPU 只是名字不同”这个说法哪里不稳？",
+            options: ["不同硬件背后有不同编译执行、通信、监控和框架生态", "它们都不能训练模型", "它们都只能当 CPU 用", "它们都没有显存或片上内存"],
+            answer: 0,
+            explain: "抽象上都是加速器，但工程生态差异很大。"
+          },
+          {
+            text: "为什么同一个模型在不同卡上可能需要不同 profile 方法？",
+            options: ["厂商工具链、kernel 命名、时间线和可见指标可能不同", "profile 只能在浏览器里做", "不同卡不能记录耗时", "profile 与硬件无关"],
+            answer: 0,
+            explain: "诊断工具本身也是厂商生态的一部分。"
+          },
+          {
+            text: "如果产品层要支持多厂商训练稳定性，最关键的设计原则是什么？",
+            options: ["统一问题语言，保留厂商证据插件化", "把所有指标强行改成同一个名字且不解释", "只展示 NVIDIA 名词", "隐藏所有底层证据"],
+            answer: 0,
+            explain: "用户需要统一体验，但定位时必须能下钻到真实生态证据。"
+          },
+          {
+            text: "“混用不同厂商卡做大训练”最可能带来哪类学习点？",
+            options: ["慢 rank、通信不兼容、精度差异和诊断困难", "自动获得两倍准确率", "不再需要调度", "训练数据自动清洗"],
+            answer: 0,
+            explain: "大训练追求一致性，异构混用会增加性能和诊断复杂度。"
+          }
+        ]
+      },
+      {
+        concepts: [
+          ["数据供给链路", "远端存储、网络、CPU/RAM、dataloader 共同决定 GPU 是否吃饱。"],
+          ["等待不是空闲", "GPU 利用率低常常意味着在等待别的阶段。"],
+          ["证据闭环", "现象要落到指标、日志、profile 或拓扑证据上。"]
+        ],
+        questions: [
+          {
+            text: "如果 GPU 利用率周期性掉到很低，但没有报错，优先学习哪个方向？",
+            options: ["是否存在 dataloader、I/O、checkpoint 或通信等待", "一定是 loss 函数错了", "一定是页面没刷新", "一定不需要任何排查"],
+            answer: 0,
+            explain: "周期性低利用率常见于供给或同步阶段等待。"
+          },
+          {
+            text: "为什么“GPU 利用率高”也不一定代表训练效率最优？",
+            options: ["还要看有效吞吐、step time、通信占比、是否在做有用计算", "利用率高说明没有任何通信", "利用率高说明数据质量一定高", "利用率高说明 checkpoint 一定快"],
+            answer: 0,
+            explain: "忙不等于高效，忙在哪里、产出多少也要看。"
+          },
+          {
+            text: "远端存储变慢，最容易先影响哪类阶段？",
+            options: ["数据读取和 checkpoint 读写", "模型层内矩阵切分", "rank 编号生成", "CUDA 安装路径"],
+            answer: 0,
+            explain: "存储慢通常体现在 I/O 相关阶段，而不是直接改变模型结构。"
+          },
+          {
+            text: "如果某个任务只用 GPU0，为什么仍可能被别的任务影响？",
+            options: ["CPU、RAM、网卡、本地盘等资源仍可能共享", "因为 GPU0 会自动共享 HBM 给所有任务", "因为 rank 必须共享同一个 loss", "因为所有任务共用一个 Python 变量"],
+            answer: 0,
+            explain: "独享某张 GPU 不等于独享整台机器。"
+          },
+          {
+            text: "定位资源瓶颈时，最不应该做的是哪一个？",
+            options: ["看到一个指标异常就直接定根因，不看时间线和上下文", "把 step 拆阶段", "对齐 GPU 利用率和 dataloader timeline", "看网络重传和通信耗时"],
+            answer: 0,
+            explain: "单点指标很容易误导，诊断要做时间和证据对齐。"
+          },
+          {
+            text: "为什么训练平台要把资源共享情况做可视化？",
+            options: ["帮助解释慢是否来自邻居任务、共享瓶颈或调度放置", "为了让题目更多", "为了替代所有日志", "为了改变模型参数"],
+            answer: 0,
+            explain: "资源争用是稳定性和成本问题，需要能被看见。"
+          }
+        ]
+      },
+      {
+        concepts: [
+          ["错误域", "报错位置不等于根因位置。"],
+          ["抽象层", "训练代码、框架、runtime、通信库、驱动、硬件分属不同层。"],
+          ["可替换接口", "产品应把底层工具能力抽象成统一采集接口。"]
+        ],
+        questions: [
+          {
+            text: "NCCL 报错出现在日志里，为什么不能立刻等同于“网卡坏了”？",
+            options: ["NCCL 只是暴露通信失败，根因可能是 rank、拓扑、网络、驱动或调用顺序", "NCCL 只负责网页", "NCCL 报错一定是 loss 太低", "NCCL 不会和网络有关"],
+            answer: 0,
+            explain: "错误出现层和根因层可能不同。"
+          },
+          {
+            text: "runtime 和 driver 的区别，哪个说法更准确？",
+            options: ["driver 更贴近硬件，runtime 给上层框架提供执行能力", "runtime 是网页动画，driver 是题库", "二者完全等价", "二者都只表示 Pod"],
+            answer: 0,
+            explain: "分清层级有助于判断问题是环境、驱动还是框架调用。"
+          },
+          {
+            text: "为什么监控工具要同时看利用率、显存、温度、功耗、错误事件？",
+            options: ["单一指标无法覆盖性能、容量和健康状态", "因为这些指标都代表 loss", "因为越多指标越不需要解释", "因为它们能替代训练代码"],
+            answer: 0,
+            explain: "设备健康和性能需要多维证据。"
+          },
+          {
+            text: "如果一个生态没有 DCGM，产品能力应该怎么设计？",
+            options: ["用统一设备健康模型接入该生态对应工具，而不是要求它也叫 DCGM", "直接不支持这类卡", "把所有指标写成 0", "只展示静态说明"],
+            answer: 0,
+            explain: "统一抽象加适配层，才适合多厂商稳定性平台。"
+          },
+          {
+            text: "profile 工具最适合回答什么问题？",
+            options: ["时间花在数据、计算、通信、内存或 kernel 的哪里", "模型是否有商业价值", "用户是否喜欢页面颜色", "训练数据是否合法"],
+            answer: 0,
+            explain: "profile 是性能拆解工具，不是业务价值评估工具。"
+          },
+          {
+            text: "为什么同一个“通信慢”要同时看 NCCL timeline 和网络指标？",
+            options: ["timeline 看到训练视角耗时，网络指标看到链路视角证据", "二者完全重复没必要", "NCCL timeline 会修改交换机配置", "网络指标能直接告诉模型参数"],
+            answer: 0,
+            explain: "跨层对齐证据，比只看单层更可靠。"
+          }
+        ]
+      },
+      {
+        concepts: [
+          ["生命周期", "创建、排队、调度、启动、运行、恢复、结束都属于任务生命周期。"],
+          ["调度约束", "资源、亲和性、拓扑、配额和优先级都会影响放置结果。"],
+          ["启动阶段", "镜像、环境、权限、驱动、挂载错误常发生在启动前后。"]
+        ],
+        questions: [
+          {
+            text: "一个训练任务长时间 Pending，最应该先看什么？",
+            options: ["资源是否足够、配额/优先级、调度约束是否过严", "loss 是否下降", "梯度是否爆炸", "网页是否有动画"],
+            answer: 0,
+            explain: "Pending 是调度阶段问题，还没进入训练语义。"
+          },
+          {
+            text: "Pod 启动失败和训练中途 Hang，为什么不是同一类问题？",
+            options: ["前者多在环境/镜像/权限/调度，后者多在运行时进程/通信/资源状态", "二者都只看模型准确率", "二者都只能靠重启解决", "二者都不需要日志"],
+            answer: 0,
+            explain: "先判断生命周期阶段，再决定看哪类证据。"
+          },
+          {
+            text: "为什么大训练平台不让用户手动登录几百台机器启动进程？",
+            options: ["平台需要统一调度、配置、拉起、监控、恢复和权限控制", "手动登录会让模型变小", "GPU 不支持远程登录", "K8s 只能管理单机"],
+            answer: 0,
+            explain: "平台化是为了规模化和可治理。"
+          },
+          {
+            text: "调度时考虑“同一训练组尽量放近一点”，主要为了什么？",
+            options: ["降低通信成本和拓扑不确定性", "让题目更少", "让 loss 直接归零", "减少 HTML 文件大小"],
+            answer: 0,
+            explain: "放置策略会影响后续通信性能。"
+          },
+          {
+            text: "Pod 里多个 worker 的设计，最需要额外注意什么？",
+            options: ["进程到 GPU/local rank 的绑定关系是否清晰", "页面是否全屏", "题目是否随机", "浏览器是否支持深色模式"],
+            answer: 0,
+            explain: "多个进程共享一个 Pod 时，映射关系更容易混乱。"
+          },
+          {
+            text: "为什么训练平台要记录 Job -> Pod -> Node 的映射历史？",
+            options: ["事后排查慢、失败、坏卡和拓扑问题时需要复原运行现场", "为了生成更长的标题", "为了替代模型 checkpoint", "为了改变 tokenizer"],
+            answer: 0,
+            explain: "稳定性诊断依赖现场证据，映射历史是关键索引。"
+          }
+        ]
+      },
+      {
+        concepts: [
+          ["映射链", "trace/日志里的 rank 要能映射到进程、Pod、Node、GPU。"],
+          ["身份与资源", "rank 是身份，GPU/Node 是资源实体。"],
+          ["局部与全局", "local rank 解决本机绑定，global rank 解决全局协作。"]
+        ],
+        questions: [
+          {
+            text: "为什么“rank7 慢”这句话还不够定位问题？",
+            options: ["还要知道 rank7 在哪个 Pod、Node、GPU、拓扑位置和时间段", "rank7 一定不存在", "rank7 一定是 CPU", "rank7 慢只可能是网页问题"],
+            answer: 0,
+            explain: "rank 是进程编号，要落到资源实体才能继续排查。"
+          },
+          {
+            text: "local rank 最常用于解决什么问题？",
+            options: ["当前机器/Pod 内进程绑定哪张 GPU", "全局训练一共有多少 step", "模型参数有多少层", "数据集有多少 token"],
+            answer: 0,
+            explain: "local rank 常和 CUDA_VISIBLE_DEVICES 等本地绑定逻辑相关。"
+          },
+          {
+            text: "world size 变化会直接影响什么？",
+            options: ["参与分布式协作的 rank 总数，以及 batch/通信组等配置", "页面背景颜色", "训练数据语言", "浏览器缓存大小"],
+            answer: 0,
+            explain: "world size 是分布式训练配置里的核心规模参数。"
+          },
+          {
+            text: "为什么 rank group 是理解并行策略的关键？",
+            options: ["同一批 rank 会按 DP/TP/PP/EP 关系组成不同通信组", "rank group 只影响页面排序", "rank group 不参与通信", "rank group 只表示数据集分片"],
+            answer: 0,
+            explain: "不同并行维度对应不同组内通信。"
+          },
+          {
+            text: "如果两个 rank 误绑定到同一张 GPU，可能发生什么？",
+            options: ["显存竞争、性能异常，甚至 OOM 或调度配置错误", "global batch 自动翻倍", "网络延迟自动下降", "loss 必然更好"],
+            answer: 0,
+            explain: "绑定错误会让资源隔离和性能假设失效。"
+          },
+          {
+            text: "为什么排障系统要展示 rank 到 GPU 的映射，而不是只展示 rank 列表？",
+            options: ["用户需要把训练进程异常连接到设备和机器证据", "rank 列表越短越好看", "GPU 信息和训练无关", "展示 GPU 会改变答案"],
+            answer: 0,
+            explain: "映射是从训练语义走向基础设施证据的桥。"
+          }
+        ]
+      },
+      {
+        concepts: [
+          ["micro batch", "流水并行或累积中更小的批次单位。"],
+          ["激活值", "forward 中间结果，backward 需要用，显存占用很大。"],
+          ["更新频率", "梯度累积会降低参数更新频率，但扩大有效 batch。"]
+        ],
+        questions: [
+          {
+            text: "为什么 global batch 变大不一定总是好事？",
+            options: ["可能影响收敛、泛化、显存和通信，还要调学习率等超参", "global batch 越大 loss 必然越低", "global batch 只影响网页", "global batch 大就不需要数据"],
+            answer: 0,
+            explain: "batch 是训练语义和系统资源之间的连接点。"
+          },
+          {
+            text: "激活值为什么会影响显存？",
+            options: ["forward 的中间结果 backward 还要用，不能都立刻丢掉", "激活值只存在 CPU 日志里", "激活值是 Pod 名称", "激活值不会随 batch 改变"],
+            answer: 0,
+            explain: "大模型训练显存压力很大一部分来自激活值。"
+          },
+          {
+            text: "梯度累积 4 次再更新，意味着什么？",
+            options: ["做多次 forward/backward 后合并梯度，再执行一次 optimizer step", "每次 forward 都立即更新参数 4 次", "不再需要 backward", "world size 自动变成 4"],
+            answer: 0,
+            explain: "梯度累积改变的是更新节奏和有效 batch。"
+          },
+          {
+            text: "为什么 optimizer 阶段也可能慢？",
+            options: ["参数和优化器状态规模大，更新与状态读写成本高", "optimizer 只负责页面按钮", "optimizer 不接触参数", "optimizer 只在 checkpoint 时运行"],
+            answer: 0,
+            explain: "大模型参数多，优化器状态也大，更新不是免费操作。"
+          },
+          {
+            text: "如果 loss 突然 NaN，更应该先想到什么？",
+            options: ["数值稳定、学习率、梯度爆炸、数据异常或精度配置", "网卡名字太短", "页面滚动太快", "Pod 数一定太多"],
+            answer: 0,
+            explain: "NaN 是训练语义/数值问题的强信号，但也要结合数据和配置。"
+          },
+          {
+            text: "为什么 step 不是“一条样本”？",
+            options: ["step 通常处理一个 global batch，并完成一次参数更新", "step 只表示一张 GPU", "step 是网络协议", "step 是调度队列"],
+            answer: 0,
+            explain: "step 是训练循环的更新单位，不是单个样本。"
+          }
+        ]
+      },
+      {
+        concepts: [
+          ["有效吞吐", "单位时间真正完成的样本/token/step，而不是单个资源利用率。"],
+          ["同步等待", "分布式训练的快进程经常要等慢进程。"],
+          ["批量公式", "global batch = data parallel size × local batch × accumulation。"]
+        ],
+        questions: [
+          {
+            text: "为什么只看单卡 TFLOPS 不够评估训练吞吐？",
+            options: ["还要看数据供给、通信等待、同步效率和整体 step time", "TFLOPS 就等于最终效果", "TFLOPS 会自动包含所有 I/O", "TFLOPS 能解释所有 NaN"],
+            answer: 0,
+            explain: "训练吞吐是端到端指标，不是单卡计算峰值。"
+          },
+          {
+            text: "如果 7 张 GPU 很快、1 张 GPU 很慢，DP 同步会怎样？",
+            options: ["快的 7 张会在同步点等待慢的那张", "慢的那张会被自动忽略", "global batch 自动减少", "训练不再更新参数"],
+            answer: 0,
+            explain: "同步并行最怕尾部慢点。"
+          },
+          {
+            text: "为什么 local batch 太小也可能不理想？",
+            options: ["可能让硬件吃不满，通信和调度开销占比变高", "一定会 OOM", "一定让 loss 为 NaN", "一定让 Node 消失"],
+            answer: 0,
+            explain: "batch 太小可能吞吐低，但太大又会有显存和收敛风险。"
+          },
+          {
+            text: "梯度同步慢时，哪个观察最能帮助学习定位？",
+            options: ["各 rank 到达同步点的时间和通信算子耗时", "页面标题", "题目数量", "浏览器语言"],
+            answer: 0,
+            explain: "要区分是某 rank 计算慢，还是通信本身慢。"
+          },
+          {
+            text: "为什么“多加 GPU”不一定线性提速？",
+            options: ["通信、同步、数据供给和并行效率会产生额外开销", "GPU 越多模型越小", "GPU 越多数据越少", "GPU 越多就不需要 optimizer"],
+            answer: 0,
+            explain: "分布式扩展有并行效率，不是简单线性。"
+          },
+          {
+            text: "global batch 调大后，为什么常要重新调学习率？",
+            options: ["batch 改变梯度估计和优化动态，超参可能需要匹配", "学习率只和页面颜色有关", "学习率会自动归零", "batch 和训练语义无关"],
+            answer: 0,
+            explain: "这是训练算法语义，不只是系统资源配置。"
+          }
+        ]
+      },
+      {
+        concepts: [
+          ["并行维度", "不同并行策略切的是不同对象。"],
+          ["通信模式", "切法决定通信算子的频率和形态。"],
+          ["负载均衡", "EP/MoE 中专家负载不均会影响性能。"]
+        ],
+        questions: [
+          {
+            text: "为什么 TP 不是“把不同层放到不同 GPU”？",
+            options: ["TP 切的是同一层内部的张量/矩阵计算，PP 才更像切层", "TP 完全不切模型", "TP 只切数据", "TP 是 checkpoint 名称"],
+            answer: 0,
+            explain: "TP 和 PP 容易混，关键看切的是层内还是层间。"
+          },
+          {
+            text: "EP/MoE 的性能为什么可能不稳定？",
+            options: ["token 路由到专家可能不均，All-to-All 通信也很重", "EP 不需要通信", "MoE 没有参数", "专家只运行在 CPU"],
+            answer: 0,
+            explain: "专家负载和通信模式都会影响 step time。"
+          },
+          {
+            text: "FSDP/ZeRO 为什么会引入 AllGather/ReduceScatter 这类通信？",
+            options: ["训练状态被切分，需要在计算前后聚合或分发", "因为它们只负责网页渲染", "因为它们不保存参数", "因为它们替代数据集"],
+            answer: 0,
+            explain: "切分状态节省显存，但会增加通信和调度复杂度。"
+          },
+          {
+            text: "组合 DP+TP+PP 时，排查慢为什么更难？",
+            options: ["同一个 step 内有多种通信组和阶段，慢点可能来自不同维度", "因为组合并行没有日志", "因为所有 rank 都不通信", "因为模型不再有 loss"],
+            answer: 0,
+            explain: "多维并行需要把 rank group 和 step 阶段一起看。"
+          },
+          {
+            text: "为什么 PP 会有 pipeline bubble？",
+            options: ["流水线不同 stage 需要等待填充和排空，部分设备会空等", "因为 GPU 温度太低", "因为 loss 太平滑", "因为 Pod 名称重复"],
+            answer: 0,
+            explain: "PP 的吞吐受流水线调度和 micro batch 数影响。"
+          },
+          {
+            text: "选择并行策略时，最应该平衡什么？",
+            options: ["显存、计算、通信、实现复杂度和收敛影响", "页面长度和按钮数量", "文件名和标题", "浏览器和截图"],
+            answer: 0,
+            explain: "并行策略是算法和系统共同权衡。"
+          }
+        ]
+      },
+      {
+        concepts: [
+          ["顺序一致性", "collective 调用顺序不一致可能导致卡住。"],
+          ["通信占比", "通信耗时占 step time 的比例是性能诊断关键。"],
+          ["重传/丢包", "网络异常会放大到训练同步阶段。"]
+        ],
+        questions: [
+          {
+            text: "为什么 collective 调用顺序不一致容易 Hang？",
+            options: ["不同 rank 等待的通信操作对不上，大家互相等不到", "因为页面没有刷新", "因为 loss 太低", "因为 HBM 太大"],
+            answer: 0,
+            explain: "collective 要求参与者和顺序匹配。"
+          },
+          {
+            text: "AllReduce 慢时，不一定说明什么？",
+            options: ["不一定说明模型代码错；也可能是网络、拓扑、慢 rank 或通信库问题", "一定是页面错误", "一定不需要看任何日志", "一定是 global batch 太小"],
+            answer: 0,
+            explain: "通信慢需要跨层证据。"
+          },
+          {
+            text: "Broadcast 更像哪种通信？",
+            options: ["一个 rank 把数据发给其他 rank", "所有 rank 互相发不同数据", "大家求平均", "先汇总再切分"],
+            answer: 0,
+            explain: "Broadcast 常用于参数初始化等一发多收场景。"
+          },
+          {
+            text: "通信占比很高，通常意味着什么学习方向？",
+            options: ["并行策略、拓扑、网络或通信库效率需要重点看", "模型一定没有参数", "训练一定没有数据", "GPU 一定不工作"],
+            answer: 0,
+            explain: "通信占比高会限制扩展效率。"
+          },
+          {
+            text: "All-to-All 比 AllReduce 更容易让人头疼的点是什么？",
+            options: ["每个 rank 给每个 rank 发不同数据，流量模式更复杂", "它完全没有网络流量", "它只用于单机 CPU", "它一定比所有操作都快"],
+            answer: 0,
+            explain: "MoE/EP 中 All-to-All 的复杂流量模式很容易形成长尾。"
+          },
+          {
+            text: "为什么通信问题要按 rank 维度看，而不是只看任务总耗时？",
+            options: ["慢点常常来自少数 rank 或某个通信组", "rank 维度和通信无关", "总耗时能自动定位所有根因", "只看总耗时能知道是哪根网线"],
+            answer: 0,
+            explain: "rank 维度能暴露长尾和局部异常。"
+          }
+        ]
+      },
+      {
+        concepts: [
+          ["近邻通信", "高频通信组尽量放在更近、更快的互联域内。"],
+          ["拓扑证据", "GPU 拓扑图、NIC 亲和、交换路径都是证据。"],
+          ["故障域", "同机、同架、同交换机域会形成不同影响范围。"]
+        ],
+        questions: [
+          {
+            text: "为什么 TP 组跨机器放置通常风险更高？",
+            options: ["TP 高频层内通信跨机器会增加延迟和带宽压力", "TP 不需要 GPU", "TP 只看数据集", "TP 跨机器会让模型变小"],
+            answer: 0,
+            explain: "高频通信越远，性能越容易受影响。"
+          },
+          {
+            text: "GPU 拓扑图最能帮助回答什么？",
+            options: ["哪些 GPU/NIC 路径更近，通信是否走了慢路", "模型语义是否正确", "题目是否够难", "用户是否完成关卡"],
+            answer: 0,
+            explain: "拓扑图是把慢通信落到物理/逻辑连接的证据。"
+          },
+          {
+            text: "如果同一训练任务跨多个交换机域，应该关注什么？",
+            options: ["跨域带宽、延迟、拥塞和故障影响范围", "页面背景色", "题目选项位置", "localStorage key"],
+            answer: 0,
+            explain: "网络域会影响通信性能和故障传播。"
+          },
+          {
+            text: "为什么拓扑问题常常表现为“不是所有 rank 都慢”？",
+            options: ["只有走慢路径或处在差拓扑位置的 rank/组会成为长尾", "拓扑只影响浏览器", "拓扑会让所有 rank 完全一样", "拓扑不影响通信"],
+            answer: 0,
+            explain: "拓扑差异通常是局部的，会形成 rank 级长尾。"
+          },
+          {
+            text: "GPU-NIC 亲和差时，可能出现什么？",
+            options: ["跨机通信绕路，带宽低或延迟高", "模型参数自动减少", "dataloader 不再读取数据", "loss 永远不变"],
+            answer: 0,
+            explain: "亲和性影响 GPU 到网络出口的路径。"
+          },
+          {
+            text: "学习拓扑时，最应该避免哪个误解？",
+            options: ["以为只要 GPU 数量相同，通信性能就一定相同", "看 GPU 和 NIC 的连接关系", "比较机内和跨机路径", "把 rank 映射到设备位置"],
+            answer: 0,
+            explain: "数量相同不代表路径和互联质量相同。"
+          }
+        ]
+      },
+      {
+        concepts: [
+          ["框架边界", "框架解决训练实现，平台解决任务治理。"],
+          ["配置面", "并行、batch、checkpoint、容错、环境变量都需要配置治理。"],
+          ["诊断入口", "平台要把分散证据组织成可操作入口。"]
+        ],
+        questions: [
+          {
+            text: "为什么 DeepSpeed/Megatron 不能替代训练平台？",
+            options: ["它们偏训练优化和并行实现，平台还要做调度、监控、恢复、权限和诊断", "它们不能训练模型", "它们只负责浏览器动画", "它们会删除所有 Pod"],
+            answer: 0,
+            explain: "框架和平台是不同层的能力。"
+          },
+          {
+            text: "Launcher 配置错误可能导致什么？",
+            options: ["rank 数、环境变量、启动命令或通信配置错误，任务起不来或跑异常", "页面图标变大", "模型自动更聪明", "GPU 不再需要驱动"],
+            answer: 0,
+            explain: "Launcher 是多进程训练落地的关键环节。"
+          },
+          {
+            text: "为什么平台要管理 checkpoint 和 resume？",
+            options: ["大训练失败成本高，需要能从可靠状态恢复", "checkpoint 只用于页面截图", "resume 会让模型不再训练", "平台不需要知道任务状态"],
+            answer: 0,
+            explain: "恢复能力直接关系到成本和可用性。"
+          },
+          {
+            text: "训练框架魔改后，稳定性平台要额外注意什么？",
+            options: ["日志语义、指标埋点、profile 标记和错误分类可能变了", "HTML 必须重写", "GPU 型号一定改变", "数据集一定变小"],
+            answer: 0,
+            explain: "框架定制会影响可观测和诊断语义。"
+          },
+          {
+            text: "为什么平台诊断入口不能只给一堆原始日志？",
+            options: ["用户需要按阶段、rank、资源和根因域组织后的证据", "日志越乱越专业", "原始日志会自动回答所有问题", "诊断入口只负责下载文件"],
+            answer: 0,
+            explain: "好的诊断产品要把证据变成可行动线索。"
+          },
+          {
+            text: "如果 PyTorch 层报错，为什么还要看平台上下文？",
+            options: ["错误可能由环境、数据、资源、启动配置或分布式上下文触发", "PyTorch 报错永远只归模型作者", "平台上下文没有任何信息", "看平台会改变错误"],
+            answer: 0,
+            explain: "上层报错也可能被底层条件触发。"
+          }
+        ]
+      },
+      {
+        concepts: [
+          ["分阶段诊断", "先定位生命周期阶段，再定位根因域。"],
+          ["效果稳定性", "任务没挂也可能因为数据、超参、梯度导致效果异常。"],
+          ["成本意识", "慢和反复失败都会消耗昂贵算力。"]
+        ],
+        questions: [
+          {
+            text: "为什么“任务没失败”不等于“训练稳定”？",
+            options: ["还可能跑得慢、成本高、不可恢复、效果异常或诊断证据缺失", "没失败就一定最优", "没失败就没有通信", "没失败就不需要 checkpoint"],
+            answer: 0,
+            explain: "稳定性不是二值状态，而是一组运行质量指标。"
+          },
+          {
+            text: "慢、Hang、失败三个现象里，哪个最需要时间线证据？",
+            options: ["都需要，时间线能把阶段、rank、资源和事件串起来", "只有页面加载需要", "只有题目答错需要", "都不需要"],
+            answer: 0,
+            explain: "没有时间线，很难判断先后因果。"
+          },
+          {
+            text: "效果异常时，为什么不能只查 GPU？",
+            options: ["数据、学习率、精度、梯度、评估口径都可能导致效果问题", "GPU 永远不会影响效果", "效果异常只由 CSS 造成", "查 GPU 会删除数据"],
+            answer: 0,
+            explain: "效果问题更多落在训练语义和数据/配置，但也要排除系统异常。"
+          },
+          {
+            text: "止损策略什么时候有价值？",
+            options: ["当任务明显异常且继续运行只会扩大成本或影响时", "当任务刚开始正常下降 loss 时", "当用户想看更多题目时", "当页面滚动到底时"],
+            answer: 0,
+            explain: "大训练资源贵，及时止损是工程价值。"
+          },
+          {
+            text: "一个好的稳定性结论应该长什么样？",
+            options: ["现象 + 阶段 + 证据 + 可能根因 + 下一步动作", "只有一句“可能有问题”", "只贴一张截图", "只说重启试试"],
+            answer: 0,
+            explain: "排障结论要能支持行动，而不是只描述情绪。"
+          },
+          {
+            text: "为什么要把慢 rank、通信、数据、设备健康放在同一个诊断视图里？",
+            options: ["训练问题经常跨层，需要把证据对齐到同一条任务时间线", "为了页面更复杂", "为了隐藏根因", "为了减少学习内容"],
+            answer: 0,
+            explain: "跨层证据对齐是从现象走向根因的关键。"
+          }
+        ]
+      }
+    ];
+
+    learningExpansions.forEach((expansion, index) => {
+      levels[index].concepts.push(...expansion.concepts);
+      levels[index].questions.push(...expansion.questions);
+    });
+
+    const studyGuides = [
+      {
+        principle: "先把训练看成一个循环，而不是一堆术语：数据进入模型，模型预测，loss 衡量错多少，backward 把责任分回参数，optimizer 再更新参数。",
+        diagram: ["data", "forward", "loss", "backward", "optimizer", "next step"],
+        trap: "常见误解是把显存、参数、数据混成一件事。显存是运行空间，参数才是被长期更新的对象。",
+        think: "答题时优先问：这个说法是在描述训练语义、运行资源，还是排障证据？",
+        misconceptions: [
+          "显存越大，模型已经学到的知识就越多",
+          "loss 下降就足以证明训练系统完全健康",
+          "训练稳定性主要由模型代码决定，基础设施只是背景",
+          "只要 step 能继续，step time 抖动就不值得关注",
+          "先从工具报错名入手，再回看训练阶段和系统证据"
+        ],
+        trueSignals: [
+          "forward 负责预测，backward 负责计算梯度",
+          "optimizer 更新参数，而不是更新训练数据",
+          "step time 能把学习成本暴露出来",
+          "loss 是学习信号，不是系统健康证明"
+        ]
+      },
+      {
+        principle: "Node 是一台完整训练服务器，GPU 只是其中最显眼的计算部件；CPU、RAM、网卡、本地盘和驱动也会影响 GPU 是否能持续工作。",
+        diagram: ["Node", "CPU/RAM", "GPU/HBM", "NIC", "disk", "driver"],
+        trap: "常见误解是把“申请 GPU”理解成“独占整台机器”。很多训练瓶颈来自共享资源，而不是 GPU 算力本身。",
+        think: "看到某张卡慢，先把它落到 Node、资源共享、设备健康和机内互联路径上。",
+        misconceptions: [
+          "申请到 GPU 就等于独占了整台 Node 的 CPU、网卡和磁盘",
+          "同一台 8 卡机器里的任意两张 GPU 通信成本都完全一样",
+          "HBM 只影响模型能不能加载，不影响 batch 和激活值",
+          "CPU 忙通常不会影响 GPU 训练，因为矩阵计算在 GPU 上",
+          "设备健康事件只有报错时才有意义，降频不影响训练吞吐"
+        ],
+        trueSignals: [
+          "HBM 不足会限制 batch、激活和优化器状态",
+          "CPU run queue 高可能让 GPU 等数据",
+          "网卡共享可能影响跨机同步和远端数据读取",
+          "温度、功耗、ECC、XID 都是设备健康证据"
+        ]
+      },
+      {
+        principle: "加速卡不是孤立硬件，而是一整套生态：runtime、kernel、通信库、监控、profile 和框架适配共同决定真实训练体验。",
+        diagram: ["accelerator", "runtime", "kernel", "comm lib", "monitor", "profile"],
+        trap: "只比较峰值算力会误导判断。大模型训练的真实瓶颈可能在显存、互联、通信库、算子覆盖或工具链。",
+        think: "遇到“换卡”问题，先问：训练框架、通信、监控和排障工具是否一起迁移？",
+        misconceptions: [
+          "不同厂商加速卡只是名字不同，训练框架一般无需适配",
+          "TFLOPS 越高，端到端训练吞吐就一定越高",
+          "profile 工具看到的时间线在所有厂商生态里完全一致",
+          "多厂商稳定性平台应该把所有底层指标强行改成同一套名字",
+          "异构混用加速卡通常能自动提升训练稳定性"
+        ],
+        trueSignals: [
+          "同一问题语言可以统一，底层证据需要生态适配",
+          "精度支持和通信库会影响可用策略",
+          "换硬件也会换诊断工具链",
+          "峰值算力不能替代端到端吞吐"
+        ]
+      },
+      {
+        principle: "GPU 利用率低经常不是 GPU 自己坏，而是 GPU 在等数据、等通信、等 checkpoint 或等其他 rank。",
+        diagram: ["storage", "dataloader", "GPU compute", "sync", "checkpoint"],
+        trap: "单点指标很容易误导。利用率、step time、timeline、I/O、网络和共享资源要对齐到同一段时间看。",
+        think: "看到慢，先问慢发生在数据供给、计算、通信、更新还是 checkpoint。",
+        misconceptions: [
+          "GPU 利用率高就等于训练效率最优",
+          "GPU 利用率低通常只能说明 GPU 硬件故障",
+          "远端存储慢主要会改变模型结构，而不是影响 I/O 阶段",
+          "只用 GPU0 的任务不会受到 CPU、网卡或本地盘共享影响",
+          "看到一个指标异常就可以直接定根因"
+        ],
+        trueSignals: [
+          "dataloader timeline 能解释 GPU 等数据",
+          "checkpoint 慢要看存储吞吐和写入路径",
+          "网络重传和通信 timeline 要一起看",
+          "资源争用需要结合邻居任务和时间线"
+        ]
+      },
+      {
+        principle: "错误出现在哪一层，不代表根因就在哪一层。训练代码、框架、runtime、通信库、驱动和硬件要分层判断。",
+        diagram: ["training code", "framework", "runtime", "comm lib", "driver", "device"],
+        trap: "看到 NCCL、CUDA、DCGM 这类名字时，不要把工具名当根因；它们通常只是暴露某个层面的证据。",
+        think: "答题时问：这个工具负责采集、执行、通信，还是训练算法本身？",
+        misconceptions: [
+          "NCCL 报错就可以直接判定网卡坏了",
+          "runtime 和 driver 是同一层东西，排障时不用区分",
+          "监控指标越多就越不需要解释指标之间的关系",
+          "没有 DCGM 的生态就无法接入设备健康能力",
+          "profile 主要回答模型有没有商业价值"
+        ],
+        trueSignals: [
+          "driver 更靠近硬件，runtime 给框架提供执行能力",
+          "DCGM/NVML 偏设备监控，不决定学习率",
+          "profile 适合拆解时间花在哪里",
+          "通信问题要把训练 timeline 和链路指标对齐"
+        ]
+      },
+      {
+        principle: "训练任务有生命周期：创建、排队、调度、启动、运行、恢复和结束。不同阶段的问题要看不同证据。",
+        diagram: ["submit", "pending", "schedule", "start", "run", "recover"],
+        trap: "Pending、启动失败、运行中 Hang 不是一类问题。先定位生命周期阶段，再看资源、镜像、权限、驱动或通信。",
+        think: "看到失败，先问：它还没启动，刚启动，还是运行一段时间后出问题？",
+        misconceptions: [
+          "Pending 时优先看 loss 和梯度是否异常",
+          "Pod 启动失败和训练中途 Hang 可以按同一种方式排查",
+          "大训练平台主要只是替用户登录机器执行命令",
+          "训练组放置距离对通信性能影响不大",
+          "Pod 里多个 worker 不需要关心进程到 GPU 的绑定关系"
+        ],
+        trueSignals: [
+          "Pending 先看资源、配额和调度约束",
+          "启动失败常见于镜像、权限、挂载、驱动",
+          "运行中 Hang 常见于通信、rank 状态或资源异常",
+          "Job/Pod/Node 映射历史是排障现场"
+        ]
+      },
+      {
+        principle: "rank 是训练进程身份，不是机器本身。要把 rank 映射到 worker、Pod、Node、GPU 和拓扑位置，排障才落地。",
+        diagram: ["global rank", "local rank", "worker", "Pod", "Node", "GPU"],
+        trap: "“rank7 慢”只是训练视角的现象；真正排障要知道 rank7 跑在哪里、绑定哪张卡、属于哪个通信组。",
+        think: "任何 rank 问题都要补三件事：位置、资源、通信组。",
+        misconceptions: [
+          "知道 rank 编号就足够定位慢点，不必映射到资源",
+          "local rank 描述的是全局 step 数，而不是本机 GPU 绑定",
+          "world size 只影响页面展示，不影响 batch 和通信组",
+          "rank group 只是列表排序，不参与并行策略",
+          "两个 rank 绑定同一张 GPU 一般不会影响性能"
+        ],
+        trueSignals: [
+          "global rank 全任务唯一，local rank 用于本机绑定",
+          "rank group 对应 DP/TP/PP/EP 等通信关系",
+          "rank 到 GPU 的映射能连接训练现象和设备证据",
+          "world size 是分布式规模配置"
+        ]
+      },
+      {
+        principle: "batch、step、loss、梯度把训练语义和系统资源连接起来：batch 影响显存和吞吐，step 暴露端到端成本。",
+        diagram: ["local batch", "forward", "activation", "backward", "grad", "update"],
+        trap: "global batch 不是越大越好；显存压力也不只来自参数，还来自激活、梯度和优化器状态。",
+        think: "遇到 batch/step 问题，分别问收敛、显存、通信和更新频率。",
+        misconceptions: [
+          "global batch 越大，训练效果和系统吞吐一定越好",
+          "激活值 forward 后就可以全部丢掉，不会影响显存",
+          "梯度累积意味着每次 forward 都会立即更新参数",
+          "optimizer 阶段只改一个很小的状态，通常不会慢",
+          "step 就是一条样本，不是一次训练循环单位"
+        ],
+        trueSignals: [
+          "激活值 backward 还要用，会占显存",
+          "梯度累积改变更新节奏和有效 batch",
+          "optimizer state 在大模型里很重",
+          "NaN 要看数值稳定、数据、学习率和精度"
+        ]
+      },
+      {
+        principle: "多 GPU 的速度取决于端到端吞吐，不是单卡峰值。同步点会让快 rank 等慢 rank，尾延迟会放大全局 step time。",
+        diagram: ["local batch", "compute", "sync point", "all ranks wait", "global update"],
+        trap: "多加 GPU 不一定线性提速。通信、同步、数据供给和并行效率都会吃掉收益。",
+        think: "看到多卡训练慢，先区分是某些 rank 到得晚，还是通信本身慢。",
+        misconceptions: [
+          "只看单卡 TFLOPS 就能评估多卡训练吞吐",
+          "DP 中某张 GPU 慢时，其他 GPU 可以自动跳过它继续更新",
+          "local batch 越小越安全，也一定越高效",
+          "梯度同步慢只说明通信库有问题，和 rank 到达时间无关",
+          "GPU 数量翻倍，训练速度通常必然翻倍"
+        ],
+        trueSignals: [
+          "DP 通常各看不同 local batch，再同步梯度",
+          "同步点会放大慢 rank 的影响",
+          "local batch 影响单卡显存和计算效率",
+          "global batch 变化可能需要重新调学习率"
+        ]
+      },
+      {
+        principle: "并行策略切的对象不同：DP 切数据，TP 切层内张量，PP 切层，EP 切专家，FSDP/ZeRO 切训练状态。",
+        diagram: ["DP data", "TP tensor", "PP layers", "EP experts", "FSDP state"],
+        trap: "策略名称不是背诵题，关键是知道它为了省什么、增加了什么通信、在哪些 rank group 里发生。",
+        think: "每看到一个并行策略，都问：切什么、通信什么、省什么、代价是什么？",
+        misconceptions: [
+          "TP 就是把不同 Transformer 层放到不同 GPU",
+          "EP/MoE 不需要关注负载均衡，因为专家天然平均",
+          "FSDP/ZeRO 只省显存，不会引入额外通信",
+          "组合并行会让排障更简单，因为通信组更少",
+          "PP 没有 pipeline bubble，只要 stage 数够多就满载"
+        ],
+        trueSignals: [
+          "TP 切同一层内部张量，PP 更像切层",
+          "EP/MoE 常见 All-to-All 和专家负载不均",
+          "FSDP/ZeRO 用通信换显存",
+          "组合并行要看多个 rank group 和阶段"
+        ]
+      },
+      {
+        principle: "collective 是多 rank 一起参与的通信操作。参与者、顺序、数据形态不一致，都可能导致慢、错或 Hang。",
+        diagram: ["rank group", "collective", "network", "timeline", "sync"],
+        trap: "通信慢不是一个单层结论。可能是调用顺序、慢 rank、拓扑、网络、通信库或并行策略共同作用。",
+        think: "答通信题时先分清通信算子的流量形态：一发多收、求平均、拼完整、先聚合再切分、每人给每人发。",
+        misconceptions: [
+          "collective 调用顺序不一致也没关系，库会自动猜测意图",
+          "AllReduce 慢一定说明模型代码写错",
+          "Broadcast 是所有 rank 互相发送不同数据",
+          "通信占比高通常说明 GPU 完全不工作",
+          "All-to-All 没有网络流量，所以比 AllReduce 简单"
+        ],
+        trueSignals: [
+          "AllGather 像每人拿一片，最后大家拼完整",
+          "ReduceScatter 像先汇总，再切分给大家",
+          "AllReduce 慢要看网络、拓扑、慢 rank 和通信库",
+          "rank 维度能暴露局部长尾"
+        ]
+      },
+      {
+        principle: "拓扑决定通信路径。GPU 到 GPU、GPU 到 NIC、同机、跨机、跨机架、跨交换机域的成本都不同。",
+        diagram: ["GPU", "NVLink/NVSwitch", "NIC", "rack", "switch", "cluster"],
+        trap: "GPU 数量相同不代表通信性能相同。路径、亲和性、交换域和故障域都会影响慢 rank。",
+        think: "遇到拓扑题，先把高频通信组放到最近的互联域里想。",
+        misconceptions: [
+          "TP 组跨机器放置一般不会增加风险",
+          "只要 GPU 数量相同，通信性能就应当完全相同",
+          "跨多个交换机域只影响运维视角，不影响训练 step",
+          "GPU-NIC 亲和差只影响监控展示，不影响通信路径",
+          "拓扑问题一定会让所有 rank 同时一样慢"
+        ],
+        trueSignals: [
+          "GPU 拓扑图能暴露慢路和近邻关系",
+          "GPU-NIC 亲和影响跨机出口路径",
+          "跨域带宽、延迟和拥塞会影响通信",
+          "局部差拓扑常形成少数慢 rank"
+        ]
+      },
+      {
+        principle: "训练框架负责怎么训，训练平台负责怎么跑、怎么管、怎么恢复、怎么诊断。两层有交叉，但不能互相替代。",
+        diagram: ["PyTorch", "Megatron/DeepSpeed", "launcher", "scheduler", "monitor", "diagnosis"],
+        trap: "框架报错不一定只是模型作者的问题；平台上下文、环境变量、启动配置和分布式状态都可能触发上层报错。",
+        think: "先判断问题发生在算法实现、并行配置、任务生命周期，还是平台治理能力。",
+        misconceptions: [
+          "DeepSpeed/Megatron 已经能替代训练平台的调度、监控和恢复",
+          "Launcher 配置错误只会影响页面展示，不会影响 rank 和环境变量",
+          "checkpoint 主要用于截图，不是恢复训练的关键",
+          "框架魔改不会影响日志语义、指标埋点和 profile 标记",
+          "诊断入口只给原始日志就够，用户自己能自动串起来"
+        ],
+        trueSignals: [
+          "Launcher 把配置落成多节点多进程启动",
+          "Resume 依赖可靠 checkpoint 和状态管理",
+          "平台要组织证据，而不是只堆日志",
+          "PyTorch 报错也可能由环境和分布式上下文触发"
+        ]
+      },
+      {
+        principle: "稳定性排障要从现象走到阶段，再走到证据和根因域。慢、Hang、失败、效果异常对应的证据集合不同。",
+        diagram: ["symptom", "stage", "evidence", "root domain", "next action"],
+        trap: "“没失败”不等于稳定，“重启试试”也不是结论。好的结论要能支持下一步动作和成本止损。",
+        think: "每道题都尝试输出：现象 + 阶段 + 证据 + 可能根因 + 下一步。",
+        misconceptions: [
+          "任务没有失败就说明训练已经稳定",
+          "慢、Hang、失败里只有失败需要时间线证据",
+          "效果异常时只查 GPU 设备就够了",
+          "止损策略只适合任务已经完全失败之后",
+          "好的稳定性结论只需要一句“可能有问题”"
+        ],
+        trueSignals: [
+          "任务起不来优先看调度、镜像、权限、驱动和环境",
+          "效果异常要看数据、学习率、精度、梯度和 eval 口径",
+          "时间线能串起阶段、rank、资源和事件",
+          "结论要包含证据和下一步动作"
+        ]
+      }
+    ];
+
+    const genericMisconceptions = [
+      "先看单点指标，再决定是否需要时间线对齐",
+      "先用训练代码解释现象，系统证据只作为补充",
+      "先按常见规模套用经验，异常时再回看具体配置",
+      "先用报错工具名定位大方向，再补齐上下游证据",
+      "先确认任务是否报错，再进一步看性能和成本"
+    ];
+
+    const materialCoverage = [
+      [
+        ["训练闭环", "数据进入模型、forward、loss、backward、optimizer 更新参数。"],
+        ["复杂性来源", "硬件、厂商软件栈、集群调度、训练进程和模型算法共同构成系统。"],
+        ["稳定性入口", "不要先盯模型代码，要先知道任务跑在哪些机器和资源上。"]
+      ],
+      [
+        ["资源表", "GPU/HBM/CPU/RAM/网卡/本地盘各自有独享或共享属性。"],
+        ["共享影响", "CPU、RAM、网卡、本地盘可能被旁边任务抢占。"],
+        ["设备健康", "坏卡、降频、ECC、XID、显存不足都会影响训练。"]
+      ],
+      [
+        ["厂商生态", "NVIDIA/AMD/昇腾/TPU/国内厂商各有 runtime、通信库和监控工具。"],
+        ["型号边界", "A100/H100 是卡型号，GB200 NVL72 更接近高密互联形态。"],
+        ["迁移成本", "换卡不是只换算力，还会换框架兼容、诊断工具和运维经验。"]
+      ],
+      [
+        ["数据路径", "远端存储到网卡，再经 CPU/RAM 和 dataloader 到 GPU/HBM。"],
+        ["慢点证据", "CPU run queue、I/O 延迟、网络重传、NCCL timeline 都是证据。"],
+        ["邻居任务", "只用 GPU0 也可能被共享 CPU、网卡、磁盘拖慢。"]
+      ],
+      [
+        ["计算/通信", "CUDA/CANN/ROCm/XLA 管执行，NCCL/HCCL/RCCL 管多卡通信。"],
+        ["监控接口", "DCGM/NVML/npu-smi/rocm-smi 提供利用率、温度、ECC、XID 等证据。"],
+        ["工程原则", "上层问题模型统一，底层采集按厂商生态适配。"]
+      ],
+      [
+        ["生命周期", "用户创建任务后，平台把 Job 拆成 Pod 并调度到 Node。"],
+        ["关系边界", "Job:Pod、Pod:Node、Node:GPU、Pod:GPU 都是常见关系，不是绝对关系。"],
+        ["worker 区分", "Pod 是调度单元，worker 是训练进程，二者不能混同。"]
+      ],
+      [
+        ["rank 身份", "worker 是进程，rank 是分布式训练里的编号。"],
+        ["local/global", "global rank 全任务唯一，local rank 是本机或本 Pod 内编号。"],
+        ["映射例外", "大训练常见 1 rank=1 GPU，但 MIG、调试、小任务可能不同。"]
+      ],
+      [
+        ["step 内部", "一个 step 通常包含 dataloader、forward、loss、backward、同步、optimizer。"],
+        ["样本/token", "sample 是训练样本，token 是 tokenizer 切出的基本单位。"],
+        ["结束口径", "大模型预训练常按 step/token/算力预算结束，不一定按 epoch。"]
+      ],
+      [
+        ["批量公式", "global batch = data parallel size × local batch × gradient accumulation。"],
+        ["同步等待", "数据并行中快 rank 要等慢 rank 后再统一更新。"],
+        ["扩展效率", "多加 GPU 不一定线性提速，通信和数据供给会吃掉收益。"]
+      ],
+      [
+        ["切分对象", "DP 切数据，TP 切层内矩阵，PP 切层，EP 切专家，FSDP/ZeRO 切训练状态。"],
+        ["组合并行", "这些策略经常组合，不是互斥选择。"],
+        ["代价意识", "省显存或省计算常常会换来额外通信和排障复杂度。"]
+      ],
+      [
+        ["通信模式", "AllReduce 求平均，AllGather 拼完整，ReduceScatter 汇总再切分。"],
+        ["场景映射", "DP 常用 AllReduce，FSDP/ZeRO 常见 AllGather/ReduceScatter，MoE/EP 常见 All-to-All。"],
+        ["Hang 风险", "collective 需要多 rank 同步参与，一个 rank 异常会卡住整体。"]
+      ],
+      [
+        ["通信层级", "HBM、同机 NVLink/NVSwitch/PCIe、跨机 IB/RoCE 成本不同。"],
+        ["拓扑不完整", "期望高速互联的一组 GPU 实际分散或走慢路。"],
+        ["TP/EP 敏感", "层内交换和专家重分发频繁，因此更怕差拓扑。"]
+      ],
+      [
+        ["框架分层", "PyTorch/JAX 是基础框架，Megatron/DeepSpeed/FSDP 是大模型训练能力，平台管生命周期。"],
+        ["平台职责", "QS/K8s/Slurm/Launcher 负责创建、调度、监控、诊断、止损和恢复。"],
+        ["魔改影响", "训练框架常被魔改，日志语义、指标埋点和 profile 标记会变。"]
+      ],
+      [
+        ["现象分类", "起不来、启动后失败、运行中挂掉、跑得慢、Hang、效果异常对应不同根因域。"],
+        ["profile 拆解", "数据读取、forward、backward、通信、optimizer/checkpoint/eval/log 要分阶段看。"],
+        ["最终关系", "慢、Hang、失败和效果异常来自硬件、通信、数据、框架、调度、拓扑的组合。"]
+      ]
+    ];
+
+    const contextualDistractorPools = [
+      {
+        match: /step time|抖动|跑得慢|慢|吞吐|利用率|dataloader|checkpoint|同步|尾延迟|效率/,
+        items: [
+          "只要参数还在更新，可以先把 step time 抖动当成普通性能优化",
+          "先看 loss 是否正常下降，再决定要不要拆数据、通信和 checkpoint 阶段",
+          "把 step time 抖动主要归因于模型代码，不必先看资源争用时间线",
+          "只看平均 step time 就够了，少数慢 rank 的尾延迟可以先忽略",
+          "如果 GPU 利用率不低，就可以暂时不看 dataloader 和 checkpoint"
+        ]
+      },
+      {
+        match: /loss|NaN|学习率|梯度|收敛|效果|eval|评估|精度/,
+        items: [
+          "loss 正常下降时，系统侧慢点通常可以暂时不进入诊断",
+          "效果异常优先归因于 GPU 状态，数据和学习率可以后置",
+          "NaN 先按硬件异常处理，数值稳定和精度配置不是第一视角",
+          "梯度异常只说明模型结构有问题，不需要看数据和配置变更",
+          "评估口径只影响报表，不会影响对训练效果异常的判断"
+        ]
+      },
+      {
+        match: /GPU|显存|HBM|温度|功耗|ECC|XID|降频|卡|Node|CPU|RAM|网卡|磁盘|I\/O|存储/,
+        items: [
+          "先看 GPU 利用率和显存，CPU、网卡和本地盘可以作为后续补充",
+          "只要没有 XID 或 ECC，设备健康一般不会影响 step time",
+          "同一台 Node 里的 GPU 可以先默认拓扑和共享资源都一致",
+          "HBM 没打满时，batch、激活和 optimizer state 通常不是问题",
+          "温度和功耗更像硬件巡检指标，不必和训练时间线对齐"
+        ]
+      },
+      {
+        match: /NCCL|AllReduce|AllGather|ReduceScatter|Broadcast|All-to-All|通信|网络|拓扑|NIC|交换机|IB|RoCE|NVLink|NVSwitch/,
+        items: [
+          "看到通信耗时高时，先把问题收敛到通信库本身",
+          "AllReduce 慢主要看网络指标，rank 到达同步点的时间可以后置",
+          "拓扑信息只影响资源展示，不必参与通信慢的解释",
+          "只要通信算子名字一样，不同 rank group 的上下文差异可以忽略",
+          "跨机网络指标正常时，就不需要再看 GPU-NIC 亲和和局部慢 rank"
+        ]
+      },
+      {
+        match: /Pod|Job|调度|Pending|Launcher|K8s|worker|rank|world size|local rank|global rank|进程|绑定/,
+        items: [
+          "先看 Job 是否还在运行，Pod、Node、rank 的映射可以后补",
+          "local rank 主要用于全局排序，和本机 GPU 绑定关系不大",
+          "world size 改变只影响规模展示，对 batch 和通信组影响较小",
+          "Launcher 配置可以先按平台问题处理，不必回看 rank 和环境变量",
+          "慢 rank 先看日志里的编号，暂时不需要落到 GPU 和 Node"
+        ]
+      },
+      {
+        match: /DP|TP|PP|EP|FSDP|ZeRO|并行|MoE|expert|专家|pipeline|bubble|状态|参数|激活/,
+        items: [
+          "先按一种并行策略解释慢点，组合并行里的其他通信组可以后看",
+          "FSDP/ZeRO 主要解决显存，新增通信通常不是第一诊断对象",
+          "TP 和 PP 都是在切模型，可以先不区分层内还是层间",
+          "MoE 的专家负载不均主要影响效果，对 step time 影响有限",
+          "pipeline bubble 可以先看作正常空等，不必和 micro batch 配置关联"
+        ]
+      },
+      {
+        match: /平台|框架|PyTorch|Megatron|DeepSpeed|Resume|checkpoint|诊断|日志|监控|证据|止损|稳定性|Hang|失败/,
+        items: [
+          "先把框架报错交给模型代码定位，平台上下文可以作为补充",
+          "原始日志足够专业，诊断入口不必再按阶段和证据组织",
+          "任务没失败时，止损和恢复能力可以暂时不算稳定性问题",
+          "checkpoint 成功只影响恢复，不需要放进运行稳定性视角",
+          "Hang 没有明确报错时，可以先不做 rank 和通信时间线分析"
+        ]
+      }
+    ];
+
+    function isNegationQuestion(text) {
+      return /不应该|不能|不一定|不只|不负责|哪里不稳|误解|避免/.test(text);
+    }
+
+    function optionLooksTooObvious(option) {
+      const fakeUiDistractor = /页面|HTML|浏览器|题目|CSS|昵称|按钮|截图|文件名|滚动|头像|颜色|圆角|图标|title|localStorage/.test(option);
+      const emptyAbsolute = /一定|必然|必须|永远|完全|无关|没有任何|不能训练|不会影响|不受影响|不需要任何|不需要看|不用区分|无需适配|天然平均|自动归零|自动翻倍|自动变快|自动清洗|自动获得|自动忽略|自动减少|自动下降|自动扩容|自动关机|自动替代/.test(option);
+      const jokeAction = /所有数据一次性|让 CPU 替代|替代所有|只把模型部署|只负责显示|只负责网页|只负责页面|只用于单机 CPU|只运行在 CPU|只在 CPU|只在浏览器|只看浏览器|只读本地文件|只写日志|只生产|只渲染|只展示静态|删除|禁用通信|跳过所有|改页面|先背工具名/.test(option);
+      return fakeUiDistractor || emptyAbsolute || jokeAction;
+    }
+
+    function isLowValueQuestion(question) {
+      return /小白记忆|哪句话更适合.*记忆/.test(question.text || "");
+    }
+
+    function seededSwapIndex(seed, upperBound) {
+      const raw = Math.sin(seed * 9301 + 49297) * 233280;
+      return Math.abs(Math.floor(raw)) % upperBound;
+    }
+
+    function shuffleQuestionOptions(question, seed) {
+      const correctOption = question.options[question.answer];
+      const options = question.options.map((text, originalIndex) => ({ text, originalIndex }));
+      for (let index = options.length - 1; index > 0; index -= 1) {
+        const swapIndex = seededSwapIndex(seed + index, index + 1);
+        [options[index], options[swapIndex]] = [options[swapIndex], options[index]];
+      }
+      question.options = options.map(option => option.text);
+      question.answer = question.options.indexOf(correctOption);
+    }
+
+    function cloneQuestion(question) {
+      return {
+        ...question,
+        options: [...question.options]
+      };
+    }
+
+    function randomizeList(items) {
+      const copy = [...items];
+      for (let index = copy.length - 1; index > 0; index -= 1) {
+        const swapIndex = Math.floor(Math.random() * (index + 1));
+        [copy[index], copy[swapIndex]] = [copy[swapIndex], copy[index]];
+      }
+      return copy;
+    }
+
+    function buildBossQuestion(level, guide, levelIndex) {
+      const focuses = materialCoverage[levelIndex] || [];
+      const focusA = focuses[0]?.[1] || guide.principle;
+      const focusB = focuses[1]?.[1] || guide.trap;
+      const focusC = focuses[2]?.[1] || guide.think;
+      const correct = `先按“现象 → 阶段 → 证据 → 根因域 → 下一步”拆：${guide.think}`;
+      const used = new Set([correct]);
+      const pool = [
+        `先抓最熟悉的指标解释：${focusA}`,
+        `先按经验判断大概率原因：${focusB}`,
+        `先让用户重试一次，再看是否复现：${focusC}`,
+        ...getContextualReplacementPool({ text: level.title, options: [correct], explain: guide.trap }, guide)
+      ];
+      const options = [correct];
+      for (let index = 0; index < 3; index += 1) {
+        const item = pickReplacement(pool, used, levelIndex * 19 + index + 1) || genericMisconceptions[index];
+        used.add(item);
+        options.push(item);
+      }
+      return {
+        kind: "boss",
+        text: `Boss 场景：「${level.title}」相关问题在压测中复现，但现象横跨资源、日志和训练指标。你作为值班同学，第一版判断链路应该怎么搭？`,
+        options,
+        answer: 0,
+        explain: `Boss 题要把本关知识连成可行动链路：${guide.principle}`,
+        learning: `通关抓手：${guide.think}`,
+        trap: guide.trap
+      };
+    }
+
+    function buildCaseQuestions(level, guide, levelIndex) {
+      const focuses = materialCoverage[levelIndex] || [];
+      const f0 = focuses[0] || ["本关主线", guide.principle];
+      const f1 = focuses[1] || ["关键证据", guide.trap];
+      const f2 = focuses[2] || ["下一步", guide.think];
+      const cases = [
+        {
+          kind: "scenario",
+          text: `一个训练任务表现异常，但还没有明确报错。你第一步应该怎样把问题拆开？`,
+          correct: `先区分它是在训练语义、运行资源、通信链路、平台生命周期还是排障证据里出问题。`,
+          explain: `这题训练的是先建问题地图，再查具体证据；不要一上来抢答根因。`
+        },
+        {
+          kind: "scenario",
+          text: `值班群里只说“这个任务不稳定”，没有更多上下文。你最应该先追问什么？`,
+          correct: `先补阶段、资源/进程映射、时间线和可观察证据，再判断是否正常。`,
+          explain: `真实排障的第一步不是猜答案，而是把模糊现象切成可验证对象。`
+        },
+        {
+          kind: "review",
+          text: `复盘里只写“这次是这个知识点相关问题”。这句话为什么还不够？`,
+          correct: `它只给了概念名，没有写出现象、证据、根因域和下一步动作。`,
+          explain: `复盘要能指导下一次排查；只写概念名会让团队下次继续靠猜。`
+        },
+        {
+          kind: "scenario",
+          text: `如果要把这个知识点做成诊断入口，第一屏最应该帮助用户完成什么？`,
+          correct: `帮助用户把现象连到证据链：${f0[0]}、${f1[0]}、${f2[0]}分别提供什么线索。`,
+          explain: `诊断产品要先组织证据，让用户知道为什么该走这条排查路径。`
+        }
+      ];
+      return cases.map((item, index) => {
+        const used = new Set([item.correct]);
+        const pool = [
+          ...getContextualReplacementPool({ text: item.text, options: [item.correct], explain: item.explain }, guide),
+          ...genericMisconceptions
+        ];
+        const options = [item.correct];
+        for (let offset = 0; offset < 3; offset += 1) {
+          const wrong = pickReplacement(pool, used, levelIndex * 23 + index * 5 + offset) || genericMisconceptions[offset];
+          used.add(wrong);
+          options.push(wrong);
+        }
+        return {
+          kind: item.kind,
+          text: item.text,
+          options,
+          answer: 0,
+          explain: item.explain,
+          learning: `${guide.principle} ${guide.think}`,
+          trap: guide.trap
+        };
+      });
+    }
+
+    function buildMaterialQuestions(level, guide, levelIndex) {
+      const focuses = materialCoverage[levelIndex] || [];
+      return focuses.flatMap(([name, point], index) => {
+        const wrong = new Set([point]);
+        const pool = getContextualReplacementPool({
+          text: `${level.title} ${name} ${point}`,
+          options: [point],
+          explain: guide.trap
+        }, guide);
+        const wrongA = pickReplacement(pool, wrong, levelIndex * 31 + index * 5 + 1) || genericMisconceptions[0];
+        wrong.add(wrongA);
+        const wrongB = pickReplacement(pool, wrong, levelIndex * 31 + index * 5 + 2) || genericMisconceptions[1];
+        wrong.add(wrongB);
+        const wrongC = pickReplacement(pool, wrong, levelIndex * 31 + index * 5 + 3) || genericMisconceptions[2];
+        const base = {
+          kind: "material",
+          options: [point, wrongA, wrongB, wrongC],
+          answer: 0,
+          explain: `这个判断能帮你建立“${name}”的可用心智模型：${point}`,
+          learning: `理解锚点：${name}。${point}`,
+          trap: guide.trap
+        };
+        const scenarioLead = [
+          `刚接触「${level.title}」时，哪个理解最能帮你后面做判断？`,
+          `如果你要向新人解释「${level.title}」，下面哪句话最像可复用的心智模型？`,
+          `遇到「${level.title}」相关现象时，哪句话最能指导下一步排查？`,
+          `为了不靠背答案，学习「${level.title}」时应该先抓住哪个关系？`
+        ];
+        const appliedLead = [
+          `一个训练任务出现异常，但线索还很少。关于「${name}」，你应该先记住什么？`,
+          `把「${level.title}」放进真实排障里，哪条理解最不容易误导你？`,
+          `如果要把「${name}」变成诊断产品里的提示，哪句话最有用？`,
+          `下面哪句话不是背课文，而是真的能迁移到相似问题里？`
+        ];
+        return [
+          {
+            ...base,
+            text: scenarioLead[index % scenarioLead.length]
+          },
+          {
+            ...base,
+            text: appliedLead[index % appliedLead.length]
+          }
+        ];
+      });
+    }
+
+    function getContextualReplacementPool(question, guide) {
+      const haystack = `${question.text} ${question.options.join(" ")} ${question.explain || ""}`;
+      const matched = contextualDistractorPools.find(pool => pool.match.test(haystack));
+      if (matched) return matched.items;
+      return [...guide.misconceptions, ...genericMisconceptions];
+    }
+
+    function pickReplacement(pool, used, seed) {
+      for (let step = 0; step < pool.length; step += 1) {
+        const item = pool[(seed + step) % pool.length];
+        if (!used.has(item)) return item;
+      }
+      return null;
+    }
+
+    function inferQuestionLearning(question, guide) {
+      const haystack = `${question.text} ${question.options.join(" ")} ${question.explain || ""}`;
+      if (/step time|抖动|跑得慢|慢|吞吐|利用率|dataloader|checkpoint|同步|尾延迟/.test(haystack)) {
+        return "这道题的知识点是把“训练是否还能推进”和“推进成本是否稳定”分开看；step time 抖动要拆到数据供给、计算、通信、optimizer、checkpoint、资源争用和慢 rank。";
+      }
+      if (/loss|NaN|学习率|梯度|收敛|效果|eval|评估|精度/.test(haystack)) {
+        return "这道题的知识点是区分训练效果信号和系统运行信号：loss、梯度、NaN、学习率、eval 口径解释的是学习过程，不能直接替代资源和通信诊断。";
+      }
+      if (/GPU|显存|HBM|温度|功耗|ECC|XID|降频|卡|Node|CPU|RAM|网卡|磁盘|I\/O|存储/.test(haystack)) {
+        return "这道题的知识点是把 GPU 放回整台 Node 和数据供给链路里看：HBM、CPU、RAM、网卡、磁盘、温度、功耗和设备事件都会影响训练。";
+      }
+      if (/NCCL|AllReduce|AllGather|ReduceScatter|Broadcast|All-to-All|通信|网络|拓扑|NIC|交换机|IB|RoCE|NVLink|NVSwitch/.test(haystack)) {
+        return "这道题的知识点是通信诊断要同时看算子、rank 到达时间、网络指标、拓扑和 GPU-NIC 路径；通信库报错只是证据入口，不是完整根因。";
+      }
+      if (/Pod|Job|调度|Pending|Launcher|K8s|worker|rank|world size|local rank|global rank|进程|绑定/.test(haystack)) {
+        return "这道题的知识点是把平台对象和训练进程映射起来：Job、Pod、Node、worker、rank、GPU、world size 分属不同层，排障时要能互相定位。";
+      }
+      if (/DP|TP|PP|EP|FSDP|ZeRO|并行|MoE|expert|专家|pipeline|bubble|状态|参数|激活/.test(haystack)) {
+        return "这道题的知识点是并行策略要问清“切什么、省什么、通信什么、代价是什么”：DP 切数据，TP 切张量，PP 切层，EP 切专家，FSDP/ZeRO 切训练状态。";
+      }
+      if (/平台|框架|PyTorch|Megatron|DeepSpeed|Resume|诊断|日志|监控|证据|止损|稳定性|Hang|失败/.test(haystack)) {
+        return "这道题的知识点是先定位生命周期阶段和根因域，再组织证据：现象、阶段、rank、资源、日志、profile 和下一步动作要串成一条线。";
+      }
+      return guide.think || guide.principle;
+    }
+
+    function refineQuestionOptions() {
+      levels.forEach((level, levelIndex) => {
+        const guide = studyGuides[levelIndex] || studyGuides[0];
+        level.questions.forEach((question, qIndex) => {
+          const correct = question.options[question.answer];
+          const used = new Set([correct]);
+          const replacementPool = getContextualReplacementPool(question, guide);
+          question.options = question.options.map((option, optionIndex) => {
+            if (optionIndex === question.answer) return correct;
+            const tooObvious = optionLooksTooObvious(option);
+            const tooShort = option.length < 8;
+            const replacement = tooObvious || tooShort
+              ? pickReplacement(replacementPool, used, levelIndex * 11 + qIndex * 3 + optionIndex)
+              : option;
+            used.add(replacement || option);
+            return replacement || option;
+          });
+          question.learning = question.learning || inferQuestionLearning(question, guide);
+          question.trap = question.trap || guide.trap;
+          shuffleQuestionOptions(question, levelIndex * 97 + qIndex * 13);
+        });
+        const materialQuestions = buildMaterialQuestions(level, guide, levelIndex);
+        materialQuestions.forEach(question => {
+          shuffleQuestionOptions(question, levelIndex * 173 + question.text.length);
+        });
+        const caseQuestions = buildCaseQuestions(level, guide, levelIndex);
+        caseQuestions.forEach(question => {
+          shuffleQuestionOptions(question, levelIndex * 197 + question.text.length);
+        });
+        level.questions.push(...materialQuestions, ...caseQuestions);
+        level.questions.push(buildBossQuestion(level, guide, levelIndex));
+        level.questions = level.questions.filter(question => !isLowValueQuestion(question));
+      });
+    }
+
+    refineQuestionOptions();
+
+    const storageKey = "llmTrainingQuestProgressV2";
+    const questionsPerRun = 12;
+    const cloudProgressTable = "player_progress";
+    const cloudAnswerTable = "answer_events";
+    const state = loadState();
+    let currentLevel = Math.min(state.currentLevel || 0, levels.length - 1);
+    let currentQuestion = 0;
+    let answers = [];
+    let reviewMode = false;
+    let sessionQuestions = [];
+    let runMeta = { combo: 0, maxCombo: 0, badges: new Set(), covered: new Set() };
+    let cloudReady = false;
+    let cloudUser = null;
+    let cloudProgressId = null;
+    let cloudSaveTimer = null;
+    let cloudSaving = false;
+
+    const els = {
+      levelMap: document.getElementById("levelMap"),
+      levelKicker: document.getElementById("levelKicker"),
+      levelTitle: document.getElementById("levelTitle"),
+      levelDesc: document.getElementById("levelDesc"),
+      missionMemory: document.getElementById("missionMemory").nextElementSibling,
+      quiz: document.getElementById("quiz"),
+      progressRing: document.getElementById("progressRing"),
+      progressText: document.getElementById("progressText"),
+      principleStrip: document.getElementById("principleStrip"),
+      studyGuide: document.getElementById("studyGuide"),
+      pathStrip: document.getElementById("pathStrip"),
+      comboStat: document.getElementById("comboStat"),
+      badgeStat: document.getElementById("badgeStat"),
+      coverageStat: document.getElementById("coverageStat"),
+      prevQuestionBtn: document.getElementById("prevQuestionBtn"),
+      nextQuestionBtn: document.getElementById("nextQuestionBtn"),
+      resultBox: document.getElementById("resultBox"),
+      resultTitle: document.getElementById("resultTitle"),
+      resultCopy: document.getElementById("resultCopy"),
+      retryBtn: document.getElementById("retryBtn"),
+      nextLevelBtn: document.getElementById("nextLevelBtn"),
+      conceptList: document.getElementById("conceptList"),
+      wrongList: document.getElementById("wrongList"),
+      statStars: document.getElementById("statStars"),
+      statUnlocked: document.getElementById("statUnlocked"),
+      statWrong: document.getElementById("statWrong"),
+      mapStatus: document.getElementById("mapStatus"),
+      resetBtn: document.getElementById("resetBtn"),
+      reviewBtn: document.getElementById("reviewBtn"),
+      cloudStatus: document.getElementById("cloudStatus"),
+      toast: document.getElementById("toast")
+    };
+
+    function defaultState() {
+      return { unlocked: 1, completed: {}, wrong: [], currentLevel: 0 };
+    }
+
+    function normalizeState(input = {}) {
+      return {
+        unlocked: Math.min(levels.length, Math.max(1, Number(input.unlocked) || 1)),
+        completed: input.completed && typeof input.completed === "object" ? input.completed : {},
+        wrong: Array.isArray(input.wrong) ? input.wrong.slice(0, 30) : [],
+        currentLevel: Math.min(levels.length - 1, Math.max(0, Number(input.currentLevel) || 0))
+      };
+    }
+
+    function loadState() {
+      try {
+        const saved = JSON.parse(localStorage.getItem(storageKey) || "{}");
+        return normalizeState(saved);
+      } catch {
+        return defaultState();
+      }
+    }
+
+    function saveState() {
+      localStorage.setItem(storageKey, JSON.stringify(state));
+      scheduleCloudSave();
+    }
+
+    function setCloudStatus(copy, mode = "") {
+      if (!els.cloudStatus) return;
+      els.cloudStatus.textContent = copy;
+      els.cloudStatus.className = `cloud-status ${mode}`.trim();
+    }
+
+    function progressPayload() {
+      return {
+        progress_snapshot: state,
+        unlocked_count: state.unlocked,
+        completed_count: Object.keys(state.completed).length,
+        wrong_count: state.wrong.length,
+        current_level: state.currentLevel || currentLevel,
+        updated_at: new Date().toISOString()
+      };
+    }
+
+    function scheduleCloudSave() {
+      if (!cloudReady || cloudSaving) return;
+      window.clearTimeout(cloudSaveTimer);
+      cloudSaveTimer = window.setTimeout(syncStateToCloud, 450);
+    }
+
+    async function syncStateToCloud() {
+      if (!cloudReady || !window.SupabaseAPI) return;
+      cloudSaving = true;
+      setCloudStatus("正在同步学习进度...", "ready");
+      try {
+        const payload = progressPayload();
+        if (cloudProgressId) {
+          await SupabaseAPI.update(cloudProgressTable, { id: `eq.${cloudProgressId}` }, payload);
+        } else {
+          const { rows } = await SupabaseAPI.insert(cloudProgressTable, [payload]);
+          cloudProgressId = rows?.[0]?.id || null;
+        }
+        const who = cloudUser?.nameCn || cloudUser?.nameEn || "当前用户";
+        setCloudStatus(`云端已保存：${who}`, "ready");
+      } catch (error) {
+        console.warn("[cloud-save]", error);
+        setCloudStatus("云端保存失败，已保留本机进度", "error");
+      } finally {
+        cloudSaving = false;
+      }
+    }
+
+    async function recordAnswerEvent(question, optionIndex) {
+      if (!cloudReady || !window.SupabaseAPI) return;
+      try {
+        await SupabaseAPI.insert(cloudAnswerTable, [{
+          level_index: reviewMode ? -1 : currentLevel,
+          level_title: reviewMode ? "错题复习" : levels[currentLevel].title,
+          question_text: question.text,
+          selected_option: question.options[optionIndex],
+          correct_option: question.options[question.answer],
+          is_correct: optionIndex === question.answer,
+          review_mode: reviewMode,
+          answered_at: new Date().toISOString()
+        }]);
+      } catch (error) {
+        console.warn("[answer-event]", error);
+      }
+    }
+
+    function initCloudSync() {
+      if (!window.SupabaseAPI || typeof SupabaseAPI.onReady !== "function") {
+        setCloudStatus("本机学习进度");
+        return;
+      }
+      setCloudStatus("等待登录并加载云端进度...");
+      SupabaseAPI.onReady(async function(user) {
+        cloudReady = true;
+        cloudUser = user;
+        try {
+          const { rows } = await SupabaseAPI.query(cloudProgressTable, {
+            select: "*",
+            order: "updated_at.desc",
+            limit: 1
+          });
+          if (rows && rows.length) {
+            cloudProgressId = rows[0].id;
+            Object.assign(state, normalizeState(rows[0].progress_snapshot || {}));
+            currentLevel = Math.min(state.currentLevel || 0, levels.length - 1);
+            localStorage.setItem(storageKey, JSON.stringify(state));
+            render();
+            const who = user?.nameCn || user?.nameEn || "当前用户";
+            setCloudStatus(`已载入云端进度：${who}`, "ready");
+          } else {
+            await syncStateToCloud();
+          }
+        } catch (error) {
+          console.warn("[cloud-load]", error);
+          setCloudStatus("云端读取失败，先用本机进度", "error");
+        }
+      });
+    }
+
+    function render() {
+      reviewMode = false;
+      currentQuestion = 0;
+      sessionQuestions = createLevelRun(currentLevel);
+      answers = Array(sessionQuestions.length).fill(null);
+      runMeta = { combo: 0, maxCombo: 0, badges: new Set(), covered: new Set() };
+      els.resultBox.classList.remove("show");
+      renderMap();
+      renderLevel();
+      renderStats();
+      renderWrongList();
+    }
+
+    function renderMap() {
+      els.levelMap.innerHTML = "";
+      levels.forEach((level, index) => {
+        const button = document.createElement("button");
+        const score = state.completed[index]?.score;
+        const total = state.completed[index]?.total || levels[index].questions.length;
+        const done = score !== undefined;
+        button.type = "button";
+        button.className = "level-node" + (index === currentLevel ? " active" : "") + (done ? " done" : "");
+        button.disabled = index >= state.unlocked;
+        button.innerHTML = `
+          <span class="level-index">${done ? "✓" : index}</span>
+          <span class="level-copy"><b>${level.title}</b><span>${level.memory}</span></span>
+          <span class="stars">${done ? stars(score, total) : index < state.unlocked ? "挑战" : "锁定"}</span>
+        `;
+        button.addEventListener("click", () => {
+          currentLevel = index;
+          state.currentLevel = index;
+          saveState();
+          render();
+        });
+        els.levelMap.appendChild(button);
+      });
+      els.mapStatus.textContent = `${state.unlocked} / ${levels.length}`;
+    }
+
+    function renderLevel() {
+      const level = levels[currentLevel];
+      const guide = studyGuides[currentLevel] || studyGuides[0];
+      const focuses = materialCoverage[currentLevel] || [];
+      els.levelKicker.textContent = `Chapter ${currentLevel}`;
+      els.levelTitle.textContent = level.title;
+      els.levelDesc.textContent = level.desc;
+      els.missionMemory.textContent = level.memory;
+      els.principleStrip.innerHTML = `
+        <div class="principle-visual" aria-label="本关原理流程">
+          ${guide.diagram.map(item => `<span class="flow-node" title="${escapeHtml(item)}">${escapeHtml(item)}</span>`).join("")}
+        </div>
+        <details class="principle-hint">
+          <summary>查看判断抓手</summary>
+          <p>${escapeHtml(guide.think)} 避坑：${escapeHtml(guide.trap)}</p>
+        </details>
+      `;
+      els.studyGuide.innerHTML = `
+        <summary>展开学习材料和原理图</summary>
+        <div>
+          <h3>原理图和材料重点</h3>
+          <div class="guide-flow">${guide.diagram.map(item => `<span>${escapeHtml(item)}</span>`).join("")}</div>
+          <div class="guide-grid">
+            <div class="guide-cell"><b>原理</b><span>${escapeHtml(guide.principle)}</span></div>
+            <div class="guide-cell"><b>容易混淆</b><span>${escapeHtml(guide.trap)}</span></div>
+            <div class="guide-cell"><b>答题抓手</b><span>${escapeHtml(guide.think)}</span></div>
+            <div class="guide-cell"><b>本关目标</b><span>不是记住标准答案，而是能分清术语属于训练语义、系统资源、通信拓扑还是排障证据。</span></div>
+          </div>
+          <div class="source-focus">
+            ${focuses.map(([name, copy]) => `
+              <div class="focus-item"><b>${escapeHtml(name)}</b><span>${escapeHtml(copy)}</span></div>
+            `).join("")}
+          </div>
+        </div>
+      `;
+      els.studyGuide.open = false;
+      els.conceptList.innerHTML = level.concepts.map(([name, copy]) => `
+        <div class="concept"><b>${name}</b><span>${copy}</span></div>
+      `).join("");
+      renderQuestions(sessionQuestions);
+      updateRunHud();
+      updateQuestionVisibility();
+    }
+
+    function renderQuestions(questions) {
+      els.quiz.innerHTML = "";
+      questions.forEach((question, qIndex) => {
+        const card = document.createElement("div");
+        card.className = "question-card";
+        card.dataset.question = qIndex;
+        card.innerHTML = `
+          <div class="question-top"><span>Question ${qIndex + 1} / ${questions.length}</span><span class="question-type">${reviewMode ? "错题复习" : questionKindLabel(question)}</span></div>
+          <p class="question">${question.text}</p>
+          <div class="options"></div>
+          <div class="feedback"></div>
+        `;
+        const options = card.querySelector(".options");
+        question.options.forEach((option, optionIndex) => {
+          const button = document.createElement("button");
+          button.type = "button";
+          button.className = "option";
+          button.textContent = option;
+          button.addEventListener("click", () => answerQuestion(qIndex, optionIndex));
+          options.appendChild(button);
+        });
+        els.quiz.appendChild(card);
+      });
+    }
+
+    function updateQuestionVisibility() {
+      const total = activeQuestions().length;
+      const answeredCount = answers.filter(answer => answer !== null).length;
+      [...els.quiz.children].forEach((card, index) => {
+        card.classList.toggle("active", index === currentQuestion);
+        const answer = answers[index];
+        if (answer !== null) {
+          paintAnswer(card, activeQuestions()[index], answer);
+        }
+      });
+      els.progressRing.style.setProperty("--pct", Math.round((answeredCount / total) * 100));
+      els.progressText.textContent = `${answeredCount}/${total}`;
+      els.prevQuestionBtn.disabled = currentQuestion === 0;
+      const answered = answers[currentQuestion] !== null;
+      const isLast = currentQuestion === total - 1;
+      els.nextQuestionBtn.disabled = !answered;
+      els.nextQuestionBtn.textContent = isLast ? "结算本关" : "下一题";
+      updateRunHud();
+      renderPathStrip();
+    }
+
+    function answerQuestion(qIndex, optionIndex) {
+      if (answers[qIndex] !== null) {
+        inspectOption(qIndex, optionIndex);
+        return;
+      }
+      answers[qIndex] = optionIndex;
+      const question = activeQuestions()[qIndex];
+      const card = els.quiz.children[qIndex];
+      const good = optionIndex === question.answer;
+      updateRunMeta(question, good);
+      paintAnswer(card, question, optionIndex);
+      recordAnswerEvent(question, optionIndex);
+      if (!good) {
+        const wrongItem = {
+          level: reviewMode ? "错题复习" : levels[currentLevel].title,
+          text: question.text,
+          correct: question.options[question.answer],
+          explain: question.explain,
+          time: Date.now()
+        };
+        state.wrong = [wrongItem, ...state.wrong].slice(0, 30);
+        saveState();
+        renderWrongList();
+        renderStats();
+      }
+      updateQuestionVisibility();
+    }
+
+    function inspectOption(qIndex, optionIndex) {
+      const question = activeQuestions()[qIndex];
+      const card = els.quiz.children[qIndex];
+      paintAnswer(card, question, answers[qIndex], optionIndex);
+    }
+
+    function updateRunMeta(question, good) {
+      if (good) {
+        runMeta.combo += 1;
+        runMeta.maxCombo = Math.max(runMeta.maxCombo, runMeta.combo);
+        runMeta.badges.add(inferAbility(question));
+        const focusName = inferFocusName(question);
+        if (focusName) runMeta.covered.add(focusName);
+        if (runMeta.combo > 0 && runMeta.combo % 4 === 0) {
+          showToast(`连击 ${runMeta.combo}：这条判断链路开始成型了`);
+        }
+      } else {
+        runMeta.combo = 0;
+      }
+      updateRunHud();
+    }
+
+    function questionKindLabel(question) {
+      const labels = {
+        material: "理解热身",
+        concept: "概念辨析",
+        scenario: "场景诊断",
+        review: "复盘决策",
+        boss: "Boss 题"
+      };
+      return labels[question.kind || "concept"] || "闯关题";
+    }
+
+    function currentPathIndex() {
+      if (currentQuestion >= 11) return 3;
+      if (currentQuestion >= 8) return 2;
+      if (currentQuestion >= 3) return 1;
+      return 0;
+    }
+
+    function renderPathStrip() {
+      if (!els.pathStrip) return;
+      const current = currentPathIndex();
+      const steps = [
+        ["概念热身", "先辨析术语"],
+        ["场景诊断", "把现象拆层"],
+        ["复盘决策", "写可行动结论"],
+        ["Boss", "串完整链路"]
+      ];
+      els.pathStrip.innerHTML = steps.map(([name, copy], index) => `
+        <div class="path-step ${index < current ? "done" : index === current ? "active" : ""}" data-index="${index + 1}" title="${name}：${copy}">
+          <b>${name}</b><span>${copy}</span>
+        </div>
+      `).join("");
+    }
+
+    function inferFocusName(question) {
+      const focuses = materialCoverage[currentLevel] || [];
+      const haystack = `${question.text} ${question.explain || ""} ${question.learning || ""}`;
+      const matched = focuses.find(([name]) => haystack.includes(name));
+      if (matched) return matched[0];
+      const semantic = inferAbility(question);
+      if (/训练推进|学习信号|阶段/.test(semantic)) return focuses[0]?.[0] || "";
+      if (/GPU|Node|资源|通信/.test(semantic)) return focuses[1]?.[0] || focuses[0]?.[0] || "";
+      return "";
+    }
+
+    function updateRunHud() {
+      if (!els.comboStat) return;
+      const totalFocus = (materialCoverage[currentLevel] || []).length;
+      els.comboStat.textContent = runMeta.combo;
+      els.badgeStat.textContent = runMeta.badges.size;
+      els.coverageStat.textContent = `${runMeta.covered.size}/${totalFocus}`;
+    }
+
+    function paintAnswer(card, question, optionIndex, inspectingIndex = optionIndex) {
+      const buttons = [...card.querySelectorAll(".option")];
+      buttons.forEach((button, index) => {
+        button.disabled = false;
+        button.classList.remove("correct", "wrong", "inspecting");
+        if (index === question.answer) button.classList.add("correct");
+        if (index === optionIndex && index !== question.answer) button.classList.add("wrong");
+        if (index === inspectingIndex) button.classList.add("inspecting");
+      });
+      const feedback = card.querySelector(".feedback");
+      const good = optionIndex === question.answer;
+      feedback.className = `feedback show ${good ? "good" : "bad"}`;
+      feedback.innerHTML = inspectingIndex === optionIndex
+        ? buildFeedback(question, optionIndex, good)
+        : buildOptionInsight(question, inspectingIndex, optionIndex);
+    }
+
+    function buildFeedback(question, optionIndex, good) {
+      const selected = question.options[optionIndex];
+      const correct = question.options[question.answer];
+      if (good) {
+        return `
+          <span class="feedback-title">答对了：${escapeHtml(questionKindLabel(question))}通过</span>
+          <div class="feedback-row"><b>为什么对：</b>${escapeHtml(question.explain)}</div>
+          <div class="feedback-row"><b>关联知识点：</b>${escapeHtml(question.learning || "把这道题放回它对应的阶段、层级和证据链里看。")}</div>
+          <div class="feedback-row"><b>获得能力：</b>${escapeHtml(inferAbility(question))}</div>
+          <div class="feedback-row"><b>下一步：</b>${escapeHtml(nextLearningPrompt(question))}</div>
+        `;
+      }
+      return `
+        <span class="feedback-title">这题值得停一下：${escapeHtml(questionKindLabel(question))}</span>
+        <div class="feedback-row"><b>你选的是：</b>${escapeHtml(selected)}</div>
+        <div class="feedback-row"><b>正确理解：</b>${escapeHtml(correct)}</div>
+        <div class="feedback-row"><b>为什么容易选错：</b>${escapeHtml(explainMisconception(selected, question))}</div>
+        <div class="feedback-row"><b>纠正：</b>${escapeHtml(question.explain)}</div>
+        <div class="feedback-row"><b>关联知识点：</b>${escapeHtml(question.learning || question.trap || "不要只看词本身，要看它在哪个阶段、哪个层级、对应什么证据。")}</div>
+        <div class="feedback-row"><b>补救动作：</b>${escapeHtml(inferRemediation(question))}</div>
+      `;
+    }
+
+    function buildOptionInsight(question, inspectingIndex, originalIndex) {
+      const inspected = question.options[inspectingIndex];
+      const original = question.options[originalIndex];
+      const isCorrectOption = inspectingIndex === question.answer;
+      const originalGood = originalIndex === question.answer;
+      const title = isCorrectOption ? "你正在查看正确选项" : "你正在拆一个干扰项";
+      const compare = originalGood
+        ? "你第一次已经选对了；现在可以用其他选项练习排除法。"
+        : `你第一次选的是“${original}”，现在对照这个选项看差异。`;
+      if (isCorrectOption) {
+        return `
+          <span class="feedback-title">${escapeHtml(title)}</span>
+          <div class="feedback-row"><b>这个选项：</b>${escapeHtml(inspected)}</div>
+          <div class="feedback-row"><b>为什么它站得住：</b>${escapeHtml(question.explain)}</div>
+          <div class="feedback-row"><b>和原选择的差别：</b>${escapeHtml(compare)}</div>
+          <div class="feedback-row"><b>学习抓手：</b>${escapeHtml(question.learning || "正确选项通常回答了题目真正问的阶段、层级或证据。")}</div>
+        `;
+      }
+      return `
+        <span class="feedback-title">${escapeHtml(title)}</span>
+        <div class="feedback-row"><b>这个选项：</b>${escapeHtml(inspected)}</div>
+        <div class="feedback-row"><b>它的问题：</b>${escapeHtml(explainMisconception(inspected, question))}</div>
+        <div class="feedback-row"><b>和原选择的差别：</b>${escapeHtml(compare)}</div>
+        <div class="feedback-row"><b>排除方法：</b>${escapeHtml(optionEliminationHint(inspected, question))}</div>
+      `;
+    }
+
+    function optionEliminationHint(option, question) {
+      if (option === question.options[question.answer]) return "它能同时回答题目对象和证据链，所以不能排除。";
+      if (/只要|只看|先看|一般不会|可以先|暂时不|不必|不用|无需/.test(option)) {
+        return "警惕“只看/先看/不用看”这类收缩证据面的表达，AI Infra 题通常要跨层对齐证据。";
+      }
+      if (/一定|必然|完全|自动|都一致|线性|天然/.test(option)) {
+        return "警惕绝对化表达。训练系统里很少能只靠单个条件推出端到端结论。";
+      }
+      if (/loss|GPU|NCCL|rank|Pod|TP|FSDP|checkpoint/.test(option)) {
+        return "它抓住了一个真实名词，但名词真实不等于因果完整；继续问它缺了哪个阶段或证据。";
+      }
+      return "看它有没有回答题目问的对象：是概念定义、运行现象、证据链，还是下一步动作。";
+    }
+
+    function nextLearningPrompt(question) {
+      if (question.kind === "material") return "把这个理解迁移到后面的场景题里用一次。";
+      if (question.kind === "scenario") return "下一题继续练：先找现象，再找阶段和证据。";
+      if (question.kind === "review") return "把答案压缩成一句可放进复盘的行动结论。";
+      if (question.kind === "boss") return "你已经能把本关知识串成完整诊断链路了。";
+      return "不要背选项，记住它回答的是哪个对象和哪类证据。";
+    }
+
+    function inferAbility(question) {
+      const text = `${question.text} ${question.learning || ""}`;
+      if (/step time|抖动|吞吐|慢/.test(text)) return "能把训练推进和推进成本拆开判断。";
+      if (/loss|梯度|NaN|学习率|效果/.test(text)) return "能区分学习信号和系统健康信号。";
+      if (/GPU|显存|HBM|Node|CPU|网卡|存储/.test(text)) return "能把 GPU 问题放回整台 Node 和资源链路里看。";
+      if (/通信|NCCL|AllReduce|拓扑|NIC|网络/.test(text)) return "能把通信问题拆成算子、rank、拓扑和网络证据。";
+      if (/Pod|Job|rank|调度|Launcher|world size/.test(text)) return "能把平台对象映射到训练进程和真实资源。";
+      if (/DP|TP|PP|EP|FSDP|ZeRO|并行/.test(text)) return "能按切分对象理解并行策略的收益和代价。";
+      return "能把概念放回阶段、层级和证据链，而不是只背答案。";
+    }
+
+    function inferRemediation(question) {
+      const text = `${question.text} ${question.learning || ""}`;
+      if (/step time|抖动|吞吐|慢/.test(text)) return "回看这题时，把慢拆成数据、计算、通信、更新、checkpoint 五段。";
+      if (/loss|梯度|NaN|学习率|效果/.test(text)) return "回看这题时，先标出哪些是训练效果信号，哪些是系统运行信号。";
+      if (/GPU|显存|HBM|Node|CPU|网卡|存储/.test(text)) return "回看这题时，画出 Node 内 CPU/RAM/GPU/NIC/磁盘的依赖路径。";
+      if (/通信|NCCL|AllReduce|拓扑|NIC|网络/.test(text)) return "回看这题时，补上 rank、通信算子、拓扑和网络指标四个证据。";
+      if (/Pod|Job|rank|调度|Launcher|world size/.test(text)) return "回看这题时，把 Job、Pod、Node、rank、GPU 的映射写出来。";
+      if (/DP|TP|PP|EP|FSDP|ZeRO|并行/.test(text)) return "回看这题时，用“切什么、通信什么、省什么、代价是什么”复述一遍。";
+      return "回看这题时，先说清它问的是哪个阶段、哪个层级、哪类证据。";
+    }
+
+    function explainMisconception(selected, question) {
+      const text = selected || "";
+      if (/loss|学习率|梯度|NaN|收敛|效果/.test(text)) {
+        return "这个说法把训练效果问题和系统运行问题混在一起了；二者相关，但证据域不同。";
+      }
+      if (/GPU|显存|HBM|温度|功耗|ECC|XID|降频|卡/.test(text)) {
+        return "它把问题过早归到设备层。设备可能是根因，但还要先看数据、通信、调度和时间线证据。";
+      }
+      if (/NCCL|AllReduce|AllGather|ReduceScatter|Broadcast|通信|网络|拓扑|NIC|交换机/.test(text)) {
+        return "它只抓住通信这一层。通信是强信号，但仍要和 rank、拓扑、网络指标和训练 timeline 对齐。";
+      }
+      if (/Pod|Node|调度|Pending|Launcher|K8s|Job|worker|rank/.test(text)) {
+        return "它把平台生命周期和训练语义混为一谈。先判断任务处在哪个阶段，再决定看哪类证据。";
+      }
+      if (/显存越大|TFLOPS|峰值|数量相同|线性|自动/.test(text)) {
+        return "这是典型的单指标推断：把一个资源或数字当成端到端结果，忽略了系统链路。";
+      }
+      if (isNegationQuestion(question.text)) {
+        return "这个说法本身可能是真的，但题目问的是例外、误解或不该直接下的结论。";
+      }
+      return "它听起来像某个局部事实，但没有回答题目真正问的阶段、层级或因果关系。";
+    }
+
+    function escapeHtml(value) {
+      return String(value)
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+    }
+
+    function activeQuestions() {
+      return sessionQuestions;
+    }
+
+    function createLevelRun(levelIndex) {
+      const pool = levels[levelIndex].questions.map(cloneQuestion);
+      const shuffled = randomizeList(pool);
+      const used = new Set();
+      const take = (predicate, count) => {
+        const picked = [];
+        for (const question of shuffled) {
+          if (picked.length >= count) break;
+          if (used.has(question.text) || !predicate(question)) continue;
+          used.add(question.text);
+          picked.push(question);
+        }
+        return picked;
+      };
+      const conceptWarmup = [
+        ...take(question => question.kind === "material", 2),
+        ...take(question => !question.kind || question.kind === "concept", 2)
+      ];
+      const scenarios = take(question => question.kind === "scenario", 5);
+      const reviews = take(question => question.kind === "review", 2);
+      const boss = take(question => question.kind === "boss", 1);
+      const selected = [...conceptWarmup, ...scenarios, ...reviews, ...boss];
+      if (selected.length < questionsPerRun) {
+        const fillers = take(() => true, questionsPerRun - selected.length);
+        selected.splice(Math.max(0, selected.length - boss.length), 0, ...fillers);
+      }
+      return selected
+        .slice(0, Math.min(questionsPerRun, selected.length))
+        .map(shuffleQuestion);
+    }
+
+    function shuffleQuestion(question) {
+      const correct = question.options[question.answer];
+      const options = shuffleOptions(question.options);
+      return { ...question, options, answer: options.indexOf(correct) };
+    }
+
+    function shuffleOptions(options) {
+      const copy = [...options];
+      for (let i = copy.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [copy[i], copy[j]] = [copy[j], copy[i]];
+      }
+      return copy;
+    }
+
+    function finishLevel() {
+      const questions = activeQuestions();
+      const score = answers.reduce((sum, answer, index) => sum + (answer === questions[index].answer ? 1 : 0), 0);
+      const required = passRequirement(questions.length);
+      const passed = score >= required;
+      els.resultBox.classList.add("show");
+      if (reviewMode) {
+        els.resultTitle.textContent = `复习完成：${score}/${questions.length}`;
+        els.resultCopy.textContent = "错题复习不会改变关卡进度，但会帮你把容易混的概念重新过一遍。";
+        els.nextLevelBtn.textContent = "回到当前关";
+        els.nextLevelBtn.disabled = false;
+        return;
+      }
+      state.completed[currentLevel] = { score, total: questions.length };
+      if (passed && currentLevel + 1 >= state.unlocked) {
+        state.unlocked = Math.min(levels.length, currentLevel + 2);
+      }
+      saveState();
+      renderMap();
+      renderStats();
+      els.resultTitle.textContent = passed ? `学习完成：${stars(score, questions.length)}` : `还差一点：${score}/${questions.length}`;
+      const runReport = `本轮最大连击 ${runMeta.maxCombo}，获得 ${runMeta.badges.size} 个能力徽章，覆盖 ${runMeta.covered.size}/${(materialCoverage[currentLevel] || []).length} 个学习锚点。`;
+      els.resultCopy.textContent = passed
+        ? currentLevel === levels.length - 1
+          ? `${runReport} 你已经跑完整条训练稳定性知识链路。现在看到慢、Hang、失败，应该能先拆系统层级了。`
+          : `${runReport} 下一关已解锁。重点不是满分，而是你已经能用本关的判断框架解释相似问题。`
+        : `${runReport} 本关需要至少 ${required}/${questions.length} 才解锁。先看错题反馈里的补救动作，再重打一轮。`;
+      els.nextLevelBtn.disabled = !passed;
+      els.nextLevelBtn.textContent = currentLevel === levels.length - 1 ? "回到地图" : "进入下一关";
+    }
+
+    function passRequirement(total) {
+      return Math.max(1, Math.ceil(total * 0.66));
+    }
+
+    function stars(score, total = 3) {
+      const ratio = total ? score / total : 0;
+      if (ratio >= 0.84) return "★★★";
+      if (ratio >= 0.66) return "★★☆";
+      if (ratio > 0) return "★☆☆";
+      return "☆☆☆";
+    }
+
+    function renderStats() {
+      const completedValues = Object.values(state.completed);
+      const totalStars = completedValues.reduce((sum, item) => sum + item.score, 0);
+      els.statStars.textContent = totalStars;
+      els.statUnlocked.textContent = state.unlocked;
+      els.statWrong.textContent = state.wrong.length;
+    }
+
+    function renderWrongList() {
+      if (!state.wrong.length) {
+        els.wrongList.innerHTML = `<div class="wrong-empty">还没有错题。保持这个状态，很香。</div>`;
+        return;
+      }
+      els.wrongList.innerHTML = state.wrong.slice(0, 8).map(item => `
+        <div class="wrong-item">
+          <b>${item.level}</b>
+          <span>${item.text}</span>
+          <span>正确：${item.correct}</span>
+        </div>
+      `).join("");
+    }
+
+    function startReview() {
+      if (!state.wrong.length) {
+        showToast("当前没有错题，可以先去闯一关。");
+        return;
+      }
+      reviewMode = true;
+      currentQuestion = 0;
+      sessionQuestions = state.wrong.slice(0, 8).map(item => shuffleQuestion({
+        text: item.text,
+        options: [
+          item.correct,
+          "只记住结论，不看它在哪个训练阶段发生",
+          "把它归因成单一硬件问题，跳过上下文",
+          "先跳过这个概念，等真实故障时再猜"
+        ],
+        answer: 0,
+        explain: item.explain
+      }));
+      answers = Array(sessionQuestions.length).fill(null);
+      els.resultBox.classList.remove("show");
+      els.levelKicker.textContent = "Review";
+      els.levelTitle.textContent = "错题复习";
+      els.levelDesc.textContent = "从最近错题里抽 8 道，重新确认概念关系。";
+      els.missionMemory.textContent = "错题不是失败记录，是下一轮理解的入口。";
+      els.conceptList.innerHTML = `
+        <div class="concept"><b>复习规则</b><span>只复盘最近错题，不改变关卡进度。</span></div>
+        <div class="concept"><b>建议</b><span>答错时先看解释，再回到对应关卡重打。</span></div>
+      `;
+      renderQuestions(sessionQuestions);
+      updateQuestionVisibility();
+      showToast("已进入错题复习。");
+    }
+
+    function showToast(copy) {
+      els.toast.textContent = copy;
+      els.toast.classList.add("show");
+      window.clearTimeout(showToast.timer);
+      showToast.timer = window.setTimeout(() => els.toast.classList.remove("show"), 2200);
+    }
+
+    els.prevQuestionBtn.addEventListener("click", () => {
+      currentQuestion = Math.max(0, currentQuestion - 1);
+      updateQuestionVisibility();
+    });
+
+    els.nextQuestionBtn.addEventListener("click", () => {
+      const total = activeQuestions().length;
+      if (currentQuestion < total - 1) {
+        currentQuestion += 1;
+        updateQuestionVisibility();
+      } else {
+        finishLevel();
+      }
+    });
+
+    els.retryBtn.addEventListener("click", () => {
+      if (reviewMode) {
+        startReview();
+        return;
+      }
+      render();
+    });
+
+    els.nextLevelBtn.addEventListener("click", () => {
+      if (reviewMode) {
+        render();
+        return;
+      }
+      if (currentLevel < levels.length - 1 && state.completed[currentLevel]) {
+        currentLevel += 1;
+        state.currentLevel = currentLevel;
+        saveState();
+      }
+      render();
+    });
+
+    els.resetBtn.addEventListener("click", () => {
+      localStorage.removeItem(storageKey);
+      Object.assign(state, defaultState());
+      currentLevel = 0;
+      saveState();
+      showToast("进度已重置。");
+      render();
+    });
+
+    els.reviewBtn.addEventListener("click", startReview);
+
+    function animateCluster() {
+      const canvas = document.getElementById("clusterCanvas");
+      const ctx = canvas.getContext("2d");
+      const nodes = [
+        [90, 92], [210, 82], [330, 92], [450, 82], [570, 92],
+        [130, 252], [270, 262], [410, 252], [550, 262]
+      ];
+      let t = 0;
+
+      function draw() {
+        const w = canvas.width;
+        const h = canvas.height;
+        ctx.clearRect(0, 0, w, h);
+        ctx.fillStyle = "rgba(255,255,255,0.05)";
+        ctx.fillRect(0, 0, w, h);
+
+        ctx.strokeStyle = "rgba(255,255,255,0.22)";
+        ctx.lineWidth = 2;
+        for (let i = 0; i < nodes.length; i++) {
+          for (let j = i + 1; j < nodes.length; j++) {
+            const close = Math.abs(nodes[i][1] - nodes[j][1]) < 30 || Math.abs(nodes[i][0] - nodes[j][0]) < 160;
+            if (!close) continue;
+            ctx.beginPath();
+            ctx.moveTo(nodes[i][0], nodes[i][1]);
+            ctx.lineTo(nodes[j][0], nodes[j][1]);
+            ctx.stroke();
+          }
+        }
+
+        nodes.forEach(([x, y], index) => {
+          const pulse = Math.sin(t / 18 + index) * 4;
+          ctx.fillStyle = index < 5 ? "rgba(99, 179, 237, 0.95)" : "rgba(52, 211, 153, 0.95)";
+          ctx.beginPath();
+          ctx.roundRect(x - 33, y - 22, 66, 44, 8);
+          ctx.fill();
+          ctx.fillStyle = "rgba(255,255,255,0.95)";
+          ctx.font = "700 16px -apple-system, BlinkMacSystemFont, sans-serif";
+          ctx.textAlign = "center";
+          ctx.fillText(index < 5 ? `GPU${index}` : `R${index - 5}`, x, y + 5 + pulse * 0.05);
+        });
+
+        for (let i = 0; i < 8; i++) {
+          const a = nodes[i % nodes.length];
+          const b = nodes[(i + 3) % nodes.length];
+          const p = (Math.sin(t / 40 + i) + 1) / 2;
+          const x = a[0] + (b[0] - a[0]) * p;
+          const y = a[1] + (b[1] - a[1]) * p;
+          ctx.fillStyle = i % 2 ? "#fbbf24" : "#ffffff";
+          ctx.beginPath();
+          ctx.arc(x, y, 5, 0, Math.PI * 2);
+          ctx.fill();
+        }
+
+        ctx.fillStyle = "rgba(255,255,255,0.82)";
+        ctx.font = "700 13px -apple-system, BlinkMacSystemFont, sans-serif";
+        ctx.textAlign = "left";
+        ctx.fillText("data -> forward -> loss -> backward -> sync", 24, h - 28);
+
+        t += 1;
+        requestAnimationFrame(draw);
+      }
+
+      if (CanvasRenderingContext2D.prototype.roundRect) {
+        draw();
+      }
+    }
+
+    render();
+    initCloudSync();
+    animateCluster();
+  </script>
+</body>
+</html>

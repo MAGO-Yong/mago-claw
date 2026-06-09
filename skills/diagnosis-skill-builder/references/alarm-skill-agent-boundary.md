@@ -8,6 +8,7 @@
 - 容器内默认从 `/skills` 加载 Skill；deepagents 执行时也会使用 `/tmp/.easyagent/skills`。
 - Gateway Skill 可以 lazy load 到本地 skill 目录；已安装 skill 也可能被后台刷新，不要依赖本地持久状态。
 - Agent 原生暴露 `xray_cli` tool，可以非交互执行 `xray-cli` 子命令。
+- 当前镜像内置 `/usr/bin/diagnosis-cli`，生成的 Skill 可以在自身脚本中调用已登记的 `diagnosis-cli` 只读子命令；直接调用前仍要有缺失和失败策略。
 - 运行请求可以通过 `invoke_config.configurable.allowed_skills` 控制可见和可执行的 Skill。
 - 单次 run、工具调用次数和 `xray_cli` 命令都有上限，生成的告警 Skill 应保持步骤有限、失败可报告。
 
@@ -19,7 +20,9 @@
 - `xray_cli` tool：传入 `arguments: string[]`，只传 `xray-cli` 子命令和参数，不包含 `xray-cli` 可执行文件名。
 - `xray_cli` 默认会补 `--output-format json`；除非明确需要 raw/text。
 - `xray_cli` 会返回 `command`、`returncode`、`stdout`、`stderr`、`timed_out`，失败原因必须如实进入报告。
-- 随 Skill 打包的脚本可以作为实现细节，但应只调用 `xray-cli` 或做本地解析；不要把其他 Skill 当运行时依赖。
+- 随 Skill 打包的脚本可以作为实现细节，但应只调用 `xray-cli`、已登记的 `diagnosis-cli` 子命令或做本地解析；不要把其他 Skill 当运行时依赖。
+- `diagnosis-cli` 当前只允许使用 `references/diagnosis-cli.md` 登记的只读能力，例如 `change query <app> --start ... --end ... --output-format json`。
+- `diagnosis-cli` 输出面向自动化消费时必须使用 JSON；失败、超时、鉴权失败和空数据必须如实进入报告。
 - 如果脚本使用 Python，必须按 `alarm-skill-agent` 当前 Python 3.12 编写，并且只使用 Python 标准库。不要依赖 alarm-skill-agent 项目依赖、第三方包或运行时安装。
 - 临时文件只可作为运行过程缓存，优先放 `/tmp`；不要假设跨请求持久。
 
@@ -27,10 +30,12 @@
 
 生成的告警 Skill 不应依赖：
 
-- 运行时安装或升级 `xray-cli`。
+- 运行时安装或升级 `xray-cli` 或 `diagnosis-cli`。
 - 其他 Skill 的脚本、输出或安装状态。
-- ONES、REDoc、浏览器 cookie、剪贴板、用户交互、直接 HTTP API、`curl`、kubectl、自定义外部 CLI。
+- ONES、REDoc、浏览器 cookie、剪贴板、用户交互、直接 HTTP API、`curl`、kubectl、未登记外部 CLI。
 - 交互式 `xray-cli auth login`。
+- 交互式修复 `diagnosis-cli` 鉴权或改写运行时 PATH。
+- 未在 `references/diagnosis-cli.md` 登记的 `diagnosis-cli` 子命令。
 - Python 第三方包、`pip install`、`uv add` 或宿主项目内的业务模块。
 - `/skills` 或 `/tmp/.easyagent/skills` 下的持久缓存。
 - 超长循环、无限重试或大批量探索式查询。
@@ -40,6 +45,7 @@
 当前代码中的关键默认值：
 
 - Python 运行时对齐 3.12：`pyproject.toml` 声明 `requires-python = ">=3.12"`，`Dockerfile` / `Dockerfile.amd64` 使用 `python:3.12`，ruff target 为 `py312`。
+- 镜像内置 `/usr/bin/xray-cli` 和 `/usr/bin/diagnosis-cli`。
 - `xray_cli` 单次命令默认超时 120 秒，允许范围 1 到 600 秒。
 - `xray_cli` stdout/stderr 默认最多返回 20000 字符，超出会截断。
 - 单次 run 默认最大 1800 秒，可由 `invoke_config.configurable.max_duration_seconds` 覆盖。
@@ -63,10 +69,10 @@ Builder 生成的告警 Skill 要假设自己可能是唯一被允许的 Skill�
 
 生成前最少确认：
 
-- 这个 Skill 能否只靠 `xray_cli` 和自身脚本完成自动取证。
+- 这个 Skill 能否只靠 `xray_cli`、已登记的 `diagnosis-cli` 能力和自身脚本完成自动取证。
 - 运行时是否不需要用户确认或交互式登录。
 - 每个自动节点是否有明确输入、查询方式、失败策略和报告字段。
-- 非 `xray-cli` 证据是否已标成依赖缺口或人工背景。
+- 非 `xray-cli` / `diagnosis-cli` 证据是否已标成依赖缺口或人工背景。
 - Python 脚本是否按 Python 3.12 编写，并且只使用标准库。
 - 需要临时写入时是否限定到 `/tmp`。
 
@@ -82,4 +88,4 @@ Builder 生成的告警 Skill 要假设自己可能是唯一被允许的 Skill�
 - `src/middlewares/skill_execute_gate.py`：白名单外 Skill 执行硬拦截。
 - `src/middlewares/skill_ls_filter.py`：skill 文件系统访问过滤。
 - `src/gateway_lazy_loader.py`：gateway skill lazyload 和刷新行为。
-- `Dockerfile` / `Dockerfile.amd64`：镜像内置 `/usr/bin/xray-cli`、`AUTO_UPDATE=0`、`CI=1` 和 xray auth material。
+- `Dockerfile` / `Dockerfile.amd64`：镜像内置 `/usr/bin/xray-cli`、`/usr/bin/diagnosis-cli`、`AUTO_UPDATE=0`、`CI=1` 和 xray auth material。

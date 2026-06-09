@@ -1,8 +1,8 @@
-# xray-cli 准备
+# CLI 准备
 
 这份文档只用于告警 Skill 创建和验证阶段。安装、升级和登录不应写进生成后的告警 Skill 运行时逻辑。
 
-## 预检
+## xray-cli 预检
 
 ```bash
 xray-cli --version
@@ -11,7 +11,7 @@ xray-cli auth status
 
 `xray-cli` 版本必须是 `v0.0.31` 或以上。
 
-## 安装或升级
+## xray-cli 安装或升级
 
 优先全局安装指定版本：
 
@@ -43,3 +43,33 @@ fi
 验证阶段需要 `xray-cli auth status` 成功。认证失败时先完成开发环境登录，再执行 upload/test。
 
 生成后的告警 Skill 运行时不得执行交互式登录，也不得把认证失败伪装成正常诊断结果；应输出 `blocked`。
+
+## diagnosis-cli 预检
+
+只有生成的告警 Skill 需要使用 `diagnosis-cli` 时，才做这组预检：
+
+```bash
+diagnosis-cli --version
+diagnosis-cli change query <app> --help
+```
+
+当前 Builder 只登记 `diagnosis-cli change query <app>` 变更事件查询能力。能力边界见 `references/diagnosis-cli.md`。
+
+## diagnosis-cli 安装或升级
+
+创建和验证阶段可全局安装：
+
+```bash
+npm install -g @xray/diagnosis-cli --registry http://npm.devops.xiaohongshu.com:7001/
+```
+
+如果全局安装遇到权限问题，安装到用户目录：
+
+```bash
+mkdir -p ~/.npm-global
+npm install -g @xray/diagnosis-cli --prefix ~/.npm-global --registry http://npm.devops.xiaohongshu.com:7001/
+```
+
+用户目录安装后的 PATH 处理复用上面的 `~/.npm-global/bin` 配置。
+
+生成后的告警 Skill 运行时不得执行 `npm install`、修改 PATH 或要求人工修复；应把 `diagnosis-cli` 缺失报告为 `blocked` / `dependency_gap`。

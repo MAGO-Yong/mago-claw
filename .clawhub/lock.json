@@ -30,8 +30,8 @@
       "installedAt": 1774624790876
     },
     "pretty-mermaid": {
-      "version": "1.1.0",
-      "installedAt": 1776055906007
+      "version": "1.2.0",
+      "installedAt": 1780899857343
     },
     "agent-browser": {
       "version": "1.0.0",
@@ -134,8 +134,8 @@
       "installedAt": 1778743361626
     },
     "diagnosis-skill-builder": {
-      "version": "2.4.0",
-      "installedAt": 1779795585862
+      "version": "2.4.1",
+      "installedAt": 1780899856695
     },
     "ui-ux-pro-max": {
       "version": "1.0.0",
@@ -144,6 +144,10 @@
     "project-management": {
       "version": "1.2.7",
       "installedAt": 1780669831257
+    },
+    "qs": {
+      "version": "1.0.7",
+      "installedAt": 1780899616384
     }
   }
 }

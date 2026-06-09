@@ -1,0 +1,74 @@
+module: training
+action: finetune
+
+dependency_chain:
+  - model_name
+  - model_version
+  - dataset_name
+  - dataset_version
+  - cloud
+  - queue
+  - cluster
+  - resource_package
+  - task_name
+
+inference_rules:
+  model_version: >
+    选最新版本。通过 qs model version list <model-id> 查询，
+    输出格式为 {version}|{sub_version}（如 "1|1772013164"），
+    直接用于 --model-version 参数。
+  dataset_version: >
+    选最新版本。注意: version-name 如 'v1' != numeric-id，
+    API 用 --dataset-version-id 接收 numeric-id，不可混用。
+  cloud: >
+    从 dataset sync 目标推导。qs dataset version list <ds-id> →
+    解析 syncClusters 中 "已完成" 的 cloud_id；多条完成取第一条。
+  queue: >
+    qs resources queue list --keyword train → 逐个跑
+    qs resources cloud list --queue-id <qid> → 第一个含目标
+    cloud-id 的 queue 即用。
+  cluster: >
+    qs resources cluster list --queue-id <qid> --cloud-id <cid>
+    → 取第一条。
+  resource_package: >
+    qs resources pack list --cluster-id <clid> → 过滤含 gpu
+    关键字的 pack，取第一条。
+  task_name: "自动生成 ft-<model_short>-<dataset_short>-<YYYYMMDD>"
+
+queries:
+  model: "qs model list --name <keyword> --format json -q"
+  model_version: "qs model version list <model-id> --format json -q"
+  dataset: "qs dataset list --name <keyword> --format json -q"
+  dataset_version: "qs dataset version list <dataset-id> --format json -q"
+  dataset_sync: "qs dataset version get <dataset-id> <version-id>"
+  queues: "qs resources queue list --keyword train --format json -q"
+  clouds: "qs resources cloud list --queue-id <qid> --format json -q"
+  clusters: "qs resources cluster list --queue-id <qid> --cloud-id <cid> --format json -q"
+  packs: "qs resources pack list --cluster-id <clid> --format json -q"
+
+selection:
+  dataset: "精确匹配优先，0/多条 → ask（AskUserQuestion 列前 5）"
+  model: "精确匹配优先，0/多条 → ask"
+  queue: "支持目标 cloud + 可用资源最多"
+  cluster: "匹配 cloud + 资源最充足"
+
+defaults:
+  method: lora
+  task_type: sft
+  epochs: 3
+  learning_rate: 1e-4
+  worker_num: 1
+
+memory_keys: [resources, datasets, models]
+naming: "ft-<model_short>-<dataset_short>-<YYYYMMDD>"
+
+required_for_noninteractive:
+  - --model-id
+  - --model-version
+  - --dataset-id
+  - --dataset-version-id
+  - --queue-id
+  - --cloud-id
+  - --cluster-id
+  - --resource-package-name
+  - --name

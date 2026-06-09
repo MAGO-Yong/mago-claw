@@ -1,7 +1,7 @@
 {
   "version": 1,
-  "registry": "http://codewiz.devops.xiaohongshu.com/agent-manage/clawhub",
+  "registry": "https://codewiz.devops.xiaohongshu.com/agent-manage/clawhub",
   "slug": "diagnosis-skill-builder",
-  "installedVersion": "2.4.0",
-  "installedAt": 1779795585862
+  "installedVersion": "2.4.1",
+  "installedAt": 1780899856694
 }

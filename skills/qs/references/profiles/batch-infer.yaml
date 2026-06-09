@@ -1,0 +1,35 @@
+module: batch-infer
+action: create
+
+dependency_chain:
+  - model_name
+  - model_version
+  - input_data
+  - output_path
+  - resources
+
+inference_rules:
+  model_version: "选最新版本"
+  output_path: >
+    自动生成 /cloudfs/<user>/batch-output/<model_short>-<YYYYMMDD>/。
+    用户显式指定时用用户的。
+  resources: >
+    从模型参数量和输入数据规模推导。粗略映射：
+    ≤8B → 1×H20, ≤70B → 4×H20, ≤405B → 8×H20。
+
+queries:
+  model: "qs model list --name <keyword> --format json -q"
+
+selection:
+  model: "精确匹配优先，0/多条 → ask"
+
+defaults: {}
+
+memory_keys: [models, resources]
+naming: "batch-<model_short>-<YYYYMMDD>"
+
+required_for_noninteractive:
+  - --model-id
+  - --model-version
+  - --input-path
+  - --output-path

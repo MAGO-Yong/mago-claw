@@ -1,0 +1,47 @@
+module: deploy
+action: create
+
+dependency_chain:
+  - model_name
+  - model_version
+  - gpu_type
+  - gpu_num
+  - engine
+  - zone
+  - queue
+  - service_name
+
+inference_rules:
+  model_version: "选最新版本 (latest)"
+  gpu_type: "qs deploy options --model-id X --model-version Y --format json → recommendGpuType"
+  gpu_num: "qs deploy options → recommendGpuNum"
+  engine: "从 model image name 自动检测 (rllm → rllm, sglang → sglang, vllm → vllm)"
+  zone: "从 deploy options 的 zones 中选 quota_remaining 最大的"
+  queue: "从 qs resources queue list 中选目标 zone 下可用 GPU 最多的"
+  service_name: "自动生成 <model_short>-<purpose|infer>-<YYYYMMDD>"
+
+queries:
+  model: "qs model list --name <keyword> --format json -q"
+  deploy_options: "qs deploy options --model-id <id> --model-version <ver> --format json"
+  queues: "qs resources queue list --format json -q"
+
+selection:
+  model: "精确匹配优先，多个则选最新更新的"
+  zone: "quota_remaining 降序第一个"
+  queue: "目标 zone 下 available_gpu 降序第一个"
+
+defaults:
+  env: staging
+  replicas: 1
+
+memory_keys: [deployments, resources]
+naming: "<model_short>-<purpose|infer>-<YYYYMMDD>"
+
+required_for_noninteractive:
+  - --model-id
+  - --model-version
+  - --gpu-type
+  - --gpu-num
+  - --zone
+  - --queue-id
+  - --service-name

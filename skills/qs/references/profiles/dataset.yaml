@@ -1,0 +1,40 @@
+module: dataset
+action: create
+
+dependency_chain:
+  - input_dir
+  - dataset_name
+  - format
+  - desc
+  - dst_cluster
+
+inference_rules:
+  format: >
+    从文件后缀推导：.jsonl → jsonl, .parquet → parquet,
+    .csv → csv, .json → json。无法推导时 ask。
+  input_dir: >
+    必须是 oss:// 路径。/cloudfs/ 和 /mnt/ 是 Pod 挂载路径，
+    不能直接使用。如果用户只给了挂载路径，ask 提供 oss:// 路径。
+  desc: >
+    从 dataset_name + format 生成简短描述，
+    例如 "SFT dataset in alpaca format"。不需要问用户。
+  dst_cluster: >
+    qs dataset clusters --format json 查可用集群，
+    memory 有最近使用的集群则优先选它，否则选使用率最低的集群。
+
+queries:
+  clusters: "qs dataset clusters --format json -q"
+
+selection:
+  dst_cluster: "memory 优先，否则选使用率最低的集群"
+
+defaults: {}
+
+memory_keys: [datasets]
+naming: "<用户指定或从路径末段推导>"
+
+required_for_noninteractive:
+  - --name
+  - --input-dir
+  - --desc
+  - --dst-cluster

@@ -175,6 +175,11 @@
 - 素材来源：adcenter-service-tob 真实 P1 告警（#194554127，UncheckedTApplicationException）
 - 可推广为 KR1 通用诊断能力的基础模板
 
+### QS 平台 URL 格式（2026-06-08 发现）
+- QS URL 格式 `/job/trial/{A}/{B}` 中，**A 是 Trial ID，B 是 Job ID**（与 URL 路径字面顺序相反）
+- 示例：`/job/trial/100723/1519291` → Trial=100723, Job=1519291
+- 排查 QS 任务时先做参数反转，避免 NOT_FOUND
+
 ### 搜索广告 Trigger 告警 SOP（2026-05-21 确认）
 - ⚠️ **关键发现**：searchadstrigger 的可用性告警规则未在 XRay 平台注册，是独立自定义 PromQL。诊断 Agent 若只查平台注册规则会漏掉此类告警，对 KR2 告警中心闭环改造有影响。
 - 6 步排查链：流量突增 → 一/二段式时延判断 → 一段式算子级时延 → 二段式算子级时延 → 近期变更查询 → 原因未知

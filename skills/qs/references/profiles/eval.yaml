@@ -1,0 +1,38 @@
+module: eval
+action: create
+
+dependency_chain:
+  - model_name
+  - model_version
+  - eval_datasets
+  - score_type
+  - task_name
+
+inference_rules:
+  model_version: "选最新版本"
+  eval_datasets: >
+    qs eval predatasets --format json 查预置数据集。
+    用户指定的名称（如 GSM8K）与预置列表匹配即用。
+  score_type: >
+    预置数据集默认 rule_base，自定义数据集默认 judge_model。
+  task_name: "自动生成 eval-<model_short>-<dataset_short>-<YYYYMMDD>"
+
+queries:
+  model: "qs model list --name <keyword> --format json -q"
+  predatasets: "qs eval predatasets --format json -q"
+
+selection:
+  model: "精确匹配优先，0/多条 → ask"
+  eval_datasets: "名称匹配优先，无匹配 → 引导上传自定义数据集"
+
+defaults:
+  score_type: rule_base
+
+memory_keys: [models]
+naming: "eval-<model_short>-<dataset_short>-<YYYYMMDD>"
+
+required_for_noninteractive:
+  - --model-name
+  - --model-version
+  - --eval-datasets
+  - --task-name
