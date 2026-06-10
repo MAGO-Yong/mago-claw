@@ -180,6 +180,19 @@
 - 示例：`/job/trial/100723/1519291` → Trial=100723, Job=1519291
 - 排查 QS 任务时先做参数反转，避免 NOT_FOUND
 
+### RedGarden vs REDoc 区分（2026-06-09 发现）
+- `redgarden.xiaohongshu.com` = RedGarden（内网知识分享/内容花园平台），不是 REDoc
+- `docs.xiaohongshu.com` = REDoc（内部文档平台）
+- `hi docs:get` 只能读 REDoc 文档，不能读 RedGarden
+- 遇到内部文档链接时先确认平台类型
+
+### OpenClaw vs Codex 能力架构差异（2026-06-09）
+- **OpenClaw**：平台内置工具函数（`cowork_publish` 等）+ Skills（说明书，可调用工具函数）
+- **Codex**：`~/.codex/skills/<name>/SKILL.md`（只能执行 Shell 命令）+ `~/.codex/prompts/<name>.md`（Slash commands）
+- **核心差异**：Codex 没有工具函数，SKILL.md 不是跨平台通用的
+- **推荐方案**：Codex 负责编码 + OpenClaw 负责发布（方案 C），零成本分工
+- Codex 已有 skills：qs；已有 prompts：xray
+
 ### 搜索广告 Trigger 告警 SOP（2026-05-21 确认）
 - ⚠️ **关键发现**：searchadstrigger 的可用性告警规则未在 XRay 平台注册，是独立自定义 PromQL。诊断 Agent 若只查平台注册规则会漏掉此类告警，对 KR2 告警中心闭环改造有影响。
 - 6 步排查链：流量突增 → 一/二段式时延判断 → 一段式算子级时延 → 二段式算子级时延 → 近期变更查询 → 原因未知
