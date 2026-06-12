@@ -17,6 +17,7 @@ verifier 本身仍是 bash 脚本（设计哲学要求"独立可验证 + 不依�
 
 from __future__ import annotations
 
+import os
 import re
 import subprocess
 from pathlib import Path
@@ -38,10 +39,14 @@ def run(verifier: Path, work_dir: Path, state_dir: Path) -> bool:
     out.parent.mkdir(parents=True, exist_ok=True)
 
     # 直接 capture（verifier 通常 < 30s，不需要 tee 实时输出）
+    # STATE_DIR 透传给 verifier：让它可以读 state_dir/stack.json 里的
+    # frontend_only 等字段，决定是否短路（如纯前端项目跳过 install/start/health 检查）。
+    env = {**os.environ, "STATE_DIR": str(state_dir)}
     res = subprocess.run(
         ["bash", str(verifier), str(work_dir)],
         capture_output=True,
         text=True,
+        env=env,
     )
     out.write_text((res.stdout or "") + (res.stderr or ""))
     if res.returncode == 0:

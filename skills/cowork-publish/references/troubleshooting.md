@@ -123,9 +123,9 @@ python3 cowork.py status <id>
 
 1. **环境不一致**：Cowork Guard 容器 vs OpenClaw pod 镜像不一样，本地起进程跟生产环境永远有差异——验过也白验
 2. **会污染 pod**：未管理的后台进程可能撑爆内存 / 端口冲突 / 把 gateway 一并干 crash（真实事故）
-3. **耗时长**：本地装依赖 + 起服务通常比直接 `cowork.publish` 还慢
+3. **耗时长**：本地装依赖 + 起服务通常比直接 `cowork.py publish` 还慢
 
-**✅ 正确做法**：直接调 `cowork.publish` → 让 Cowork Guard 平台跑 install.sh / start.sh / health.sh → 拿到结果
+**✅ 正确做法**：直接调 `cowork.py publish` → 让 Cowork Guard 平台跑 install.sh / start.sh / health.sh → 拿到结果
 
 如果 publish 失败：
 
@@ -133,14 +133,7 @@ python3 cowork.py status <id>
 - 修代码后重新 publish
 - **不要本地复现**
 
-如果用户**明确要求**「先本地跑跑看」（极少数场景），让用户**自己**在终端执行：
-
-```sh
-# 用户自己跑，不是 agent 跑
-python3 cowork.py dev start ./my-app
-```
-
-agent 不要代用户执行这个命令。
+所有创建/修改好的应用一律直接发布到 Cowork 线上，没有本地预览这一步。
 
 ### 抓官方规范
 

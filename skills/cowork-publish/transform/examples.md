@@ -1,46 +1,47 @@
 # guard-transform 典型场景示例（Seal IDE 版）
 
-本文档给出几种常见的 Seal IDE 调用本 skill 的完整对话样例，帮助你（codewiz-cc agent）在面对类似输入时知道该怎么响应。
+本文档给出几种常见的 Claude 调用本 skill 的完整对话样例，帮助你（Claude）在面对类似输入时知道该怎么响应。
 
 ---
 
-## 场景 0：用户首次加载/构建 skill（zip 上传模式）
+## 场景 0：用户首次加载/安装 skill
 
-**用户**：构建 `~/Workspace/ai-platform/ai-demo-platform-guard-transform-skill` 的 seal skill。
+**用户**：加载 `~/Workspace/ai-platform/ai-demo-platform-guard-rust/guard-transform` 的 skill。
 
 **你应该**：
 
-1. 验证路径下存在 `skills/seal/build.sh`：
+1. 验证路径下存在 `skills/seal/install.sh`：
    ```bash
-   test -f ~/Workspace/ai-platform/ai-demo-platform-guard-transform-skill/skills/seal/build.sh && echo OK
+   test -f ~/Workspace/ai-platform/ai-demo-platform-guard-rust/guard-transform/skills/seal/install.sh && echo OK
    ```
-2. 跑构建脚本：
+2. 跑安装脚本：
    ```bash
-   bash ~/Workspace/ai-platform/ai-demo-platform-guard-transform-skill/skills/seal/build.sh
+   bash ~/Workspace/ai-platform/ai-demo-platform-guard-rust/guard-transform/skills/seal/install.sh
    ```
-3. 构建脚本最后会打印：
+   （已存在时换 `--force`）
+3. 安装脚本输出最后会打印：
    ```
-   [OK] zip 构建完成
-        产物          : skills/seal/dist/cowork-app-<ts>.zip
-        symlink       : skills/seal/dist/cowork-app-latest.zip
+   [OK] guard-transform skill 安装完成（自包含，源仓库可删除）
+        SKILL.md          : $SKILL_DIR/SKILL.md
         ...
    ```
 4. 给用户报告：
-   > 已构建 guard-transform seal skill zip：`skills/seal/dist/cowork-app-latest.zip`。
+   > 已把 guard-transform skill 装到 `$SKILL_DIR/`。
    >
-   > 下一步：
-   > 1. 在 Seal IDE 里点 **Skills → 上传 zip**，选这个文件
-   > 2. 上传完成后在 codewiz-cc 会话里说"把这个工程改成 CoWork 子应用"即可自动触发
+   > 下一步（⚠️ 必须新开会话才能识别）：
+   > 1. **退出当前 Claude Code 会话**（CTRL+D 或 `/exit`），重新跑 `codewiz-cc` 进入新会话
+   >    —— Claude Code 仅在会话启动时扫描 `~/.claude/skills/`，**当前会话不会识别**新 skill
+   > 2. 在新会话里、任意工程目录里说"把这个工程改成 CoWork 子应用"即可自动触发
    >
-   > 默认 LLM 后端：`seal`（复用 codewiz-cc CLI），默认模型 `claude-4.6-sonnet-google`，如需切换见 SKILL.md。
+   > 默认 LLM 后端：`codewiz-cc`（复用 Claude Code 已有 OAuth），如需切换见 SKILL.md。
 
-**如果用户给的是仓库根目录之外的路径**（如只给了 `~/Workspace/ai-platform`）：
+**如果用户给的是仓库根目录而非 guard-transform 子目录**（如给了 `~/Workspace/ai-platform/ai-demo-platform-guard-rust`）：
 
-→ 自动拼上 `/ai-demo-platform-guard-transform-skill/skills/seal/build.sh` 即可，不用问用户。
+→ 自动拼上 `/guard-transform/skills/seal/install.sh` 即可，不用问用户。
 
-**如果路径不存在或没找到 build.sh**：
+**如果路径不存在或没找到 install.sh**：
 
-> 在 `<path>` 下找不到 `skills/seal/build.sh`。请确认路径是否指向了 `ai-demo-platform-guard-transform-skill` 仓库根目录。
+> 在 `<path>` 下找不到 `guard-transform/skills/seal/install.sh`。请确认路径是否指向了 `ai-demo-platform-guard-rust` 仓库根目录或它的 `guard-transform` 子目录。
 
 ---
 
@@ -50,8 +51,8 @@
 
 **你应该**：
 
-1. 读 `~/.claude/skills/cowork-app/.guard_transform_home` 拿到 `$GUARD_TRANSFORM_HOME`
-2. 跑 `python3 --version && command -v claude` 确认前置 OK
+1. 读 `$SKILL_DIR/.guard_transform_home` 拿到 `$GUARD_TRANSFORM_HOME`
+2. 跑 `python3 --version && command -v codewiz-cc` 确认前置 OK
 3. 先跑 detect：
    ```bash
    "$GUARD_TRANSFORM_HOME/bin/guardx" detect ~/code/my-nextjs-app
@@ -60,7 +61,7 @@
 5. 用户确认后 source 默认环境（默认 claude 后端，可覆盖；详见 SKILL.md Step 2）+ 跑 transform：
    ```bash
    source "$GUARD_TRANSFORM_HOME/default_env.sh"
-   "$GUARD_TRANSFORM_HOME/transform.sh" ~/code/my-nextjs-app
+   "$GUARD_TRANSFORM_HOME/bin/guardx" transform ~/code/my-nextjs-app
    ```
 6. 跑完后读 `.guard-transform-my-nextjs-app-guard/report.md`，把 stage 状态 + AI 覆盖范围 + zip 路径告诉用户
 
@@ -78,14 +79,19 @@
 4. 跑：
    ```bash
    source "$GUARD_TRANSFORM_HOME/default_env.sh"
-   "$GUARD_TRANSFORM_HOME/transform.sh" <源工程绝对路径> --resume
+   "$GUARD_TRANSFORM_HOME/bin/guardx" transform <源工程绝对路径> --resume
    ```
 
-如果用户想从特定 stage 重跑：
+如果用户只是想重打 zip（已通过 verify、stage 60+70 重跑）：
 
 ```bash
-source "$GUARD_TRANSFORM_HOME/default_env.sh"
-"$GUARD_TRANSFORM_HOME/transform.sh" <src> --from-stage 50
+"$GUARD_TRANSFORM_HOME/bin/guardx" pack <src>
+```
+
+更高级场景（从指定 stage 重跑、调试用）：
+
+```bash
+"$GUARD_TRANSFORM_HOME/bin/guardx" transform <src> --from-stage 50 --resume
 ```
 
 ---
@@ -101,7 +107,7 @@ source "$GUARD_TRANSFORM_HOME/default_env.sh"
 3. 告诉用户：
    > 我看到你的 monorepo 应该匹配 `react-fastapi-monorepo` profile。当前自动识别失败可能是 `is_monorepo` 信号不足。
    >
-   > 临时方案：手动改 `.guard-transform-<名字>-guard/stack.json`，把 `framework` 改成 `react-spa`、加 `backend_framework: fastapi` `is_monorepo: true`，然后跑 `--from-stage 20` 跳过识别阶段。
+   > 临时方案：手动改 `.guard-transform-<名字>-guard/stack.json`，把 `framework` 改成 `react-spa`、加 `backend_framework: fastapi` `is_monorepo: true`，然后跑 `bin/guardx transform <src> -y`（checklist 命中跳过 detect，stage 20 起读你改后的 stack.json）。
    >
    > 长期方案：改 profile 匹配规则或 `detect_rules.json`，但这是工具升级，需要单独评审。
 
@@ -152,14 +158,14 @@ source "$GUARD_TRANSFORM_HOME/default_env.sh"
 ```bash
 # mock 模式：显式覆盖 default_env.sh 的 claude 默认（用户值优先）
 export GUARD_LLM=mock
-SKIP_LLM=1 "$GUARD_TRANSFORM_HOME/transform.sh" <合法样本路径>
+SKIP_LLM=1 "$GUARD_TRANSFORM_HOME/bin/guardx" transform <合法样本路径>
 ```
 
 或更简洁（不用动 GUARD_LLM）：
 
 ```bash
 source "$GUARD_TRANSFORM_HOME/default_env.sh"
-"$GUARD_TRANSFORM_HOME/transform.sh" <src> --skip-llm
+"$GUARD_TRANSFORM_HOME/bin/guardx" transform <src> --skip-llm
 ```
 
 跑完告诉用户："骨架走通，stage 20 LLM 调用被跳过，需要真改写时去掉 --skip-llm 重跑。"
@@ -186,22 +192,23 @@ source "$GUARD_TRANSFORM_HOME/default_env.sh"
 
 ## 场景 8：用户想升级或卸载 skill
 
-**用户**：guard-transform 工具更新了，我刚 git pull 过，帮我重新构建 zip。
+**用户**：guard-transform 工具更新了，我刚 git pull 过，帮我同步到 skill。
 
 **你应该**：
 
 ```bash
 # 找到源仓库路径（用户给过的或从 git remote 推断）
-bash <repo>/skills/seal/build.sh
-# 提示用户在 Seal IDE Skills 面板里重新上传新 zip
+bash <repo>/guard-transform/skills/seal/install.sh --force
 ```
 
 **用户**：我不用了，删掉吧。
 
 **你应该**：
 
-> 在 Seal IDE 的 **Skills** 面板里删除 cowork-app skill 即可（zip 模式不在本地写文件，所以不需要清理任何目录）。
-> 仓库内的 `skills/seal/dist/` 是本地构建产物，删除该目录可省空间。
+```bash
+bash <repo>/guard-transform/skills/seal/install.sh --uninstall
+# 或不依赖源仓库时，直接删除安装目录 $SKILL_DIR/
+```
 
 ---
 
@@ -244,15 +251,15 @@ bash <repo>/skills/seal/build.sh
    cat /builds/.guard-transform-my-app-guard/stack.json
    ```
 
-3. **跑 transform，强制带 `-y`**（防止 transform.sh 内部读 stdin 卡死）：
+3. **跑 transform，强制带 `-y`**（防止 guardx 内部读 stdin 卡死）：
    ```bash
    source "$GUARD_TRANSFORM_HOME/default_env.sh"
-   "$GUARD_TRANSFORM_HOME/transform.sh" /builds/my-app -y
+   "$GUARD_TRANSFORM_HOME/bin/guardx" transform /builds/my-app -y
    ```
 
 4. **失败时按非交互 routing 自动重试 ≤2 次后 abort，全程锁同一 claude 模型**（参考 [`SKILL.md` Step 5 非交互分支](SKILL.md#非交互模式服务端--ci--不要询问用户按下面优先级自动执行)）：
-   - 第 1 次失败 → `transform.sh /builds/my-app --resume --autofix-max 20`
-   - 第 2 次失败 → **同模型再 resume 一次**：`transform.sh /builds/my-app --resume --autofix-max 20`（**不切 codewiz、不换 opus**，claude CLI 当前是 4.7 就一直 4.7）
+   - 第 1 次失败 → `bin/guardx transform /builds/my-app --resume --autofix-max 20`
+   - 第 2 次失败 → **同模型再 resume 一次**：`bin/guardx transform /builds/my-app --resume --autofix-max 20`（**不切 codewiz、不换 opus**，claude CLI 当前是 4.7 就一直 4.7）
    - 第 3 次仍失败 → 输出 `transform.log` 末尾 200 行到 stderr，**退出非零**让调用方决策（是否人工换更强后端、加 fallback profile 等）
 
 5. **成功后输出机器可读路径**（让调用方/CI 抓产物）：
@@ -268,11 +275,11 @@ bash <repo>/skills/seal/build.sh
 | 反例 | 为什么不行 |
 |---|---|
 | detect 后输出"是否继续？"等用户回答 | 没人回答，命令卡死 |
-| 跑 `transform.sh /builds/my-app`（不带 `-y`） | 已存在 checklist 时会读 stdin 询问 continue/reset，没 tty 直接读到 EOF abort |
+| 跑 `bin/guardx transform /builds/my-app`（不带 `-y`） | 已存在 checklist 时会读 stdin 询问 continue/reset，没 tty 直接读到 EOF abort |
 | 失败后输出"想我做哪个？1/2/3" | 没人选，等同 fail |
 | 失败 3 次后**自动**加 `GUARD_STRICT=0` 强行打包 | 会让带伤产物上线；严重违反规则 |
 | 失败 3 次后**自动**加 `--skip-llm` 绕过 LLM 改写 | 产出未改造的副本，部署即翻车 |
-| `claude` 鉴权 401 后还在重试 | 浪费 LLM 配额；应立即 abort 让运维改 token |
+| `codewiz-cc` 鉴权 401 后还在重试 | 浪费 LLM 配额；应立即 abort 让运维改 token |
 | 在 Linux 上想"用户体验更友好"主动改成 interactive 询问 | 违反默认非交互策略；用户想交互会自己 export GUARD_INTERACTIVE=1 |
 | 第 1 次失败后**自动**切到 codewiz / opus / 其它后端"试试看" | claude skill 的契约就是"以 claude CLI 当前模型为准"；偷偷换会让 stage 20 的 LLM 改写跨模型不一致，autofix 重试也跑同模型 |
 
@@ -310,6 +317,6 @@ export GUARD_NONINTERACTIVE=1
 | 转写成 / 改造成 / 转成 guard | convert to guard |
 | 部署到 guard / guard 平台 | deploy to guard / guard platform |
 | guard zip / 子应用 zip | guard zip / subapp zip |
-| 跑 transform.sh / guardx | run transform / guardx |
+| 跑 guardx | run guardx |
 | 8 个 stage / 8-stage 流水线 | 8-stage pipeline |
 | 加载 / 安装 guard-transform skill | load / install guard-transform skill |

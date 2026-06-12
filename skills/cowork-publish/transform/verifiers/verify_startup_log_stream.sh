@@ -70,8 +70,8 @@
 # ============================================================
 # 不合法（FAIL）示例
 # ============================================================
-#   exec gunicorn -w 4 -b 0.0.0.0:3000 app:app
-#   exec uvicorn app:app --host 0.0.0.0 --port 3000
+#   exec gunicorn -w 4 -b 0.0.0.0:${APP_PORT} app:app
+#   exec uvicorn app:app --host 0.0.0.0 --port ${APP_PORT}
 #   exec node dist/server.js
 #   exec gunicorn --error-logfile - app:app
 #     ↑ 注意！gunicorn / hypercorn 的 --error-logfile - 中 `-` 表示 stderr
@@ -100,7 +100,7 @@ if [ -z "$EXEC_LINES" ]; then
     echo "    （exec 行也是本 verifier 校验 stderr 收敛的对象）" >&2
     echo "    当前 start.sh（首 30 行）：" >&2
     head -30 start.sh | sed 's/^/      /' >&2
-    echo "[HINT] 目标文件 start.sh：把末行业务启动命令前加 \`exec\`，并在命令末尾追加 \`2>&1\`（合并 stderr 到 stdout）。示例：\`exec uvicorn main:app --host 0.0.0.0 --port 3000 2>&1\` 或 \`exec node dist/server.js 2>&1\`" >&2
+    echo "[HINT] 目标文件 start.sh：把末行业务启动命令前加 \`exec\`，并在命令末尾追加 \`2>&1\`（合并 stderr 到 stdout）。示例：\`exec uvicorn main:app --host 0.0.0.0 --port \${APP_PORT} 2>&1\` 或 \`exec node dist/server.js 2>&1\`（顶部需 \`export APP_PORT=\"\${APP_PORT:-3000}\"\`；**不要写死 3000**）" >&2
     exit 1
 fi
 

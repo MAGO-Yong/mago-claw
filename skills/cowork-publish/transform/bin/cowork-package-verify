@@ -1,0 +1,363 @@
+#!/usr/bin/env bash
+# cowork-package-verify —— 项目打包前体检
+#
+# 用途：CoWork 子应用打包前的两阶段校验，避免把带伤产物送上平台。
+#   Phase 1：基础合规验证（复用 guardx verify 跑 25+ 个 shell verifier）
+#   Phase 2：前端构建产物时效性检查（源码 mtime > 产物 mtime → STALE）
+#
+# 用法：
+#   cowork-package-verify <源工程绝对路径> [选项]
+#
+# 选项：
+#   --skip-stale-check    跳过 Phase 2（前端产物时效性），仅做 Phase 1
+#   --skip-verify         跳过 Phase 1（基础验证），仅做 Phase 2
+#   --json                以 JSON 输出最终结论（机器可读）
+#   -h, --help            打印此用法
+#
+# 退出码：
+#   0   全部通过
+#   1   仅 Phase 1（基础验证）失败
+#   2   仅 Phase 2（前端产物过期）
+#   3   两者都失败
+#   4   源工程路径不合法 / 工具调用失败
+
+set -eo pipefail
+
+# ---------- 解析参数 ----------
+SRC_PROJECT=""
+SKIP_STALE_CHECK=0
+SKIP_VERIFY=0
+OUTPUT_JSON=0
+
+usage() {
+    sed -n '2,24p' "$0" | sed 's/^# \{0,1\}//'
+    exit 0
+}
+
+while [ $# -gt 0 ]; do
+    case "$1" in
+        --skip-stale-check) SKIP_STALE_CHECK=1; shift ;;
+        --skip-verify)      SKIP_VERIFY=1;      shift ;;
+        --json)             OUTPUT_JSON=1;      shift ;;
+        -h|--help)          usage ;;
+        --) shift; break ;;
+        -*) echo "[FAIL] 未识别参数: $1（用 -h 查看用法）" >&2; exit 4 ;;
+        *)
+            if [ -z "$SRC_PROJECT" ]; then
+                SRC_PROJECT="$1"
+            else
+                echo "[FAIL] 多余参数: $1" >&2; exit 4
+            fi
+            shift ;;
+    esac
+done
+
+if [ -z "$SRC_PROJECT" ]; then
+    echo "[FAIL] 缺少 <源工程绝对路径>（用 -h 查看用法）" >&2
+    exit 4
+fi
+
+# 规范化路径
+if [ ! -d "$SRC_PROJECT" ]; then
+    echo "[FAIL] 源工程路径不存在或不是目录: $SRC_PROJECT" >&2
+    exit 4
+fi
+SRC_PROJECT="$(cd "$SRC_PROJECT" && pwd)"
+
+# 定位 GUARD_TRANSFORM_HOME（脚本自身位于 $GUARD_TRANSFORM_HOME/bin/）
+if [ -z "${GUARD_TRANSFORM_HOME:-}" ]; then
+    SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+    GUARD_TRANSFORM_HOME="$(cd "$SCRIPT_DIR/.." && pwd)"
+    export GUARD_TRANSFORM_HOME
+fi
+
+GUARDX_BIN="$GUARD_TRANSFORM_HOME/bin/guardx"
+if [ ! -x "$GUARDX_BIN" ]; then
+    echo "[FAIL] 找不到可执行的 guardx: $GUARDX_BIN" >&2
+    exit 4
+fi
+
+# ---------- Phase 1：基础合规验证 ----------
+PHASE1_FAIL_COUNT=0
+PHASE1_FAIL_LIST=""
+PHASE1_PASS_COUNT=0
+PHASE1_STATUS="skipped"
+
+run_phase1() {
+    echo ""
+    echo "=== Phase 1: 基础合规验证 (guardx verify) ==="
+    local tmp_log
+    tmp_log="$(mktemp -t cowork-pv.XXXXXX)"
+    trap 'rm -f "$tmp_log"' RETURN
+
+    # guardx verify 自身永远 exit 0/非零；这里捕获输出 + exit code 用于判定
+    local exit_code=0
+    "$GUARDX_BIN" verify "$SRC_PROJECT" 2>&1 | tee "$tmp_log" || exit_code=$?
+
+    # 解析 stdout：典型行 [OK] / [FAIL] / [SKIP] verify_xxx
+    PHASE1_PASS_COUNT="$(grep -cE '^\[OK\][[:space:]]+verify_' "$tmp_log" 2>/dev/null || true)"
+    PHASE1_FAIL_COUNT="$(grep -cE '^\[FAIL\][[:space:]]+verify_' "$tmp_log" 2>/dev/null || true)"
+    PHASE1_FAIL_LIST="$(grep -E '^\[FAIL\][[:space:]]+verify_' "$tmp_log" | awk '{print $2}' | sort -u | paste -sd ',' -)"
+
+    if [ "$PHASE1_FAIL_COUNT" -gt 0 ]; then
+        PHASE1_STATUS="fail"
+    elif [ "$exit_code" -ne 0 ]; then
+        # guardx 退非零但没解析到 FAIL 行（异常），保守标 fail
+        PHASE1_STATUS="fail"
+        PHASE1_FAIL_LIST="${PHASE1_FAIL_LIST:-guardx-exit-$exit_code}"
+        PHASE1_FAIL_COUNT="$((PHASE1_FAIL_COUNT + 1))"
+    else
+        PHASE1_STATUS="ok"
+    fi
+}
+
+# ---------- Phase 2：前端构建产物时效性 ----------
+# 算法：
+#   1. 找所有前端目录（package.json 里有 build/dev script，且不在 node_modules/dist/build 下）
+#   2. 对每个前端目录：
+#      a. 找最新源文件 mtime（src/**/*.{ts,tsx,js,jsx,vue,svelte,css,scss,less,html}，排除 node_modules / dist / build / .next / out）
+#      b. 找现有构建产物路径（按优先级：dist/index.html / build/index.html / .next/BUILD_ID / out/index.html / .svelte-kit/output/server/index.js / .output/server/index.mjs / public/build/manifest.json）
+#      c. 若产物不存在 → 标 NO_BUILD（让 Phase 1 的 verify_frontend_built 负责报错）
+#      d. 若源文件 mtime > 产物 mtime → STALE
+#      e. 否则 OK
+PHASE2_STALE_COUNT=0
+PHASE2_OK_COUNT=0
+PHASE2_NOBUILD_COUNT=0
+PHASE2_DIRS=""
+PHASE2_DETAILS=""
+PHASE2_STATUS="skipped"
+
+# 跨平台 mtime（macOS BSD stat vs Linux GNU stat）
+file_mtime() {
+    local f="$1"
+    [ ! -e "$f" ] && { echo "0"; return; }
+    if stat -f %m "$f" >/dev/null 2>&1; then
+        # macOS BSD stat
+        stat -f %m "$f"
+    else
+        # GNU stat
+        stat -c %Y "$f"
+    fi
+}
+
+# 把一个秒级时间戳格式化为人类可读
+format_mtime() {
+    local ts="$1"
+    [ -z "$ts" ] || [ "$ts" = "0" ] && { echo "(不存在)"; return; }
+    if date -r "$ts" '+%Y-%m-%d %H:%M:%S' >/dev/null 2>&1; then
+        date -r "$ts" '+%Y-%m-%d %H:%M:%S'
+    else
+        date -d "@$ts" '+%Y-%m-%d %H:%M:%S'
+    fi
+}
+
+# 把秒差格式化为 "4h22m"
+format_duration() {
+    local sec="$1"
+    [ -z "$sec" ] || [ "$sec" -lt 0 ] && { echo "0s"; return; }
+    local h=$((sec / 3600))
+    local m=$(((sec % 3600) / 60))
+    local s=$((sec % 60))
+    if [ "$h" -gt 0 ]; then
+        printf "%dh%02dm" "$h" "$m"
+    elif [ "$m" -gt 0 ]; then
+        printf "%dm%02ds" "$m" "$s"
+    else
+        printf "%ds" "$s"
+    fi
+}
+
+find_frontend_dirs() {
+    # 输出可能的前端目录（相对源工程根）
+    # 规则：含 package.json 且 package.json 的 scripts.build 字段非空
+    local d
+    while IFS= read -r d; do
+        # 跳过深层 / 跳过 node_modules / dist / build 内部的 package.json
+        case "$d" in
+            */node_modules/*|*/dist/*|*/build/*|*/.next/*|*/out/*|*/.svelte-kit/*|*/.output/*) continue ;;
+        esac
+        local pj="$d/package.json"
+        # 用 grep 简单识别 "build": "<...>" 字段（不强依赖 jq；缺 jq 时回退）
+        if command -v jq >/dev/null 2>&1; then
+            jq -e '.scripts.build // .scripts.dev // empty' "$pj" >/dev/null 2>&1 && echo "$d"
+        else
+            grep -qE '"build"[[:space:]]*:[[:space:]]*"' "$pj" 2>/dev/null && echo "$d"
+        fi
+    done < <(find "$SRC_PROJECT" -maxdepth 4 -name package.json -type f -not -path '*/node_modules/*' -not -path '*/dist/*' -not -path '*/build/*' -not -path '*/.next/*' 2>/dev/null | xargs -n1 dirname | sort -u)
+}
+
+# 找一个前端目录里"最新的源文件" mtime（返回 "<mtime> <path>"）
+latest_source_mtime() {
+    local d="$1"
+    # 源码目录：src/ 优先；没 src 时扫整个目录但排除产物 / 依赖
+    local scan_root
+    if [ -d "$d/src" ]; then
+        scan_root="$d/src"
+    else
+        scan_root="$d"
+    fi
+    # 找符合源码扩展名的最新文件
+    local best_ts=0
+    local best_path=""
+    while IFS= read -r f; do
+        local ts
+        ts="$(file_mtime "$f")"
+        if [ "$ts" -gt "$best_ts" ]; then
+            best_ts="$ts"
+            best_path="$f"
+        fi
+    done < <(find "$scan_root" -type f \( \
+        -name '*.ts' -o -name '*.tsx' -o -name '*.js' -o -name '*.jsx' -o \
+        -name '*.vue' -o -name '*.svelte' -o -name '*.css' -o -name '*.scss' -o \
+        -name '*.less' -o -name '*.html' -o -name '*.json' \) \
+        -not -path '*/node_modules/*' -not -path '*/dist/*' -not -path '*/build/*' \
+        -not -path '*/.next/*' -not -path '*/out/*' -not -path '*/.svelte-kit/*' \
+        -not -path '*/.output/*' -not -path '*/public/build/*' 2>/dev/null)
+    echo "$best_ts $best_path"
+}
+
+# 找一个前端目录的"构建产物" mtime（返回 "<mtime> <path>"；产物不存在返回 "0 "）
+latest_build_artifact_mtime() {
+    local d="$1"
+    local candidates=(
+        "$d/dist/index.html"
+        "$d/build/index.html"
+        "$d/.next/BUILD_ID"
+        "$d/out/index.html"
+        "$d/.svelte-kit/output/server/index.js"
+        "$d/.output/server/index.mjs"
+        "$d/public/build/manifest.json"
+    )
+    local best_ts=0
+    local best_path=""
+    local c
+    for c in "${candidates[@]}"; do
+        [ ! -e "$c" ] && continue
+        local ts
+        ts="$(file_mtime "$c")"
+        if [ "$ts" -gt "$best_ts" ]; then
+            best_ts="$ts"
+            best_path="$c"
+        fi
+    done
+    echo "$best_ts $best_path"
+}
+
+run_phase2() {
+    echo ""
+    echo "=== Phase 2: 前端构建产物时效性检查 ==="
+
+    local fe_dirs
+    fe_dirs="$(find_frontend_dirs)"
+    if [ -z "$fe_dirs" ]; then
+        echo "[INFO] 未识别到前端目录（无 package.json + scripts.build），跳过 Phase 2"
+        PHASE2_STATUS="ok"
+        return
+    fi
+
+    local now
+    now="$(date +%s)"
+    local d
+    while IFS= read -r d; do
+        [ -z "$d" ] && continue
+        local rel_d="${d#$SRC_PROJECT/}"
+        [ "$rel_d" = "$d" ] && rel_d="."
+        PHASE2_DIRS="${PHASE2_DIRS}${rel_d},"
+        echo "[FE]   检测前端目录: $rel_d"
+
+        local src_info build_info
+        src_info="$(latest_source_mtime "$d")"
+        build_info="$(latest_build_artifact_mtime "$d")"
+
+        local src_ts src_path build_ts build_path
+        src_ts="${src_info%% *}"
+        src_path="${src_info#* }"
+        build_ts="${build_info%% *}"
+        build_path="${build_info#* }"
+
+        if [ "$build_ts" = "0" ] || [ -z "$build_path" ]; then
+            echo "       [NO_BUILD] 未找到构建产物（dist/build/.next/out 等均不存在）"
+            echo "       → 将由 Phase 1 的 verify_frontend_built 兜底报错"
+            PHASE2_NOBUILD_COUNT=$((PHASE2_NOBUILD_COUNT + 1))
+            PHASE2_DETAILS="${PHASE2_DETAILS}${rel_d}=no_build;"
+            continue
+        fi
+
+        local rel_src rel_build
+        rel_src="${src_path#$SRC_PROJECT/}"
+        rel_build="${build_path#$SRC_PROJECT/}"
+        echo "       构建产物: $rel_build (mtime: $(format_mtime "$build_ts"))"
+        echo "       源码最新: $rel_src (mtime: $(format_mtime "$src_ts"))"
+
+        if [ "$src_ts" -gt "$build_ts" ]; then
+            local diff=$((src_ts - build_ts))
+            echo "       [STALE] 源码新于产物 $(format_duration "$diff")，产物已过期，建议重新构建"
+            PHASE2_STALE_COUNT=$((PHASE2_STALE_COUNT + 1))
+            PHASE2_DETAILS="${PHASE2_DETAILS}${rel_d}=stale($(format_duration "$diff"));"
+        else
+            local diff=$((build_ts - src_ts))
+            echo "       [OK] 产物新于源码 $(format_duration "$diff")"
+            PHASE2_OK_COUNT=$((PHASE2_OK_COUNT + 1))
+            PHASE2_DETAILS="${PHASE2_DETAILS}${rel_d}=ok;"
+        fi
+    done <<< "$fe_dirs"
+
+    if [ "$PHASE2_STALE_COUNT" -gt 0 ]; then
+        PHASE2_STATUS="stale"
+    else
+        PHASE2_STATUS="ok"
+    fi
+}
+
+# ---------- 执行 ----------
+if [ "$SKIP_VERIFY" = "1" ]; then
+    echo "[INFO] --skip-verify 已指定，跳过 Phase 1"
+else
+    run_phase1 || true
+fi
+
+if [ "$SKIP_STALE_CHECK" = "1" ]; then
+    echo "[INFO] --skip-stale-check 已指定，跳过 Phase 2"
+else
+    run_phase2 || true
+fi
+
+# ---------- 汇总 + 退出码 ----------
+echo ""
+echo "=== 总结 ==="
+echo "基础验证 (Phase 1): $PHASE1_STATUS  pass=$PHASE1_PASS_COUNT  fail=$PHASE1_FAIL_COUNT  ${PHASE1_FAIL_LIST:+fail_list=$PHASE1_FAIL_LIST}"
+echo "前端产物 (Phase 2): $PHASE2_STATUS  ok=$PHASE2_OK_COUNT  stale=$PHASE2_STALE_COUNT  no_build=$PHASE2_NOBUILD_COUNT"
+
+# 计算退出码
+EXIT_CODE=0
+if [ "$PHASE1_STATUS" = "fail" ]; then EXIT_CODE=$((EXIT_CODE | 1)); fi
+if [ "$PHASE2_STATUS" = "stale" ]; then EXIT_CODE=$((EXIT_CODE | 2)); fi
+echo "退出码: $EXIT_CODE  (0=全OK / 1=基础验证fail / 2=前端产物stale / 3=两者都有问题)"
+
+# JSON 输出（机器可读，给 CI / agent 抓）
+if [ "$OUTPUT_JSON" = "1" ]; then
+    cat <<EOF
+
+===JSON===
+{
+  "src_project": "$SRC_PROJECT",
+  "phase1": {
+    "status": "$PHASE1_STATUS",
+    "pass_count": $PHASE1_PASS_COUNT,
+    "fail_count": $PHASE1_FAIL_COUNT,
+    "fail_list": "$PHASE1_FAIL_LIST"
+  },
+  "phase2": {
+    "status": "$PHASE2_STATUS",
+    "ok_count": $PHASE2_OK_COUNT,
+    "stale_count": $PHASE2_STALE_COUNT,
+    "no_build_count": $PHASE2_NOBUILD_COUNT,
+    "details": "$PHASE2_DETAILS"
+  },
+  "exit_code": $EXIT_CODE
+}
+===END===
+EOF
+fi
+
+exit "$EXIT_CODE"

@@ -8,10 +8,35 @@
 
 from __future__ import annotations
 
+import json
 import time
+from pathlib import Path
 from typing import Iterable, Optional
 
 from . import checklist, config, log, stages_py
+
+# 已转写项目快路径：stage 10 检测到 install/start/health 齐全时，跳过这些 stage
+# 只跑打包验证链路。打包阶段 (60) 不能跳，stage 70 报告也保留。
+_SKIP_WHEN_ALREADY_TRANSFORMED: frozenset[str] = frozenset({
+    "20_rewrite_loop",
+    "30_render_scripts",
+})
+
+
+def _is_already_transformed(state_dir: Path) -> bool:
+    """读 stack.json 看 stage 10 是否标记 already_transformed=1。
+
+    stack.json 缺失 / 解析失败 / 字段不存在 → 视为未转写（保持向后兼容，
+    旧 stack.json 跑老流水线时不会被误跳）。
+    """
+    stack_file = state_dir / "stack.json"
+    if not stack_file.is_file():
+        return False
+    try:
+        data = json.loads(stack_file.read_text())
+    except (OSError, json.JSONDecodeError):
+        return False
+    return data.get("already_transformed") == 1
 
 STAGES: tuple[str, ...] = (
     "00_prepare",
@@ -98,6 +123,9 @@ def run(
                 f"({len(cleared)} 项): {', '.join(cleared)}"
             )
 
+    # stage 10 跑完后才知道 already_transformed；用一个标志位惰性决定 20/30 是否跳
+    already_transformed: bool = False
+
     for stage in stages:
         # --from-stage 跳过
         if _stage_num(stage) < cfg.from_stage:
@@ -107,6 +135,20 @@ def run(
         # checklist 缓存命中
         if checklist.is_done(stage):
             log.ok(f"stage {stage} 已完成（checklist 缓存命中），跳过")
+            # checklist 命中也要刷一下 already_transformed：用户用 --from-stage 60
+            # 重打包时不会重跑 stage 10，但 stack.json 早已落盘可读
+            if stage == "10_detect_stack" and not already_transformed:
+                already_transformed = _is_already_transformed(cfg.state_dir)
+            continue
+
+        # 已转写快路径：stage 10 标记后，20/30 整体跳过（标 skip 不标 ok，
+        # 与 has_external_infra=0 时 stage 20 内部 substep 走 checklist.skip 语义一致）
+        if already_transformed and stage in _SKIP_WHEN_ALREADY_TRANSFORMED:
+            log.ok(
+                f"stage {stage} 跳过（already_transformed=1："
+                f"install/start/health 脚本均已存在，无需再次转写）"
+            )
+            checklist.set(stage, "skip", "already_transformed=1")
             continue
 
         log.log(f"{log.C_BLD}▶ stage: {stage}{log.C_RST}")
@@ -122,6 +164,9 @@ def run(
         if rc == 0:
             checklist.set(stage, "ok", f"{cost}s")
             log.ok(f"stage {stage} 完成 (耗时 {cost}s)")
+            # stage 10 刚跑完，立即读 stack.json 决定后续 20/30 是否跳过
+            if stage == "10_detect_stack":
+                already_transformed = _is_already_transformed(cfg.state_dir)
         else:
             checklist.set(stage, "fail", f"rc={rc}")
             log.fail(f"stage {stage} 失败 (rc={rc})")

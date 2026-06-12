@@ -1,0 +1,266 @@
+#!/usr/bin/env bash
+# cowork-login-check —— LLM CLI 登录 / 模型可用性预检
+#
+# 用途：本地交互模式下，启动 transform 之前先确认：
+#   1. 当前 GUARD_LLM 对应的 CLI 二进制存在
+#   2. CLI 可执行（--version 通）
+#   3. CLI 已登录、且 GUARD_LLM_MODEL（如有）在用户账号下可用
+#
+# 触发场景（典型）：用户通过 IDE 插件触发本 skill，但 CLI 未登录 / token 过期 /
+# 模型在 provider 列表中未启用。提前 abort 比让流水线跑到第 20 stage LLM 调用失败
+# 再重试 N 次浪费时间更友好。
+#
+# 模式：
+#   - GUARD_RUN_MODE=non-interactive 或 stdin 非 tty → 直接跳过（让流水线跑挂时再让调用方处理；
+#     CI / 服务端常常没有 stdin、无法让用户在终端登录，强行 fail 反而无意义）
+#   - 否则：实际探活；失败时显示登录命令 + 等用户修完按 Enter 重试，最多 3 次
+#
+# 用法：
+#   bin/cowork-login-check              # 用 $GUARD_LLM / $GUARD_LLM_MODEL
+#   bin/cowork-login-check --llm claude # 显式指定后端，覆盖 env
+#   bin/cowork-login-check --skip       # 显式跳过（兼容 CI 调用方）
+#   bin/cowork-login-check -h | --help
+#
+# 退出码：
+#   0   预检通过（或被合理跳过）
+#   1   用户主动 Ctrl+C / 选择退出
+#   2   重试到上限仍失败
+
+set -eo pipefail
+
+# ---------- 默认配置 / 可调参数 ----------
+LLM="${GUARD_LLM:-}"
+MODEL="${GUARD_LLM_MODEL:-}"
+MAX_RETRY="${GUARD_LOGIN_CHECK_RETRY:-3}"
+PROBE_TIMEOUT="${GUARD_LOGIN_CHECK_TIMEOUT:-20}"
+SKIP=0
+
+# ---------- 参数解析 ----------
+while [ $# -gt 0 ]; do
+    case "$1" in
+        --llm) LLM="$2"; shift 2 ;;
+        --llm=*) LLM="${1#--llm=}"; shift ;;
+        --model) MODEL="$2"; shift 2 ;;
+        --model=*) MODEL="${1#--model=}"; shift ;;
+        --skip) SKIP=1; shift ;;
+        -h|--help)
+            sed -n '2,28p' "$0" | sed 's/^# \{0,1\}//'
+            exit 0 ;;
+        *) echo "[login-check] [WARN] 未识别参数: $1（用 -h 查看用法）" >&2; shift ;;
+    esac
+done
+
+# ---------- 显式跳过 ----------
+if [ "$SKIP" = "1" ]; then
+    echo "[login-check] 跳过（--skip）" >&2
+    exit 0
+fi
+
+# ---------- 默认兜底 ----------
+LLM="${LLM:-claude}"
+
+# ---------- 非交互场景跳过 ----------
+# 设计理由：CI / 服务端 / openclaw 等场景没有真正的 stdin，强行预检反而会因为
+# stdin 拿不到回复而被卡死或误判 fail。让真实 LLM 调用失败时由上层 fail-fast。
+if [ "${GUARD_RUN_MODE:-}" = "non-interactive" ] || [ "${GUARD_NONINTERACTIVE:-0}" = "1" ]; then
+    echo "[login-check] 非交互模式跳过 LLM 鉴权预检（GUARD_RUN_MODE=non-interactive）" >&2
+    exit 0
+fi
+if [ ! -t 0 ] || [ ! -t 2 ]; then
+    echo "[login-check] stdin/stderr 非 tty，跳过 LLM 鉴权预检（无法交互）" >&2
+    exit 0
+fi
+
+# ---------- 共用：判断 binary 是否在 ----------
+ensure_binary() {
+    local bin="$1" install_hint="$2"
+    if ! command -v "$bin" >/dev/null 2>&1; then
+        cat >&2 <<EOF
+[login-check] [FAIL] 未找到 $bin CLI
+
+  $install_hint
+
+EOF
+        return 2
+    fi
+    if ! "$bin" --version >/dev/null 2>&1; then
+        echo "[login-check] [FAIL] $bin --version 异常；CLI 可能损坏" >&2
+        return 2
+    fi
+    return 0
+}
+
+# ---------- 共用：跑一次最小化探活 ----------
+# 设计：用 echo 'reply with single word: OK' | timeout N <cli> ... 形式做一次最小化调用。
+# - 不同 CLI 的 print 模式参数不一致（claude --print / codewiz --print），需按 CLI 分发
+# - 探活只关心 exit code 与 stderr，不消耗大量 token；最多 ~10 tokens / 次
+# - timeout 给出兜底防止卡死（默认 20s，可用 GUARD_LOGIN_CHECK_TIMEOUT 调）
+#
+# 返回：
+#   0 = 探活成功
+#   1 = 鉴权 / 模型不可用 / 调用失败（fail 内容写到全局 $LAST_PROBE_OUT）
+#   2 = CLI 不支持探活语法（pass-through 视为 OK，避免误杀）
+LAST_PROBE_OUT=""
+_probe_claude() {
+    local out rc
+    # claude 1.x 标准 print 模式：claude --print 'msg' 或 stdin | claude --print
+    # 部分版本对 stdin 不友好；统一用 -p 短参数 + 显式 message 形式更稳
+    out="$(timeout "$PROBE_TIMEOUT" claude -p 'reply with the single word OK' 2>&1)" && rc=0 || rc=$?
+    LAST_PROBE_OUT="$out"
+    if [ "$rc" -eq 0 ] && [ -n "$out" ]; then
+        return 0
+    fi
+    # exit=127 / "command not found" / "unknown option" → 视为本脚本 probe 命令不兼容，pass
+    case "$rc" in
+        125|126|127) return 2 ;;
+    esac
+    if echo "$out" | grep -qi 'unknown\|not found\|invalid option\|usage:'; then
+        return 2
+    fi
+    return 1
+}
+
+_probe_codewiz() {
+    local out rc model_arg=()
+    [ -n "$MODEL" ] && model_arg=(--model "$MODEL")
+    # codewiz CLI 普遍支持 -p / --print 模式
+    out="$(timeout "$PROBE_TIMEOUT" codewiz "${model_arg[@]}" -p 'reply with the single word OK' 2>&1)" && rc=0 || rc=$?
+    LAST_PROBE_OUT="$out"
+    if [ "$rc" -eq 0 ] && [ -n "$out" ]; then
+        return 0
+    fi
+    case "$rc" in
+        125|126|127) return 2 ;;
+    esac
+    if echo "$out" | grep -qi 'unknown\|not found\|invalid option\|usage:'; then
+        return 2
+    fi
+    return 1
+}
+
+# ---------- 按后端分发 ----------
+probe_once() {
+    case "$LLM" in
+        claude)
+            ensure_binary claude \
+                "请安装 Claude Code（https://docs.anthropic.com/claude-code）后再试" || return 2
+            _probe_claude
+            ;;
+        codewiz)
+            ensure_binary codewiz \
+                "请安装小红书 CodeWiz vscode 插件（codewiz CLI 随插件分发；启用插件后通常在 ~/.vscode/extensions/rednote.rednote-codewiz-*/.../bin/codewiz）" || return 2
+            _probe_codewiz
+            ;;
+        mock)
+            echo "[login-check] LLM=mock，跳过真实探活" >&2
+            return 0
+            ;;
+        qwen-code|qwen|codex|gemini)
+            ensure_binary "$LLM" "请安装 $LLM CLI（参考其官方文档）" || return 2
+            echo "[login-check] LLM=$LLM 仅做 binary 探测，鉴权由该 CLI 自检" >&2
+            return 0
+            ;;
+        *)
+            echo "[login-check] [WARN] 未知 GUARD_LLM=$LLM，跳过预检" >&2
+            return 0
+            ;;
+    esac
+}
+
+# ---------- 探活失败时的提示 ----------
+print_fix_hint() {
+    case "$LLM" in
+        claude)
+            cat >&2 <<EOF
+
+[login-check] === 修复建议 ===
+
+  1) 终端跑：  claude login
+     按提示完成 OAuth / API key 配置
+
+  2) 如已登录但仍失败：
+     - 检查 $HOME/.claude 目录下 token 是否过期
+     - 重新跑 claude login 强制刷新
+     - 确认模型权限：claude doctor（如版本支持）
+
+  3) 模型限制：
+     如使用受限模型（如 opus），请确认 Anthropic 账号 plan 已包含
+EOF
+            ;;
+        codewiz)
+            cat >&2 <<EOF
+
+[login-check] === 修复建议 ===
+
+  1) 在 VSCode 里：  Cmd+Shift+P → "CodeWiz: Providers"
+     选择并登录所需 provider（小红书内部账号 / Anthropic / ... ）
+
+  2) 或终端跑：  codewiz providers
+     按交互完成登录
+
+  3) 当前模型：  GUARD_LLM_MODEL=${MODEL:-<未设置>}
+     如失败提示模型不可用，请：
+       - 用 \$GUARD_TRANSFORM_HOME/choose-model.sh 切换到可用模型
+       - 或在 vscode 中确认该模型已在你的 provider 列表中
+EOF
+            ;;
+        *)
+            cat >&2 <<EOF
+
+[login-check] === 修复建议 ===
+
+  请参考 $LLM CLI 自身文档完成登录 / 鉴权配置后再试
+EOF
+            ;;
+    esac
+    if [ -n "$LAST_PROBE_OUT" ]; then
+        echo "" >&2
+        echo "[login-check] === CLI 原始输出（前 10 行）===" >&2
+        echo "$LAST_PROBE_OUT" | head -n 10 | sed 's/^/    /' >&2
+    fi
+}
+
+# ---------- 主流程：探活 + 失败重试 ----------
+main() {
+    echo "[login-check] 检查 LLM CLI 登录状态: backend=$LLM${MODEL:+ model=$MODEL}" >&2
+
+    local attempt=0
+    while [ "$attempt" -lt "$MAX_RETRY" ]; do
+        attempt=$((attempt + 1))
+        if probe_once; then
+            echo "[login-check] [OK] LLM CLI 已登录，模型可用（attempt $attempt/$MAX_RETRY）" >&2
+            return 0
+        fi
+        rc=$?
+        if [ "$rc" = "2" ]; then
+            # binary 缺失或 probe 不兼容 → 不重试，直接 abort
+            return 2
+        fi
+        echo "" >&2
+        echo "[login-check] [FAIL] 鉴权 / 模型可用性探活失败（attempt $attempt/$MAX_RETRY）" >&2
+        print_fix_hint
+        if [ "$attempt" -ge "$MAX_RETRY" ]; then
+            break
+        fi
+        echo "" >&2
+        printf "[login-check] 请按上面提示完成登录后，按 Enter 重试；输入 s 跳过；Ctrl+C 退出: " >&2
+        local ans=""
+        if ! IFS= read -r ans; then
+            # stdin EOF（罕见）→ 视为退出
+            echo "" >&2
+            echo "[login-check] stdin EOF，abort" >&2
+            return 1
+        fi
+        case "$(echo "$ans" | tr '[:upper:]' '[:lower:]' | tr -d '[:space:]')" in
+            s|skip)
+                echo "[login-check] [WARN] 用户主动跳过；后续 LLM 调用若失败请检查登录状态" >&2
+                return 0
+                ;;
+        esac
+    done
+
+    echo "[login-check] [FAIL] 重试 $MAX_RETRY 次后仍未通过；abort" >&2
+    return 2
+}
+
+main

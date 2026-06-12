@@ -6,7 +6,12 @@
     lang / framework / entry / needs_build /
     has_db / has_ai / has_ai_text / has_ai_image /
     has_redis / has_external_infra / has_sso / has_static_spa /
-    backend_dir / frontend_dir
+    backend_dir / frontend_dir / already_transformed
+
+注：already_transformed=1 表示工作副本顶层已同时存在
+install.sh / start.sh / health.sh 三个脚本，视为「上一次转写已完成」。
+pipeline 会据此跳过 stage 20 (rewrite_loop) 与 stage 30 (render_scripts)，
+直接进入 build / smoke_test / package 验证 + 打包阶段（打包验证仍照常跑）。
 
 注：has_redis 字段保留向后兼容；新代码请使用 has_external_infra（覆盖
 Redis/MQ/S3/ES）。Pod 不提供这些外部基础设施，命中即触发 stage 20 子任务。
@@ -431,6 +436,34 @@ def _detect_stack(work_dir: Path) -> dict:
                 has_external_infra = 1
                 break
 
+    # ---- already_transformed：顶层同时存在 install.sh/start.sh/health.sh 视为已转写 ----
+    # 这三个脚本是 stage 30 模板渲染的产物，也是平台对子应用「合规」的必备入口。
+    # 三者齐全 ⇒ 上一次（任何时间、任何工具）的转写已完成，本次只需重新打包验证。
+    # 任一缺失 ⇒ 视为未转写或转写中断，按常规流水线全部跑一遍。
+    already_transformed = 1 if all(
+        (work_dir / name).is_file()
+        for name in ("install.sh", "start.sh", "health.sh")
+    ) else 0
+
+    # ---- frontend_only：纯前端项目（无需 install/start/health.sh）----
+    # 平台模式：仅托管静态构建产物（dist/index.html 等），不跑业务运行时进程。
+    # 命中条件（全部满足）：
+    #   1) 顶层是 Node 工程（lang=node）
+    #   2) framework 是纯静态 SPA（vite-spa）；Next.js/Nuxt 默认带 SSR 运行时，不算
+    #   3) 无 backend_dir（不是 monorepo 后端 + 前端结构）
+    #   4) 无 has_db / has_external_infra（任何后端依赖信号都让它走完整流水线）
+    # 命中后：stage 30 不渲染 install/start/health；stage 50 跳过后端 verifier；
+    # stage 60 zip 顶层不强求 install.sh，但要求构建产物里有 index.html 且资源引用相对路径。
+    frontend_only = 0
+    if (
+        lang == "node"
+        and framework == "vite-spa"
+        and not backend_dir
+        and not has_db
+        and not has_external_infra
+    ):
+        frontend_only = 1
+
     # 字段顺序：保留 has_redis / has_ai 在原位向后兼容；新增字段追加在后面
     return {
         "lang": lang,
@@ -450,6 +483,8 @@ def _detect_stack(work_dir: Path) -> dict:
         "has_static_spa": has_static_spa,
         "backend_dir": backend_dir,
         "frontend_dir": frontend_dir,
+        "already_transformed": already_transformed,
+        "frontend_only": frontend_only,
     }
 
 
@@ -569,6 +604,20 @@ def run(cfg: config.Config) -> int:
     for line in out_path.read_text().rstrip("\n").splitlines():
         log.log(f"    {line}")
 
+    # ---- 已转写项目快路径提示 ----
+    # 命中 already_transformed=1 时，pipeline 会跳过 stage 20 / 30；
+    # 这里给用户一个明确告知，方便排查"为什么没改文件就直接打包了"。
+    if stack.get("already_transformed") == 1:
+        log.ok(
+            "检测到工作副本顶层已存在 install.sh / start.sh / health.sh，"
+            "判定为「上一次转写已完成」"
+        )
+        log.log("  → pipeline 将跳过 stage 20 (rewrite_loop) / stage 30 (render_scripts)")
+        log.log("  → 直接进入 stage 40 (build) → 50 (smoke_test) → 60 (package) 验证 + 打包")
+        log.log(
+            "  → 若想强制重新转写，删除工作副本中的 install.sh/start.sh/health.sh 后再跑"
+        )
+
     # 输入不限语言；产物只能是 Python / Node
     # 非 Python/Node 原工程会在 stage 20 由 LLM 重写为 Python/Node 后端
     lang = stack["lang"]
@@ -592,7 +641,13 @@ def run(cfg: config.Config) -> int:
     # ---- LLM 辅助检测：读源码生成 project_brief.md + 补全 stack.json flag ----
     # 在 profile 匹配之后跑，brief 里的 flag 补全不影响 profile 选择
     # （profile 已经落盘；stage 20 直接读 stack.json，brief 里的补全对 stage 20 生效）
-    _llm_generate_brief(cfg, stack)
+    # 已转写项目快路径下不再需要 brief（stage 20 / 30 都被跳过），节省一次大模型调用
+    if stack.get("already_transformed") == 1:
+        log.log(
+            "already_transformed=1，跳过 project_brief.md 生成（stage 20 不再消费）"
+        )
+    else:
+        _llm_generate_brief(cfg, stack)
 
     log.ok("stage 10 完成")
     return 0

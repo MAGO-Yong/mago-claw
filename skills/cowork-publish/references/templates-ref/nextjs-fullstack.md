@@ -1,279 +1,63 @@
-# nextjs-fullstack 模板参考
+# nextjs-fullstack 模板导读
 
-> **何时读**：选用 `nextjs-fullstack` 模板后写业务代码时读。
+> **何时读**：选用 `nextjs-fullstack` 模板（`cowork.py scaffold <name> --template nextjs-fullstack`）后、写业务代码前读。
 >
-> 适用场景：Next.js 全栈 / SSR / SEO 重要的页面 / 后台管理页 / 需要 React 生态丰富组件库。
+> **本文只讲该模板特有的结构与坑**。SSO / AI / DB / 路径等横切规范统一看 `../sso.md` / `../ai.md` / `../db.md` / `../urls.md`。
+> **真实可运行的骨架代码以 `templates/nextjs-fullstack/` 下的实际文件为准**（scaffold 会原样 cp），本文不贴代码副本。
 
-## scaffold 已给好
+适用场景：Next.js 14 App Router 全栈 / SSR / SEO 重要的页面 / 后台管理页 / 需要 React 生态丰富组件库。
 
-调 `cowork.scaffold_app({ template: 'nextjs-fullstack' })` 后，目录下含：
+## scaffold 生成的真实结构
 
 ```
 <srcDir>/
-├── app/                    # Next.js App Router
-│   ├── layout.tsx          # 根布局
-│   ├── page.tsx            # / 首页
-│   ├── health/route.ts     # /health 顶层路由（给 health.sh 探活）
+├── app/                        # Next.js App Router
+│   ├── layout.tsx              # 根布局
+│   ├── page.tsx                # / 首页
+│   ├── health/route.ts         # /health 顶层（给 health.sh 探活）
 │   └── api/
-│       ├── health/route.ts # /api/health
-│       └── whoami/route.ts # /api/whoami（SSO 解析）
-├── next.config.js          # 必须 output: 'standalone'
-├── package.json            # next 14 / react 18
+│       ├── health/route.ts     # /api/health
+│       └── whoami/route.ts     # /api/whoami（内置 parseSsoUser / requireUser，可 import 复用）
+├── next.config.js              # output: 'standalone'（必须）
+├── package.json                # next 14 / react 18
 ├── tsconfig.json
-├── .npmrc                  # @xhs 内网 + npmmirror 双路
-├── install.sh              # standalone build 已自带 node_modules，install.sh 为 no-op
-├── start.sh                # exec node .next/standalone/server.js
-├── health.sh               # curl /health
-├── prepack.sh              # build + patch standalone server.js（让它读 APP_HOSTNAME/APP_PORT）
+├── .npmrc                      # 双路内网 registry
+├── install.sh                  # standalone build 自带 node_modules，install 基本 no-op
+├── start.sh                    # exec node .next/standalone/server.js（读 APP_PORT）
+├── health.sh                   # curl /health
+├── prepack.sh                  # build + patch standalone server.js（读 APP_HOSTNAME/APP_PORT）+ link static/public
 └── README.md
 ```
 
-## 关键：`next.config.js` 必须 `output: 'standalone'`
+> ⚠️ `install.sh` / `start.sh` / `health.sh` / `prepack.sh` / `next.config.js` 是规范产物，**不要手改**。
 
-```js
-/** @type {import('next').NextConfig} */
-const nextConfig = {
-  output: 'standalone',  // ⚠️ 必须，否则 Pod 起不来
-  experimental: {},
-}
-module.exports = nextConfig
-```
+## 骨架已内置（直接用，别重写）
 
-**不要配 basePath / assetPrefix**（router 自动加 `/s/<appId>/` 前缀，配了会双前缀 404）。
+`app/api/whoami/route.ts` 里已写好且**符合最新规范**，并 `export` 出来供业务路由 import：
 
-## 关键：prepack.sh 自动跑 build + patch server.js
+- `parseSsoUser(headerValue)`：**latin-1 → JSON 两步**（`Buffer.from(h,'latin1').toString('utf8')` 后 `JSON.parse`，**没有 base64**），拿不到返 null
+- `requireUser(req)`：拿不到 → **401**，**无 `APP_ENV==='sit'` 后门 / 无 `sso-email` 自造 header**（precheck 会拦）
+- `app/health/route.ts`（顶层 `/health`）+ `app/api/health/route.ts`
 
-cowork.publish 会自动 spawn prepack.sh，它做：
+业务 route 直接 `import { requireUser } from '@/app/api/whoami/route'` 复用，不要另写一套 SSO 解析。
 
-```bash
-# prepack.sh 简化版（实际看 templates/nextjs-fullstack/prepack.sh）
-npm ci
-npm run build  # 出 .next/standalone/server.js
+加 DB / AI 时**按 `../db.md` / `../ai.md` 的标准实现自己建** `app/lib/db.ts` / `ai.ts`（骨架默认不带）。
 
-# patch standalone server.js：让它读 APP_HOSTNAME / APP_PORT
-# 否则 Pod 注入的 APP_PORT=3001（蓝绿期）会被 server.js 内的 PORT=3000 覆盖
-perl -i -pe 's/process\.env\.HOSTNAME\b/(process.env.APP_HOSTNAME || process.env.HOSTNAME)/g' .next/standalone/server.js
-perl -i -pe 's/process\.env\.PORT\b/(process.env.APP_PORT || process.env.PORT)/g' .next/standalone/server.js
+> ⚠️ **AI 调用别想当然**：Runway 文本网关用 `header: token:`（不是 `Authorization: Bearer`），读 `ai.base_url` / `ai.api_key`（不是 `ai.text.endpoint`），检查 `data.Code || data.Error`（不是 `data.error`）。务必照抄 `../ai.md`。
 
-# link static/public 进 standalone
-mkdir -p .next/standalone/.next
-cp -r .next/static .next/standalone/.next/static
-[ -d public ] && cp -r public .next/standalone/public
-```
+## 该模板特有的坑
 
-## /health endpoint
+1. **`output: 'standalone'` 必须**：少了 `prepack.sh` 找不到 `.next/standalone/server.js`，部署直接 fail。
+2. **不配 basePath / assetPrefix / publicPath**：平台 router 自动加 `/s/<appId>/`，配了双前缀 404（详见 `../urls.md`）。
+3. **HOSTNAME / PORT 必须 patch**：Next standalone 默认读 `HOSTNAME`/`PORT`；prepack.sh 已 sed 替换成读 `APP_HOSTNAME`/`APP_PORT`，否则蓝绿期注入的 `APP_PORT` 不生效。
+4. **`/health` 必须在 `app/health/route.ts`**（顶层），不要放 `app/(group)/health/` 之类 group 下。
+5. **DB 懒初始化**：Next 没传统 install.sh DDL 时机，DDL 放业务首次调用时 `ensureDbInit()`（幂等 `CREATE TABLE IF NOT EXISTS`）；不要用 migrations 工具（详见 `../db.md`）。
+6. **App Router 不混 Pages Router**：scaffold 用 `app/`，别加 `pages/`。
+7. **`'use client'` 边界**：SSO / DB / AI 等 server 操作只能在 route handler（server）里，client 组件走 `/api/*` 调。
 
-`app/health/route.ts`：
+## 横切规范（必读）
 
-```typescript
-import { NextResponse } from 'next/server'
-
-export async function GET() {
-  return NextResponse.json({ ok: true })
-}
-```
-
-⚠️ **必须在 app/ 顶层**（路径 `/health`），不能在 `app/(auth)/health/route.ts` 这种 group 下。health.sh 探的就是 `http://127.0.0.1:${APP_PORT}/health`。
-
-## SSO 接入（Hard Rule #4 强制）
-
-详见 `../sso.md`。Next.js 推荐 helper：
-
-```typescript
-// app/lib/sso.ts
-import type { NextRequest } from 'next/server'
-
-export interface SsoUser {
-  email: string
-  name: string
-  userId: string
-}
-
-export function parseSsoUser(req: NextRequest): SsoUser | null {
-  const header = req.headers.get('decrypted-userinfo')
-  if (header) {
-    try {
-      const raw = Buffer.from(header, 'latin1').toString('utf8')
-      const data = JSON.parse(Buffer.from(raw, 'base64').toString('utf8'))
-      return {
-        email: data.email ?? data.workEmail,
-        name: data.name ?? data.displayName,
-        userId: data.userId ?? data.id,
-      }
-    } catch {
-      // fall through
-    }
-  }
-  if (process.env.APP_ENV === 'sit') {
-    const fallback = req.headers.get('sso-email')
-    if (fallback) {
-      return { email: fallback, name: fallback.split('@')[0], userId: 'sit-dev' }
-    }
-  }
-  return null
-}
-```
-
-业务 route 用法：
-
-```typescript
-// app/api/items/route.ts
-import { NextRequest, NextResponse } from 'next/server'
-import { parseSsoUser } from '@/app/lib/sso'
-import { query } from '@/app/lib/db'
-
-export async function GET(req: NextRequest) {
-  const user = parseSsoUser(req)
-  if (!user) {
-    return NextResponse.json({ error: 'not authenticated' }, { status: 401 })
-  }
-  const rows = await query(
-    'SELECT id, name FROM items WHERE created_by = $1',
-    [user.email],
-  )
-  return NextResponse.json({ items: rows })
-}
-```
-
-## DB 接入（PostgreSQL via db.properties）
-
-详见 `../db.md`。Node 推荐 `pg` 包（不要 sequelize / typeorm）：
-
-```typescript
-// app/lib/db.ts
-import { Pool } from 'pg'
-import fs from 'node:fs'
-import path from 'node:path'
-
-function loadDbProperties(): Record<string, string> {
-  const p = path.resolve(process.cwd(), 'db.properties')
-  if (!fs.existsSync(p)) return {}
-  const out: Record<string, string> = {}
-  for (const line of fs.readFileSync(p, 'utf8').split('\n')) {
-    const s = line.trim()
-    if (!s || s.startsWith('#') || !s.includes('=')) continue
-    const idx = s.indexOf('=')
-    out[s.slice(0, idx).trim()] = s.slice(idx + 1).trim()
-  }
-  return out
-}
-
-const props = loadDbProperties()
-
-// ⚠️ 用对象参数，不字符串拼 URL
-export const pool = new Pool({
-  host: props['db.host'],
-  port: parseInt(props['db.port'] || '5432', 10),
-  database: props['db.database'],
-  user: props['db.username'],
-  password: props['db.password'],
-  max: 5,  // standalone Pod 内存有限，连接池别太大
-})
-
-export async function query<T = any>(sql: string, params: any[] = []): Promise<T[]> {
-  const r = await pool.query(sql, params)
-  return r.rows as T[]
-}
-```
-
-**DB 初始化**：Next.js 没有传统 `install.sh`（standalone build 自带依赖），DDL 在**第一次 API 调用时懒初始化**或者**写到 `prepack.sh` 里**（不推荐，因为 prepack 在转写者机器跑，没生产 DB）。最稳的是单独写一个 `scripts/init-db.ts` 在 Pod 第一次健康检查通过后由业务代码自调（idempotent CREATE TABLE IF NOT EXISTS）。
-
-```typescript
-// app/lib/init-db.ts
-import { query } from './db'
-
-let initialized = false
-const initPromise = (async () => {
-  await query(`
-    CREATE TABLE IF NOT EXISTS items (
-      id SERIAL PRIMARY KEY,
-      name TEXT NOT NULL,
-      created_by TEXT NOT NULL,
-      created_at TIMESTAMPTZ DEFAULT NOW()
-    )
-  `)
-  initialized = true
-})()
-
-export async function ensureDbInit() {
-  if (!initialized) await initPromise
-}
-```
-
-每个业务 route 开头调一下：
-
-```typescript
-export async function GET(req: NextRequest) {
-  await ensureDbInit()
-  // ...
-}
-```
-
-## AI 接入（必须走 Runway，详见 `../ai.md`）
-
-```typescript
-// app/lib/ai.ts
-import fs from 'node:fs'
-import path from 'node:path'
-
-function loadAiProperties() {
-  const p = path.resolve(process.cwd(), 'ai.properties')
-  if (!fs.existsSync(p)) return {}
-  const out: Record<string, string> = {}
-  for (const line of fs.readFileSync(p, 'utf8').split('\n')) {
-    const s = line.trim()
-    if (!s || s.startsWith('#') || !s.includes('=')) continue
-    const idx = s.indexOf('=')
-    out[s.slice(0, idx).trim()] = s.slice(idx + 1).trim()
-  }
-  return out
-}
-
-const ai = loadAiProperties()
-
-export async function callText(messages: any[], maxTokens = 2000): Promise<string> {
-  const r = await fetch(ai['ai.text.endpoint'], {
-    method: 'POST',
-    headers: {
-      Authorization: `Bearer ${ai['ai.text.api_key']}`,
-      'Content-Type': 'application/json',
-      'anthropic-version': 'bedrock-2023-05-31',
-    },
-    body: JSON.stringify({
-      anthropic_version: 'bedrock-2023-05-31',
-      max_tokens: maxTokens,
-      messages,
-    }),
-  })
-  if (!r.ok) throw new Error(`Runway ${r.status}: ${await r.text()}`)
-  const data = await r.json()
-  if (data.error) throw new Error(`Runway error: ${JSON.stringify(data.error)}`)
-  return data.content[0].text
-}
-```
-
-## 该模板特有的 6 个坑
-
-1. **`output: 'standalone'` 必须**：少了这条 `prepack.sh` 找不到 `.next/standalone/server.js`，install.sh 直接 fail。
-2. **不要配 basePath / assetPrefix / publicPath**：router 自动加 `/s/<appId>/`，配了会双前缀。
-3. **HOSTNAME / PORT 必须 patch**：Next standalone 默认读这俩；不 patch 蓝绿期注入的 `APP_PORT=3001` 不生效。prepack.sh 已 sed 替换。
-4. **bg task / setInterval 不要**：Next.js Pod 是单实例长进程，但 cowork 平台可能蓝绿切换 → bg task 状态丢。重活走 DB 队列。
-5. **App Router vs Pages Router**：scaffold 用 App Router（`app/`），不要混 `pages/`，路由会冲突。
-6. **`use client` boundary**：API route 默认 server。组件加交互必须 `'use client'` 顶部。SSO/DB/AI 等 server 操作不能在 client 组件里直接调，要走 `/api/*` route。
-
-## 完整参考实现
-
-业务代码风格参考 `fastapi-only.md` 的结构（路由组织 / SSO middleware / DB 单例 / AI 调用），不同点：
-
-- Python `app/main.py` → Next `app/page.tsx` + `app/api/*/route.ts`
-- Python `app/db.py` 同步 → Next `app/lib/db.ts` 用 `pg.Pool` 异步
-- Python `app/sso.py` → Next `app/lib/sso.ts`（参数从 `Request` 拿）
-
-Cross-cutting:
-
-- `../db.md` — DB 完整规范
-- `../sso.md` — SSO 完整规范
-- `../ai.md` — AI 完整规范
-- `../urls.md` — URL / 静态资源 / Next router 注意事项
+- `../db.md` / `../sso.md` / `../ai.md` — DB / SSO / AI 标准实现
+- `../urls.md` — URL / 静态资源 / Next standalone 注意事项
 - `../deps-node.md` — Node 依赖 + .npmrc
 - `../checklist.md` — 写完自检

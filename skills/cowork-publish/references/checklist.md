@@ -1,6 +1,6 @@
 # 写完自检 Checklist
 
-> **何时读**：**写完业务代码、调 cowork.publish 之前必读**。逐项过一遍：三件套 / 业务代码 / AI / SSO / 路径 / 依赖 / Zip 顶层。任何一条没过 → 部署多半 FAILED。
+> **何时读**：**写完业务代码、调 cowork.py publish 之前必读**。逐项过一遍：三件套 / 业务代码 / AI / SSO / 路径 / 依赖 / Zip 顶层。任何一条没过 → 部署多半 FAILED。
 >
 > 本文从官方 `ai-demo-platform-guard-transform-skill/subapp-spec/CLAUDE.md` 拆分而来。
 
@@ -55,7 +55,9 @@
 - [ ] 前端有 `dist/` 或 `.next/standalone/` 已构建产物
 
 ### 依赖与安装
-- [ ] `install.sh` 里 `pip install` 带 `-i http://pypi.devops.xiaohongshu.com/simple/ --trusted-host pypi.devops.xiaohongshu.com`
+- [ ] `install.sh` 里 `pip install` 行**不带** `-i` / `--index-url` / `--extra-index-url` / `--trusted-host`（`verify_install_no_internet.sh` 会卡；走内部镜像由 Pod env `PIP_INDEX_URL` / `PIP_TRUSTED_HOST` 注入）
+- [ ] 任何 `.sh` 都**不**含 `python3 -m venv` / `virtualenv`（`verify_no_venv_creation.sh` 会卡；依赖装到 Pod 镜像的 `/opt/venv` 全局 venv）
+- [ ] `start.sh` 不写 `[ -f .venv/bin/activate ] && . .venv/bin/activate`，不写 `PYTHON="backend/.venv/bin/python"` 这种 cd 前判断 / cd 后引用的相对路径（rename 后 100% ENOENT）
 - [ ] `.npmrc` 在 zip 顶层，值不带引号
 - [ ] `install.sh` 里没有 `apt-get` / `yum` / `brew` / `curl|sh` / `git clone https://github`
 - [ ] `install.sh` 里没有 `alembic upgrade` / `prisma migrate` / `knex migrate` / `flyway` / `liquibase`

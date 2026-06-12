@@ -89,9 +89,10 @@ detect 完成后，stage 10 会**自动**调一次 LLM（fast profile / sonnet�
 #    需要时同步把 "has_external_infra" / "has_redis" / "has_s3" 等改对
 #    （不要改 lang/framework 字段除非用户明确指出框架识别错了）
 
-# 2. 直接跑 transform 续跑：stage 20 起的所有 stage 都会读改后的 stack.json
-"$GUARD_TRANSFORM_HOME/transform.sh" "$SRC_PROJECT" --from-stage 20 -y
-#    --from-stage 20 会跳过 stage 10 detect（避免覆盖用户的改动），
+# 2. 直接跑 transform 续跑：checklist 已记 stage 10 完成，会自动跳过 detect；
+#    stage 20 起的所有 stage 都会读改后的 stack.json
+"$GUARD_TRANSFORM_HOME/bin/guardx" transform "$SRC_PROJECT" -y
+#    -y 等同 --resume：命中 checklist 缓存的 stage 10 直接跳过（不会再次 detect 覆盖你的改动），
 #    从 stage 20 (LLM 改写) 开始，让 stage 30 (render) 按新 has_db/has_sso 注入 db.properties 和 SSO 中间件
 
 # 3. （可选）若用户问起 profile.json 为何没更新：
@@ -118,7 +119,7 @@ detect 完成后，stage 10 会**自动**调一次 LLM（fast profile / sonnet�
 
 ## Step 2：加载默认环境
 
-本 skill 的**默认 LLM 后端**是 `claude` CLI（复用 Claude Code 已有的 OAuth / API key）。`install.sh` 自动写入的 `default_env.sh` 设置了以下默认值，**source 一次即可**：
+本 skill 的**默认 LLM 后端**是 `codewiz-cc` CLI（复用 Claude Code 已有的 OAuth / API key）。`install.sh` 自动写入的 `default_env.sh` 设置了以下默认值，**source 一次即可**：
 
 ```bash
 source "$GUARD_TRANSFORM_HOME/default_env.sh"
@@ -167,12 +168,12 @@ source "$GUARD_TRANSFORM_HOME/default_env.sh"         # 自动展开
 # 入口 2：直接调脚本
 "$GUARD_TRANSFORM_HOME/choose-model.sh"           # 3 阶段菜单：backend → STRONG → FAST
 "$GUARD_TRANSFORM_HOME/choose-model.sh" --show    # 查当前默认
-"$GUARD_TRANSFORM_HOME/choose-model.sh" --reset   # 恢复 build.sh 写入的初始默认 + marker:initial
+"$GUARD_TRANSFORM_HOME/choose-model.sh" --reset   # 恢复 install.sh 初始默认 + marker:initial
 ```
 
-写回后**所有后续 transform** 都用新默认，agent 不需要每次都改 / 都问。zip 解压后初始 `STRONG=claude-4.6-sonnet-google` / `FAST=claude-4.6-sonnet-google`（seal skill 硬需求：STRONG/FAST 都默认 sonnet 非 thinking）。
+写回后**所有后续 transform** 都用新默认，agent 不需要每次都改 / 都问。装机初始 `STRONG=claude-opus-4-6` / `FAST=claude-sonnet-4-6`。
 
-> **首次跑自动调起**：zip 解压后 `default_env.sh` 末尾写有 `# CHOOSE_MODEL_MARKER:initial`。首次跑 `transform.sh` 在 interactive 模式 + 交互终端会先弹 `是否现在调起 choose-model.sh 选模型？[Y/n/skip]`；选完后 marker 改成 `:chosen`，之后不再询问。CI / Seal 云端 `export GUARD_SKIP_CHOOSE_MODEL=1` 永久跳过。
+> **首次跑自动调起**：install.sh 装机后 `default_env.sh` 末尾写有 `# CHOOSE_MODEL_MARKER:initial`。首次跑 `transform.sh` 在 interactive 模式 + 交互终端会先弹 `是否现在调起 choose-model.sh 选模型？[Y/n/skip]`；选完后 marker 改成 `:chosen`，之后不再询问。CI / openclaw `export GUARD_SKIP_CHOOSE_MODEL=1` 永久跳过。
 
 **方式 1：临时覆盖单次调用** — 先 export，再 source（`${VAR:=default}` 会保留你的值）：
 
@@ -181,7 +182,7 @@ source "$GUARD_TRANSFORM_HOME/default_env.sh"         # 自动展开
 export GUARD_LLM=codewiz
 export GUARD_LLM_MODEL='codewiz/Claude-4.6-opus(thinking)'
 source "$GUARD_TRANSFORM_HOME/default_env.sh"
-"$GUARD_TRANSFORM_HOME/transform.sh" "$SRC_PROJECT"
+"$GUARD_TRANSFORM_HOME/bin/guardx" transform "$SRC_PROJECT"
 ```
 
 | 用户口头要求 | 对应 export |
@@ -199,7 +200,7 @@ source "$GUARD_TRANSFORM_HOME/default_env.sh"
 
 ```bash
 export GUARD_LLM=qwen-code GUARD_LLM_TIMEOUT=1800
-"$GUARD_TRANSFORM_HOME/transform.sh" "$SRC_PROJECT"
+"$GUARD_TRANSFORM_HOME/bin/guardx" transform "$SRC_PROJECT"
 ```
 
 ### agent 行为约定（重要）
@@ -218,11 +219,11 @@ export GUARD_LLM=qwen-code GUARD_LLM_TIMEOUT=1800
 export PYTHONUNBUFFERED=1
 
 if [ "$GUARD_RUN_MODE" = "non-interactive" ]; then
-    # 服务端 / CI / openclaw：强制 -y，禁止 transform.sh 内部询问 / 等 stdin
-    "$GUARD_TRANSFORM_HOME/transform.sh" "$SRC_PROJECT" -y 2>&1
+    # 服务端 / CI / openclaw：强制 -y，禁止 guardx 内部询问 / 等 stdin
+    "$GUARD_TRANSFORM_HOME/bin/guardx" transform "$SRC_PROJECT" -y 2>&1
 else
     # 桌面交互：默认即可
-    "$GUARD_TRANSFORM_HOME/transform.sh" "$SRC_PROJECT" 2>&1
+    "$GUARD_TRANSFORM_HOME/bin/guardx" transform "$SRC_PROJECT" 2>&1
 fi
 ```
 
@@ -247,13 +248,13 @@ fi
 
 ```bash
 # 显式保留副本中已有的改动
-"$GUARD_TRANSFORM_HOME/transform.sh" "$SRC_PROJECT" --reuse-copy
+"$GUARD_TRANSFORM_HOME/bin/guardx" transform "$SRC_PROJECT" --reuse-copy
 
 # 强制清空副本、重新从源工程 copy
-"$GUARD_TRANSFORM_HOME/transform.sh" "$SRC_PROJECT" --recopy
+"$GUARD_TRANSFORM_HOME/bin/guardx" transform "$SRC_PROJECT" --recopy
 
 # 也可用环境变量（适合 CI 矩阵）：
-GUARD_FRESH_COPY_MODE=recopy "$GUARD_TRANSFORM_HOME/transform.sh" "$SRC_PROJECT" -y
+GUARD_FRESH_COPY_MODE=recopy "$GUARD_TRANSFORM_HOME/bin/guardx" transform "$SRC_PROJECT" -y
 ```
 
 > 优先级：**CLI flag (`--reuse-copy` / `--recopy`) > `GUARD_FRESH_COPY_MODE` env > `-y/GUARD_NONINTERACTIVE` 暗示 `reuse` > 交互终端弹问 > 默认 `reuse`**。
@@ -329,10 +330,10 @@ cp "$GUARD_OUTPUT_ZIP" "$PWD/output.zip"
    | --- | --- |
    | "改一下 config.py" | 用 `Read`/`Edit` 改 `$GUARD_WORK_DIR/config.py`（原 `$SRC_PROJECT/config.py` 不动） |
    | "看下 start.sh / install.sh / health.sh" | `Read $GUARD_WORK_DIR/start.sh` 等（这些是 stage 30 模板渲染出来的，源工程里压根没有） |
-   | "再打个 zip" / "重新打包" | 走 [`package.md`](package.md) Step 0 入口：`cowork-package-verify "$SRC_PROJECT"` + `transform.sh "$SRC_PROJECT" --from-stage 60 -y`<br>⚠️ 命令入参始终用**源工程路径** `$SRC_PROJECT`，命令内部自动找 `${SRC_PROJECT}-guard/` 副本做 verify/打包；**不要**把副本路径传进去（会被推导成 `<src>-guard-guard/` 崩溃）。stage 00 默认 `--reuse-copy` 模式复用现有副本，不会重 copy 覆盖你的改动 |
+   | "再打个 zip" / "重新打包" | 走 [`package.md`](package.md) Step 0 入口：`cowork-package-verify "$SRC_PROJECT"` + `bin/guardx pack "$SRC_PROJECT"`<br>⚠️ 命令入参始终用**源工程路径** `$SRC_PROJECT`，命令内部自动找 `${SRC_PROJECT}-guard/` 副本做 verify/打包；**不要**把副本路径传进去（会被推导成 `<src>-guard-guard/` 崩溃）。`guardx pack` 默认 `--reuse-copy` 模式复用现有副本，不会重 copy 覆盖你的改动 |
    | "再 verify" | `bin/guardx verify "$SRC_PROJECT"`（同上，入参用源工程路径，内部对副本做 verify） |
    | "切回源工程上下文" / "用原工程重跑" | 把 agent 改文件的目标切回 `$SRC_PROJECT`；告诉用户"后续改动会落在源工程，下次 transform 时若不加 `--recopy`，副本里的旧改动仍会保留；若加 `--recopy --reset` 则副本被源工程覆盖、checklist 重置从头跑" |
-   | "丢弃副本改动重新转写" | `transform.sh "$SRC_PROJECT" --recopy --reset -y` |
+   | "丢弃副本改动重新转写" | `bin/guardx transform "$SRC_PROJECT" --recopy --reset -y` |
 
 4. **若 transform 失败导致没有有效副本**：跳过本节，继续走原 `$SRC_PROJECT` 的失败 routing（Step 5）。
 
@@ -351,7 +352,7 @@ cp "$GUARD_OUTPUT_ZIP" "$PWD/output.zip"
 | 30 模板渲染缺端口 | `<work>/start.sh` + `verify-verify_port_3000.log` | 检查 profile.json 是否正确 |
 | 40 build 失败 | `<work>` 手动 `npm install && npm run build` | 通常是依赖问题，autofix 已尝试 |
 | 50 烟测失败 | `verify-*.log` 全集 | `cd <work>; bash $GUARD_TRANSFORM_HOME/verifiers/verify_xxx.sh .` 复现 |
-| claude CLI 鉴权超时 | `.guard-transform-*/llm-*.log` | 让用户跑 `claude login` 重新登录 |
+| claude CLI 鉴权超时 | `.guard-transform-*/llm-*.log` | 让用户跑 `codewiz-cc login` 重新登录 |
 
 ### 交互模式（默认）
 
@@ -359,7 +360,7 @@ cp "$GUARD_OUTPUT_ZIP" "$PWD/output.zip"
 >
 > 推荐下一步（任选）：
 >
-> 1. 修完根因后续跑：`$GUARD_TRANSFORM_HOME/transform.sh <src> --resume`
+> 1. 修完根因后续跑：`$GUARD_TRANSFORM_HOME/bin/guardx transform <src> --resume`
 > 2. 跳过这个 stage 看后面能不能走通：`--from-stage <NN+10>`（仅调试用）
 > 3. 关 autofix 直接看原始失败：`--no-autofix`
 >
@@ -371,17 +372,17 @@ cp "$GUARD_OUTPUT_ZIP" "$PWD/output.zip"
 
 | 当前重试次数 | 自动选择的修法 | 命令 |
 | --- | --- | --- |
-| 第 1 次失败 | 走 autofix 默认通路 + 加大 retry | `"$GUARD_TRANSFORM_HOME/transform.sh" "<src>" --resume --autofix-max 20` |
-| 第 2 次同 stage 仍失败 | 同模型再 resume 一次（**不切后端、不换模型**） | `"$GUARD_TRANSFORM_HOME/transform.sh" "<src>" --resume --autofix-max 20` |
-| 第 3 次仍失败 | **abort 退出非零** | 输出 `transform.log` 末尾 200 行 + 失败 stage 名 + 失败 verifier 列表，**不要**再自动重试，**不要**自动加 `--no-strict` |
+| 第 1 次失败 | 走 autofix 默认通路 + 加大 retry | `"$GUARD_TRANSFORM_HOME/bin/guardx" transform "<src>" --resume --autofix-max 20` |
+| 第 2 次同 stage 仍失败 | 同模型再 resume 一次（**不切后端、不换模型**） | `"$GUARD_TRANSFORM_HOME/bin/guardx" transform "<src>" --resume --autofix-max 20` |
+| 第 3 次仍失败 | **abort 退出非零** | 输出 `transform.log` 末尾 200 行 + 失败 stage 名 + 失败 verifier 列表；**让用户手动**跑 `guardx change-model` 切到更强模型再 `--resume` 续跑，agent **不要**自动切模型 / 自动加 `--no-strict` |
 
-> ⚠️ **claude skill 的硬性约束**：自动重试**始终保持** `GUARD_LLM=claude`，让 claude CLI 自己决定底层模型版本（4.6 / 4.7 / opus / sonnet 都跟随用户当前 claude CLI 配置）。**不要**为了"提高成功率"在 retry 时偷偷切后端 / 升降级模型——切了等于跑了一份完全不同的产物。
+> ⚠️ **三端共用的硬性约束**：自动重试**始终保持当前默认后端与模型**，让用户后续如需提升成功率自行 `guardx change-model` 切换。agent **不要**在 retry 时偷偷换模型——换了等于跑了一份完全不同的产物，而且用户无法预知 token 成本。
 
 **特殊情况立即 abort（不进入重试）**：
 
 | 情况 | 立即处理 |
 | --- | --- |
-| `claude` / `codewiz` CLI 鉴权 401 / token 过期 | abort + 提示"请在 CI 环境配置好 LLM CLI 鉴权" |
+| `codewiz-cc` / `codewiz` CLI 鉴权 401 / token 过期 | abort + 提示"请在 CI 环境配置好 LLM CLI 鉴权" |
 | 源工程 / 路径不存在 / 不可读 | abort，原样回 stderr |
 | 磁盘满 / 权限不足 | abort，让运维/CI 介入 |
 | `framework: unknown` 且无 fallback profile | abort，让调用方提供正确栈 |
@@ -403,19 +404,19 @@ GUARD_OUTPUT_REPORT=<absolute path to report.md>
 
 | 用户意图 | 命令 |
 | --- | --- |
-| 继续上次（跳过已完成步骤） | `--resume` 或 `-y` |
-| 全部从头来 | `--reset` |
-| 让工具问我 | 不传参（默认 `ask`，非交互场景默认 continue） |
-| 只重跑某个 stage 之后 | `--from-stage NN` |
+| 继续上次（跳过已完成步骤） | `bin/guardx transform <src> --resume`（或 `-y`） |
+| 全部从头来 | `bin/guardx transform <src> --reset` |
+| 让工具问我 | `bin/guardx transform <src>`（默认 `ask`，非交互场景默认 continue） |
+| 只重打包 zip | `bin/guardx pack <src>`（仅跑 stage 60+70） |
 
 CI / 流水线场景默认带 `-y`。
 
 ### 自检流水线（不真调 LLM）
 
 ```bash
-GUARD_LLM=mock SKIP_LLM=1 "$GUARD_TRANSFORM_HOME/transform.sh" <合法样本路径>
+GUARD_LLM=mock SKIP_LLM=1 "$GUARD_TRANSFORM_HOME/bin/guardx" transform <合法样本路径>
 # 或：
-"$GUARD_TRANSFORM_HOME/transform.sh" <src> --skip-llm
+"$GUARD_TRANSFORM_HOME/bin/guardx" transform <src> --skip-llm
 ```
 
 ### 单独跑 verifier 集合
@@ -449,15 +450,26 @@ GUARD_LLM=mock SKIP_LLM=1 "$GUARD_TRANSFORM_HOME/transform.sh" <合法样本路�
 ## 完整命令参数速查
 
 ```
-"$GUARD_TRANSFORM_HOME/transform.sh" <源工程路径|zip 文件> [选项]
+"$GUARD_TRANSFORM_HOME/bin/guardx" <子命令> <源工程路径|zip 文件> [选项]
 
-  --from-stage NN     从指定 stage 续跑（00/10/20/30/40/50/60/70）
+子命令（按使用频率）：
+  transform   跑完整 0~70 stage 流水线（首次转写）
+  verify      只跑 verifiers/*.sh 校验副本（不调 LLM、不打包）
+  pack        只重打 zip（stage 60+70；不跑 verify、不调 LLM、不动副本）
+  detect      只跑 stage 00+10 识别技术栈
+  clean       删除 work_dir + state_dir（需 -y）
+  logs/status/stop  后台进程辅助（搭配 `--bg` 使用）
+
+通用选项（transform/pack/detect 共用）：
+  --from-stage NN     从指定 stage 续跑（高级用法；正常 transform/pack 不需要）
   --skip-llm          跳过所有 LLM 调用（同 SKIP_LLM=1）
   --resume            续跑：自动跳过已完成步骤，不询问
   --reset             重置：清空 checklist 重新开始，不询问
   -y, --yes           同 --resume（兼容 CI / 非交互场景）
+  --reuse-copy        副本目录已存在时复用（保留你的手改）
+  --recopy            副本目录已存在时清空、重新从源工程 copy
   --no-autofix        关闭 verifier 失败时的 LLM 自愈
-  --autofix-max N     每个 verifier 最多 LLM 修复次数，默认 10
+  --autofix-max N     每个 verifier 最多 LLM 修复次数，默认 5
   --no-strict         verifier autofix 仍失败时不 die，带伤继续到 60_package
   -h, --help          帮助
 
@@ -468,8 +480,8 @@ GUARD_LLM=mock SKIP_LLM=1 "$GUARD_TRANSFORM_HOME/transform.sh" <合法样本路�
                       已 export 的同名变量优先
   GUARD_LLM           后端: claude / codewiz / qwen-code / codex / gemini / mock
   GUARD_LLM_MODEL     仅 codewiz 生效，model 标识，如 'codewiz/Claude-4.6-sonnet(thinking)'
-  GUARD_LLM_TIMEOUT   单次 LLM 调用超时秒数，默认 600s（seal skill 默认 1800s；0=不超时）
-  GUARD_LLM_HEARTBEAT 心跳间隔秒数，默认 30s（seal skill 默认 60s）
+  GUARD_LLM_TIMEOUT   单次 LLM 调用超时秒数，默认 600s（claude skill 默认 1800s；0=不超时）
+  GUARD_LLM_HEARTBEAT 心跳间隔秒数，默认 30s（claude skill 默认 60s）
   SKIP_LLM=1          跳过 LLM
   GUARD_AUTOFIX=0     关闭 verifier 失败的 LLM 自愈
   GUARD_AUTOFIX_MAX   每个 verifier 最多 autofix 次数（默认 10）

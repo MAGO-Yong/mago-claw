@@ -83,8 +83,10 @@ if [ "$USES_NODE_HTTP" = "1" ]; then
       -not -path '*/node_modules/*' -not -path '*/dist/*' -not -path '*/build/*' \
       -not -path '*/.next/*' -not -path '*/.git/*' 2>/dev/null | head -10); do
     # 行号：static / sendFile fallback
-    STATIC_LINES=$(grep -nE "express\.static\(|app\.use\(\s*['\"]?/?[^'\"]*['\"]?\s*,\s*express\.static" "$ENTRY" 2>/dev/null | cut -d: -f1)
-    FALLBACK_LINES=$(grep -nE "app\.get\(\s*['\"]\*['\"]|app\.use\(\s*['\"]\*['\"]|sendFile\(.*index\.html|res\.sendFile\(" "$ENTRY" 2>/dev/null | cut -d: -f1)
+    # 注意：grep 无命中返回非零，叠加 set -o pipefail 会让整条管道 rc=1，
+    # 进而触发 set -e abort（外层就看到 verifier 静默 fail）。所以这里必须 || true 兜底。
+    STATIC_LINES=$(grep -nE "express\.static\(|app\.use\(\s*['\"]?/?[^'\"]*['\"]?\s*,\s*express\.static" "$ENTRY" 2>/dev/null | cut -d: -f1 || true)
+    FALLBACK_LINES=$(grep -nE "app\.get\(\s*['\"]\*['\"]|app\.use\(\s*['\"]\*['\"]|sendFile\(.*index\.html|res\.sendFile\(" "$ENTRY" 2>/dev/null | cut -d: -f1 || true)
     [ -z "$STATIC_LINES" ] && continue
     [ -z "$FALLBACK_LINES" ] && continue
 

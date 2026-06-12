@@ -51,8 +51,8 @@ WORK_DIR = Path(os.environ["GVAF_WORK_DIR"]).resolve()
 START_SH = os.environ["GVAF_START_SH"]
 
 # ---------- 1. 抽出所有 gunicorn / uvicorn 启动行 ----------
-# 一行可能是 `exec gunicorn --bind 0.0.0.0:3000 app.main:app`
-# 也可能是 `exec python -m uvicorn app:app --host 0.0.0.0 --port 3000`
+# 一行可能是 `exec gunicorn --bind 0.0.0.0:${APP_PORT} app.main:app`
+# 也可能是 `exec python -m uvicorn app:app --host 0.0.0.0 --port ${APP_PORT}`
 # 还可能多行 cd 后才跑 gunicorn → 取每个发生 gunicorn/uvicorn 的"逻辑行"
 
 LAUNCHERS = ("gunicorn", "uvicorn", "hypercorn", "daphne")
@@ -94,7 +94,7 @@ SEARCH_ROOT = _resolve_search_root(START_SH)
 # 排除：
 #   - --factory 标志已显式
 #   - module:attr 后带 () 的（gunicorn 老 factory 写法）
-#   - 形如 0.0.0.0:3000 这种 host:port（前部分非合法 Python 模块名）
+#   - 形如 0.0.0.0:3000 / 0.0.0.0:${APP_PORT} 这种 host:port（前部分非合法 Python 模块名）
 _MODATTR_RE = re.compile(r"(?<![A-Za-z0-9._/-])([A-Za-z_][\w.]*):([A-Za-z_]\w*)(\(\))?(?![A-Za-z0-9._-])")
 
 def _is_valid_module_token(s: str) -> bool:
@@ -217,9 +217,10 @@ for mod, attr, line in hits:
             f"      修复建议（任选其一）：\n"
             f"        a) 在 {rel} 末尾追加：app = {factories[0]}()\n"
             f"        b) 改 start.sh 用 factory 模式：\n"
-            f"           - uvicorn:  python -m uvicorn --factory {mod}:{factories[0]} --host 0.0.0.0 --port 3000\n"
-            f"           - gunicorn 22+:  gunicorn --factory --bind 0.0.0.0:3000 {mod}:{factories[0]}\n"
-            f"           - gunicorn 旧版:  gunicorn --bind 0.0.0.0:3000 '{mod}:{factories[0]}()'"
+            f"           - uvicorn:  python -m uvicorn --factory {mod}:{factories[0]} --host 0.0.0.0 --port ${{APP_PORT}}\n"
+            f"           - gunicorn 22+:  gunicorn --factory --bind 0.0.0.0:${{APP_PORT}} {mod}:{factories[0]}\n"
+            f"           - gunicorn 旧版:  gunicorn --bind 0.0.0.0:${{APP_PORT}} '{mod}:{factories[0]}()'\n"
+            f"           （start.sh 顶部需 `export APP_PORT=\"${{APP_PORT:-3000}}\"`；**不要写死 3000**，verify_port_3000.sh 会拒）"
         )
     else:
         msg += (

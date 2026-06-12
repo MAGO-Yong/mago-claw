@@ -5,7 +5,7 @@
  * 设计：
  *   1) 使用 vercel/serve-handler 作为底层静态托管 lib（不是 `serve` CLI），
  *      可在原生 http.Server 上插入自定义路由（/health）+ 自定义 fallback（SPA）
- *   2) /health：满足 Guard 子应用规范 —— 端口 3000 暴露 HTTP `/health`，
+ *   2) /health：满足 Guard 子应用规范 —— APP_PORT（默认 3000）暴露 HTTP `/health`，
  *      返回 JSON {ok: true, ts: ...}；同时是 verify_health_consistency 唯一识别的探活端点
  *   3) SPA history fallback：访问无扩展名的 URL（如 /about、/users/123）时
  *      自动改写为 /index.html，让前端路由接管；静态资源（带 . 的）保持原 path 走 404
@@ -73,7 +73,7 @@ if (!STATIC_DIR) {
 const INDEX_HTML = path.join(STATIC_DIR, 'index.html');
 
 // ---- 端口 ----
-const PORT = parseInt(process.env.APP_PORT || process.env.PORT || '3000', 10);
+const PORT = parseInt(process.env.APP_PORT || '3000', 10);
 const HOST = '0.0.0.0';
 
 // ---- HTTP server ----

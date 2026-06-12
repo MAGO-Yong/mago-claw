@@ -49,7 +49,7 @@ ENV_FILES=$(find . -maxdepth 3 -type f \
   -not -path '*/.guard-transform/*' -not -path '*/.next/*' \
   -not -path '*/dist/*' -not -path '*/build/*' 2>/dev/null | head -20 || true)
 if [ -n "$ENV_FILES" ]; then
-  report "交付物含 .env* 文件（平台只读 conf/db.properties + conf/ai.properties，.env 会让运维误改）:"
+  report "交付物含 .env* 文件（平台只读顶层 db.properties + ai.properties，.env 会让运维误改）:"
   echo "$ENV_FILES" | sed 's/^/    /' >&2
   echo "[HINT] 目标文件：上面列出的 .env / .env.* / .envrc。直接 \`rm\` 删除，并把代码中所有 dotenv.config() / load_dotenv() / require('dotenv') import 一并删掉（平台已注入 env，不需要 dotenv 加载；保留 .env 会让运维误以为该改它）" >&2
 fi

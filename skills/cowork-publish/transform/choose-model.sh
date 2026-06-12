@@ -1,21 +1,17 @@
 #!/usr/bin/env bash
-# guard-transform · 模型选择器（seal skill 版，macOS / 交互式终端用）
+# guard-transform · 模型选择器（claude skill 版，macOS / 交互式终端用）
 #
 # 用途：交互式选择 LLM 后端 + 分级路由模型（STRONG/FAST），写回
 #       $GUARD_TRANSFORM_HOME/default_env.sh，下次跑 transform.sh 自动生效。
 #
-# 与 claude skill/choose-model.sh 对称镜像，差别仅在候选清单：
-#   - 后端默认 seal（实际调用 codewiz-cc CLI，Claude Code fork，参数完全兼容）
-#   - 模型候选仅放 seal 后端通过 codewiz-cc 实际可用的 google 路由模型：
-#       · claude-4.6-sonnet-google  Sonnet 4.6（Google 路由）⭐ 速度快
-#       · claude-4.5-haiku-google   Haiku 4.5（Google 路由）⭐ 轻量快
-#   - 默认 STRONG/FAST 都用 claude-4.6-sonnet-google 非 thinking（用户硬需求，不一刀切）
-#   - anthropic 原生 id（claude-sonnet-4-6 等）在 seal 后端跑不起来，菜单不再提供避免误选
+# 与 codewiz skill/choose-model.sh 对称镜像，差别仅在候选清单：
+#   - 后端默认 claude（直接复用 Claude Code OAuth）
+#   - 模型 id 用 anthropic 命名（claude-opus-4-6 / claude-sonnet-4-6 / claude-haiku-4-5）
 #
 # 用法：
 #   $GUARD_TRANSFORM_HOME/choose-model.sh           # 3 阶段菜单
 #   $GUARD_TRANSFORM_HOME/choose-model.sh --show    # 只打印当前默认值
-#   $GUARD_TRANSFORM_HOME/choose-model.sh --reset   # 恢复 build.sh 写入的初始默认 + marker:initial
+#   $GUARD_TRANSFORM_HOME/choose-model.sh --reset   # 恢复 install.sh 初始默认 + marker:initial
 #
 # 安全：每次写前备份 default_env.sh.bak（仅保留最近一次）
 
@@ -43,7 +39,7 @@ HOME_DIR="${HOME_DIR:-$SCRIPT_DIR}"
 DEFAULT_ENV="$HOME_DIR/default_env.sh"
 if [ ! -f "$DEFAULT_ENV" ]; then
     echo "[ERROR] 未找到 $DEFAULT_ENV" >&2
-    echo "        请先在 Seal IDE 里上传由 skills/seal/build.sh 产出的 zip" >&2
+    echo "        请先安装 claude skill: bash <skill-src>/install.sh" >&2
     exit 1
 fi
 
@@ -79,12 +75,11 @@ current_model="$(parse_default GUARD_LLM_MODEL)"
 current_strong="$(parse_default GUARD_LLM_MODEL_STRONG)"
 current_fast="$(parse_default GUARD_LLM_MODEL_FAST)"
 
-# build.sh 写入的初始推荐默认（用于 --reset 恢复 + 菜单第 1 项标签提示）
-# seal skill 硬需求：STRONG/FAST 都用 sonnet 非 thinking（保持分级机制，但默认值对齐）
-INITIAL_LLM="seal"
+# install.sh 写入的初始推荐默认
+INITIAL_LLM="claude"
 INITIAL_MODEL=""
-INITIAL_STRONG="claude-4.6-sonnet-google"
-INITIAL_FAST="claude-4.6-sonnet-google"
+INITIAL_STRONG="claude-opus-4-6"
+INITIAL_FAST="claude-sonnet-4-6"
 
 if [ "${1:-}" = "--show" ]; then
     echo "[guard-transform] 当前 default_env.sh 默认值："
@@ -110,46 +105,41 @@ if [ "${1:-}" = "--reset" ]; then
     if grep -q "^# CHOOSE_MODEL_MARKER:" "$DEFAULT_ENV"; then
         sed -i '' -E 's|^# CHOOSE_MODEL_MARKER:.*|# CHOOSE_MODEL_MARKER:initial|' "$DEFAULT_ENV"
     fi
-    echo "[OK] 已恢复 build.sh 初始默认（含 marker:initial）"
+    echo "[OK] 已恢复 install.sh 初始默认（含 marker:initial）"
     echo "     备份: $DEFAULT_ENV.bak"
     exit 0
 fi
 
 # ---------------------------------------------------------------------------
-# 候选清单（seal 后端通过 codewiz-cc 实际支持的模型列表）
-#
-# ⚠️ 强约束：seal skill 默认走 seal 后端，可用模型仅以下两个（codewiz-cc 路由的 google 通道）：
-#       - claude-4.6-sonnet-google  Sonnet 4.6（Google 路由）⭐ 速度快
-#       - claude-4.5-haiku-google   Haiku 4.5（Google 路由）⭐ 轻量快
-#   任何 anthropic 原生模型 id（claude-sonnet-4-6 / claude-opus-4-6 等）在 seal 后端下都跑不起来，
-#   故菜单不再提供这些选项，避免用户误选。如确需切到 anthropic / codewiz / qwen 等后端，
-#   先在 BACKEND 阶段切换，再手动用 __CUSTOM__ 输入对应后端的 model id。
+# 候选清单（claude 系列；用户改后端为 codewiz 后可手动 export GUARD_LLM_MODEL_*）
 # ---------------------------------------------------------------------------
 BACKEND_OPTIONS=(
-    "seal|🌟 默认推荐：Seal IDE 内置 CLI（codewiz-cc，复用 Seal 鉴权）"
-    "claude|☁️  standalone Claude CLI（直接复用 Claude Code OAuth；切后请手动输入 anthropic 原生 model id）"
-    "codewiz|🧩 codewiz CLI（codewiz vscode 插件 token；模型 id 须改成 codewiz/... 系列）"
-    "qwen-code|🧧 千问 Coder CLI（国内带宽友好；切后请手动输入 qwen-* model id）"
-    "codex|✳️  OpenAI codex CLI（切后请手动输入 OpenAI model id）"
-    "gemini|🔷 Google gemini CLI（切后请手动输入 gemini-* model id）"
+    "claude|🌟 默认推荐：standalone Claude CLI（直接复用 Claude Code OAuth）"
+    "codewiz|☁️  切到 codewiz CLI（codewiz vscode 插件 token；模型 id 须改成 codewiz/... 系列）"
+    "qwen-code|🧧 千问 Coder CLI（国内带宽友好）"
+    "codex|✳️  OpenAI codex CLI"
+    "gemini|🔷 Google gemini CLI"
     "mock|🧪 mock 后端（不调 LLM，仅跑骨架，调试用）"
 )
 
-# STRONG 候选（stage 20 跨文件大改写）；第 1 项始终是"使用推荐默认"
-# seal 后端只放 sonnet——haiku 跑跨文件大改写质量不够；不提供 anthropic 原生 id 防止误选
+# STRONG 候选；第 1 项始终是"使用推荐默认"
 STRONG_OPTIONS=(
-    "__DEFAULT__|🌟 使用推荐默认（$INITIAL_STRONG，非 thinking）— 回车即可"
-    "claude-4.6-sonnet-google|⚡ Sonnet 4.6（Google 路由），速度快 — seal 场景唯一推荐 STRONG"
-    "__CUSTOM__|✏️  手动输入完整 model id（仅切到非 seal 后端时使用）"
+    "__DEFAULT__|🌟 使用推荐默认（$INITIAL_STRONG）— 回车即可"
+    "claude-opus-4-6|🚀 opus 4.6，最强（贵且慢）— 与 guardx 内置默认一致"
+    "claude-opus-4-7|🧪 opus 4.7 实验性，最新"
+    "claude-sonnet-4-6|⚡ sonnet 4.6，省钱方案（与 FAST 合一）"
+    "__CUSTOM__|✏️  手动输入完整 model id"
+    "__CLEAR__|🚫 清空（让 guardx 走内置默认 $INITIAL_STRONG）"
 )
 
-# FAST 候选（stage 10 brief + autofix 局部小修）
-# seal 后端只放两个 google 路由的模型，覆盖"质量+速度"两档；不提供 anthropic 原生 id 防止误选
+# FAST 候选
 FAST_OPTIONS=(
-    "__DEFAULT__|🌟 使用推荐默认（$INITIAL_FAST，非 thinking）— 回车即可"
-    "claude-4.6-sonnet-google|⚡ Sonnet 4.6（Google 路由），速度快 — 与 STRONG 对齐"
-    "claude-4.5-haiku-google|💨 Haiku 4.5（Google 路由），轻量快 — 适合 autofix / 格式化"
-    "__CUSTOM__|✏️  手动输入完整 model id（仅切到非 seal 后端时使用）"
+    "__DEFAULT__|🌟 使用推荐默认（$INITIAL_FAST）— 回车即可"
+    "claude-sonnet-4-6|⚡ sonnet 4.6，质量/速度平衡 — 与 guardx 内置默认一致"
+    "claude-haiku-4-5|💨 haiku 4.5 极速，分类/格式化"
+    "claude-opus-4-6|🚀 opus 4.6，极致质量（贵，仅小批量推荐）"
+    "__CUSTOM__|✏️  手动输入完整 model id"
+    "__CLEAR__|🚫 清空（让 guardx 走内置默认 $INITIAL_FAST）"
 )
 
 # ---------------------------------------------------------------------------
@@ -190,7 +180,7 @@ prompt_menu() {
 # ---------------------------------------------------------------------------
 echo ""
 echo "════════════════════════════════════════════════════════════════════"
-echo " guard-transform · 模型选择器（seal skill · 3 阶段菜单）"
+echo " guard-transform · 模型选择器（claude skill · 3 阶段菜单）"
 echo "════════════════════════════════════════════════════════════════════"
 echo " 当前默认: GUARD_LLM=${current_llm:-<未设置>}"
 echo "           GUARD_LLM_MODEL=${current_model:-<留空，分级路由生效>}"
@@ -201,9 +191,8 @@ echo "════════════════════════�
 echo ""
 echo " 设计提醒："
 echo "   · 一刀切 GUARD_LLM_MODEL 留空时，分级路由才生效；本脚本只编辑分级"
-echo "   · seal skill 默认 STRONG/FAST 都是 claude-4.6-sonnet-google 非 thinking（用户硬需求）"
-echo "   · seal 后端实际可用模型仅 2 个：claude-4.6-sonnet-google（速度快） / claude-4.5-haiku-google（轻量快）"
-echo "   · 切到 claude / codewiz / qwen 等非 seal 后端后，必须用 __CUSTOM__ 手动输入对应后端的 model id"
+echo "   · 想一刀切：选完后手动编辑 default_env.sh 填 GUARD_LLM_MODEL，或临时 export"
+echo "   · 切到 codewiz 后端后，模型 id 命名要换成 codewiz/... 系列（参考 codewiz skill）"
 echo "   · Ctrl+C 任意阶段中止（未确认前不会写文件）"
 echo ""
 
@@ -216,7 +205,7 @@ case "$strong_pick" in
     __DEFAULT__) new_strong="$INITIAL_STRONG" ;;
     __CLEAR__)   new_strong="" ;;
     __CUSTOM__)
-        printf "请输入完整 model id（seal 后端可用：claude-4.6-sonnet-google，非 seal 后端请用对应命名）> " >&2
+        printf "请输入完整 model id（如 claude-opus-4-6）> " >&2
         read -r new_strong </dev/tty
         ;;
     *) new_strong="$strong_pick" ;;
@@ -228,7 +217,7 @@ case "$fast_pick" in
     __DEFAULT__) new_fast="$INITIAL_FAST" ;;
     __CLEAR__)   new_fast="" ;;
     __CUSTOM__)
-        printf "请输入完整 model id（seal 后端可用：claude-4.6-sonnet-google / claude-4.5-haiku-google，非 seal 后端请用对应命名）> " >&2
+        printf "请输入完整 model id（如 claude-sonnet-4-6）> " >&2
         read -r new_fast </dev/tty
         ;;
     *) new_fast="$fast_pick" ;;
@@ -243,32 +232,6 @@ echo "   GUARD_LLM_MODEL_STRONG = ${new_strong:-<清空>}"
 echo "   GUARD_LLM_MODEL_FAST   = ${new_fast:-<清空>}"
 echo "   GUARD_LLM_MODEL        = ${current_model:-<保持留空，分级路由生效>}（本脚本不动）"
 echo "──────────────────────────────────────────────────────────────────"
-
-# 兼容性提醒：seal 后端仅支持 *-google 后缀的 model id；其它后端用 google id 会跑不起来
-# 反之亦然——非 seal 后端用了 google id，或 seal 后端用了非 google id，都给出提示
-warn_incompat() {
-    local backend="$1" model="$2" label="$3"
-    [ -z "$model" ] && return 0
-    if [ "$backend" = "seal" ]; then
-        case "$model" in
-            *-google) : ;;  # 兼容
-            *)
-                echo "[WARN] $label='$model' 在 seal 后端下大概率跑不起来" >&2
-                echo "       seal 后端实际可用：claude-4.6-sonnet-google / claude-4.5-haiku-google" >&2
-                ;;
-        esac
-    else
-        case "$model" in
-            *-google)
-                echo "[WARN] $label='$model' 是 google 路由 id，只能在 seal 后端下用" >&2
-                echo "       后端=$backend，请改用对应后端的 model id（例如 claude → claude-sonnet-4-6）" >&2
-                ;;
-        esac
-    fi
-}
-warn_incompat "$new_backend" "$new_strong" "GUARD_LLM_MODEL_STRONG"
-warn_incompat "$new_backend" "$new_fast" "GUARD_LLM_MODEL_FAST"
-
 printf "确认写入？[Y/n] > " >&2
 read -r confirm </dev/tty
 confirm="${confirm:-Y}"

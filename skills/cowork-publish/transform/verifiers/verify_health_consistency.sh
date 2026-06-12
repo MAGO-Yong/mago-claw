@@ -2,7 +2,7 @@
 # 验证 health.sh 健康检查与业务代码"对齐到 Guard 子应用规范约定的 `/health`"
 #
 # 单向强制（重要）：
-#   Guard 子应用规范约定：所有子应用必须在 HTTP 端口 3000 上暴露 `/health` 健康检查接口，
+#   Guard 子应用规范约定：所有子应用必须在 APP_PORT（默认 3000）上暴露 HTTP `/health` 健康检查接口，
 #   平台用这个统一约定来探活、判断容器是否就绪、决定是否切流量。子应用如果换路径
 #   （/api/health、/healthz、/actuator/health）就破坏了这个统一契约，平台无法识别。
 #
@@ -21,7 +21,7 @@
 #   3) ping / 进程检查：error——假探活；进程在 ≠ 服务可用，ICMP 通 ≠ 应用响应
 #
 # 与 verify_entry_scripts.sh 的分工：
-#   - verify_entry_scripts: 基础格式（shebang/语法/host/port=3000/不能 0.0.0.0）
+#   - verify_entry_scripts: 基础格式（shebang/语法/host=127.0.0.1/port=${APP_PORT:-3000} 或字面量 3000/不能 0.0.0.0）
 #   - verify_health_consistency: 强制对齐 Guard 子应用规范 `/health` + 业务跨语言路由扫描
 #
 # Skip 条件：
@@ -374,7 +374,7 @@ for ln in PING_PROBES:
         "ICMP 只验证网络，不验业务可用；Pod 网络层永远通，等于没探。"
     )
 
-# Guard 子应用规范约定：所有子应用必须在端口 3000 上暴露 HTTP `/health` 健康检查接口
+# Guard 子应用规范约定：所有子应用必须在 APP_PORT（默认 3000）上暴露 HTTP `/health` 健康检查接口
 PLATFORM_REQUIRED_PATH = "/health"
 
 # 4.3 TCP-only → warn（不阻塞，但仍要提醒业务必须暴露 /health 满足 Guard 规范）
@@ -385,12 +385,12 @@ if TCP_PROBES and not HTTP_PROBES:
         warns.append(
             f"health.sh 仅做 TCP 探测 {tp['host']}:{tp['port']}，没有 HTTP path。"
             "Guard 子应用规范要求 HTTP `/health` 健康检查，仅 TCP 通不等于业务可用；"
-            "建议 health.sh 也加 `curl http://127.0.0.1:3000/health` 与规范对齐。"
+            "建议 health.sh 也加 `curl -fsS http://127.0.0.1:${APP_PORT:-3000}/health` 与规范对齐。"
         )
     if kind_h not in ("exact", "prefix"):
         errors.append(
             f"业务代码没有暴露 `{PLATFORM_REQUIRED_PATH}` endpoint，"
-            f"违反 Guard 子应用规范（统一约定所有子应用在端口 3000 暴露 HTTP `/health`）。\n"
+            f"违反 Guard 子应用规范（统一约定所有子应用在 APP_PORT（默认 3000）上暴露 HTTP `/health`）。\n"
             "      修复（任选一种，autofix 应优先 a）:\n"
             "        a) 在主应用里加 `/health`，例如 FastAPI:\n"
             "             @app.get(\"/health\") def health(): return {\"ok\": True}\n"
@@ -413,11 +413,11 @@ for hp in HTTP_PROBES:
         errors.append(
             f"health.sh 探的 path `{probe_path}` 不是 Guard 子应用规范约定的 `{PLATFORM_REQUIRED_PATH}`。\n"
             f"      health.sh 行: `{hp['raw']}`\n"
-            f"      Guard 子应用规范统一约定：所有子应用在端口 3000 上暴露 HTTP `/health`，"
+            f"      Guard 子应用规范统一约定：所有子应用在 APP_PORT（默认 3000）上暴露 HTTP `/health`，"
             f"不能用 /api/health / /healthz / /actuator/health 等其它路径，否则破坏平台对所有子应用的统一探活契约。\n"
             f"      修复（必须两件事都做）:\n"
             f"        1) 改 health.sh 探 `/health`：\n"
-            f"             curl -fsS -o /dev/null --max-time 3 http://127.0.0.1:3000/health || exit 1\n"
+            f"             curl -fsS -o /dev/null --max-time 3 \"http://127.0.0.1:${{APP_PORT:-3000}}/health\" || exit 1\n"
             f"        2) " + (
                 f"业务已暴露 `/health`，无需新增 endpoint，仅改 health.sh 即可。"
                 if biz_has_health else
@@ -464,7 +464,7 @@ for hp in HTTP_PROBES:
             f"      已扫描业务源码: {files_scanned} 文件，识别到 {len(app_routes_set)} 条 app 路由 + "
             f"{len(all_sub_routes)} 条 sub 路由 + {len(all_prefixes)} 条 prefix\n"
             f"      路由示例: {sample}{more}\n"
-            f"      Guard 子应用规范约定：所有子应用必须在端口 3000 暴露 HTTP `/health`。修复:\n"
+            f"      Guard 子应用规范约定：所有子应用必须在 APP_PORT（默认 3000）上暴露 HTTP `/health`。修复:\n"
             f"        a) FastAPI:  @app.get(\"/health\") def health(): return {{\"ok\": True}}\n"
             f"        b) Flask:    @app.route('/health') def health(): return {{'ok': True}}\n"
             f"        c) Express:  app.get('/health', (req, res) => res.json({{ok: true}}))\n"
@@ -496,7 +496,7 @@ if not errors:
 
 # FAIL
 print(f"[FAIL] health.sh 与 Guard 子应用规范 `/health` 不对齐，{len(errors)} 个 error / {len(warns)} 个 warn", file=sys.stderr)
-print("    Guard 子应用规范统一约定：所有子应用必须在端口 3000 上暴露 HTTP `/health`，", file=sys.stderr)
+print("    Guard 子应用规范统一约定：所有子应用必须在 APP_PORT（默认 3000）上暴露 HTTP `/health`，", file=sys.stderr)
 print("    health.sh 必须探 `/health`，业务必须在主 app 顶层实现 `/health` endpoint。", file=sys.stderr)
 print(file=sys.stderr)
 
@@ -505,7 +505,7 @@ biz_has_health = _match_route(PLATFORM_REQUIRED_PATH)[0] in ("exact", "prefix")
 non_health_probes = [p for p in HTTP_PROBES if _normalize(p["path"]) != PLATFORM_REQUIRED_PATH]
 if non_health_probes:
     bad_paths = ",".join(sorted({_normalize(p["path"]) for p in non_health_probes}))
-    print(f"[HINT] 目标文件 health.sh：把 curl 探测路径从 {bad_paths} 改为 /health（保留 host=127.0.0.1 port=3000）", file=sys.stderr)
+    print(f"[HINT] 目标文件 health.sh：把 curl 探测路径从 {bad_paths} 改为 /health（保留 host=127.0.0.1 port=${{APP_PORT:-3000}}）", file=sys.stderr)
 if not biz_has_health:
     print("[HINT] 目标文件：业务主入口（FastAPI main.py / Express app.js 等顶层文件）。新增一个挂在主 app 上的 /health endpoint（不能挂带 prefix 的 router/blueprint），例如 `@app.get(\"/health\") def health(): return {\"ok\": True}`", file=sys.stderr)
 elif all_prefixes and PLATFORM_REQUIRED_PATH in all_sub_routes:

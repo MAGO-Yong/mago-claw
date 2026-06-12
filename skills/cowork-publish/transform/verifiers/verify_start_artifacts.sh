@@ -5,7 +5,7 @@
 #
 # 动机：start.sh 模板渲染会写死类似
 #   exec node dist/main.js
-#   exec npx --yes serve -s dist -l tcp://0.0.0.0:3000
+#   exec npx --yes serve -s dist -l tcp://0.0.0.0:${APP_PORT}
 #   exec node .next/standalone/server.js
 # 但如果 stage 40 build 没产出（构建失败被忽略 / 路径填错 / 框架检测错位），
 # Pod 起来才报 "Cannot find module 'dist/main.js'" 等。

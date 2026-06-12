@@ -185,7 +185,7 @@ PROMPT_TPL = """你是 Guard 平台子应用部署专家。请对下方提供的
 # 【检查重点】
 1. **产物链路衔接**：install.sh 解出来 / 拷贝到位的产物 → start.sh 中 exec 引用的路径，是否首尾相接？是否有"start.sh exec 一个根本没人放进去的文件"？
 2. **框架检测错位**（产物只能是 Python/Node 启动器）：例如代码看起来是 Vite SPA，start.sh 却用 `node dist/main.js`；或者明明是 Next.js standalone，却没用 `.next/standalone/server.js`；或者 Python 项目用了 `python app.py` 而不是 gunicorn/uvicorn 工厂模式；**绝对禁止**产物 start.sh 出现 `java -jar`、`./bin/server`、`go run`、`cargo run` 等非 Python/Node 启动器（说明 stage 20 没有完成转写）。
-3. **端口与 health**：start.sh 必须 listen `0.0.0.0:3000`；health.sh 必须探测 `127.0.0.1:3000/health` 或 `/healthz`；不能用 0.0.0.0 当探测目标。
+3. **端口与 health**：start.sh 必须 listen `0.0.0.0` 上的 `${APP_PORT}`（顶部应 `export APP_PORT="${APP_PORT:-3000}"`，exec 行用 `--port ${APP_PORT}` / `--bind 0.0.0.0:${APP_PORT}`，**不允许字面量 3000**）；health.sh 必须探测 `127.0.0.1:${APP_PORT:-3000}/health` 或 `/healthz`；不能用 0.0.0.0 当探测目标。
 4. **shebang / set -e / exec**：start.sh 末行必须 exec 前台启动；install.sh 不能跑 build。
 5. **跨文件一致性**：package.json scripts.start vs start.sh / next.config.js output:'standalone' 与 start.sh 是否匹配 / requirements.txt 中的 ASGI server（gunicorn/uvicorn/hypercorn）vs start.sh 实际启动器；如果 work_dir 还残留 `pom.xml`/`Cargo.toml`/`go.mod` 但 start.sh 已转为 Python/Node，要确认产物里**没**残留 `target/`、`*.jar`、Go/Rust 编译产物（应在 install.sh 中清理）。
 6. **Pod 限制**：禁止外部基础设施（Redis、MQ、S3）；禁止依赖公网包安装；不能用 SQLite 等文件 DB。

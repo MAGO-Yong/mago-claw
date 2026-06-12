@@ -285,7 +285,7 @@ for py in WORK_DIR.rglob("*.py"):
 # ---------- 额外：扫 shell 脚本中的 Python CLI 运行时依赖 ----------
 # 动机：gunicorn / uvicorn / celery 等 WSGI/ASGI 服务器和任务队列，业务代码
 # 通常**不会** `import gunicorn`，它们只在 start.sh / 子脚本里以命令行形式被
-# 调用（`gunicorn --bind 0.0.0.0:3000 app:app`）。如果 requirements.txt 漏写，
+# 调用（`gunicorn --bind 0.0.0.0:${APP_PORT} app:app`）。如果 requirements.txt 漏写，
 # `pip install -r` 不报错，等 Pod 起 start.sh 才 `gunicorn: command not found`。
 #
 # 覆盖范围（递归，过滤 EXCLUDE_DIRS）：

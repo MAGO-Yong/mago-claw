@@ -38,12 +38,27 @@ fi
 top="$(unzip -l "$ZIP_PATH" | awk 'NR>3 {print $NF}')"
 
 fail=0
-for required in install.sh start.sh health.sh; do
-  if ! echo "$top" | grep -qx "$required"; then
-    echo "[FAIL] zip 顶层缺 $required" >&2
+# 纯前端项目改为要求 dist/build/out/根 任一目录的 index.html
+FRONTEND_ONLY=0
+if [ -n "${STATE_DIR:-}" ] && [ -f "$STATE_DIR/stack.json" ]; then
+  if grep -q '"frontend_only"[[:space:]]*:[[:space:]]*1' "$STATE_DIR/stack.json"; then
+    FRONTEND_ONLY=1
+  fi
+fi
+
+if [ "$FRONTEND_ONLY" = "1" ]; then
+  if ! unzip -l "$ZIP_PATH" | awk '{print $NF}' | grep -qE '^(dist/|build/|out/)?index\.html$'; then
+    echo "[FAIL] frontend_only 项目 zip 缺 index.html（已扫 dist/ build/ out/ 顶层）" >&2
     fail=$((fail+1))
   fi
-done
+else
+  for required in install.sh start.sh health.sh; do
+    if ! echo "$top" | grep -qx "$required"; then
+      echo "[FAIL] zip 顶层缺 $required" >&2
+      fail=$((fail+1))
+    fi
+  done
+fi
 
 # 不能含的
 for forbidden in db.properties ai.properties .env .env.local node_modules .git; do

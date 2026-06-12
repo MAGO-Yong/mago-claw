@@ -6,7 +6,7 @@
 #   - 平台只允许业务声明以 APP_ 开头的 env（如 APP_FOO_BAR / APP_PORT）
 #   - 系统级 env（HOST / HOSTNAME / PORT / NODE_ENV / PATH 等）由平台/Node 自己注入
 #   - 业务代码读 process.env.HOSTNAME 会拿到系统主机名而不是业务想要的 host
-#   - DB / AI 走 conf/db.properties + conf/ai.properties，不通过 env
+#   - DB / AI 走顶层 db.properties + ai.properties（与 install.sh 同级），不通过 env
 #
 # 白名单（业务代码可以读，不需要 APP_ 前缀）：
 #   - NODE_ENV, NODE_OPTIONS, PYTHONPATH, PATH, HOME, TZ, LANG, LC_*

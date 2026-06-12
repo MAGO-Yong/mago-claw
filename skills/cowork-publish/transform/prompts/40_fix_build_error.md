@@ -21,7 +21,7 @@
 3. **临时移除阻塞 build 的 lint/typecheck 步骤**：例如 `"build": "vue-tsc && vite build"` → `"build": "vite build"`，配套加注释说明
 4. **修 tsconfig 错误**：删非法 compilerOption、给 `composite: true` 的 reference 加这个字段
 5. **改 requirements.txt 的版本约束**：把 `<` 改 `<=`、删过严的 pin
-6. **加 .npmrc / pip 配置**：但**不要加内部镜像地址**（改写机有公网，install.sh 渲染会处理 Pod 镜像）
+6. **加 .npmrc / pip 配置**：**不要在 install.sh 里硬编码源（pip `-i` / npm `--registry=`）**——交付物的源应由 Pod 运行时环境（`PIP_INDEX_URL` / `.npmrc` / `NPM_CONFIG_REGISTRY`）注入
 
 ## 不允许做的事
 

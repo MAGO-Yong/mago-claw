@@ -1,0 +1,144 @@
+#!/usr/bin/env bash
+# guardx 入口 shim
+#   - 要求 python3 ≥ 3.8（覆盖 Ubuntu 20.04+ / Debian 11+ / RHEL 8+ / macOS 自带）
+#     历史上要 3.10+ 是因为用了 sys.stdlib_module_names；该处已加 try/except fallback
+#     到硬编码 stdlib 列表（见 verifiers/verify_python_requirements.sh），所以下限可放宽。
+#     其余 .py 全部 `from __future__ import annotations` + typing.Optional/Literal/Callable
+#     等 3.8 即可的 API，无 match-case / Self / TypeAlias 等高版本独占语法。
+#   - 把 guard-transform/ 加到 PYTHONPATH，让 python -m guardx 能 import
+#   - 支持 --bg 后台运行，日志实时落盘到 STATE_DIR/transform.log
+#
+# 直接用 system python3，零依赖（guardx 包 pure stdlib）
+set -eo pipefail
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
+export GUARD_TRANSFORM_HOME="$ROOT"
+
+# ── 防御性 source default_env.sh（若存在）─────────────────────────────────
+# 设计：transform.sh 已做过同样的事，但 codewiz / claude agent 经常**绕过
+# transform.sh 直接调 bin/guardx**（SKILL.md 教了 `bin/guardx detect/verify/clean`
+# 这些子命令，agent 会触类旁通把 transform 也写成 bin/guardx transform）。
+# 一旦 bypass transform.sh，GUARD_LLM 就没人设置，guardx 回退到 llm.py 内置
+# fallback `claude` —— 这正是用户反馈"codewiz skill 装机下却用了 claude CLI"
+# 的真正根因。
+#
+# 同样用 GUARD_QUIET=1 抑制 default_env.sh 自身的 banner（避免与下游 _log_llm_config
+# 重复刷屏）；用户预先 export 的值因 `${VAR:=default}` 仍优先（不破坏覆盖）。
+# 仅当 bin/guardx 在标准安装目录下（即同级有 default_env.sh）时生效；工具裸跑
+# （源仓库 bin/guardx，没 default_env.sh）保留原行为。
+if [ -f "$ROOT/default_env.sh" ]; then
+    GUARD_QUIET="${GUARD_QUIET:-1}" . "$ROOT/default_env.sh"
+fi
+
+if ! command -v python3 >/dev/null 2>&1; then
+  echo "[guardx] 找不到 python3，请先安装 Python 3.8+（推荐 3.10+）" >&2
+  exit 1
+fi
+
+# 检测 Python 版本 ≥ 3.8
+# 历史上要求 3.10+ 的唯一硬依赖（sys.stdlib_module_names）已在 verify_python_requirements.sh
+# 加了 try/except + 硬编码 stdlib fallback；其它代码全 from __future__ + typing 兼容写法。
+# 放宽到 3.8 可直接跑在 Ubuntu 20.04 / Debian 11 / RHEL 8 / macOS 自带 python3，
+# 避免低版本环境用户被迫升级或装新解释器的复杂性。
+py_ok=$(python3 -c 'import sys; print(1 if sys.version_info >= (3,8) else 0)' 2>/dev/null || echo 0)
+if [ "$py_ok" != "1" ]; then
+  ver=$(python3 --version 2>&1)
+  echo "[guardx] 需要 Python ≥ 3.8，当前: $ver" >&2
+  echo "[guardx]   - Ubuntu/Debian: sudo apt install python3.8 && update-alternatives --set python3 /usr/bin/python3.8" >&2
+  echo "[guardx]   - macOS        : brew install python@3.10（或更高）" >&2
+  exit 1
+fi
+
+# 不 cd 到 ROOT！否则用户传的相对路径（如 ./tests/codebridge）会失效。
+# 改用 PYTHONPATH 让 python 能找到 guardx 包，cwd 保持用户调用位置。
+export PYTHONPATH="$ROOT${PYTHONPATH:+:$PYTHONPATH}"
+
+# ---- 后台运行模式 ----
+# 用法：guardx --bg transform <source> [args...]
+#   后台启动 transform，日志实时落盘到 STATE_DIR/transform.log
+#   完成后会在 STATE_DIR/ 写入 guardx.done（含 exit code）
+#   使用 `guardx logs <source>` 查看日志，`guardx stop <source>` 停止
+#
+# 实现要点：用一个守护 bash 子 shell（纯系统 bash，零依赖，不是 supervisord 那种 Python 包）
+# 启动 python，并 wait 它退出。这样可以避免 python 退出后因为没有 init 进程 reap 而变成
+# zombie（defunct）。zombie 进程的 PID 仍在内核表里，外部 kill -0 仍返回 0，导致 openclaw
+# 等调用方误判进程「还在运行」永远不退出。
+if [ "${1:-}" = "--bg" ]; then
+  shift  # 去掉 --bg
+  if [ $# -lt 2 ]; then
+    echo "[guardx] --bg 用法: guardx --bg transform <source> [args...]" >&2
+    exit 1
+  fi
+
+  # 从参数中提取 source 路径来推导日志文件路径
+  # 子命令是第一个参数（transform/detect），source 是第二个
+  SUB_CMD="$1"
+  SOURCE="$2"
+
+  # 推导 state_dir（与 config.py 的 Config.from_args 逻辑一致）
+  SOURCE_ABS=$(cd "$(dirname "$SOURCE")" && pwd)/$(basename "$SOURCE")
+  BASE=$(basename "$SOURCE_ABS")
+  BASE="${BASE%.zip}"
+  WORK_NAME="${BASE}-guard"
+  STATE_DIR="$(dirname "$SOURCE_ABS")/.guard-transform-${WORK_NAME}"
+  mkdir -p "$STATE_DIR"
+
+  LOGFILE="$STATE_DIR/transform.log"
+  PIDFILE="$STATE_DIR/guardx.pid"
+  DONEFILE="$STATE_DIR/guardx.done"
+  EXITFILE="$STATE_DIR/guardx.exitcode"
+
+  # 清理上一轮残留的标记文件，避免误判
+  rm -f "$DONEFILE" "$EXITFILE" "$PIDFILE"
+
+  echo "[guardx] 后台启动: guardx $*" >&2
+  echo "[guardx] 日志文件: $LOGFILE" >&2
+  echo "[guardx] 完成标记: $DONEFILE（结束时由守护 shell 写入）" >&2
+  echo "[guardx] 查看日志: guardx logs $SOURCE" >&2
+  echo "[guardx]   或直接: tail -f $LOGFILE" >&2
+
+  # 用环境变量把路径传给守护 bash 子 shell（避免引号嵌套地狱）
+  export GUARDX_BG_MODE=1
+  export _GUARDX_LOGFILE="$LOGFILE"
+  export _GUARDX_PIDFILE="$PIDFILE"
+  export _GUARDX_DONEFILE="$DONEFILE"
+  export _GUARDX_EXITFILE="$EXITFILE"
+
+  # 守护 bash 子 shell（纯系统 bash，零依赖）：
+  #   1. 后台启 python，stdout/stderr 重定向到日志
+  #   2. 把 python 的 PID 写入 pidfile
+  #   3. wait python 退出（关键：避免 zombie）
+  #   4. 写 exitcode 文件 + done 文件，删 pidfile
+  # nohup + disown 确保即使 shim 退出，守护 shell 也能独立存活
+  nohup bash -c '
+    python3 -m guardx "$@" >"$_GUARDX_LOGFILE" 2>&1 &
+    PY_PID=$!
+    echo "$PY_PID" > "$_GUARDX_PIDFILE"
+    wait "$PY_PID"
+    EC=$?
+    echo "$EC" > "$_GUARDX_EXITFILE"
+    rm -f "$_GUARDX_PIDFILE"
+    touch "$_GUARDX_DONEFILE"
+  ' bash "$@" </dev/null >/dev/null 2>&1 &
+  WATCHER_PID=$!
+  disown "$WATCHER_PID" 2>/dev/null || true
+
+  # 等待守护 shell 写出 pidfile（最多 2 秒）
+  for _ in 1 2 3 4 5 6 7 8 9 10; do
+    [ -f "$PIDFILE" ] && break
+    sleep 0.2
+  done
+
+  if [ -f "$PIDFILE" ]; then
+    BG_PID=$(cat "$PIDFILE")
+    echo "[guardx] PID: $BG_PID (守护 shell: $WATCHER_PID)" >&2
+  else
+    echo "[guardx] 警告：pidfile 未在 2 秒内出现，进程可能启动失败" >&2
+    echo "[guardx] 守护 shell PID: $WATCHER_PID" >&2
+  fi
+  echo "[guardx] 停止: guardx stop $SOURCE" >&2
+  exit 0
+fi
+
+exec python3 -m guardx "$@"

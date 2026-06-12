@@ -1,9 +1,10 @@
 """guardx CLI 入口：argparse（不依赖 typer），子命令对齐 bash 版。
 
 子命令：
-    transform <source>   主流程，对应 bash 版 transform.sh
+    transform <source>   主流程：00~70 全 stage 流水线
     detect    <source>   只跑 stage 10（栈识别），输出 stack.json
-    verify    <work>     只跑 verifiers/*.sh，对照工作副本
+    verify    <source>   只跑 verifiers/*.sh，对照工作副本
+    pack      <source>   只跑 stage 60+70（重打包 zip + 报告），不动副本内容
     clean     <source>   删除 work_dir + state_dir（危险，需 -y）
 
 参数与 bash 版 transform.sh 完全对齐：
@@ -48,6 +49,17 @@ def _build_parser() -> argparse.ArgumentParser:
     v.add_argument("source", help="源工程路径（用于推导 work_dir）")
     v.set_defaults(func=cmd_verify)
 
+    # ---- pack ----
+    # 打包入口：只跑 stage 60 (打 zip) + stage 70 (写报告)，不动副本内容、不调 LLM。
+    # 等价于"transform <src> --from-stage 60 -y"，但语义更直接，便于 prompt / 自动化使用。
+    pk = sub.add_parser(
+        "pack",
+        help="只重新打包 zip：跑 stage 60+70（不调 LLM，不改副本）",
+    )
+    pk.add_argument("source", help="源工程路径（命令内部自动找 <src>-guard/ 副本）")
+    _add_pipeline_args(pk)
+    pk.set_defaults(func=cmd_pack)
+
     # ---- logs ----
     lg = sub.add_parser("logs", help="实时查看 transform 日志（tail -f）")
     lg.add_argument("source", help="源工程路径（用于推导 state_dir）")
@@ -85,6 +97,24 @@ def _build_parser() -> argparse.ArgumentParser:
     c.add_argument("source", help="源工程路径")
     c.add_argument("-y", "--yes", action="store_true", help="跳过确认")
     c.set_defaults(func=cmd_clean)
+
+    # ---- change-model ----
+    # 程序化入口，wrapper 之上的 choose-model.sh：让 prompt / 自动化无须 source bash 即可
+    # 切模型。无参数 → 调起交互菜单（macOS only）；--show / --reset 直接透传；
+    # --strong / --fast 用 Python 直接改写 default_env.sh（跨平台，不需要 macOS）。
+    cm = sub.add_parser(
+        "change-model",
+        help="修改 default_env.sh 里的默认 LLM 后端 / 分级模型",
+    )
+    cm.add_argument("--show", action="store_true",
+                    help="只打印当前默认值（不改文件）")
+    cm.add_argument("--reset", action="store_true",
+                    help="恢复 install/build 写入的初始默认（marker:initial）")
+    cm.add_argument("--backend", help="切换 GUARD_LLM 默认后端（如 claude / codewiz / seal）")
+    cm.add_argument("--strong", help="设置 GUARD_LLM_MODEL_STRONG（stage 20 跨文件改写用模型）")
+    cm.add_argument("--fast",   help="设置 GUARD_LLM_MODEL_FAST（其它 stage autofix 用模型）")
+    cm.add_argument("--model",  help="设置 GUARD_LLM_MODEL（一刀切，覆盖 STRONG/FAST 分级路由）")
+    cm.set_defaults(func=cmd_change_model)
 
     return p
 
@@ -290,6 +320,42 @@ def cmd_detect(args: argparse.Namespace) -> int:
     checklist.resume_or_reset(cfg.resume_mode)
     from . import pipeline
     return pipeline.run(cfg, only_stages=("00_prepare", "10_detect_stack"))
+
+
+def cmd_pack(args: argparse.Namespace) -> int:
+    """只重新打包 zip：等价于 transform --from-stage 60 -y，但语义更直接。
+
+    设计：用户/agent 已经手改完副本（或刚跑完 verify 全 OK），只想产出新 zip 时
+    使用本命令；不调 LLM、不动副本，run() 入口仅跑 stage 60+70。
+    `--from-stage 60` 隐含重置 60/70 checklist 状态，确保产出新时间戳 zip。
+    """
+    # 强制把 from_stage 拉到 60（用户传 --from-stage 也尊重，但 < 60 会被覆盖以避免误用）
+    requested = getattr(args, "from_stage", 0) or 0
+    if requested < 60:
+        args.from_stage = 60
+    # pack 是"非交互快路径"：默认 resume，不弹问 checklist；用户显式传 --reset 仍生效
+    if getattr(args, "resume_mode", "ask") == "ask":
+        args.resume_mode = "resume"
+    # 默认 reuse 现有副本，不询问 / 不 recopy
+    if getattr(args, "fresh_copy_mode", "ask") == "ask":
+        args.fresh_copy_mode = "reuse"
+
+    cfg = _build_config(args)
+    _setup_runtime(cfg)
+    log.section("guardx pack（仅 stage 60+70）")
+    log.log(f"源工程    : {cfg.source_project}")
+    log.log(f"工作副本  : {cfg.work_dir}")
+    log.log(f"状态目录  : {cfg.state_dir}")
+    if not cfg.work_dir.is_dir():
+        log.die(f"工作副本不存在: {cfg.work_dir}（先跑 guardx transform）")
+    checklist.resume_or_reset(cfg.resume_mode)
+    from . import pipeline
+    rc = pipeline.run(cfg, only_stages=("60_package", "70_report"))
+    if rc == 0:
+        log.section("guardx pack 完成")
+        log.log(f"交付 zip : {cfg.zip_path}")
+        log.log(f"交付报告 : {cfg.state_dir}/report.md")
+    return rc
 
 
 def cmd_verify(args: argparse.Namespace) -> int:
@@ -647,6 +713,106 @@ def cmd_status(args: argparse.Namespace) -> int:
     return 0
 
 
+def _default_env_path() -> Path:
+    """default_env.sh 的位置：GUARD_TRANSFORM_HOME 下，由 install/build 渲染。"""
+    return config.home_dir() / "default_env.sh"
+
+
+def _parse_default(env_text: str, var: str) -> str:
+    """从 default_env.sh 文本里解析 `: "${VAR:=value}"` 形式的默认值。"""
+    import re as _re
+    m = _re.search(
+        rf'^\s*:\s*"\$\{{{var}:=([^}}]*)\}}"',
+        env_text,
+        flags=_re.MULTILINE,
+    )
+    return m.group(1) if m else ""
+
+
+def _write_default(env_text: str, var: str, value: str) -> tuple[str, bool]:
+    """改写 default_env.sh 中 `: "${VAR:=...}"` 行的 value；返回 (新文本, 是否命中)。"""
+    import re as _re
+    pattern = _re.compile(
+        rf'^(\s*:\s*"\$\{{{var}:=)[^}}]*(\}}".*)$',
+        flags=_re.MULTILINE,
+    )
+    new_text, n = pattern.subn(lambda m: f"{m.group(1)}{value}{m.group(2)}", env_text)
+    return new_text, n > 0
+
+
+def _set_marker(env_text: str, marker: str) -> str:
+    """更新 `# CHOOSE_MODEL_MARKER:xxx` 行；不存在则不动。"""
+    import re as _re
+    return _re.sub(
+        r'^# CHOOSE_MODEL_MARKER:.*$',
+        f"# CHOOSE_MODEL_MARKER:{marker}",
+        env_text,
+        flags=_re.MULTILINE,
+    )
+
+
+def cmd_change_model(args: argparse.Namespace) -> int:
+    """guardx change-model：程序化入口修改 default_env.sh 里的 LLM 默认值。
+
+    分发逻辑：
+      - 无任何标志 → 调起 choose-model.sh 交互菜单（仅 macOS；其他平台 fail 并提示）
+      - --show     → 等价 choose-model.sh --show（透传，全平台可用）
+      - --reset    → 等价 choose-model.sh --reset（透传）
+      - --backend / --strong / --fast / --model → 直接 Python 改写 default_env.sh
+        （跨平台、非交互；marker 标记为 chosen）
+    """
+    env_path = _default_env_path()
+    if not env_path.is_file():
+        log.die(f"未找到 default_env.sh: {env_path}（请重装 skill）")
+
+    has_direct = any([args.backend, args.strong, args.fast, args.model])
+    if args.show or args.reset or not has_direct:
+        # 透传给 choose-model.sh（脚本本身处理 --show 在所有平台都可用）
+        script = config.home_dir() / "choose-model.sh"
+        if not script.is_file():
+            log.die(f"未找到 choose-model.sh: {script}")
+        cmd = ["bash", str(script)]
+        if args.show:
+            cmd.append("--show")
+        elif args.reset:
+            cmd.append("--reset")
+        os.execvp(cmd[0], cmd)
+
+    # 直接改写模式
+    text = env_path.read_text()
+    backup = env_path.with_suffix(env_path.suffix + ".bak")
+    backup.write_text(text)
+
+    changed: list[str] = []
+    for var, val in [
+        ("GUARD_LLM",              args.backend),
+        ("GUARD_LLM_MODEL",        args.model),
+        ("GUARD_LLM_MODEL_STRONG", args.strong),
+        ("GUARD_LLM_MODEL_FAST",   args.fast),
+    ]:
+        if val is None:
+            continue
+        new_text, hit = _write_default(text, var, val)
+        if not hit:
+            log.warn(f"default_env.sh 中未找到 ${{{var}:=...}} 行，跳过")
+            continue
+        text = new_text
+        changed.append(f"{var}={val}")
+
+    text = _set_marker(text, "chosen")
+    env_path.write_text(text)
+
+    log.section("guardx change-model")
+    if changed:
+        for c in changed:
+            log.ok(c)
+    else:
+        log.warn("没有任何变更（请提供 --backend / --strong / --fast / --model 之一）")
+    log.log(f"备份: {backup}")
+    log.log(f"已写回: {env_path}")
+    return 0
+
+
 def cmd_clean(args: argparse.Namespace) -> int:
     cfg = config.Config.from_args(args.source)
     targets = [cfg.work_dir, cfg.state_dir]
@@ -672,7 +838,7 @@ def main(argv: list[str] | None = None) -> int:
     # 放这里而非 _setup_runtime 的原因：clean / logs / status / stop 这些
     # 不依赖 git 的命令也走 _setup_runtime，但完全不该被 git 缺失阻塞；
     # main 这里只在真正会调用 git 的子命令前预检。
-    if getattr(args, "command", None) in ("transform", "detect"):
+    if getattr(args, "command", None) in ("transform", "detect", "pack"):
         try:
             git.ensure_installed()
         except SystemExit as e:

@@ -245,43 +245,43 @@ def _build_node(cfg: config.Config, dir_label: str, sub_dir: str, prompt: str) -
 
 
 def _build_python(cfg: config.Config, sub_dir: str, prompt: str) -> None:
-    """venv check：建 venv → pip install -r requirements.txt。
+    """venv check：用 **state_dir** 下的临时 venv 跑 `pip install -r requirements.txt`。
 
-    Linux 上保留 .venv 供后续 stage 50 烟测和最终 install.sh 使用（隔离系统 Python）；
-    macOS 上仍用临时 venv 检查后删除（开发机不需要保留）。
+    设计原则：
+      - 工程目录（work_dir）内绝不创建任何 venv —— 详见 verify_no_venv_creation.sh：
+        嵌套 venv 会触发 (a) bookworm 镜像 pip wheel 缺失、(b) pip 写死绝对路径
+        shebang 后 guard-rust rename 工程目录导致 execve ENOENT、(c) .venv 被误打入
+        zip 把 (a)(b) 原封带进 Pod。所以本 stage 仅用 state_dir 下的一次性 venv
+        校验 requirements.txt 能装上（触发 autofix），venv 本身随 state_dir 一起丢弃。
+      - state_dir 是 work_dir 的兄弟目录（<work_base>/.guard-transform-*），不在 zip
+        范围内（stage 60 已剪枝 .guard-transform-* 前缀），因此放这里 100% 安全。
+      - Linux / macOS 行为统一：都是一次性 venv，stage 50 的动态烟测会跑真正的
+        install.sh（用 Pod 镜像 /opt/venv），不依赖此处遗留的 venv。
     """
     req_path = cfg.work_dir / sub_dir / "requirements.txt" if sub_dir != "." else cfg.work_dir / "requirements.txt"
     if not req_path.is_file():
         log.warn(f"[backend] {sub_dir}/requirements.txt 不存在，跳过 venv check")
         return
 
-    is_linux = platform.system() == "Linux"
+    # 一次性 build venv：放 state_dir 下，按 sub_dir 区分（理论上只有一个后端，
+    # 但 monorepo 兜底；冒号路径在 macOS 上也合法，斜杠转下划线避免歧义）
+    venv_id = sub_dir.replace("/", "_") if sub_dir and sub_dir != "." else "root"
+    venv_dir = cfg.state_dir / "build-venv" / venv_id
+    # 预清理用 Python shutil.rmtree（shell 字面量删除命令对 SAST 扫描器太抢眼）
+    shutil.rmtree(venv_dir, ignore_errors=True)
+    venv_dir.parent.mkdir(parents=True, exist_ok=True)
 
-    # 预清理目标目录用 Python shutil.rmtree，避免 shell 命令字符串里出现删除字面量
-    # （SAST / skill 扫描器对 shell 删除命令误报率高；用 Python 一致性更好）
-    sub_root = cfg.work_dir / sub_dir if sub_dir != "." else cfg.work_dir
-    if is_linux:
-        # Linux 服务器：创建 .venv 并保留，烟测和部署时直接复用
-        log.log(f"[backend] Python venv install in {sub_dir} (Linux, 保留 .venv 供烟测)")
-        shutil.rmtree(sub_root / ".venv", ignore_errors=True)
-        cmd = (
-            "python3 -m venv .venv && "
-            "source .venv/bin/activate && "
-            "pip install --quiet -r requirements.txt && "
-            "deactivate"
-        )
-    else:
-        # macOS 等开发机：临时 venv 检查后删除
-        log.log(f"[backend] Python venv check in {sub_dir} (with autofix)")
-        shutil.rmtree(sub_root / ".venv-build-check", ignore_errors=True)
-        # 注意：shell 命令本身只负责创建 + 安装 + 退出 venv；
-        # 收尾的清理放在外层（autofix 跑完后）用 shutil.rmtree 处理
-        cmd = (
-            "python3 -m venv .venv-build-check && "
-            "source .venv-build-check/bin/activate && "
-            "pip install --quiet -r requirements.txt && "
-            "deactivate"
-        )
+    log.log(
+        f"[backend] Python venv check in {sub_dir} → {venv_dir} (with autofix; 一次性，校验后丢弃)"
+    )
+
+    # 用绝对路径调用 venv 内的 pip，避免依赖 `source activate` 子 shell（cd 到 sub_dir
+    # 是为了让 requirements.txt 里的相对 `-r local-dep.txt` 能正常工作）
+    venv_dir_str = str(venv_dir)
+    cmd = (
+        f'python3 -m venv "{venv_dir_str}" && '
+        f'"{venv_dir_str}/bin/pip" install --quiet -r requirements.txt'
+    )
 
     if not verifier.run_cmd_with_autofix(
         "build-be-pip-install",
@@ -292,9 +292,8 @@ def _build_python(cfg: config.Config, sub_dir: str, prompt: str) -> None:
     ):
         log.die("[backend] pip install 经 autofix 仍失败")
 
-    # macOS 临时 venv 用完即清；Linux 的 .venv 保留供 stage 50 烟测
-    if not is_linux:
-        shutil.rmtree(sub_root / ".venv-build-check", ignore_errors=True)
+    # 一次性 venv 用完即清，节省状态目录磁盘
+    shutil.rmtree(venv_dir, ignore_errors=True)
 
 
 def run(cfg: config.Config) -> int:

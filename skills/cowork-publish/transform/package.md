@@ -52,9 +52,9 @@ echo "[cowork-skill] 打包目标源工程: $PKG_TARGET（副本: ${PKG_TARGET}-
 1. **基础合规验证**（shell 脚本，~30 秒）：复用 guard-transform 的 25+ 个 verifier，校验 `install.sh` / `start.sh` / `health.sh` 是否符合 CoWork 子应用规范
 2. **前端构建产物时效性检查**（前后端分离专用）：扫描前端目录的源码 mtime 与构建产物 mtime，**产物若早于源码 → 产物已过期**，需要重新 build
 
-通过后，调起 `transform.sh --from-stage 60 -y` 完成 zip 打包（带 `MMDDhhmm` 时间戳，不覆盖历史产物）。
+通过后，调起 `bin/guardx pack` 完成 zip 打包（带 `MMDDhhmm` 时间戳，不覆盖历史产物）。
 
-> **为什么不直接调 `--from-stage 60`**：stage 60_package 只做 zip 打包，**不跑 verifier**；用户在 `<src>-guard/` 手改可能引入新违规、或让前端产物过期，这些问题在云端部署时才暴露 → 白屏 / 容器起不来 / 探活超时。
+> **为什么不直接调 `guardx pack`**：`guardx pack` 等价于只跑 stage 60+70，**不跑 verifier**；用户在 `<src>-guard/` 手改可能引入新违规、或让前端产物过期，这些问题在云端部署时才暴露 → 白屏 / 容器起不来 / 探活超时。所以一定要先过 `cowork-package-verify` 这关。
 
 ## Step 1：跑独立打包前体检（cowork-package-verify）
 
@@ -109,12 +109,13 @@ echo "[cowork-skill] 打包目标源工程: $PKG_TARGET（副本: ${PKG_TARGET}-
 >
 > 1. **【★ 推荐】先修复再打包**：让 stage 50 LLM autofix 自动修，修完自动续到 stage 60 打新 zip
 >    ```bash
->    "$GUARD_TRANSFORM_HOME/transform.sh" "<src>" --from-stage 50 -y
+>    # 走 transform 续跑：checklist 已记 stage 00~40 完成，会自动跳过到 stage 50 (verify+autofix)
+>    "$GUARD_TRANSFORM_HOME/bin/guardx" transform "<src>" -y
 >    ```
 > 2. **手动修后再让我重 verify**：你自己改 `<src>-guard/` 下的文件，改完告诉我，我再跑 Step 1
 > 3. **强行打包（带伤上线，仅临场调试用）**：明确知道这些 fail 不影响交付时
 >    ```bash
->    GUARD_STRICT=0 "$GUARD_TRANSFORM_HOME/transform.sh" "<src>" --from-stage 50 -y
+>    GUARD_STRICT=0 "$GUARD_TRANSFORM_HOME/bin/guardx" transform "<src>" -y
 >    ```
 >    （会让 stage 50 verifier 仍 fail 时仅 warn 不 die；新 zip 上的 verify 失败项会写进 report.md）
 >
@@ -128,7 +129,8 @@ echo "[cowork-skill] 打包目标源工程: $PKG_TARGET（副本: ${PKG_TARGET}-
 
 ```bash
 echo "[cowork-skill] 检测到 N 个 verifier fail: verify_xxx, verify_yyy ... 自动选方案 1（LLM autofix）" >&2
-"$GUARD_TRANSFORM_HOME/transform.sh" "$PKG_TARGET" --from-stage 50 -y
+# checklist 命中：自动跳到 stage 50（verify+autofix），autofix 通过后续到 60+70 打 zip
+"$GUARD_TRANSFORM_HOME/bin/guardx" transform "$PKG_TARGET" -y
 ```
 
 autofix 完成后**再跑一次 Step 1**：
@@ -189,10 +191,10 @@ exit 2
 
 ```bash
 source "$GUARD_TRANSFORM_HOME/default_env.sh"
-"$GUARD_TRANSFORM_HOME/transform.sh" "$PKG_TARGET" --from-stage 60 -y
+"$GUARD_TRANSFORM_HOME/bin/guardx" pack "$PKG_TARGET"
 ```
 
-> **机制说明**：`--from-stage 60` 会**自动重置 60+70 stage 的 checklist 状态**，再真正重跑这两个 stage —— 一定会产出**新时间戳的 zip**。早期版本（< 2024-12）`--from-stage` 只控起始迭代点不动 checklist，会出现"命令秒退、没新 zip"的坑，已修复。
+> **机制说明**：`guardx pack` 内部强制 `--from-stage 60`，**自动重置 60+70 stage 的 checklist 状态**，再真正重跑这两个 stage —— 一定会产出**新时间戳的 zip**；同时**不调 LLM、不动副本内容**，对"我已经手改过副本只想再打一个 zip"场景是最合适的入口。
 
 打完后按 [`transform.md`](transform.md) "Step 4：解读结果" 走（读 report.md + 给最新 zip 路径 + 必要时复制 output.zip）。
 
@@ -206,10 +208,11 @@ source "$GUARD_TRANSFORM_HOME/default_env.sh"
 | 4 | `verify_app_factory` | Python 工厂函数 `module:create_app` 模式 |
 | 5 | `verify_start_artifacts` | Python / Node 启动入口产物存在性 |
 | 6 | `verify_frontend_built` | **前端构建产物已落盘**：`dist/index.html` / `build/index.html` / `.next/BUILD_ID` 等任一存在；否则 fail |
+| 6.5 | `verify_npm_lock_sync` | **`package.json` ↔ `package-lock.json` 一致性**：键集合 + range 严格对齐；漂移会让云端 `npm ci --omit=dev` 直接挂（`Invalid: lock file's <pkg>@<a> does not satisfy <pkg>@<b>`）。修复：`npm install --package-lock-only --no-audit` |
 | 7 | `verify_startup_log_stream` | **start.sh exec 启动行必须用 shell 级 `2>&1` 收敛 stderr** |
 | 8 | `verify_subprocess_lifecycle` | **业务 spawn 子服务的父子进程组底线**：禁止 `detached:true` / `start_new_session=True` 等让子进程脱离父进程组 |
 | 9 | `verify_python_requirements` | requirements.txt vs `.py` import + 递归扫所有 `*.sh` 中的 CLI 工具缺口检查 |
-| 10 | `verify_venv_activation` | **venv-installed Python CLI 必须在同 `.sh` 内激活 venv 或用绝对路径** |
+| 10 | `verify_no_venv_creation` | **工程内禁建嵌套 venv**：任一 `.sh` 含 `python -m venv` / `virtualenv ...` 即 fail。根因：bookworm 镜像 `python3-venv` 单包不带 ensurepip 的 pip wheel（pip 在 `python3-pip`）+ pip console_script shebang 写死绝对路径，guard-rust 启动期 `fs::rename` 工程目录后 execve ENOENT（现场报 `cannot execute: required file not found`）。修复：依赖 Pod 镜像的 `/opt/venv` 全局 venv，`install.sh` 直接 `python3 -m pip install`，`start.sh` 直接 `exec python3 -m gunicorn ...` |
 | 22 | `verify_start_sh_llm` | LLM 综合 review（`GUARD_LLM_VERIFY=1` 启用，read-only 三重保险） |
 | ★ | **前端产物时效性**（cowork-package-verify Phase 2） | 源码 mtime > 产物 mtime → STALE |
 
@@ -221,12 +224,12 @@ source "$GUARD_TRANSFORM_HOME/default_env.sh"
 
 | 反例 | 正确做法 |
 | --- | --- |
-| 用户说"再打个 zip" → 直接跑 `--from-stage 60` | ✅ 先跑 `cowork-package-verify`，根据 exit code 决定后续 |
-| 前端 verify fail → 自己 `apply_diff` 改 work_dir | ✅ 走 stage 50 LLM autofix，不是 agent 直接动手 |
-| 想拦 verify 但走的是 `--from-stage 60 --no-strict` | ✅ `--no-strict` 只在 stage 50 内生效；既然 from-stage=60 就不会跑 verify，必须用 `--from-stage 50` |
+| 用户说"再打个 zip" → 直接跑 `guardx pack` | ✅ 先跑 `cowork-package-verify`，根据 exit code 决定后续 |
+| 前端 verify fail → 自己 `apply_diff` 改 work_dir | ✅ 走 stage 50 LLM autofix（`guardx transform <src> -y`），不是 agent 直接动手 |
+| 想拦 verify 但走的是 `guardx pack --no-strict` | ✅ `--no-strict` 只在 stage 50 内生效；`guardx pack` 不跑 verify，必须用 `guardx transform <src> -y` 续跑到 stage 50 |
 | 用户改了 `.tsx` 没 build → `verify_frontend_built` fail → 在 install.sh 加 `npm run build` | ✅ 推荐让用户在 `frontend/` 本地跑 build 再走打包；服务端模式拒绝在 install.sh 内联网构建 |
-| verify 全 OK → 仍跑 `--from-stage 50 -y` 走一遍 LLM autofix | ⚠️ 浪费 LLM 配额；verify 全 OK 直接 `--from-stage 60 -y` 即可 |
-| 跑 `--from-stage 60 -y` 后没看到新 zip / 命令秒退 | ✅ 已修复——若仍复现请确认用的是当前版本（应在日志里看到 `--from-stage 60 隐含重置 checklist (X 项)`）；旧版本需更新 `~/.claude/skills/cowork-app/` 重装 |
+| verify 全 OK → 仍跑 `guardx transform -y` 走一遍 LLM autofix | ⚠️ 浪费 LLM 配额；verify 全 OK 直接 `guardx pack <src>` 即可 |
+| 跑 `guardx pack` 后没看到新 zip / 命令秒退 | ✅ 已修复——pack 入口内部隐含 `--from-stage 60` 重置 60+70 checklist；若仍复现请确认 guardx 版本（日志应有 `--from-stage 60 隐含重置 checklist (X 项)`） |
 
 ## 命令速查
 

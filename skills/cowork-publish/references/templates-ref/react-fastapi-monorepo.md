@@ -1,231 +1,59 @@
-# react-fastapi-monorepo 模板参考
+# react-fastapi-monorepo 模板导读
 
-> **何时读**：选用 `react-fastapi-monorepo` 模板后写业务代码时读。
+> **何时读**：选用 `react-fastapi-monorepo` 模板（`cowork.py scaffold <name> --template react-fastapi-monorepo`）后、写业务代码前读。
 >
-> 适用场景：**最常见的中型项目布局**——前端 React + 后端 FastAPI 分仓。前端跑 SPA，后端提供 API 同时静态托管前端 build 产物。
+> **本文只讲该模板特有的结构与坑**。SSO / AI / DB / 路径等横切规范统一看 `../sso.md` / `../ai.md` / `../db.md` / `../urls.md`。
+> **真实可运行的骨架代码以 `templates/react-fastapi-monorepo/` 下的实际文件为准**（scaffold 会原样 cp），本文不贴代码副本。
 
-## scaffold 已给好
+适用场景：**最常见的中型布局**——前端 React + Vite SPA，后端 FastAPI 提供 API 并静态托管前端 build 产物（单进程同源）。
 
-调 `cowork.scaffold_app({ template: 'react-fastapi-monorepo' })` 后：
+## scaffold 生成的真实结构
 
 ```
 <srcDir>/
-├── backend/                 # FastAPI 后端
-│   ├── app/
-│   │   ├── main.py          # FastAPI app + 路由 + 静态 SPA fallback
-│   │   ├── db.py            # PostgreSQL 连接 / 关键字参数 / asyncpg
-│   │   ├── init_db.py       # DDL 幂等
-│   │   ├── sso.py           # Decrypted-Userinfo 解析
-│   │   └── ai.py            # Runway 调用
-│   ├── requirements.txt
-│   └── .venv/               # install.sh 创建
-├── frontend/                # React + Vite SPA
-│   ├── src/
-│   │   ├── main.tsx
-│   │   ├── App.tsx
-│   │   └── api.ts           # 调 /api/* 的 fetch 包装
+├── backend/
+│   ├── app.py              # FastAPI：/health + /api/health + /api/whoami + 静态托管 + SPA fallback
+│   │                       #   已内置 _parse_sso_user / _require_user（latin-1→JSON 两步，401，无后门）
+│   └── requirements.txt
+├── frontend/               # React + Vite SPA
+│   ├── src/{App.tsx,main.tsx}
 │   ├── index.html
 │   ├── package.json
-│   ├── vite.config.ts       # 不要配 base / publicPath
+│   ├── vite.config.ts      # 不配 base / publicPath（router 自动加前缀）
 │   ├── tsconfig.json
-│   └── .npmrc
-├── install.sh               # Linux: venv 隔离 + cd backend && pip install
-├── start.sh                 # cd backend; exec $PYTHON -m uvicorn app.main:app ...
-├── health.sh                # curl /health
-├── prepack.sh               # 先 build 前端 dist，让 backend 能静态托管
+│   └── .npmrc              # 双路内网 registry
+├── install.sh              # cd backend && python3 -m pip install -r requirements.txt（禁 venv）
+├── start.sh                # cd backend && exec python3 -m uvicorn app:app --host 0.0.0.0 --port ${APP_PORT:-3000}
+├── health.sh               # curl /health
+├── prepack.sh              # cowork pack 自动跑：先 build frontend/dist（含 fast-path 复用）
 └── README.md
 ```
 
-**install.sh / start.sh / health.sh / prepack.sh 都不要手改**——是官方 guard-transform 渲染产物。
+> ⚠️ `install.sh` / `start.sh` / `health.sh` / `prepack.sh` 是规范产物，**不要手改**。
 
-## 关键：backend 静态托管 frontend/dist
+## 骨架已内置（直接用，别重写）
 
-`backend/app/main.py` 里：
+`backend/app.py` 里已写好且**符合最新规范**：
 
-```python
-from pathlib import Path
-from fastapi import FastAPI
-from fastapi.responses import FileResponse, JSONResponse
-from fastapi.staticfiles import StaticFiles
+- `_parse_sso_user` / `_require_user`：**latin-1 → JSON 两步**（没有 base64），拿不到 → **401**，**无 `APP_ENV=="sit"` 后门**（precheck 会拦）
+- `/health` 挂主 app 顶层；`/api/health`、`/api/whoami` 走 `/api` 前缀
+- 静态托管 `frontend/dist` + SPA history fallback（`/{full_path:path}`，`api/` 开头返 404 不被吞）
 
-ROOT = Path(__file__).resolve().parent.parent.parent  # 到 monorepo 根
-FRONTEND_DIST = ROOT / "frontend" / "dist"
-INDEX_HTML = FRONTEND_DIST / "index.html"
+加 DB / AI 时**按 `../db.md` / `../ai.md` 的标准实现自己建** `backend/app/db.py` 等（骨架默认不带），不要凭印象写。
 
-app = FastAPI()
+## 该模板特有的坑
 
-# ⚠️ 必须把 /api/* 路由先注册，否则被 SPA fallback 吞掉
-@app.get("/api/health")
-def api_health():
-    return {"ok": True, "service": "react-fastapi-monorepo"}
+1. **API 路由必须 `/api` 前缀**：否则被 SPA fallback `@app.get("/{full_path:path}")` 吞掉。
+2. **`/health` 不要放 `/api/health`**：health.sh 探的是顶层 `/health`。
+3. **`vite.config.ts` 不配 `base` / `publicPath`**：平台 router 自动加 `/s/<appId>/`，配了会双前缀 404（详见 `../urls.md`）。
+4. **prepack 必须产出 `frontend/dist`**：否则 zip 里没产物，访问 `/` 返 503。prepack.sh 有 fast-path（dist 不旧于源码就跳过重 build）。
+5. **前端路由用 `BrowserRouter`**（不是 HashRouter）；history fallback 已在 backend 处理。
+6. **db.properties 位置**：start.sh 已 `cd backend`，所以业务进程 cwd 在 `backend/`，`db.properties` 用相对路径读即可（平台注入在 install.sh 同级 = 项目根；如需 backend 内读，注意路径，详见 `../db.md`）。
+7. **前后端同源**：不需要 CORS，fetch 自动同域。
 
-# ... 其他 /api/* 路由 ...
+## 横切规范（必读）
 
-# ✅ /health 必须挂主 app 顶层（不能挂 prefix router 下，否则路径不对）
-@app.get("/health")
-def health():
-    return {"ok": True}
-
-# 静态资源（CSS/JS）— FastAPI StaticFiles
-if (FRONTEND_DIST / "assets").exists():
-    app.mount("/assets", StaticFiles(directory=str(FRONTEND_DIST / "assets")), name="assets")
-
-# SPA history fallback：所有其他路径 → index.html
-@app.get("/")
-def index():
-    if not INDEX_HTML.exists():
-        return JSONResponse({"error": "frontend/dist 未 build"}, status_code=503)
-    return FileResponse(INDEX_HTML)
-
-@app.get("/{full_path:path}")
-def spa_fallback(full_path: str):
-    if full_path.startswith("api/"):
-        return JSONResponse({"error": "API not found"}, status_code=404)
-    real = FRONTEND_DIST / full_path
-    if real.is_file():
-        return FileResponse(real)
-    if INDEX_HTML.exists():
-        return FileResponse(INDEX_HTML)
-    return JSONResponse({"error": "frontend/dist 未 build"}, status_code=503)
-```
-
-## prepack.sh：必须先 build 前端
-
-cowork.publish 自动跑 prepack.sh：
-
-```bash
-# prepack.sh
-set -e
-cd frontend
-npm ci
-npm run build
-test -f dist/index.html || exit 1
-# 回到根目录，cowork pack 会把 frontend/dist 收进 zip
-```
-
-否则 zip 进 Pod 后 `frontend/dist` 不存在，访问 `/` 返 503。
-
-## SSO 接入（Hard Rule #4 强制）
-
-详见 `../sso.md`。FastAPI 推荐用 Depends：
-
-```python
-# backend/app/sso.py
-import base64, json, os
-from typing import Optional
-from fastapi import Header, HTTPException
-
-def parse_sso_user(
-    decrypted_userinfo: Optional[str] = Header(None, alias="Decrypted-Userinfo"),
-    sso_email: Optional[str] = Header(None, alias="sso-email"),
-):
-    if decrypted_userinfo:
-        try:
-            raw = decrypted_userinfo.encode("latin-1").decode("utf-8")
-            data = json.loads(base64.b64decode(raw).decode("utf-8"))
-            return {
-                "email": data.get("email") or data.get("workEmail"),
-                "name": data.get("name") or data.get("displayName"),
-                "userId": data.get("userId") or data.get("id"),
-            }
-        except Exception:
-            pass
-    if sso_email and os.environ.get("APP_ENV") == "sit":
-        return {"email": sso_email, "name": sso_email.split("@")[0], "userId": "sit-dev"}
-    raise HTTPException(status_code=401, detail="not authenticated")
-```
-
-业务 route：
-
-```python
-from fastapi import Depends
-from app.sso import parse_sso_user
-from app.db import get_conn
-
-@app.get("/api/items")
-def list_items(user: dict = Depends(parse_sso_user)):
-    with get_conn() as c:
-        cur = c.cursor()
-        cur.execute("SELECT id, name FROM items WHERE created_by = %s", (user["email"],))
-        rows = cur.fetchall()
-    return {"items": [{"id": r[0], "name": r[1]} for r in rows]}
-```
-
-前端 `src/api.ts` 调 API：
-
-```typescript
-// frontend/src/api.ts
-// ⚠️ 不要配 baseUrl 加 /s/<appId>，router 自动加，cookie 自动带
-const apiFetch = async (path: string, init?: RequestInit) => {
-  const r = await fetch(`/api${path}`, {
-    credentials: 'include',  // 必须，带 Decrypted-Userinfo cookie
-    ...init,
-    headers: {
-      'Content-Type': 'application/json',
-      ...init?.headers,
-    },
-  })
-  if (r.status === 401) {
-    window.location.reload()  // SSO 失效让用户重新登录
-    return null
-  }
-  return r.json()
-}
-
-export const api = {
-  whoami: () => apiFetch('/whoami'),
-  listItems: () => apiFetch('/items'),
-  createItem: (name: string) =>
-    apiFetch('/items', { method: 'POST', body: JSON.stringify({ name }) }),
-}
-```
-
-## DB / AI
-
-跟 `fastapi-only.md` 完全一样——只是路径前缀变 `backend/app/db.py` / `backend/app/ai.py`。详见：
-
-- `../db.md` — DB 完整规范
-- `../ai.md` — AI 完整规范
-
-## frontend Vite 配置注意
-
-`frontend/vite.config.ts`：
-
-```typescript
-import { defineConfig } from 'vite'
-import react from '@vitejs/plugin-react'
-
-// ⚠️ 不要配 base / publicPath！router 自动加 /s/<appId>/，
-// 配了会变成 /s/<appId>//s/<appId>/assets/foo.js → 404
-export default defineConfig({
-  plugins: [react()],
-  build: {
-    outDir: 'dist',
-    emptyOutDir: true,
-    // assets 输出在 dist/assets/ 下，跟 backend StaticFiles 挂载匹配
-  },
-})
-```
-
-## 该模板特有的 7 个坑
-
-1. **API 路由前缀必须 `/api`**：否则跟 SPA fallback 冲突。`@app.get("/items")` 会被 `@app.get("/{full_path:path}")` 吃掉。
-2. **/health 不要放 `/api/health`**：health.sh 默认探 `/health`（顶层），不是 `/api/health`。
-3. **前端 SPA history 模式**：用 `react-router-dom`'s `BrowserRouter`（不是 HashRouter）。fallback 已经在 backend 处理。
-4. **CORS 不需要**：前后端同源（都从 cowork.xiaohongshu.com 出），fetch 自动带 cookie。
-5. **prepack.sh 必须成功**：build 失败 → zip 里没 `frontend/dist` → 访问 `/` 503。本地 `cd frontend && npm run build` 验证一遍再 publish。
-6. **frontend/.npmrc 是双路 registry**：`@xhs:registry=` 走内网 + `registry=` 走 npmmirror。不要手改。
-7. **backend cwd**：start.sh 已 `cd backend`，所以 `db.properties` 应该放在 `backend/` 下（不是项目根）。
-
-## 完整参考实现
-
-backend 业务代码风格参考 `fastapi-only.md`（只是文件路径前缀加 `backend/app/`）。frontend 是 React + Vite，没有 cowork 特殊性，按 React 通用最佳实践写。
-
-Cross-cutting:
-
-- `../db.md` — DB 完整规范（backend 用）
-- `../sso.md` — SSO 完整规范
-- `../ai.md` — AI 完整规范
-- `../urls.md` — URL 路由（**这里特别重要**：monorepo 路由优先级 / vite base 配置）
-- `../deps-python.md` + `../deps-node.md`
+- `../db.md` / `../sso.md` / `../ai.md` — DB / SSO / AI 标准实现
+- `../urls.md` — **本模板尤其重要**：monorepo 路由优先级 + vite base 禁配
+- `../deps-python.md` / `../deps-node.md` — 依赖与镜像
 - `../checklist.md` — 写完自检

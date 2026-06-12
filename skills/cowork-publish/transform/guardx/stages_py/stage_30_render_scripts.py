@@ -66,29 +66,19 @@ def _build_tpl_vars(stack: dict) -> dict[str, str]:
         # 纯前端首选静态目录；server.cjs 启动时按 [TPL_STATIC_DIR, dist, build, out, public] 顺序探测
         "TPL_STATIC_DIR": "dist",
         "TPL_START_CMD": "",
-        "TPL_VENV_ACTIVATE": "",
         "TPL_BACKEND_DIR": backend_dir,
         "TPL_FRONTEND_DIR": frontend_dir,
     }
 
     if lang == "python":
         tpl["TPL_HAS_PYTHON_DEPS"] = "1"
-        # Linux 上 venv 路径（install.sh 在后端目录下创建 .venv）
-        venv_path = f"{backend_dir}/.venv" if backend_dir else ".venv"
-        # 注意：不再依赖 `source .venv/bin/activate` + exec 的组合。
-        # 原因：exec 会替换当前 shell 进程，venv 激活只修改了当前 shell 的 PATH，
-        # 但 exec 之后 shell 环境被替换，python3/gunicorn 解析走系统 PATH，
-        # 导致 "No module named gunicorn" 等错误。
-        # 修复：直接用 .venv/bin/python 绝对路径，完全绕开 venv 激活的不确定性；
-        # 非 Linux（本地 macOS 开发）回退到系统 python3。
-        tpl["TPL_VENV_ACTIVATE"] = (
-            '# Linux 上用 .venv 绝对路径调用 python，避免 exec 替换 shell 后 PATH 失效\n'
-            f'if [ "$(uname)" = "Linux" ] && [ -f "{venv_path}/bin/python" ]; then\n'
-            f'  PYTHON="{venv_path}/bin/python"\n'
-            'else\n'
-            '  PYTHON="python3"\n'
-            'fi'
-        )
+        # Pod 镜像 Dockerfile 里 `ENV PATH=/opt/venv/bin:$PATH` 已提供全局 venv，
+        # install.sh 直接 `python3 -m pip install` 装到那里。start.sh 这里直接用
+        # `python3`（解析到 /opt/venv/bin/python3）即可——绝对稳定，不被 guard-rust
+        # 的 release-dir rename 影响（它会 rename 工程目录但不会动 /opt/venv）。
+        # 历史踩坑：曾经在工程内嵌套建 .venv 并写死 .venv/bin/python 的 shebang，
+        # rename 后 shebang 指向已不存在的旧路径 → execve ENOENT → start.sh 报
+        # `cannot execute: required file not found`。彻底摒弃工程内 .venv。
         # 统一注入 APP_PORT 字面量：
         #   ① verify_app_env_naming.sh 要求 start.sh 必须含 APP_PORT 引用
         #      （平台只允许业务读 APP_* 前缀 env；裸 PORT/HOSTNAME 平台不注入）
@@ -100,10 +90,11 @@ def _build_tpl_vars(stack: dict) -> dict[str, str]:
         #      改一处 export 即可
         if framework == "fastapi":
             mod = _entry_to_module(entry, backend_dir)
-            # uvicorn 同样用 $PYTHON 绝对路径，与 flask/django 保持一致
+            # 走 `python3 -m uvicorn`：依赖 Pod 镜像 PATH 上的 /opt/venv/bin/python3。
+            # 不再依赖工程内 .venv（详见上面 TPL 注释）。
             cmd = (
                 'export APP_PORT="${APP_PORT:-3000}"\n'
-                f'exec $PYTHON -m uvicorn {mod}:app --host 0.0.0.0 --port ${{APP_PORT}}'
+                f'exec python3 -m uvicorn {mod}:app --host 0.0.0.0 --port ${{APP_PORT}}'
             )
             if backend_dir:
                 tpl["TPL_START_CMD"] = (
@@ -113,10 +104,13 @@ def _build_tpl_vars(stack: dict) -> dict[str, str]:
                 tpl["TPL_START_CMD"] = cmd
         elif framework == "flask":
             mod = _entry_to_module(entry, backend_dir)
-            # 直接用 $PYTHON -m gunicorn，不依赖 PATH 里的 gunicorn 可执行文件
+            # 走 `python3 -m gunicorn`：依赖镜像 PATH 上的 python3 + /opt/venv 全局
+            # site-packages 里 install.sh pip 装好的 gunicorn。
+            # 不用 `exec gunicorn` 裸命令是因为 console_script 的 shebang 写死绝对路径，
+            # 跨目录 rename / 跨镜像复用时容易爆 execve ENOENT。
             cmd = (
                 'export APP_PORT="${APP_PORT:-3000}"\n'
-                f"exec $PYTHON -m gunicorn --bind 0.0.0.0:${{APP_PORT}} {mod}:app"
+                f"exec python3 -m gunicorn --bind 0.0.0.0:${{APP_PORT}} {mod}:app"
             )
             if backend_dir:
                 tpl["TPL_START_CMD"] = (
@@ -125,10 +119,10 @@ def _build_tpl_vars(stack: dict) -> dict[str, str]:
             else:
                 tpl["TPL_START_CMD"] = cmd
         elif framework == "django":
-            # 直接用 $PYTHON -m gunicorn，不依赖 PATH 里的 gunicorn 可执行文件
+            # 走 `python3 -m gunicorn`，理由同上 flask 分支。
             cmd = (
                 'export APP_PORT="${APP_PORT:-3000}"\n'
-                "exec $PYTHON -m gunicorn --bind 0.0.0.0:${APP_PORT} wsgi:application"
+                "exec python3 -m gunicorn --bind 0.0.0.0:${APP_PORT} wsgi:application"
             )
             if backend_dir:
                 tpl["TPL_START_CMD"] = (
@@ -257,6 +251,21 @@ def run(cfg: config.Config) -> int:
         log.die("stack.json 不存在，未跑 stage 10？")
     stack = json.loads(stack_path.read_text())
     lang = str(stack.get("lang", ""))
+    frontend_only = str(stack.get("frontend_only", "")) == "1"
+
+    # 纯前端项目：不渲染 install/start/health.sh，平台仅托管静态产物。
+    # 仍需 stage 40 build 出 dist/index.html，由 verify_static_index_relative.sh
+    # 校验资源引用相对路径合规（不得 `/` 或 `//` 开头）。
+    if frontend_only:
+        log.log(
+            "stack.frontend_only=1（纯前端项目）：跳过 install/start/health.sh 渲染，"
+            "改由 verify_static_index_relative.sh 校验构建产物"
+        )
+        git.commit_step(
+            cfg.work_dir, "render: frontend-only (no install/start/health.sh)"
+        )
+        log.ok("stage 30 完成（frontend_only）")
+        return 0
 
     tpl_vars = _build_tpl_vars(stack)
 
@@ -268,7 +277,7 @@ def run(cfg: config.Config) -> int:
     # .npmrc 仅 Node 工程
     if lang == "node":
         _render(tpl_dir / "npmrc.tpl", cfg.work_dir / ".npmrc", tpl_vars, chmod_x=False)
-        log.log("渲染: .npmrc (Node)")
+        log.log("渲染: npm 配置 (Node)")
 
     # 纯前端 SPA：渲染 server.cjs（serve-handler lib 托管 + /health endpoint）
     # 不加可执行位（由 `node server.cjs` 解释执行）
@@ -332,7 +341,7 @@ def run(cfg: config.Config) -> int:
         )
 
     git.commit_step(
-        cfg.work_dir, "render: install.sh / start.sh / health.sh / .npmrc"
+        cfg.work_dir, "render: install.sh / start.sh / health.sh / npm 配置"
     )
 
     log.ok("stage 30 完成")

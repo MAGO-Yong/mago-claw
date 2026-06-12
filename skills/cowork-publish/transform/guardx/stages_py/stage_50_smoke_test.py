@@ -8,6 +8,7 @@ GUARD_STRICT=0 可让流水线带伤继续（仅给调试用）。
 
 from __future__ import annotations
 
+import json
 import os
 import socket
 import subprocess
@@ -26,6 +27,7 @@ _STATIC_VERIFIERS = (
     "verify_app_factory.sh",
     "verify_start_artifacts.sh",       # 跨语言产物存在性（纯规则）
     "verify_frontend_built.sh",        # 前端 dist/build/.next 等产物已落盘（云端缺前端文件白屏拦截）
+    "verify_npm_lock_sync.sh",         # package.json ↔ package-lock.json 漂移拦截（云端 `npm ci --omit=dev` 会硬失败）
     "verify_startup_log_stream.sh",    # start.sh exec 行必须 2>&1 显式收敛 stderr（避免 Guard 误判）
     "verify_subprocess_lifecycle.sh",  # 业务 spawn 子服务：父子进程组生命周期（detached/start_new_session 反例 fail；缺信号桥接 warn）
     "verify_app_env_naming.sh",
@@ -33,13 +35,14 @@ _STATIC_VERIFIERS = (
     "verify_no_file_db.sh",
     "verify_install_no_internet.sh",
     "verify_python_requirements.sh",
-    "verify_venv_activation.sh",       # 非根 start.sh 调用 venv-installed Python CLI 必须激活 venv 或用绝对路径（避免 `exec: gunicorn: not found`）
+    "verify_no_venv_creation.sh",      # 工程内禁建嵌套 venv（bookworm 镜像 pip wheel 缺失 + guard-rust release-dir rename 导致 .venv shebang ENOENT）
     "verify_no_migrations_tool.sh",
     "verify_db_props_keys.sh",
     "verify_db_url_safe.sh",
     "verify_seed_idempotent.sh",
     "verify_no_url_absolute.sh",
     "verify_css_no_abs_url.sh",
+    "verify_static_index_relative.sh",  # 纯前端 / 含 dist/index.html 的项目：资源引用必须相对路径
     "verify_ai_calls.sh",          # 文本 LLM 通路（Runway Bedrock）；无文本 AI 信号自动 skip
     "verify_image_calls.sh",       # 图像生成通路（Runway Google GenerateContent）；无图像 AI 信号自动 skip
     "verify_sso_correct.sh",
@@ -70,9 +73,34 @@ def run(cfg: config.Config) -> int:
     home = config.home_dir()
     vdir = home / "verifiers"
 
+    # 纯前端项目（stack.frontend_only=1）：仅托管静态产物，不需要 install/start/health.sh。
+    # 跳过强依赖这三个脚本的 verifier，改用专门的 verify_static_index_relative.sh
+    # 校验构建产物。
+    frontend_only = False
+    stack_path = cfg.state_dir / "stack.json"
+    if stack_path.is_file():
+        try:
+            stack = json.loads(stack_path.read_text())
+            frontend_only = str(stack.get("frontend_only", "")) == "1"
+        except (OSError, json.JSONDecodeError):
+            pass
+
+    static_verifiers: tuple[str, ...]
+    if frontend_only:
+        log.log("stack.frontend_only=1：跳过后端 verifier，改跑 verify_static_index_relative.sh")
+        static_verifiers = (
+            "verify_frontend_built.sh",
+            "verify_static_index_relative.sh",
+            "verify_no_url_absolute.sh",
+            "verify_css_no_abs_url.sh",
+            "verify_no_dev_artifacts.sh",
+        )
+    else:
+        static_verifiers = _STATIC_VERIFIERS
+
     fail_count = 0
 
-    for vname in _STATIC_VERIFIERS:
+    for vname in static_verifiers:
         if not verifier.run_with_autofix(vdir / vname, cfg):
             fail_count += 1
 
@@ -83,12 +111,16 @@ def run(cfg: config.Config) -> int:
     #     避免在 Pod 内真启业务进程（违反"只构建不运行"安全边界，
     #     可能凭据外泄 / RCE / SSRF）
     # GUARD_SMOKE_FULL=0/1 可显式覆盖
-    log.log(
-        "▶ 动态烟测：verify_runtime_full "
-        "(interactive 默认开 / 其它默认 skip，GUARD_SMOKE_FULL=0/1 覆盖)"
-    )
-    if not verifier.run_with_autofix(vdir / _DYNAMIC_VERIFIER, cfg):
-        fail_count += 1
+    # frontend_only：纯前端项目无 install/start/health，不能跑动态烟测
+    if frontend_only:
+        log.log("stack.frontend_only=1：跳过动态烟测（无 install/start/health.sh）")
+    else:
+        log.log(
+            "▶ 动态烟测：verify_runtime_full "
+            "(interactive 默认开 / 其它默认 skip，GUARD_SMOKE_FULL=0/1 覆盖)"
+        )
+        if not verifier.run_with_autofix(vdir / _DYNAMIC_VERIFIER, cfg):
+            fail_count += 1
 
     if fail_count > 0:
         if cfg.strict:

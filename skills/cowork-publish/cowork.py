@@ -55,12 +55,38 @@ if not _VERIFY_SSL:
         pass
 
 # -----------------------------------------------------------------------------
+# 版本号（单一真相源：SKILL.md frontmatter 的 version 字段）
+# -----------------------------------------------------------------------------
+def _read_skill_version() -> str:
+    """从同目录 SKILL.md 的 YAML frontmatter 中读取 version 字段。
+    找不到时 fallback 为 '0.0.0'。"""
+    skill_md = Path(__file__).resolve().parent / "SKILL.md"
+    try:
+        text = skill_md.read_text(encoding="utf-8")
+        if text.startswith("---"):
+            end = text.index("---", 3)
+            for line in text[3:end].splitlines():
+                if line.strip().startswith("version:"):
+                    return line.split(":", 1)[1].strip()
+    except Exception:
+        pass
+    return "0.0.0"
+
+
+__version__ = _read_skill_version()
+
+# -----------------------------------------------------------------------------
 # 常量
 # -----------------------------------------------------------------------------
 COWORK_HOST = "https://city.xiaohongshu.com"
 COWORK_API = f"{COWORK_HOST}/oasis/api/oa-office/cowork"
 EDITH_HOST = "https://edith.xiaohongshu.com"
 COWORK_WEB = "https://cowork.xiaohongshu.com"
+
+# alias 改完后，路由层（网关）需要约 5s 才会把新别名同步到生效状态。
+# 在这之前把 /s/<new-alias>/ 或 /f/<new-alias>/ 返回给用户，用户打开会看到「不存在」。
+# 所以设置/修改 alias 成功后统一等这么久再返回 URL（可用 COWORK_ALIAS_PROPAGATION_SEC 覆盖）。
+ALIAS_PROPAGATION_SEC = float(os.environ.get("COWORK_ALIAS_PROPAGATION_SEC", "5"))
 
 # Cowork 项目顶级约定：所有 cowork scaffold / transform / dev / publish 项目都应在这里。
 # Plugin scan / agent system prompt 都遵这个约定，外部不扫避免误收。
@@ -109,8 +135,8 @@ GUARD_PORT = 3000
 # 标签 enum（前端按钮 → 后端 key）。
 #
 # ⚠以 cowork 平台 web bundle (fe-static.xhscdn.com/.../index.*.js) 为准，共 9 个。
-# 保持与 TS 端 SCENE_TAG_LABEL 同步：
-#   extensions/cowork/src/tools/list-projects.ts SCENE_TAG_LABEL
+# 如有客户端（如 Coral Studio）需要复用同一份映射，请直接读取本字典，
+# 不要在客户端再硬编码一份。
 SCENE_TAGS = {
     "效率提升": "efficiency_improvement",
     "内容生成": "content_generation",
@@ -229,17 +255,40 @@ def dlog(event: str, **fields) -> None:
 def err(msg, code=1):
     dlog("err", msg=msg, code=code)
     sys.stderr.write(f"✗ {msg}\n")
+    sys.stderr.flush()  # 立即输出，避免被块缓冲、用户看着像卡住
     sys.exit(code)
 
 
 def ok(msg):
     dlog("ok", msg=msg)
     sys.stderr.write(f"✓ {msg}\n")
+    sys.stderr.flush()
 
 
 def info(msg):
     dlog("info", msg=msg)
     sys.stderr.write(f"  {msg}\n")
+    sys.stderr.flush()
+
+
+def wait_alias_propagation(new_alias: Optional[str] = None, seconds: Optional[float] = None) -> None:
+    """alias 设置/修改成功后，等待路由层把新别名同步到生效状态再返回 URL。
+
+    后端 save / set-alias 返回成功 ≠ 新别名立刻可访问——网关同步约需 5s。在这之前
+    把 /s/<new-alias>/ 给用户，用户打开会看到「页面不存在」。这里统一等待并给一句
+    友好的等待文案，避免用户拿到一个暂时打不开的链接。
+
+    seconds 默认取 ALIAS_PROPAGATION_SEC（环境变量 COWORK_ALIAS_PROPAGATION_SEC 可覆盖）；
+    设为 0 / 负数则跳过等待。
+    """
+    wait = ALIAS_PROPAGATION_SEC if seconds is None else seconds
+    if wait <= 0:
+        return
+    tip = f"⏳ 别名已设置{f'（{new_alias}）' if new_alias else ''}，正在等待 ~{int(round(wait))}s 让访问链接全网生效…"
+    dlog("alias.propagation.wait", alias=new_alias, seconds=wait)
+    info(tip)
+    time.sleep(wait)
+    info("✅ 链接已生效，现在可以直接打开访问了")
 
 
 def load_cookies() -> dict:
@@ -266,7 +315,7 @@ def session() -> requests.Session:
         s.cookies.update(cookies)
     s.headers.update({
         "Accept": "application/json, text/plain, */*",
-        "User-Agent": "cowork-cli/0.1 (+OpenClaw)",
+        "User-Agent": f"cowork-cli/{__version__} (+OpenClaw)",
         "Referer": "https://cowork.xiaohongshu.com/",
         "Origin": "https://cowork.xiaohongshu.com",
     })
@@ -389,16 +438,20 @@ def upload_file(path: str, mime_type: Optional[str] = None, s=None) -> dict:
             "webp": "image/webp",
         }.get(ext, "application/octet-stream")
     s = s or session()
-    info(f"⇡ permit({ext}) ...")
-    dlog("upload.permit.start", ext=ext, file=str(p), size_bytes=p.stat().st_size)
+    _size = p.stat().st_size
+    _size_h = f"{_size/1024/1024:.1f}MB" if _size >= 1024*1024 else f"{_size/1024:.0f}KB"
+    info(f"⇡ 申请上传凭证({ext}) ...")
+    dlog("upload.permit.start", ext=ext, file=str(p), size_bytes=_size)
     _t0 = time.time()
     permit = get_permit(ext, s=s)
     dlog("upload.permit.ok", dur_s=round(time.time()-_t0, 2), upload_addr=permit.get("uploadAddr"))
-    info(f"⇡ PUT {p.name} ({p.stat().st_size} bytes) → {permit['uploadAddr']}")
-    dlog("upload.put.start", file=p.name, size_bytes=p.stat().st_size, upload_addr=permit.get("uploadAddr"))
+    info(f"⇡ 上传 {p.name}（{_size_h}）中，请稍候 ...")
+    dlog("upload.put.start", file=p.name, size_bytes=_size, upload_addr=permit.get("uploadAddr"))
     _t0 = time.time()
     file_id = ros_put(permit, p.read_bytes(), mime_type, s=s)
-    dlog("upload.put.ok", file=p.name, dur_s=round(time.time()-_t0, 2), file_id=file_id)
+    _dur = round(time.time()-_t0, 1)
+    info(f"⇡ 上传完成（{_size_h}, 耗时 {_dur}s）")
+    dlog("upload.put.ok", file=p.name, dur_s=_dur, file_id=file_id)
     return {
         "fileId": file_id,
         "business": BIZ_NAME,
@@ -417,6 +470,7 @@ def deploy_zip(
     zip_fileid: str,
     zip_name: str = "app.zip",
     work_id: Optional[int] = None,
+    deployment_id: Optional[int] = None,
     ext_platform_id: Optional[str] = None,
     deploy_source: str = "SEAL",
     s=None,
@@ -425,14 +479,16 @@ def deploy_zip(
     POST cowork/community/works/deploy
     body: {
         fileIdJson: "<json string>",
-        workId?: <int>,
-        extPlatformId?: "cw_proj_xxx",  # Seal 侧项目唯一 ID
+        deploymentId?: <int>,           # 重新部署且作品尚未发布时传——复用同一台机器/部署记录
+        workId?: <int>,                 # 编辑已发布作品的重新部署时传
+        extPlatformId?: "cw_proj_xxx",  # Seal 侧项目唯一 ID（新建部署时存入）
         deploySource?: "SEAL" | "COWORK" | "OMNI"  # 平台源，Seal 链路固定 SEAL
     }
 
-    传 workId 时为「发布新版本」：后端会把新 deployment 绑到该 work，
-    复用其 alias（/s/<alias>/ 自动指新版），不需要再调 save。
-    不传 workId 为首发，后续需 save 才会创建作品记录。
+    三种入口（deploymentId / workId 二选一或都不传）：
+      - 首次部署（新建作品）：都不传，仅 fileIdJson → 创建一条新部署记录
+      - 新建作品重新部署：传 deploymentId → **复用该部署记录（同一台机器重试，不新建僵尸机器）**
+      - 编辑已发布作品：传 workId → 找该作品的部署记录复用
     返回: {deploymentId, deploymentStatus, appId, alias, workId, ...}
     """
     s = s or session()
@@ -446,6 +502,8 @@ def deploy_zip(
         "fileIdJson": file_id_json,
         "deploySource": deploy_source,
     }
+    if deployment_id is not None:
+        body["deploymentId"] = int(deployment_id)
     if work_id is not None:
         body["workId"] = int(work_id)
     if ext_platform_id:
@@ -458,11 +516,150 @@ def deploy_zip(
     )
 
 
+def deploy_zip_reuse_or_new(
+    zip_fileid: str,
+    zip_name: str = "app.zip",
+    *,
+    reuse_deployment_id: Optional[int] = None,
+    ext_platform_id: Optional[str] = None,
+    deploy_source: str = "SEAL",
+    s=None,
+) -> dict:
+    """首发/重试用：优先复用 reuse_deployment_id 的机器；该记录已失效则自动降级为新建部署。
+
+    解决「首发 deploy 失败 → 修代码重试时不带 ID → 后端每次新开机器，遗留一堆失败僵尸机」。
+    复用前先 deployment_status 探活：
+      - 记录存在 → 带 deploymentId deploy，复用同一台机器重试
+      - 记录不存在（机器久未关联作品被平台清理）→ 自动降级为不带 ID 的新建部署
+    返回结构同 deploy_zip，并附加 _reused（bool）/ _reuseFallback（被迫降级时为 True）。
+    """
+    s = s or session()
+    use_id = None
+    fallback = False
+    if reuse_deployment_id is not None:
+        try:
+            st = deployment_status(int(reuse_deployment_id), s=s) or {}
+            if st.get("deploymentId") or st.get("deploymentStatus"):
+                use_id = int(reuse_deployment_id)
+                info(f"♻️  复用历史部署机器 deploymentId={use_id}（避免新开机器）")
+            else:
+                fallback = True
+        except SystemExit:
+            # 探活失败（多为「部署记录不存在」——机器久未关联作品被清理）→ 降级新建
+            fallback = True
+        if fallback:
+            info(f"ℹ️  历史 deploymentId={reuse_deployment_id} 已失效（机器可能被平台清理），"
+                 "本次降级为新建部署")
+    d = deploy_zip(
+        zip_fileid, zip_name=zip_name,
+        deployment_id=use_id,
+        ext_platform_id=ext_platform_id,
+        deploy_source=deploy_source,
+        s=s,
+    )
+    if isinstance(d, dict):
+        d["_reused"] = use_id is not None
+        d["_reuseFallback"] = fallback
+    return d
+
+
+# -----------------------------------------------------------------------------
+# §2.5 静态资源挂载（纯前端应用走轻量挂载，不占独立 Pod、不轮询）
+# -----------------------------------------------------------------------------
+# 部署类型（作品 workDeployType）：
+#   APP_DEPLOY      应用部署（独立 Pod，走 deploy_zip + wait_deploy，历史链路）
+#   STATIC_RESOURCE 静态资源挂载（纯前端，走 static_deploy，同步返回 MOUNT_SUCCESS）
+WORK_DEPLOY_TYPE_APP = "APP_DEPLOY"
+WORK_DEPLOY_TYPE_STATIC = "STATIC_RESOURCE"
+
+# 哨兵：区分「参数未传（省略字段）」与「显式传 None（透传 null）」。
+_UNSET = object()
+
+
+def _file_id_json(zip_fileid: str, zip_name: str = "app.zip") -> str:
+    """构造 deploy / static-deploy / detect 接口共用的 fileIdJson 字符串。"""
+    return json.dumps({
+        "fileId": zip_fileid,
+        "business": BIZ_NAME,
+        "scene": SCENE,
+        "name": zip_name,
+    }, ensure_ascii=False)
+
+
+def detect_code_package_type(file_id_json: str, s=None) -> dict:
+    """POST /community/works/detect-code-package-type
+
+    服务端解包检测 zip 类型，返回:
+      { "type": "STATIC_RESOURCE" | "APP_DEPLOY_CONVERTED" | "APP_DEPLOY_NOT_CONVERTED",
+        "reason": "<判定原因>" }
+
+    判定（服务端权威，与本地规则可能略有出入，以服务端为准）：
+      STATIC_RESOURCE          所有扩展名在静态白名单内 + 不含构建/后端文件 + 根目录有 index.html
+      APP_DEPLOY_CONVERTED     根目录同时有 health.sh / install.sh / start.sh（已转写）
+      APP_DEPLOY_NOT_CONVERTED 以上都不满足
+
+    用途：publish / redeploy 内部 pack 后调一次，按 type 自动分流静态 vs 应用部署；
+    reason 用于失败诊断（告诉 agent 为什么不是静态包）。
+    """
+    s = s or session()
+    # 该接口 body 直接是 fileIdJson 字符串（不是包一层 {fileIdJson: ...}），见接口文档
+    return api_call(
+        "POST",
+        "/community/works/detect-code-package-type",
+        json=file_id_json,
+        session=s,
+    )
+
+
+def static_deploy(
+    zip_fileid: str,
+    zip_name: str = "app.zip",
+    *,
+    static_resource_id: Optional[int] = None,
+    work_id: Optional[int] = None,
+    ext_platform_id: Optional[str] = None,
+    deploy_source: str = "SEAL",
+    s=None,
+) -> dict:
+    """POST /community/works/static-deploy —— 纯前端静态资源挂载（同步，不轮询）。
+
+    三种入口：
+      - 新增部署：static_resource_id 和 work_id 都不传
+      - 更新（按 staticResourceId）：传 static_resource_id
+      - 更新（按 workId，编辑已发布作品重部署）：传 work_id
+
+    返回 StaticResourceStatusDTO（同步，挂载完才返回）:
+      { staticResourceId, workId, appId(sr_前缀), status(INIT/MOUNT_SUCCESS/MOUNT_FAILED),
+        alias, accessUrl, rawAccessUrl, errorMessage, deploySource, extPlatformId }
+
+    与 deploy_zip 的本质区别：静态挂载是同步的——返回时已经是终态（MOUNT_SUCCESS/FAILED），
+    不需要 wait_deploy 轮询。
+    """
+    s = s or session()
+    body = {
+        "fileIdJson": _file_id_json(zip_fileid, zip_name),
+        "deploySource": deploy_source,
+    }
+    if static_resource_id is not None:
+        body["staticResourceId"] = int(static_resource_id)
+    if work_id is not None:
+        body["workId"] = int(work_id)
+    if ext_platform_id:
+        body["extPlatformId"] = ext_platform_id
+    return api_call(
+        "POST",
+        "/community/works/static-deploy",
+        json=body,
+        session=s,
+    )
+
+
 def deployment_status(deployment_id: int, s=None) -> dict:
     return api_call("GET", f"/community/works/deployment/{deployment_id}/status", session=s)
 
 
 DEFAULT_DEPLOY_TIMEOUT_S = 600  # 10 分钟；cowork 团队文档说“数分钟”起步。
+DEPLOY_GRACE_EXTRA_S = 180      # 首发超时后宽限续轮询，尽力等到 RUNNING 再 save 作品。
 
 
 def _emit_progress(deployment_id: int, status: str, *, extra: dict = None) -> None:
@@ -494,13 +691,16 @@ def wait_deploy(deployment_id: int, timeout_s: int = DEFAULT_DEPLOY_TIMEOUT_S,
     原因：hard err 丢掉 deploymentId，上游无法后续用 status 继续轮询。
     """
     s = s or session()
-    deadline = time.time() + timeout_s
+    _t_start = time.time()
+    deadline = _t_start + timeout_s
     last = None
     last_dict = {}
+    _last_heartbeat = _t_start
     while time.time() < deadline:
         d = deployment_status(deployment_id, s=s) or {}
         last_dict = d
         st = d.get("deploymentStatus")
+        now = time.time()
         if st != last:
             info(f"⌛ deployment#{deployment_id} {st}")
             _emit_progress(deployment_id, st, extra={k: d.get(k) for k in ("accessUrl", "appId", "alias", "workId") if d.get(k)})
@@ -510,6 +710,11 @@ def wait_deploy(deployment_id: int, timeout_s: int = DEFAULT_DEPLOY_TIMEOUT_S,
                 except Exception:
                     pass
             last = st
+            _last_heartbeat = now
+        elif now - _last_heartbeat >= 15:
+            # 状态长时间不变时也打个心跳，让用户知道仍在进行、没卡死。
+            info(f"⌛ 仍在 {st or '部署'} ...（已等 {int(now - _t_start)}s）")
+            _last_heartbeat = now
         if st == "RUNNING":
             d["ok"] = True
             return d
@@ -540,8 +745,11 @@ def save_work(
     one_line_intro: str,
     description: str,
     cover: dict,                 # upload_file() 返回的 dict（图片）
-    deployment_id: int,
-    deployment_alias: Optional[str] = None,
+    deployment_id=_UNSET,        # 应用部署通道 ID；显式传 None=透传 null；不传=省略（后端不动）
+    static_resource_id=_UNSET,   # 静态资源通道 ID；显式传 None=透传 null；不传=省略
+    work_deploy_type: Optional[str] = None,    # APP_DEPLOY / STATIC_RESOURCE；按本次走的通道传准
+    deployment_alias: Optional[str] = None,    # 旧字段名，向后兼容；新代码用 alias
+    alias: Optional[str] = None,               # 访问别名（同时同步到应用 / 静态记录）
     scene_tags: Optional[list] = None,    # ["efficiency_improvement", ...]
     version: str = "1.0",
     visibility: str = "SELF_ONLY",         # PUBLIC / DEPARTMENTS / SELF_ONLY
@@ -558,6 +766,15 @@ def save_work(
     """
     POST cowork/community/works/save
     返回 workId（int）
+
+    通道字段（deployment_id / static_resource_id）三态语义（关键）：
+      - 不传该参数（默认 _UNSET）= body 省略该字段 = 后端复用已关联记录、不改动
+      - 显式传 None = body 写 null = 透传清空意图（详情接口查出来另一通道恒 null，原样透传）
+      - 传具体值 = 写该 ID
+    更新作品本质是「作品 ↔ 部署资源关联」，与「更新部署/静态资源（实际部署代码）」解耦。
+    推荐用法：调 detail 查出 deploymentId / staticResourceId（互斥，生效通道有值、另一通道 null），
+    原样回填本函数（有就传值、null 就透传 null），不要本地拼凑或维护跨通道 ID。
+    work_deploy_type 决定作品链接走哪条通道（STATIC_RESOURCE / APP_DEPLOY），按本次实际通道传准。
     """
     s = s or session()
     # normalize visibility 枚举（兼容旧名字）
@@ -586,11 +803,19 @@ def save_work(
         "linksJson": json.dumps(links or [], ensure_ascii=False),
         "notifyOnPublish": bool(notify_on_publish),
         "workType": work_type,
-        "deploymentId": deployment_id,
         "displayInCommunity": bool(display_in_community),
     }
-    if deployment_alias:
-        body["deploymentAlias"] = deployment_alias
+    # 通道 ID 三态：_UNSET 省略 / None 透传 null / 有值传值。
+    if deployment_id is not _UNSET:
+        body["deploymentId"] = int(deployment_id) if deployment_id is not None else None
+    if static_resource_id is not _UNSET:
+        body["staticResourceId"] = int(static_resource_id) if static_resource_id is not None else None
+    if work_deploy_type:
+        body["workDeployType"] = work_deploy_type
+    # alias：新字段 alias 优先；兼容旧 deployment_alias 传参
+    _alias = alias if alias is not None else deployment_alias
+    if _alias:
+        body["alias"] = _alias
     if work_id:
         body["id"] = work_id
     if visible_user_ids:
@@ -610,17 +835,16 @@ def save_work(
 # - alias 全局唯一
 # - **支持多次修改**，新 alias 覆盖旧的
 # - alias 格式：3-32 位小写/数字/连字符，不能以连字符头尾，不能连续两个连字符
+# ⚠️ 仅应用部署可用（用 deploymentId）；静态作品无 deploymentId。统一改别名走 save(alias=)，
+#    本函数保留作「应用部署快速改别名」的补充入口，cmd_set_alias 已改走 save 不再调它。
 ALIAS_REGEX = re.compile(r"^[a-z0-9](?:[a-z0-9]|-(?!-))*[a-z0-9]$")
 
 
 def set_deployment_alias(deployment_id: int, alias: str, s=None) -> None:
-    """PUT cowork/community/works/deployment/<id>/alias body={alias}
+    """PUT cowork/community/works/deployment/<id>/alias body={alias}（应用部署专用补充入口）
 
-    上游用于：
-      - 首发不带 alias（走 raw appId URL），后补设 alias
-      - 已有 alias，想换一个
-
-    服务端校验失败会报 4xx：别名被占用、格式不合、部署未 RUNNING、非创建人。
+    日常改别名请用 save(alias=)（应用/静态统一）。本函数仅在已知是应用部署、想走快速
+    通道时用。服务端校验失败会报 4xx：别名被占用、格式不合、部署未 RUNNING、非创建人。
     """
     if not (3 <= len(alias) <= 32) or not ALIAS_REGEX.match(alias):
         err(f"别名不合法：{alias} (需 3-32 位小写字母/数字/-，不能以 - 开头/结尾，不能 --)")
@@ -1201,7 +1425,7 @@ def cmd_pack(args):
 
 
 def precheck_dir(src_dir: str) -> list:
-    """对源码目录跑 Guard 红线检查（link source / dev start 场景使用）。
+    """对源码目录跑 Guard 红线检查（link source 场景使用）。
 
     实现点：复用 precheck_zip 的逻辑，充当临时只读 zip 路径
     是类似的。但目录检查几个重点：
@@ -1572,6 +1796,11 @@ def _suggest_publish_metadata(project_id: str = None, src_dir: str = None) -> di
     name = manifest.get("name") or Path(src_dir).name
     corpus = _collect_corpus(src_dir)
 
+    # scaffold/transform 时用户写的一句话需求描述优先级最高（比 README 首段更贴合意图）。
+    manifest_desc = (manifest.get("description") or "").strip()
+    if manifest_desc:
+        corpus["description"] = manifest_desc[:400]
+
     # 标题预填：manifest.name > html title > srcDir basename
     title = name
     if corpus["html_titles"]:
@@ -1694,32 +1923,10 @@ def cmd_memory(args):
 
 
 # -----------------------------------------------------------------------------
-# §4.5 本地调试服务：dev / dev list / dev stop
+# §4.5 本地项目元信息（.cowork.json manifest）
 # -----------------------------------------------------------------------------
-DEV_STATE_DIR = Path(os.environ.get("COWORK_DEV_STATE_DIR", "/home/node/.openclaw/workspace/.cowork-dev"))
-DEV_STATE_FILE = DEV_STATE_DIR / "sessions.json"
-DEV_PORT_START = int(os.environ.get("COWORK_DEV_PORT_START", "8901"))
-DEV_PORT_END = int(os.environ.get("COWORK_DEV_PORT_END", "8999"))
-
-
 def _now_ms() -> int:
     return int(time.time() * 1000)
-
-
-def _load_dev_state() -> dict:
-    if not DEV_STATE_FILE.exists():
-        return {}
-    try:
-        return json.loads(DEV_STATE_FILE.read_text())
-    except Exception:
-        return {}
-
-
-def _save_dev_state(state: dict) -> None:
-    DEV_STATE_DIR.mkdir(parents=True, exist_ok=True)
-    tmp = DEV_STATE_FILE.with_suffix('.tmp')
-    tmp.write_text(json.dumps(state, ensure_ascii=False, indent=2))
-    tmp.replace(DEV_STATE_FILE)
 
 
 COWORK_PROJECT_SCHEMA = 'cowork-project/v1'
@@ -2031,294 +2238,9 @@ def _memory_archive(manifest: dict) -> None:
     _memory_index_refresh()
 
 
-def _is_port_open(port: int) -> bool:
-    import socket
-    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
-        sock.settimeout(0.2)
-        return sock.connect_ex(('127.0.0.1', port)) == 0
-
-
-def _find_free_port() -> int:
-    # 双轨检查：
-    # 1) 物理端口未 LISTEN（socket connect_ex 拒接）
-    # 2) sessions.json 里也没被另一个 alive session 预留
-    # 仅靠 (1) 会在多个 dev start 几乎同时起 / 某个进程刚吐 他们都看到同一
-    # 个端口 free → 全部拿同一个，后启动的抢赢 → sessions.json 变脟。
-    state = _load_dev_state()
-    reserved: set[int] = set()
-    for item in state.values():
-        port = item.get('port')
-        if not port:
-            continue
-        if _pid_alive(item.get('pid')):
-            reserved.add(int(port))
-    for port in range(DEV_PORT_START, DEV_PORT_END + 1):
-        if port in reserved:
-            continue
-        if not _is_port_open(port):
-            return port
-    err(f"no free port in {DEV_PORT_START}-{DEV_PORT_END}")
-
-
-def _pid_alive(pid: int | None) -> bool:
-    if not pid:
-        return False
-    try:
-        os.kill(int(pid), 0)
-        return True
-    except OSError:
-        return False
-
-
 def _slugify(s: str) -> str:
     s = re.sub(r'[^a-zA-Z0-9]+', '-', s.lower()).strip('-')
     return s[:32] or 'mini-tool'
-
-
-def _interp_str(s: str, mapping: dict) -> str:
-    """简单 ${key} 插值。"""
-    if not isinstance(s, str):
-        return s
-    out = s
-    for k, v in mapping.items():
-        out = out.replace('${' + k + '}', str(v))
-    return out
-
-
-def _interp_env(env: dict, mapping: dict) -> dict:
-    return {k: _interp_str(v, mapping) for k, v in env.items()}
-
-
-def _run_pre_start(commands: list, *, cwd: str, env: dict, log) -> bool:
-    """同步跑 preStart 命令列表。任一失败 返 False。log 是打开的文件句柄。"""
-    import subprocess
-    for c in commands:
-        if isinstance(c, list):
-            cmd = c
-            shell = False
-        else:
-            cmd = ['bash', '-lc', str(c)]
-            shell = False
-        log.write(f'\n$ preStart: {c}\n'.encode())
-        log.flush()
-        rc = subprocess.run(cmd, cwd=cwd, env=env, stdout=log, stderr=subprocess.STDOUT).returncode
-        if rc != 0:
-            log.write(f'\n[ERR] preStart failed (rc={rc}): {c}\n'.encode())
-            log.flush()
-            return False
-    return True
-
-
-def _default_dev_command(src: str, port: int) -> list[str]:
-    srcp = Path(src)
-    if (srcp / 'package.json').exists():
-        # Vite / Next / general Node. Prefer npm; user can override with --cmd.
-        pkg = json.loads((srcp / 'package.json').read_text())
-        scripts = pkg.get('scripts') or {}
-        if 'dev' in scripts:
-            return ['bash', '-lc', f'PORT={port} npm run dev -- --host 0.0.0.0 --port {port}']
-    if (srcp / 'app.py').exists():
-        return ['bash', '-lc', f'uvicorn app:app --host 0.0.0.0 --port {port} --reload']
-    if (srcp / 'main.py').exists():
-        return ['bash', '-lc', f'uvicorn main:app --host 0.0.0.0 --port {port} --reload']
-    if (srcp / 'index.html').exists():
-        return ['bash', '-lc', f'python3 -m http.server {port} --bind 0.0.0.0']
-    # 兑底：任何 Guard 项目都有 start.sh，直接跳之。
-    # 为了让 start.sh 读到正确端口，先 export PORT=<port>。
-    start_sh = srcp / 'start.sh'
-    if start_sh.exists():
-        return ['bash', '-lc', f'PORT={port} APP_PORT={port} exec sh ./start.sh']
-    err('cannot infer dev command; pass --cmd')
-
-
-def _make_tool_id() -> str:
-    return 'cw_' + ''.join(random.choice(string.ascii_lowercase + string.digits) for _ in range(8))
-
-
-def _public_host() -> str:
-    return os.environ.get('COWORK_DEV_PUBLIC_HOST') or os.environ.get('OPENCLAW_LAN_IP') or '10.40.121.204'
-
-
-def cmd_dev(args):
-    # Sub-dispatch: dev list / dev stop are parsed as args.dev_action.
-    if args.dev_action == 'list':
-        state = _load_dev_state()
-        # 拼上 alive 实时字段，便于下游直接渲染状态。
-        sessions = []
-        for sid, item in state.items():
-            enriched = dict(item)
-            # alias 出 id 为 sessionId，供下游（plugin / IPC）使用任一名字读取。
-            enriched.setdefault('sessionId', item.get('id', sid))
-            enriched['alive'] = _pid_alive(item.get('pid'))
-            sessions.append(enriched)
-        if args.json:
-            # 结构化输出：plugin / IPC 消费端认这个 shape。
-            print(json.dumps({'sessions': sessions}, ensure_ascii=False, indent=2))
-            return
-        if not sessions:
-            print('no dev sessions')
-            return
-        for item in sessions:
-            sid = item.get('id')
-            alive = item.get('alive')
-            print(f"{sid}	port={item.get('port')}	alive={alive}	url={item.get('url')}	src={item.get('srcDir')}")
-        return
-
-    if args.dev_action == 'stop':
-        state = _load_dev_state()
-        sid = args.session_id
-        item = state.get(sid)
-        if not item:
-            err(f'dev session not found: {sid}')
-        pid = item.get('pid')
-        if _pid_alive(pid):
-            try:
-                os.kill(int(pid), 15)
-            except Exception as e:
-                err(f'failed to kill pid={pid}: {e}')
-        state.pop(sid, None)
-        _save_dev_state(state)
-        # 同步清理 manifest.dev（保留项目本身）。
-        src_dir = item.get('srcDir')
-        if src_dir:
-            m = _load_manifest(src_dir)
-            if m.pop('dev', None) is not None:
-                m['updatedAt'] = _now_ms()
-                _save_manifest(src_dir, m)
-        ok(f'stopped {sid}')
-        return
-
-    # dev start
-    src = os.path.abspath(args.src.rstrip('/'))
-    if not os.path.isdir(src):
-        err(f'not a dir: {src}')
-    state = _load_dev_state()
-
-    # 推什在 start 时累积的僵尸 session（pid 已死），避免 list/scan 混乱。
-    # 顺便同步清 manifest.dev。
-    dead = [sid for sid, item in state.items() if not _pid_alive(item.get('pid'))]
-    if dead:
-        for sid in dead:
-            item = state.pop(sid)
-            src_dir = item.get('srcDir')
-            if src_dir and os.path.isdir(src_dir):
-                m = _load_manifest(src_dir)
-                if (m.get('dev') or {}).get('sessionId') == sid:
-                    m.pop('dev', None)
-                    m['updatedAt'] = _now_ms()
-                    _save_manifest(src_dir, m)
-        _save_dev_state(state)
-
-    # 同一个 src 默认复用已有 alive session，避免端口漂移；--new 可强制新建
-    if not args.new:
-        for sid, item in state.items():
-            if os.path.abspath(item.get('srcDir', '')) == src and _pid_alive(item.get('pid')):
-                if args.json:
-                    print(json.dumps(item, ensure_ascii=False, indent=2))
-                else:
-                    ok(f'reuse dev session {sid}')
-                    print(item['url'])
-                return
-
-    port = args.port or _find_free_port()
-    title = args.title or Path(src).name
-    alias = args.alias or _slugify(title)
-
-    # 项目身份先行：__cw= 走 manifest.id (cw_proj_xxx)，跨重启稳定。
-    # sessionId 仅作运行实例 ID（sessions.json 主键 + log 文件名），不进用户可见 URL。
-    manifest = _ensure_manifest(src, name=title, chat_session_id=args.chat_session_id)
-    _memory_init(manifest, project_summary=f"{manifest.get('name') or title} — Cowork 项目")
-    project_id = manifest['id']
-    sid = args.session_id or _make_tool_id()
-
-    # devConfig 从 manifest 读取：preStart / env / run
-    dev_cfg = manifest.get('devConfig') or {}
-    interp_map = {
-        'PORT': port,
-        'SRC': src,
-        'PROJECT_ID': project_id,
-        'HOME': os.path.expanduser('~'),
-    }
-    extra_env = _interp_env(dev_cfg.get('env') or {}, interp_map)
-    pre_start = [_interp_str(c, interp_map) for c in (dev_cfg.get('preStart') or [])]
-    run_override = dev_cfg.get('run')  # 可选：manifest 优先于 _default_dev_command
-
-    if args.cmd:
-        cmd = ['bash', '-lc', args.cmd]
-    elif run_override:
-        cmd = ['bash', '-lc', _interp_str(run_override, interp_map)]
-    else:
-        cmd = _default_dev_command(src, port)
-
-    full_env = {**os.environ, **extra_env}
-
-    import subprocess
-    DEV_STATE_DIR.mkdir(parents=True, exist_ok=True)
-    log_path = DEV_STATE_DIR / f'{sid}.log'
-    log = open(log_path, 'ab', buffering=0)
-
-    if pre_start:
-        info(f'▶ preStart ({len(pre_start)} step(s)) for {project_id}')
-        ok_pre = _run_pre_start(pre_start, cwd=src, env=full_env, log=log)
-        if not ok_pre:
-            log.close()
-            err(f'preStart failed; see log: {log_path}')
-
-    info(f'▶ start dev {sid} (project={project_id}) on :{port}: {" ".join(cmd)}')
-    proc = subprocess.Popen(cmd, cwd=src, env=full_env, stdout=log, stderr=subprocess.STDOUT, start_new_session=True)
-
-    url = f'http://{_public_host()}:{port}/?__cw={project_id}'
-    item = {
-        'id': sid,
-        'projectId': project_id,
-        'srcDir': src,
-        'port': port,
-        'pid': proc.pid,
-        'url': url,
-        'chatSessionId': args.chat_session_id,
-        'title': title,
-        'alias': alias,
-        'coverPath': args.cover,
-        'logPath': str(log_path),
-        'createdAt': _now_ms(),
-        'updatedAt': _now_ms(),
-    }
-    state[sid] = item
-    _save_dev_state(state)
-
-    # 同步写入 .cowork.json。
-    manifest['dev'] = {
-        'sessionId': sid,
-        'projectId': project_id,
-        'url': url,
-        'port': port,
-        'pid': proc.pid,
-        'startedAt': item['createdAt'],
-    }
-    if alias and not manifest.get('cowork'):
-        # 预填 alias 供后续 publish 复用
-        manifest.setdefault('plannedAlias', alias)
-    _save_manifest(src, manifest)
-
-    # 等最多 8s 确认端口起来；某些 Vite 会慢，超时不作为 fatal，只提示。
-    started = False
-    for _ in range(40):
-        if _is_port_open(port):
-            started = True
-            break
-        if proc.poll() is not None:
-            break
-        time.sleep(0.2)
-    if not started:
-        info(f'⚠️ port not open yet; check log: {log_path}')
-    else:
-        ok(f'dev ready: {url}')
-
-    if args.json:
-        print(json.dumps(item, ensure_ascii=False, indent=2))
-    else:
-        print(url)
-        print(f'MINI_TOOL_OPEN:{json.dumps({"url": url, "sessionId": sid}, ensure_ascii=False)}')
 
 
 def cmd_upload(args):
@@ -2362,29 +2284,203 @@ def cmd_deploy(args):
     # 超时不作为 fatal：上游拿到 timedOut=True 可继续轮询
 
 
+def _scene_tag_keys(tags) -> list:
+    """中文标签名 / enum key → enum key 列表（publish / static 共用）。"""
+    out = []
+    for t in (tags or []):
+        if t in SCENE_TAGS:
+            out.append(SCENE_TAGS[t])
+        elif t in SCENE_TAGS.values():
+            out.append(t)
+        else:
+            info(f"⚠️ 未知标签 {t}, 跳过")
+    return out
+
+
+def _fetch_work_detail(work_id, s=None) -> dict:
+    """查作品详情 GET /community/works/{id}。
+
+    返回 WorksDetailDTO，含后端算好的统一字段：
+      accessUrl（当前生效访问 URL，直接用，别本地拼）/ alias / workDeployType
+      + 生效通道详情（deployment* 或 staticResource*，互斥，另一通道恒 null）
+
+    容错：本函数只用于「拿后端算好的展示值」，是锦上添花。详情接口偶发失败时**绝不能**
+    让已成功的部署/save 流程整体失败——失败返回 {}，调用方用本地兜底值（deploy 返回的
+    URL）即可。所以这里吞掉 api_call 抛出的 SystemExit / 异常。
+    """
+    s = s or session()
+    try:
+        return api_call("GET", f"/community/works/{int(work_id)}", session=s) or {}
+    except SystemExit:
+        info(f"⚠️ 查作品详情失败（workId={work_id}），用本地兜底 accessUrl")
+        return {}
+    except Exception as e:
+        info(f"⚠️ 查作品详情异常（workId={work_id}）：{e}；用本地兜底")
+        return {}
+
+
+def _infer_src_dir(zip_path, anchor: Optional[str] = None) -> Optional[str]:
+    """从 zip 路径反推源码目录。
+
+    publish 只拿到 zip，但 manifest 同步 / transform 提示需要源码目录。约定 pack 产物
+    通常是 同名/ 或 同名-guard/ 在 zip 同级。anchor 给定时（如 'install.sh' / 'index.html'）
+    要求该锚点文件存在才认；不给则只要目录存在即认（用于 transform 提示这种宽松场景）。
+    """
+    try:
+        zp = Path(zip_path).resolve()
+    except Exception:
+        return None
+    for c in (zp.with_suffix(''), zp.parent / (zp.stem + '-guard')):
+        if c.is_dir() and (anchor is None or (c / anchor).exists()):
+            return str(c)
+    return None
+
+
+def _publish_static(args, *, zip_meta, cover, ext_platform_id, s):
+    """纯前端静态资源挂载发布分支（由 cmd_publish 在 detect 判为 STATIC_RESOURCE 后调用）。
+
+    与应用部署的区别：
+      - static_deploy 同步返回（MOUNT_SUCCESS/FAILED），不 wait_deploy 轮询
+      - save_work 传 static_resource_id + work_deploy_type=STATIC_RESOURCE
+      - 访问 URL 由后端按通道算好（详情 accessUrl，形如 /f/<alias or sr_appId>/），不本地拼
+      - 不依赖三件套（纯前端无 install.sh）
+    """
+    info("🚀 static-deploy（纯前端静态资源挂载，同步）...")
+    res = static_deploy(
+        zip_meta["fileId"], zip_name=zip_meta["name"],
+        ext_platform_id=ext_platform_id,
+        deploy_source="SEAL",
+        s=s,
+    )
+    status = res.get("status")
+    if status != "MOUNT_SUCCESS":
+        info(f"⚠️ static mount FAILED: status={status} {res.get('errorMessage', '')[:300]}")
+        info("  💡 静态挂载失败多为打包不合规：根目录须有 index.html、用相对路径、"
+             "不得含 install.sh/package.json/node_modules 等黑名单文件。"
+             "打包规范见 references/pure-frontend.md")
+        print(json.dumps(res, ensure_ascii=False, indent=2))
+        sys.exit(2)
+    static_resource_id = res.get("staticResourceId")
+    app_id = res.get("appId")
+    # static_deploy 同步返回已带 accessUrl/rawAccessUrl（后端算好），直接用，不本地拼。
+    raw_access_url = res.get("rawAccessUrl")
+    mount_url = res.get("accessUrl")
+    ok(f"mounted → {mount_url}")
+
+    tag_keys = _scene_tag_keys(args.tags)
+    visibility = normalize_visibility(args.visibility)
+    links = [{"title": args.title, "url": mount_url}] if mount_url else None
+    info("📝 save work（STATIC_RESOURCE）...")
+    work_id = save_work(
+        name=args.title,
+        one_line_intro=args.intro or "",
+        description=args.desc or "",
+        cover=cover,
+        static_resource_id=static_resource_id,
+        work_deploy_type=WORK_DEPLOY_TYPE_STATIC,
+        alias=args.alias,
+        scene_tags=tag_keys,
+        version=args.version,
+        visibility=visibility,
+        links=links,
+        notify_on_publish=args.notify,
+        work_type="SEAL_DEPLOY",
+        display_in_community=False,
+        s=s,
+    )
+    ok(f"published(static): workId={work_id}")
+
+    # 查详情拿后端算好的权威 accessUrl / alias（兜底用 static_deploy 同步返回值）。
+    detail = _fetch_work_detail(work_id, s=s) if str(work_id).isdigit() else {}
+    final_url = detail.get("accessUrl") or mount_url
+    eff_alias = detail.get("alias") or args.alias
+    eff_app_id = detail.get("staticResourceAppId") or app_id
+
+    # 推断 srcDir 写 manifest。纯前端无 install.sh，用 index.html 作为锚点。
+    src_dir = _infer_src_dir(args.zip, anchor='index.html')
+    if src_dir:
+        try:
+            manifest = _ensure_manifest(src_dir)
+            _wid = int(work_id) if isinstance(work_id, (int, str)) and str(work_id).isdigit() else work_id
+            manifest['cowork'] = {
+                'workId': _wid,
+                'workDeployType': detail.get("workDeployType") or WORK_DEPLOY_TYPE_STATIC,
+                'staticResourceId': static_resource_id,
+                'staticAppId': eff_app_id,
+                'alias': eff_alias,
+                'accessUrl': final_url,
+                'coworkAppUrl': cowork_app_url(_wid) if isinstance(_wid, int) else None,
+                'rawAccessUrl': raw_access_url,
+                'publishedAt': _now_ms(),
+                'visibility': visibility,
+            }
+            _save_manifest(src_dir, manifest)
+            _memory_append(
+                manifest,
+                section='发布历史',
+                line=f"- **v{args.version}** — {time.strftime('%Y-%m-%d %H:%M')} — 首发到 Cowork（静态挂载），alias=`{eff_alias or eff_app_id}`，workId={work_id}，staticResourceId={static_resource_id}",
+                frontmatter_updates={
+                    'workId': work_id,
+                    'alias': eff_alias or eff_app_id,
+                    'accessUrl': final_url,
+                    'visibility': visibility,
+                },
+            )
+            info(f"updated manifest: {src_dir}/.cowork.json")
+        except Exception as e:
+            info(f"⚠️ manifest update skipped: {e}")
+
+    _wid = int(work_id) if isinstance(work_id, (int, str)) and str(work_id).isdigit() else work_id
+    # 指定了自定义 alias 时，路由层需 ~5s 才把 /f/<alias>/ 同步生效，先等再返回 URL。
+    if getattr(args, 'alias', None):
+        wait_alias_propagation(eff_alias)
+    print(json.dumps({
+        "workId": work_id,
+        "appId": eff_app_id,
+        "workDeployType": detail.get("workDeployType") or WORK_DEPLOY_TYPE_STATIC,
+        "staticResourceId": static_resource_id,
+        "accessUrl": final_url,
+        "rawAccessUrl": raw_access_url,
+        "coworkAppUrl": cowork_app_url(_wid) if isinstance(_wid, int) else None,
+    }, ensure_ascii=False, indent=2))
+
+
 def cmd_publish(args):
     dlog("cmd.publish.start", zip=args.zip, title=args.title, alias=getattr(args, 'alias', None),
          work_id=getattr(args, 'work_id', None), visibility=getattr(args, 'visibility', None))
     _t_pub = time.time()
     s = session()
-    # 0) 预检 zip
-    issues = precheck_zip(args.zip)
-    blockers = [i for i in issues if i.startswith("❌")]
-    if blockers and not args.force:
-        for i in issues:
-            sys.stderr.write(i + "\n")
-        err("precheck FAIL；--force 跳过")
-    # 1) 上传 zip
+    # 0.-1) 防重复建作品：若传入源码目录且其 .cowork.json 已记录 workId，说明已发布过，
+    #       publish 会再建一个新作品（浪费资源 + split-brain）。自动转更新链路 redeploy，
+    #       复用已有作品的两通道关联（含跨类型升级）。--force 可强制走首发。
+    if os.path.isdir(args.zip) and not getattr(args, 'force', False):
+        _existing = _load_manifest(os.path.abspath(args.zip.rstrip('/')))
+        _existing_wid = (_existing or {}).get('cowork', {}).get('workId') if _existing else None
+        if _existing_wid:
+            info(f"↪️  检测到已发布作品 workId={_existing_wid}，自动转 redeploy（更新链路，避免重复建作品）")
+            _ra = argparse.Namespace(
+                work_id=int(_existing_wid), src=os.path.abspath(args.zip.rstrip('/')),
+                zip=None, version=getattr(args, 'version', None), bump=getattr(args, 'bump', None),
+                keep=getattr(args, 'keep', None), force=getattr(args, 'force', False),
+                no_wait=getattr(args, 'no_wait', False), timeout=getattr(args, 'timeout', DEFAULT_DEPLOY_TIMEOUT_S),
+            )
+            return cmd_redeploy(_ra)
+    # 0.0) 如果传进来的是源码目录（不是 zip），自动先 pack 成 zip。
+    #      这让 agent 的心智模型简化为「scaffold → 改代码 → publish <srcDir>」一条龙，
+    #      不必先手动 pack。pack_dir 内部已含 prepack（vite/next build）+ keep。
+    #      Guard precheck（三件套）挪到 detect 判为应用部署之后才跑——纯前端静态包没有三件套。
+    if os.path.isdir(args.zip):
+        info(f"📦 publish: 检测到源码目录，先 pack → {args.zip}")
+        args.zip = pack_dir(args.zip, in_place=False, keep=getattr(args, 'keep', None))
+    # 1) 上传 zip（detect / deploy / static-deploy 都需要 fileId）
     info("⇡ uploading zip ...")
     zip_meta = upload_file(args.zip, mime_type="application/zip", s=s)
     # 2) 上传封面图
     info("⇡ uploading cover ...")
     cover = upload_file(args.cover, s=s)
-    # 3) 触发部署。Seal 链路传 extPlatformId（.cowork.json id）以便后端跨部署记录关联。
-    info("🚀 deploy ...")
+    # extPlatformId：Seal 链路传 .cowork.json id，便于后端跨部署记录关联
     ext_platform_id = getattr(args, 'ext_platform_id', None)
     if not ext_platform_id:
-        # 试从 zip 同级 -guard / 同名目录 下读 manifest
         zp = Path(args.zip).resolve()
         for c in (zp.with_suffix(''), zp.parent / (zp.stem + '-guard')):
             mf = c / MANIFEST_FILENAME
@@ -2395,29 +2491,94 @@ def cmd_publish(args):
                         break
                 except Exception:
                     pass
-    d = deploy_zip(
+    # 2.5) detect 代码包类型 → 自动分流静态资源挂载 vs 应用部署
+    #      STATIC_RESOURCE          纯前端 → _publish_static（同步挂载，不需三件套 / 不轮询）
+    #      APP_DEPLOY_CONVERTED     已转写 → 应用部署（precheck + deploy + wait）
+    #      APP_DEPLOY_NOT_CONVERTED 不符合规范 → 直接拦截，提示先 transform（不浪费一次 deploy）
+    try:
+        det = detect_code_package_type(_file_id_json(zip_meta["fileId"], zip_meta["name"]), s=s)
+        pkg_type = (det or {}).get("type")
+        det_reason = (det or {}).get("reason", "")
+    except SystemExit:
+        # detect 接口不可用时不阻断：回退到应用部署旧链路（precheck 兜底）
+        pkg_type, det_reason = None, "(detect 接口不可用，回退应用部署)"
+    info(f"🔎 detect: type={pkg_type or '?'} — {det_reason}")
+    if pkg_type == "STATIC_RESOURCE":
+        _publish_static(args, zip_meta=zip_meta, cover=cover, ext_platform_id=ext_platform_id, s=s)
+        return
+    if pkg_type == "APP_DEPLOY_NOT_CONVERTED" and not args.force:
+        _src_hint = _infer_src_dir(args.zip) or args.zip
+        err(
+            "代码包不符合 Cowork/Guard 子应用规范，未转写，禁止直接部署。\n"
+            f"  原因：{det_reason or '缺少 install.sh/start.sh/health.sh 或存在违规依赖'}\n"
+            f"  请先转写：python3 cowork.py transform {_src_hint}\n"
+            "  转写完成后会自动重新发布；或确认无误用 --force 跳过本检查。"
+        )
+    # —— 应用部署分支（APP_DEPLOY_CONVERTED / detect 不可用回退）——
+    # Guard precheck（三件套等），仅对应用部署有意义；静态分支上面已 return
+    issues = precheck_zip(args.zip)
+    blockers = [i for i in issues if i.startswith("❌")]
+    if blockers and not args.force:
+        for i in issues:
+            sys.stderr.write(i + "\n")
+        err("precheck FAIL；--force 跳过")
+    # 复用机器：--deployment-id 显式优先；否则读源码目录 manifest 的 pendingDeploymentId
+    # （上次首发 deploy 失败留下的）。避免每次失败重试都新开机器、遗留僵尸机。
+    _pub_src_dir = _infer_src_dir(args.zip, anchor='install.sh')
+    reuse_dep_id = getattr(args, 'deployment_id', None)
+    if reuse_dep_id is None and _pub_src_dir:
+        reuse_dep_id = (_load_manifest(_pub_src_dir).get('cowork', {}) or {}).get('pendingDeploymentId')
+    info("🚀 deploy ...")
+    d = deploy_zip_reuse_or_new(
         zip_meta["fileId"], zip_name=zip_meta["name"],
+        reuse_deployment_id=reuse_dep_id,
         ext_platform_id=ext_platform_id,
         deploy_source="SEAL",
         s=s,
     )
     deployment_id = d["deploymentId"]
+    info(f"⏳ 部署中（deploymentId={deployment_id}），平台正在 install→start→health，预计数分钟，请稍候 ...")
     res = wait_deploy(deployment_id, timeout_s=args.timeout, s=s)
     if res.get("failed"):
         info(f"⚠️ deploy FAILED: {res.get('errorMessage', '')[:300]}")
+        # 记下 deploymentId 到 manifest，修复后重新 publish 同一目录会自动复用这台机器重试，
+        # 不再新开机器。机器若已被平台清理，下次复用探活失败会自动降级新建。
+        if _pub_src_dir:
+            try:
+                _m = _ensure_manifest(_pub_src_dir)
+                _m.setdefault('cowork', {})
+                _m['cowork']['pendingDeploymentId'] = deployment_id
+                _save_manifest(_pub_src_dir, _m)
+                info(f"📌 已记录 deploymentId={deployment_id} 到 .cowork.json；"
+                     "修复代码后重新 publish 同一目录会自动复用这台机器重试（不新开机器）")
+            except Exception as e:
+                info(f"⚠️ 记录 pendingDeploymentId 失败: {e}")
+        res["deploymentId"] = deployment_id
+        res["pendingDeploymentId"] = deployment_id
         print(json.dumps(res, ensure_ascii=False, indent=2))
         sys.exit(2)
     if res.get("timedOut"):
-        # 超时：项目未 save，返回 deploymentId 让上游决定是否继续轮询后 save。
+        # 超时不直接放弃 save——首发的目标是「部署成功后必须建作品」。
+        # 先宽限续轮询一段（多数是后端慢/本地窗口短），拿到 RUNNING 就继续往下 save。
         info(f"⏱️  {res.get('message', '')}")
-        res.setdefault("action", "poll-then-save")
-        res["_pendingSave"] = {
-            "title": args.title, "intro": args.intro, "desc": args.desc,
-            "alias": args.alias, "tags": args.tags, "visibility": args.visibility,
-            "notify": args.notify, "version": args.version,
-        }
-        print(json.dumps(res, ensure_ascii=False, indent=2))
-        return
+        info("⏳ 宽限续轮询，尽力等到 RUNNING 后再 save 作品 ...")
+        res = wait_deploy(deployment_id, timeout_s=DEPLOY_GRACE_EXTRA_S, s=s)
+        if res.get("failed"):
+            info(f"⚠️ deploy FAILED: {res.get('errorMessage', '')[:300]}")
+            print(json.dumps(res, ensure_ascii=False, indent=2))
+            sys.exit(2)
+        if res.get("timedOut") or not res.get("appId"):
+            # 实在等不到 RUNNING：返回 pending，让上游/用户后续用 save-after-deploy 补建作品。
+            info("⚠️ 仍未 RUNNING——返回 deploymentId，部署完成后请用 "
+                 "`cowork.py save-after-deploy --deployment-id <id> ...` 补建作品")
+            res.setdefault("action", "poll-then-save")
+            res["_pendingSave"] = {
+                "title": args.title, "intro": args.intro, "desc": args.desc,
+                "alias": args.alias, "tags": args.tags, "visibility": args.visibility,
+                "notify": args.notify, "version": args.version,
+            }
+            print(json.dumps(res, ensure_ascii=False, indent=2))
+            return
     app_id = res["appId"]
     access_url = res["accessUrl"]
     ok(f"deployed → {access_url}")
@@ -2431,49 +2592,62 @@ def cmd_publish(args):
         else:
             info(f"⚠️ 未知标签 {t}, 跳过")
     visibility = normalize_visibility(args.visibility)
-    final_url = f"{COWORK_WEB}/s/{args.alias or app_id}"
-    links = [{"title": args.title, "url": final_url}]
+    # 首发时作品尚未建，links 暂用 deploy 返回的 raw accessUrl；save 后查详情拿权威 accessUrl。
+    links = [{"title": args.title, "url": access_url}]
     info("📝 save work ...")
-    work_id = save_work(
-        name=args.title,
-        one_line_intro=args.intro or "",
-        description=args.desc or "",
-        cover=cover,
-        deployment_id=deployment_id,
-        deployment_alias=args.alias,
-        scene_tags=tag_keys,
-        version=args.version,
-        visibility=visibility,
-        links=links,
-        notify_on_publish=args.notify,
-        work_type="SEAL_DEPLOY",  # Seal 链路固定
-        display_in_community=False,  # Seal 链路固定 False
-        s=s,
-    )
+    try:
+        work_id = save_work(
+            name=args.title,
+            one_line_intro=args.intro or "",
+            description=args.desc or "",
+            cover=cover,
+            deployment_id=deployment_id,
+            deployment_alias=args.alias,
+            scene_tags=tag_keys,
+            version=args.version,
+            visibility=visibility,
+            links=links,
+            notify_on_publish=args.notify,
+            work_type="SEAL_DEPLOY",  # Seal 链路固定
+            work_deploy_type=WORK_DEPLOY_TYPE_APP,  # 应用部署通道
+            display_in_community=False,  # Seal 链路固定 False
+            s=s,
+        )
+    except SystemExit:
+        # save 失败最常见是 alias 撞名——多半是「想升级已有作品却走了新建 publish」。
+        # 给出纠偏指引：升级应对原作品 redeploy，而非用同名 alias 新建。
+        if args.alias:
+            info(
+                f"✗ 创建作品失败（alias=`{args.alias}` 可能已被占用）。\n"
+                "  ⚠️ 如果你本意是【升级已有作品】（如把之前的静态页加后端），"
+                "**不应该新建 publish**，而应对原作品 `cowork.py redeploy <原workId>`——\n"
+                "     同一作品支持静态↔应用类型来回切换，会复用原 alias、不会撞名。\n"
+                "     用 `cowork.py list-projects` 找回原 workId；确认是全新作品则换个 --alias 再发。"
+            )
+        raise
     ok(f"published: workId={work_id}")
 
-    # 推断 srcDir：CLI 只拿到 zip，常见纯 zip 同名 / 同名-guard 在 zip 同级。
-    # 优先读 同名-guard（pack 默认产出路径）。
-    zip_path = Path(args.zip).resolve()
-    candidates = [
-        zip_path.with_suffix(''),                       # foo.zip → foo
-        zip_path.parent / (zip_path.stem + '-guard'),   # foo.zip → foo-guard
-    ]
-    src_dir = None
-    for c in candidates:
-        if c.is_dir() and (c / 'install.sh').exists():
-            src_dir = str(c)
-            break
+    # 查详情拿后端算好的权威 accessUrl / alias，不本地拼 /s/。
+    detail = _fetch_work_detail(work_id, s=s) if str(work_id).isdigit() else {}
+    final_url = detail.get("accessUrl") or access_url
+    eff_alias = detail.get("alias") or args.alias
+
+    # 推断 srcDir：CLI 只拿到 zip，约定 同名/ 或 同名-guard/ 在 zip 同级，以 install.sh 为锚点。
+    src_dir = _infer_src_dir(args.zip, anchor='install.sh')
     if src_dir:
         try:
             manifest = _ensure_manifest(src_dir)
             _work_id_int = int(work_id) if isinstance(work_id, (int, str)) and str(work_id).isdigit() else work_id
+            _prev_cowork = manifest.get('cowork') if isinstance(manifest.get('cowork'), dict) else {}
             manifest['cowork'] = {
+                **{k: v for k, v in _prev_cowork.items() if k != 'pendingDeploymentId'},  # 成功了，清掉失败遗留的 pendingDeploymentId
                 'workId': _work_id_int,
+                'workDeployType': detail.get("workDeployType") or WORK_DEPLOY_TYPE_APP,
                 'appId': app_id,
-                'alias': args.alias,
+                'alias': eff_alias,
                 'accessUrl': final_url,
                 'coworkAppUrl': cowork_app_url(_work_id_int) if isinstance(_work_id_int, int) else None,
+                'rawAccessUrl': access_url,
                 'deploymentId': deployment_id,
                 'deploymentStatus': 'RUNNING',
                 'publishedAt': _now_ms(),
@@ -2483,10 +2657,10 @@ def cmd_publish(args):
             _memory_append(
                 manifest,
                 section='发布历史',
-                line=f"- **v{args.version}** — {time.strftime('%Y-%m-%d %H:%M')} — 首发到 Cowork，alias=`{args.alias or app_id}`，workId={work_id}，deploymentId={deployment_id}",
+                line=f"- **v{args.version}** — {time.strftime('%Y-%m-%d %H:%M')} — 首发到 Cowork，alias=`{eff_alias or app_id}`，workId={work_id}，deploymentId={deployment_id}",
                 frontmatter_updates={
                     'workId': work_id,
-                    'alias': args.alias or app_id,
+                    'alias': eff_alias or app_id,
                     'accessUrl': final_url,
                     'visibility': visibility,
                 },
@@ -2496,9 +2670,14 @@ def cmd_publish(args):
             info(f"⚠️ manifest update skipped: {e}")
 
     _work_id_int = int(work_id) if isinstance(work_id, (int, str)) and str(work_id).isdigit() else work_id
+    # 指定了自定义 alias 时，路由层需 ~5s 才把 /s/<alias>/ 同步生效，先等再返回 URL。
+    # 走自动 appId（未指定 --alias）的不需要等，appId 后端即时生效。
+    if getattr(args, 'alias', None):
+        wait_alias_propagation(eff_alias)
     print(json.dumps({
         "workId": work_id,
         "appId": app_id,
+        "workDeployType": detail.get("workDeployType") or WORK_DEPLOY_TYPE_APP,
         "accessUrl": final_url,
         "rawAccessUrl": access_url,
         "deploymentId": deployment_id,
@@ -2553,8 +2732,8 @@ def cmd_save_after_deploy(args):
         else:
             info(f"⚠️ 未知标签 {t}, 跳过")
     visibility = normalize_visibility(args.visibility)
-    final_url = f"{COWORK_WEB}/s/{args.alias or app_id}"
-    links = [{"title": args.title, "url": final_url}]
+    # 首发时作品未建，links 暂用 deployment 的 raw accessUrl；save 后查详情拿权威 accessUrl。
+    links = [{"title": args.title, "url": raw_access_url}] if raw_access_url else None
 
     # 4) save
     info("📝 save work ...")
@@ -2565,6 +2744,7 @@ def cmd_save_after_deploy(args):
         cover=cover,
         deployment_id=args.deployment_id,
         deployment_alias=args.alias,
+        work_deploy_type=WORK_DEPLOY_TYPE_APP,
         scene_tags=tag_keys,
         version=args.version,
         visibility=visibility,
@@ -2575,6 +2755,11 @@ def cmd_save_after_deploy(args):
         s=s,
     )
     ok(f"published: workId={work_id}")
+
+    # 查详情拿后端算好的权威 accessUrl / alias，不本地拼 /s/。
+    detail = _fetch_work_detail(work_id, s=s) if str(work_id).isdigit() else {}
+    final_url = detail.get("accessUrl") or raw_access_url or f"{COWORK_WEB}/s/{args.alias or app_id}"
+    eff_alias = detail.get("alias") or args.alias
 
     # 5) 推断 srcDir + 写 manifest + memory（同 cmd_publish 尾段，但优先用显式传的 --src-dir）
     src_dir = getattr(args, 'src_dir', None) or None
@@ -2592,10 +2777,12 @@ def cmd_save_after_deploy(args):
             _work_id_int = int(work_id) if isinstance(work_id, (int, str)) and str(work_id).isdigit() else work_id
             manifest['cowork'] = {
                 'workId': _work_id_int,
+                'workDeployType': detail.get("workDeployType") or WORK_DEPLOY_TYPE_APP,
                 'appId': app_id,
-                'alias': args.alias,
+                'alias': eff_alias,
                 'accessUrl': final_url,
                 'coworkAppUrl': cowork_app_url(_work_id_int) if isinstance(_work_id_int, int) else None,
+                'rawAccessUrl': raw_access_url,
                 'deploymentId': args.deployment_id,
                 'deploymentStatus': 'RUNNING',
                 'publishedAt': _now_ms(),
@@ -2605,10 +2792,10 @@ def cmd_save_after_deploy(args):
             _memory_append(
                 manifest,
                 section='发布历史',
-                line=f"- **v{args.version}** — {time.strftime('%Y-%m-%d %H:%M')} — 首发到 Cowork，alias=`{args.alias or app_id}`，workId={work_id}，deploymentId={args.deployment_id}",
+                line=f"- **v{args.version}** — {time.strftime('%Y-%m-%d %H:%M')} — 首发到 Cowork，alias=`{eff_alias or app_id}`，workId={work_id}，deploymentId={args.deployment_id}",
                 frontmatter_updates={
                     'workId': work_id,
-                    'alias': args.alias or app_id,
+                    'alias': eff_alias or app_id,
                     'accessUrl': final_url,
                     'visibility': visibility,
                 },
@@ -2618,9 +2805,13 @@ def cmd_save_after_deploy(args):
             info(f"⚠️ manifest update skipped: {e}")
 
     _work_id_int = int(work_id) if isinstance(work_id, (int, str)) and str(work_id).isdigit() else work_id
+    # 指定了自定义 alias 时，路由层需 ~5s 才把 /s/<alias>/ 同步生效，先等再返回 URL。
+    if getattr(args, 'alias', None):
+        wait_alias_propagation(eff_alias)
     print(json.dumps({
         "workId": work_id,
         "appId": app_id,
+        "workDeployType": detail.get("workDeployType") or WORK_DEPLOY_TYPE_APP,
         "accessUrl": final_url,
         "rawAccessUrl": raw_access_url,
         "deploymentId": args.deployment_id,
@@ -2719,6 +2910,313 @@ def cmd_list_my_apps(args):
                 it['coworkAppUrl'] = u
 
     print(json.dumps(items, ensure_ascii=False, indent=2))
+
+
+# -----------------------------------------------------------------------------
+# list-projects —— 本地 manifest + 远端作品 merge，输出带 3 状态 chip 的项目列表
+# -----------------------------------------------------------------------------
+#
+# 这是从原 plugin TS（project-registry.ts + list-projects.ts）1:1 移植的逻辑。
+# 与 list-my-apps（只拉远端、只能看到已发布作品）的本质区别：
+#   list-projects 会扫本地 .cowork.json，因此能列出「本地 scaffold 了但还没
+#   publish 的草稿」（local-only），这是 agent / Studio 最关心的状态。
+#
+# 3 个状态 chip（2026-05-29 帝江拍板，不要 running/stopped）：
+#   - published    本地 manifest 有 workId 且远端存在
+#   - local-only   本地 manifest 有但远端没有（从未发布 / 远端被删）
+#   - cowork-only  远端有但本地无 manifest
+# 排序：published > local-only > cowork-only，同类按 updatedAt 倒序。
+
+def _lp_safe_number(v):
+    if isinstance(v, bool):
+        return None
+    if isinstance(v, int):
+        return v
+    if isinstance(v, float):
+        return int(v) if v == int(v) else None
+    if isinstance(v, str) and re.fullmatch(r"-?\d+", v):
+        return int(v)
+    return None
+
+
+def _lp_visibility_from_scope(scope):
+    if not scope:
+        return None
+    s = str(scope).upper()
+    if s in ("PUBLIC", "ALL"):
+        return "ALL"
+    if s in ("DEPARTMENTS", "PARTIAL"):
+        return "PARTIAL"
+    if s in ("SELF_ONLY", "SELF"):
+        return "SELF_ONLY"
+    return None
+
+
+def _lp_read_manifest(manifest_path: Path):
+    """读 + 校验一个 .cowork.json；非法返 None。等价 TS readManifest()。"""
+    try:
+        raw = manifest_path.read_text()
+    except Exception:
+        return None
+    try:
+        obj = json.loads(raw)
+    except Exception:
+        return None
+    if not isinstance(obj, dict):
+        return None
+    if obj.get("schema") != COWORK_PROJECT_SCHEMA:
+        return None
+    if not (isinstance(obj.get("id"), str)
+            and isinstance(obj.get("name"), str)
+            and isinstance(obj.get("srcDir"), str)):
+        return None
+    return obj
+
+
+def _lp_scan_manifests(code_root: Path):
+    """扫一个根目录的直接子目录里的 .cowork.json。等价 TS scanManifests()。
+
+    去重：同一 manifest.id 出现多次时，优先保留 srcDir 与项目目录自指的那份。
+    """
+    if not code_root.exists():
+        return []
+    try:
+        entries = list(code_root.iterdir())
+    except Exception:
+        return []
+    hits = []  # (manifest, projDir)
+    for child in entries:
+        if not child.is_dir():
+            continue
+        m = _lp_read_manifest(child / MANIFEST_FILENAME)
+        if m:
+            hits.append((m, child))
+    by_id = {}
+    for m, proj_dir in hits:
+        mid = m["id"]
+        existing = by_id.get(mid)
+        if existing is None:
+            by_id[mid] = (m, proj_dir)
+            continue
+        ex_m, ex_dir = existing
+        existing_self = Path(ex_m["srcDir"]).resolve() == Path(ex_dir).resolve()
+        candidate_self = Path(m["srcDir"]).resolve() == Path(proj_dir).resolve()
+        if candidate_self and not existing_self:
+            by_id[mid] = (m, proj_dir)
+    return [v[0] for v in by_id.values()]
+
+
+def _lp_list_local_projects():
+    """扫本地两个根，按 manifest.id 去重，返回半成品 studio project。
+    等价 TS listCoworkProjects() + toStudioProject()。"""
+    roots = [COWORK_PROJECT_ROOT, LEGACY_PROJECT_ROOT]
+    all_manifests = []
+    for root in roots:
+        all_manifests.extend(_lp_scan_manifests(root))
+    # 跨 root 再按 id 去重：updatedAt 新的赢
+    dedup = {}
+    for m in all_manifests:
+        existing = dedup.get(m["id"])
+        if existing is None:
+            dedup[m["id"]] = m
+            continue
+        if (m.get("updatedAt") or 0) > (existing.get("updatedAt") or 0):
+            dedup[m["id"]] = m
+    projects = []
+    for m in dedup.values():
+        cowork = m.get("cowork") if isinstance(m.get("cowork"), dict) else None
+        status = ["published"] if (cowork and cowork.get("workId") is not None) else ["local-only"]
+        proj = {
+            "id": m["id"],
+            "name": m["name"],
+            "title": (cowork or {}).get("alias") or m["name"],
+            "srcDir": m["srcDir"],
+            "stack": m.get("stack"),
+            "chatSessionId": m.get("chatSessionId"),
+            "guardCompliant": m.get("guardCompliant"),
+            "intro": m.get("description"),
+            "createdAt": m.get("createdAt"),
+            "updatedAt": m.get("updatedAt"),
+            "cowork": ({
+                "workId": cowork.get("workId"),
+                "appId": cowork.get("appId"),
+                "alias": cowork.get("alias"),
+                "accessUrl": cowork.get("accessUrl"),
+                "coworkAppUrl": cowork.get("coworkAppUrl"),
+                "deploymentId": cowork.get("deploymentId"),
+                "deploymentStatus": cowork.get("deploymentStatus"),
+                "publishedAt": cowork.get("publishedAt"),
+                "visibility": cowork.get("visibility"),
+                "version": cowork.get("version"),
+            } if cowork else None),
+            "status": status,
+        }
+        projects.append(proj)
+    return projects
+
+
+def _lp_fetch_my_apps():
+    """拉远端我的作品（含部署信息）。失败降级返 []，等价 TS fetchMyApps()。"""
+    try:
+        data = api_call("GET", "/community/works/my/apps?includeDeployment=true")
+    except SystemExit:
+        return []
+    except Exception:
+        return []
+    if isinstance(data, list):
+        return data
+    if isinstance(data, dict):
+        return data.get("items") or []
+    return []
+
+
+def _lp_extract_deployment(raw: dict):
+    """兼容嵌套 deployment.* 与打平 deployment* 两种布局。等价 TS extractDeployment()。"""
+    d = raw.get("deployment") if isinstance(raw.get("deployment"), dict) else {}
+    return {
+        "deploymentId": _lp_safe_number(d.get("deploymentId")) or _lp_safe_number(raw.get("deploymentId")) or 0,
+        "appId": d.get("appId") or raw.get("deploymentAppId") or "",
+        "alias": d.get("alias") or raw.get("deploymentAlias") or None,
+        "accessUrl": d.get("accessUrl") or raw.get("deploymentAccessUrl") or None,
+        "rawAccessUrl": d.get("rawAccessUrl") or raw.get("deploymentRawAccessUrl") or None,
+        "deploymentStatus": d.get("deploymentStatus") or raw.get("deploymentStatus") or None,
+    }
+
+
+def _lp_parse_tags(raw: dict):
+    """远端 sceneTagsJson(enum) → 中文 label。等价 TS parseTagsField()。"""
+    render = raw.get("sceneTagsRenderName")
+    if isinstance(render, list):
+        arr = [x for x in render if isinstance(x, str) and x]
+        if arr:
+            return arr
+    for c in (raw.get("tags"), raw.get("sceneTagsJson"), raw.get("keywordsJson")):
+        arr = None
+        if isinstance(c, list):
+            arr = [x for x in c if isinstance(x, str)]
+        elif isinstance(c, str) and c.strip().startswith("["):
+            try:
+                parsed = json.loads(c)
+                if isinstance(parsed, list):
+                    arr = [x for x in parsed if isinstance(x, str)]
+            except Exception:
+                arr = None
+        if arr:
+            # SCENE_TAGS 是 {中文: enum}，这里需要 enum → 中文反查
+            label_by_enum = {v: k for k, v in SCENE_TAGS.items()}
+            return [label_by_enum.get(x, x) for x in arr]
+    return None
+
+
+def _lp_map_remote_cowork(raw: dict, work_id: int):
+    dep = _lp_extract_deployment(raw)
+    return {
+        "workId": work_id,
+        "appId": dep["appId"],
+        "alias": dep["alias"],
+        "accessUrl": dep["accessUrl"] or dep["rawAccessUrl"] or "",
+        "coworkAppUrl": cowork_app_url(work_id),
+        "deploymentId": dep["deploymentId"],
+        "deploymentStatus": dep["deploymentStatus"],
+        "visibility": _lp_visibility_from_scope(raw.get("visibilityScope")),
+        "publishedAt": raw.get("updatedAt") if raw.get("updatedAt") is not None else raw.get("createdAt"),
+        "version": raw.get("version"),
+    }
+
+
+def _lp_remote_to_studio(raw: dict):
+    work_id = _lp_safe_number(raw.get("id")) if raw.get("id") is not None else _lp_safe_number(raw.get("workId"))
+    if work_id is None:
+        return None
+    dep = _lp_extract_deployment(raw)
+    return {
+        "id": f"cowork-only:{work_id}",
+        "name": raw.get("name") or dep["alias"] or f"Work {work_id}",
+        "title": dep["alias"] or raw.get("name"),
+        "intro": raw.get("oneLineIntro"),
+        "description": raw.get("description"),
+        "tags": _lp_parse_tags(raw),
+        "updatedAt": raw.get("updatedAt") if raw.get("updatedAt") is not None else raw.get("createdAt"),
+        "cowork": _lp_map_remote_cowork(raw, work_id),
+        "status": ["cowork-only"],
+    }
+
+
+def _lp_first(*vs):
+    for v in vs:
+        if isinstance(v, str) and v:
+            return v
+    return None
+
+
+def cmd_list_projects(args):
+    """本地 manifest + 远端作品 merge，输出带 3 状态 chip 的项目列表。
+
+    输出 JSON: { projects: [...], refreshedAt: <ms> }
+    """
+    local_projects = _lp_list_local_projects()
+    remote_works = _lp_fetch_my_apps()
+
+    remote_by_wid = {}
+    for r in remote_works:
+        wid = _lp_safe_number(r.get("id")) if r.get("id") is not None else _lp_safe_number(r.get("workId"))
+        if wid is not None:
+            remote_by_wid[wid] = r
+
+    local_wids = set()
+    merged = []
+    # 第一遍：本地 manifest，重算 status，published 时用远端字段兜底
+    for proj in local_projects:
+        new_status = []
+        cowork = proj.get("cowork") or {}
+        wid = cowork.get("workId")
+        if wid is not None:
+            local_wids.add(wid)
+            remote = remote_by_wid.get(wid)
+            if remote:
+                new_status.append("published")
+                proj = {
+                    **proj,
+                    "title": _lp_first(remote.get("name"), remote.get("deploymentAlias"), proj.get("title")),
+                    "intro": _lp_first(remote.get("oneLineIntro"), proj.get("intro")),
+                    "description": _lp_first(remote.get("description"), proj.get("description")),
+                    "tags": _lp_parse_tags(remote) or proj.get("tags"),
+                    "updatedAt": remote.get("updatedAt") if remote.get("updatedAt") is not None
+                                 else (remote.get("createdAt") if remote.get("createdAt") is not None else proj.get("updatedAt")),
+                    "cowork": {**(proj.get("cowork") or {}), **_lp_map_remote_cowork(remote, wid)},
+                }
+            else:
+                new_status.append("local-only")
+        else:
+            new_status.append("local-only")
+        merged.append({**proj, "status": new_status})
+
+    # 第二遍：远端 workId 没出现在本地 → cowork-only
+    for wid, raw in remote_by_wid.items():
+        if wid in local_wids:
+            continue
+        studio = _lp_remote_to_studio(raw)
+        if studio:
+            merged.append(studio)
+
+    # 排序：published > local-only > cowork-only，同类按 updatedAt 倒序
+    def rank(p):
+        st = p.get("status") or []
+        if "published" in st:
+            return 0
+        if "local-only" in st:
+            return 1
+        if "cowork-only" in st:
+            return 2
+        return 3
+
+    def updated_key(p):
+        return p.get("updatedAt") or (p.get("cowork") or {}).get("publishedAt") or 0
+
+    merged.sort(key=lambda p: (rank(p), -(updated_key(p) or 0)))
+
+    print(json.dumps({"projects": merged, "refreshedAt": _now_ms()},
+                     ensure_ascii=False, indent=2))
 
 
 def cmd_detail(args):
@@ -2933,8 +3431,10 @@ def cmd_set_visibility(args):
         one_line_intro=work.get("oneLineIntro") or "",
         description=work.get("description") or "",
         cover=cover,
+        # 通道 ID 按详情原样透传（互斥），只改可见性，不动部署关联。
         deployment_id=work.get("deploymentId"),
-        deployment_alias=work.get("deploymentAlias"),
+        static_resource_id=work.get("staticResourceId"),
+        deployment_alias=work.get("alias") or work.get("deploymentAlias"),
         scene_tags=scene_tags,
         version=work.get("version") or "1.0",
         visibility=visibility,
@@ -3193,44 +3693,78 @@ def cmd_delete(args):
 
 
 def cmd_set_alias(args):
-    """为已部署的作品设置/修改部署别名。
+    """为已发布作品设置/修改别名（统一入口，应用部署 + 静态资源都支持）。
 
-    走 PUT /deployment/{id}/alias，后端支持多次修改（新覆盖旧）。
-    依赖 work 详情取出 deploymentId，避免上游要手动传 deploymentId。
+    走 save 接口的 alias 字段——后端按部署类型统一改别名（应用走 deployment、静态走
+    static-resource），CLI 不分类型、不拼 URL。改完查详情拿后端算好的 accessUrl。
+
+    （历史的 PUT /deployment/{deploymentId}/alias 仅应用部署可用，静态作品无 deploymentId，
+    故不再用它；该接口保留作快速改别名的补充入口，set_deployment_alias() 仍在但本命令不调。）
     """
+    if not (3 <= len(args.alias) <= 32) or not ALIAS_REGEX.match(args.alias):
+        err(f"别名不合法：{args.alias} (需 3-32 位小写字母/数字/-，不能以 - 开头/结尾，不能 --)")
     s = session()
     work_id = int(args.work_id)
     work = api_call("GET", f"/community/works/{work_id}", session=s)
     if not work:
         err(f"work not found: {work_id}")
-    deployment_id = work.get("deploymentId")
-    if not deployment_id:
-        err(f"work {work_id} 没有关联部署记录（deploymentId is null）")
-    cur_alias = work.get("deploymentAlias")
+    cur_alias = work.get("alias") or work.get("deploymentAlias") or work.get("staticResourceAlias")
     cowork_app_link = cowork_app_url(work_id)
     if cur_alias == args.alias:
         info(f"alias 未变（当前 {cur_alias}），跳过")
         result = {
             "workId": work_id,
-            "deploymentId": deployment_id,
             "alias": cur_alias,
-            "accessUrl": f"{COWORK_WEB}/s/{cur_alias}",
+            "accessUrl": work.get("accessUrl"),
             "coworkAppUrl": cowork_app_link,
             "changed": False,
         }
     else:
-        set_deployment_alias(deployment_id, args.alias, s=s)
-        ok(f"alias {cur_alias or '(null)'} → {args.alias}")
+        # 走 save 统一改别名：复用远端字段，只覆盖 alias；通道 ID 按详情原样透传（互斥）。
+        existing_images = _json_loads_safe(work.get("imagesJson"), []) or []
+        cover = next((img for img in existing_images if img.get("type") == "cover"), None)
+        extras = [img for img in existing_images if img.get("type") != "cover"]
+        if cover:
+            cover = {k: v for k, v in cover.items() if k != "type"}
+        _vis = normalize_visibility(work.get("visibilityScope") or "SELF_ONLY")
+        _vusers = work.get("visibleUserIds") if _vis == "DEPARTMENTS" else None
+        _vdepts = work.get("visibleDepartmentIds") if _vis == "DEPARTMENTS" else None
+        save_work(
+            name=work.get("name") or "",
+            one_line_intro=work.get("oneLineIntro") or "",
+            description=work.get("description") or "",
+            cover=cover,
+            deployment_id=work.get("deploymentId"),
+            static_resource_id=work.get("staticResourceId"),
+            alias=args.alias,
+            scene_tags=_json_loads_safe(work.get("sceneTagsJson"), []) or [],
+            version=work.get("version") or "1.0",
+            visibility=_vis,
+            visible_user_ids=_vusers,
+            visible_department_ids=_vdepts,
+            links=_json_loads_safe(work.get("linksJson"), []) or [],
+            notify_on_publish=False,
+            work_type=work.get("workType") or "COWORK_DEPLOY",
+            extra_images=extras or None,
+            work_id=work_id,
+            s=s,
+        )
+        # 改完查详情拿后端算好的 accessUrl / alias（按生效通道，应用 /s/、静态 /f/）。
+        detail = _fetch_work_detail(work_id, s=s)
+        eff_alias = detail.get("alias") or args.alias
+        access_url = detail.get("accessUrl")
+        ok(f"alias {cur_alias or '(null)'} → {eff_alias}")
+        # alias 改完后路由层需 ~5s 才生效，先等再返回 URL，避免用户拿到暂时打不开的链接
+        wait_alias_propagation(eff_alias)
         result = {
             "workId": work_id,
-            "deploymentId": deployment_id,
-            "alias": args.alias,
-            "accessUrl": f"{COWORK_WEB}/s/{args.alias}",
+            "alias": eff_alias,
+            "accessUrl": access_url,
             "coworkAppUrl": cowork_app_link,
             "changed": True,
             "previousAlias": cur_alias,
         }
-        # 同步本地 manifest + memory + dev session
+        # 同步本地 manifest + memory
         synced_src_dir: Optional[str] = None
         synced_manifest: Optional[dict] = None
         try:
@@ -3247,8 +3781,8 @@ def cmd_set_alias(args):
                         continue
                     c = m.get("cowork") or {}
                     if c.get("workId") == work_id:
-                        c["alias"] = args.alias
-                        c["accessUrl"] = f"{COWORK_WEB}/s/{args.alias}"
+                        c["alias"] = eff_alias
+                        c["accessUrl"] = access_url
                         m["cowork"] = c
                         mf.write_text(json.dumps(m, ensure_ascii=False, indent=2))
                         result["manifestUpdated"] = str(child)
@@ -3270,33 +3804,17 @@ def cmd_set_alias(args):
                     section="部署历史",
                     line=(
                         f"- **alias 变更** — {time.strftime('%Y-%m-%d %H:%M')} — "
-                        f"`{cur_alias or '(null)'}` → `{args.alias}`，"
-                        f"新 URL {COWORK_WEB}/s/{args.alias}"
+                        f"`{cur_alias or '(null)'}` → `{eff_alias}`，"
+                        f"新 URL {access_url}"
                     ),
                     frontmatter_updates={
-                        "alias": args.alias,
-                        "accessUrl": f"{COWORK_WEB}/s/{args.alias}",
+                        "alias": eff_alias,
+                        "accessUrl": access_url,
                     },
                 )
                 result["memoryUpdated"] = True
             except Exception as e:
                 info(f"⚠️ sync memory.md failed: {e}")
-
-        # 同步 .cowork-dev/sessions.json（alive dev session 里挂着旧 alias）
-        try:
-            state = _load_dev_state()
-            updated_sessions = []
-            for sid, sess in state.items():
-                if synced_src_dir and sess.get("srcDir") == synced_src_dir:
-                    if sess.get("alias") != args.alias:
-                        sess["alias"] = args.alias
-                        sess["updatedAt"] = _now_ms()
-                        updated_sessions.append(sid)
-            if updated_sessions:
-                _save_dev_state(state)
-                result["devSessionsUpdated"] = updated_sessions
-        except Exception as e:
-            info(f"⚠️ sync dev sessions failed: {e}")
     if getattr(args, 'json', False):
         print(json.dumps(result, ensure_ascii=False, indent=2))
 
@@ -3378,16 +3896,17 @@ def cmd_update(args):
     else:
         visibility = normalize_visibility(work.get("visibilityScope") or "SELF_ONLY")
 
-    new_alias = args.alias if args.alias is not None else work.get("deploymentAlias")
+    new_alias = args.alias if args.alias is not None else work.get("alias") or work.get("deploymentAlias")
 
     # links：如果 alias 变了，同步更新默认链接；否则保留原 links。
+    # URL 用后端算好的 accessUrl（已按生效通道，应用 /s/、静态 /f/），不本地拼。
     try:
         existing_links = json.loads(work.get("linksJson") or "[]")
     except Exception:
         existing_links = []
     if args.alias is not None or args.title is not None:
         title_for_link = args.title if args.title is not None else (work.get("name") or "")
-        access_url = f"{COWORK_WEB}/s/{new_alias or work.get('deploymentAppId') or ''}"
+        access_url = work.get("accessUrl") or f"{COWORK_WEB}/s/{new_alias or work.get('deploymentAppId') or ''}"
         existing_links = [{"title": title_for_link, "url": access_url}]
 
     body_name = args.title if args.title is not None else work.get("name")
@@ -3433,7 +3952,9 @@ def cmd_update(args):
         one_line_intro=body_intro,
         description=body_desc,
         cover=cover,
+        # 通道 ID 按详情原样透传（互斥，生效通道有值、另一通道 null），不改类型。
         deployment_id=work.get("deploymentId"),
+        static_resource_id=work.get("staticResourceId"),
         deployment_alias=new_alias,
         scene_tags=scene_tags,
         version=work.get("version") or "1.0",
@@ -3448,8 +3969,11 @@ def cmd_update(args):
         s=s,
     )
 
-    app_id = work.get("deploymentAppId")
-    access_url = f"{COWORK_WEB}/s/{new_alias or app_id or ''}"
+    app_id = work.get("deploymentAppId") or work.get("staticResourceAppId")
+    # 改完查详情拿后端算好的 accessUrl（alias 改了后端会重算）。
+    _ud = _fetch_work_detail(work_id_arg, s=s) if str(work_id_arg).isdigit() else {}
+    access_url = _ud.get("accessUrl") or work.get("accessUrl") or f"{COWORK_WEB}/s/{new_alias or app_id or ''}"
+    new_alias = _ud.get("alias") or new_alias
 
     # 同步本地 manifest（如果有 srcDir 能索到）。
     synced_manifest = None
@@ -3510,24 +4034,10 @@ def cmd_update(args):
             },
         )
 
-    # 同步 .cowork-dev/sessions.json（如果 alias 变了）
-    if args.alias is not None and synced_manifest:
-        try:
-            state = _load_dev_state()
-            updated_sessions = []
-            for sid, sess in state.items():
-                if sess.get("srcDir") == synced_manifest.get("srcDir"):
-                    if sess.get("alias") != new_alias:
-                        sess["alias"] = new_alias
-                        sess["updatedAt"] = _now_ms()
-                        updated_sessions.append(sid)
-            if updated_sessions:
-                _save_dev_state(state)
-                info(f"updated dev sessions: {updated_sessions}")
-        except Exception as e:
-            info(f"⚠️ dev sessions sync skipped: {e}")
-
     ok(f"updated workId={new_work_id}")
+    # 仅当本次改了 alias 时，路由层需 ~5s 才把新 URL 同步生效，先等再返回 URL。
+    if args.alias is not None:
+        wait_alias_propagation(new_alias)
     _norm_work_id = int(new_work_id) if isinstance(new_work_id, (int, str)) and str(new_work_id).isdigit() else new_work_id
     print(json.dumps({
         "ok": True,
@@ -3540,10 +4050,22 @@ def cmd_update(args):
 
 
 def _workspace_code_roots() -> list[Path]:
+    """redeploy 反查 srcDir 时扫描的项目根。
+
+    历史 bug（2026-06 修）：旧实现写死返回 ['/home/node/.openclaw/workspace/code']，
+    既写死了 pod 专属路径（本地环境不存在），又只扫 legacy 的 code/——
+    而 scaffold / transform / dev 实际把项目建在 cowork/（COWORK_PROJECT_ROOT）。
+    结果：cowork/ 里的项目 redeploy 不带 --src 时反查不到 manifest → extPlatformId
+    丢失 → 后端把 redeploy 当成全新部署 → 每次重部署都新建一台机器。
+
+    修复：默认与全仓其他「项目根」逻辑（delete / update / link / suggest /
+    list-projects）保持一致，扫 COWORK_PROJECT_ROOT(cowork/) + LEGACY_PROJECT_ROOT(code/)。
+    仍保留 COWORK_CODE_ROOTS / COWORK_CODE_ROOT 环境变量作为显式覆盖入口。
+    """
     raw = os.environ.get('COWORK_CODE_ROOTS') or os.environ.get('COWORK_CODE_ROOT')
     if raw:
         return [Path(x).expanduser() for x in raw.split(':') if x.strip()]
-    return [Path('/home/node/.openclaw/workspace/code').expanduser()]
+    return [COWORK_PROJECT_ROOT, LEGACY_PROJECT_ROOT]
 
 
 def _find_manifest_by_work_id(work_id: str | int) -> tuple[str, dict] | tuple[None, None]:
@@ -3603,6 +4125,141 @@ def _json_loads_safe(value, default):
         return default
 
 
+def _redeploy_static(args, *, src_dir, manifest, work, work_id_arg, zip_meta, zip_hash, s):
+    """纯前端静态作品的 redeploy 分支（detect 判为 STATIC_RESOURCE 时）。
+
+    带 workId 调 static_deploy（后端按 workId 找到已有静态记录，原 app_id 重新挂载 +
+    清缓存），同步返回；再补 save 写版本号；最后同步 manifest。
+    """
+    info("🚀 static-deploy（纯前端，更新挂载，同步）...")
+    ext_platform_id = (manifest or {}).get("id")
+    res = static_deploy(
+        zip_meta["fileId"], zip_name=zip_meta["name"],
+        work_id=int(work_id_arg),
+        ext_platform_id=ext_platform_id,
+        deploy_source="SEAL",
+        s=s,
+    )
+    if res.get("status") != "MOUNT_SUCCESS":
+        info(f"⚠️ static mount FAILED: status={res.get('status')} {res.get('errorMessage', '')[:300]}")
+        info("  💡 静态挂载失败多为打包不合规：根目录须有 index.html、用相对路径、"
+             "不得含 install.sh/package.json/node_modules 等黑名单文件。"
+             "打包规范见 references/pure-frontend.md")
+        res["workId"] = int(work_id_arg)
+        print(json.dumps(res, ensure_ascii=False, indent=2))
+        sys.exit(2)
+    static_resource_id = res.get("staticResourceId")
+    app_id = res.get("appId")
+    alias = res.get("alias") or (manifest or {}).get('cowork', {}).get('alias')
+    final_url = res.get("accessUrl") or f"{COWORK_WEB}/f/{alias or app_id}/"
+    raw_access_url = res.get("rawAccessUrl") or f"{COWORK_WEB}/f/{app_id}/"
+    ok(f"redeployed(static) → {final_url}")
+
+    # 跨类型升级提示：原作品若是应用部署，本次改走静态挂载。两通道共存由后端自管
+    # （最后成功部署的通道生效），CLI 不维护跨通道 ID——save 时按详情原样透传即可。
+    type_switched = work.get("workDeployType") == WORK_DEPLOY_TYPE_APP
+    if type_switched:
+        info("🔀 作品类型升级：应用部署 → 静态挂载（链接将切到静态挂载，应用部署记录后端保留）")
+
+    current_version = work.get("version") or (manifest or {}).get('cowork', {}).get('version') or "1.0"
+    next_version = args.version or _bump_version(current_version, args.bump or 'patch')
+    # 触发条件：版本变 OR 跨类型升级（类型变了必须 save 一次更新 workDeployType）。
+    if next_version != current_version or type_switched:
+        try:
+            existing_images = _json_loads_safe(work.get("imagesJson"), []) or []
+            cover = next((img for img in existing_images if img.get("type") == "cover"), None)
+            extras = [img for img in existing_images if img.get("type") != "cover"]
+            if cover:
+                cover = {k: v for k, v in cover.items() if k != "type"}
+            _vis = normalize_visibility(work.get("visibilityScope") or work.get("visibility") or "SELF_ONLY")
+            _vusers = work.get("visibleUserIds") if _vis == "DEPARTMENTS" else None
+            _vdepts = work.get("visibleDepartmentIds") if _vis == "DEPARTMENTS" else None
+            if isinstance(_vusers, str):
+                _vusers = _json_loads_safe(_vusers, []) or []
+            if isinstance(_vdepts, str):
+                _vdepts = _json_loads_safe(_vdepts, []) or []
+            save_work(
+                name=work.get("name"),
+                one_line_intro=work.get("oneLineIntro") or "",
+                description=work.get("description") or "",
+                cover=cover,
+                # 本次主通道是静态挂载，用新 staticResourceId；应用通道按详情原样透传。
+                static_resource_id=static_resource_id,
+                deployment_id=work.get("deploymentId"),
+                work_deploy_type=WORK_DEPLOY_TYPE_STATIC,
+                alias=alias,
+                scene_tags=_json_loads_safe(work.get("sceneTagsJson"), []) or [],
+                version=next_version,
+                visibility=_vis,
+                visible_user_ids=_vusers,
+                visible_department_ids=_vdepts,
+                links=_json_loads_safe(work.get("linksJson"), []) or [],
+                notify_on_publish=False,
+                work_type=work.get("workType") or "SEAL_DEPLOY",
+                extra_images=extras or None,
+                work_id=int(work_id_arg),
+                s=s,
+            )
+        except Exception as e:
+            info(f"⚠️ version bump save failed: {e}")
+
+    new_work_id = int(work_id_arg)
+
+    # 关联完成后查详情拿后端算好的权威 accessUrl / alias / workDeployType，不本地拼 URL。
+    detail = _fetch_work_detail(work_id_arg, s=s)
+    access_url = detail.get("accessUrl") or final_url
+    eff_alias = detail.get("alias") or alias
+    eff_app_id = detail.get("staticResourceAppId") or app_id
+    eff_raw_url = detail.get("staticResourceRawAccessUrl") or raw_access_url
+    try:
+        m = _ensure_manifest(src_dir, name=(manifest or {}).get('name') or work.get('name'))
+        m['cowork'] = {
+            **((m.get('cowork') or {}) if isinstance(m.get('cowork'), dict) else {}),
+            'workId': new_work_id,
+            'workDeployType': detail.get("workDeployType") or WORK_DEPLOY_TYPE_STATIC,
+            'staticResourceId': static_resource_id,
+            'staticAppId': eff_app_id,
+            'alias': eff_alias,
+            'accessUrl': access_url,
+            'coworkAppUrl': cowork_app_url(new_work_id),
+            'rawAccessUrl': eff_raw_url,
+            'publishedAt': _now_ms(),
+            'visibility': detail.get("visibilityScope") or work.get("visibilityScope") or "SELF_ONLY",
+            'version': next_version,
+            'lastZipHash': zip_hash,
+        }
+        m['updatedAt'] = _now_ms()
+        _save_manifest(src_dir, m)
+        _memory_append(
+            m,
+            section='发布历史',
+            line=f"- **v{next_version}** — {time.strftime('%Y-%m-%d %H:%M')} — redeploy 到 Cowork（静态挂载），alias=`{eff_alias or eff_app_id}`，staticResourceId={static_resource_id}",
+            frontmatter_updates={
+                'workId': new_work_id,
+                'alias': eff_alias or eff_app_id,
+                'accessUrl': access_url,
+                'visibility': detail.get("visibilityScope") or work.get("visibilityScope") or "SELF_ONLY",
+            },
+        )
+        info(f"updated manifest: {src_dir}/.cowork.json")
+    except Exception as e:
+        info(f"⚠️ manifest update skipped: {e}")
+
+    print(json.dumps({
+        "ok": True,
+        "workId": new_work_id,
+        "workDeployType": detail.get("workDeployType") or WORK_DEPLOY_TYPE_STATIC,
+        "staticResourceId": static_resource_id,
+        "appId": eff_app_id,
+        "alias": eff_alias,
+        "accessUrl": access_url,                                  # 部署链接（/f/）
+        "rawAccessUrl": eff_raw_url,
+        "coworkAppUrl": cowork_app_url(new_work_id),              # 作品详情页链接 /app/<id>
+        "version": next_version,
+        "lastZipHash": zip_hash,
+    }, ensure_ascii=False, indent=2))
+
+
 def cmd_redeploy(args):
     """对已有 Cowork work 重新部署当前本地代码，保留元信息，递增版本。"""
     s = session()
@@ -3632,6 +4289,38 @@ def cmd_redeploy(args):
     # Pack from source directory. pack_dir honors .cowork.json pack.keep.
     zip_path = args.zip or f"{src_dir.rstrip('/')}.zip"
     zip_path = pack_dir(src_dir, out=zip_path, in_place=False, keep=getattr(args, 'keep', None))
+    zip_hash = _sha256_file(zip_path)
+    meta = upload_file(zip_path, mime_type="application/zip", s=s)
+
+    # detect 分流：纯前端走静态挂载更新；已转写走应用部署；未转写直接拦截提示 transform
+    try:
+        det = detect_code_package_type(_file_id_json(meta["fileId"], meta["name"]), s=s)
+        pkg_type = (det or {}).get("type")
+        det_reason = (det or {}).get("reason", "")
+    except SystemExit:
+        pkg_type, det_reason = None, "(detect 接口不可用，回退应用部署)"
+    info(f"🔎 detect: type={pkg_type or '?'} — {det_reason}")
+    if pkg_type == "STATIC_RESOURCE":
+        if getattr(args, 'no_wait', False):
+            info("ℹ️  静态资源挂载为同步部署，--no-wait 不适用，已忽略")
+        _redeploy_static(args, src_dir=src_dir, manifest=manifest, work=work,
+                         work_id_arg=work_id_arg, zip_meta=meta, zip_hash=zip_hash, s=s)
+        return
+    if pkg_type == "APP_DEPLOY_NOT_CONVERTED" and not args.force:
+        err(
+            "代码包不符合 Cowork/Guard 子应用规范，未转写，禁止直接部署。\n"
+            f"  原因：{det_reason or '缺少 install.sh/start.sh/health.sh 或存在违规依赖'}\n"
+            f"  请先转写：python3 cowork.py transform {src_dir}\n"
+            "  转写完成后重新发布；或确认无误用 --force 跳过本检查。"
+        )
+
+    # —— 应用部署分支（APP_DEPLOY_CONVERTED / detect 不可用回退）——
+    # 跨类型升级提示：原作品若是静态挂载，本次改走应用部署。两通道共存由后端自管
+    # （最后成功部署的通道生效），CLI 不维护跨通道 ID——save 时按详情原样透传即可。
+    type_switched = work.get("workDeployType") == WORK_DEPLOY_TYPE_STATIC
+    if type_switched:
+        info("🔀 作品类型升级：静态挂载 → 应用部署（链接将切到应用部署，静态记录后端保留）")
+
     issues = precheck_zip(zip_path)
     if any(i.startswith("❌") for i in issues) and not args.force:
         for i in issues:
@@ -3640,9 +4329,6 @@ def cmd_redeploy(args):
     for i in issues:
         if i.startswith("⚠️"):
             info(i)
-
-    zip_hash = _sha256_file(zip_path)
-    meta = upload_file(zip_path, mime_type="application/zip", s=s)
 
     # 关键：deploy 带 workId，后端会把新 deployment 绑到该 work，
     # 复用现有 alias。不需要再调 save（alias 不变、元信息不变）。
@@ -3659,8 +4345,10 @@ def cmd_redeploy(args):
         d["ok"] = True
         d["waiting"] = False
         d["workId"] = int(work_id_arg)
+        d["coworkAppUrl"] = cowork_app_url(int(work_id_arg))
         print(json.dumps(d, ensure_ascii=False, indent=2))
         return
+    info(f"⏳ 重新部署中（deploymentId={d['deploymentId']}），平台正在 install→start→health，请稍候 ...")
     res = wait_deploy(d["deploymentId"], timeout_s=args.timeout, s=s)
     if res.get("failed"):
         info(f"⚠️ redeploy FAILED: {res.get('errorMessage', '')[:300]}")
@@ -3669,6 +4357,7 @@ def cmd_redeploy(args):
     if res.get("timedOut"):
         info(f"⏱️  {res.get('message', '')}")
         res["workId"] = int(work_id_arg)
+        res["coworkAppUrl"] = cowork_app_url(int(work_id_arg))
         print(json.dumps(res, ensure_ascii=False, indent=2))
         return
     ok(f"redeployed → {res.get('accessUrl')}")
@@ -3676,10 +4365,10 @@ def cmd_redeploy(args):
     current_version = work.get("version") or (manifest or {}).get('cowork', {}).get('version') or "1.0"
     next_version = args.version or _bump_version(current_version, args.bump or 'patch')
 
-    # 总是补调一次 save 写新版本号到后端。
-    # 原逻辑只在 args.version 显式传时才写，导致 --bump 默认 patch 代码路径下后端永远
-    # 是 1.0，下次 redeploy 又算出 1.0.1——history 会看到 N 条 v1.0.1。仅在真正变动时调。
-    if next_version != current_version:
+    # save 作品↔资源关联（与上面 deploy 实际部署解耦）。
+    # 触发条件：版本变 OR 跨类型升级（类型变了必须 save 一次更新 workDeployType，
+    # 否则作品类型停留在旧通道、与实际 accessUrl 不一致）。
+    if next_version != current_version or type_switched:
         try:
             existing_images = _json_loads_safe(work.get("imagesJson"), []) or []
             cover = next((img for img in existing_images if img.get("type") == "cover"), None)
@@ -3699,8 +4388,12 @@ def cmd_redeploy(args):
                 one_line_intro=work.get("oneLineIntro") or "",
                 description=work.get("description") or "",
                 cover=cover,
+                # 本次主通道是应用部署，用新 deploymentId；静态通道按详情原样透传
+                # （详情互斥：另一通道恒 null，透传 None 即可，不本地维护）。
                 deployment_id=res["deploymentId"],
+                static_resource_id=work.get("staticResourceId"),
                 deployment_alias=alias,
+                work_deploy_type=WORK_DEPLOY_TYPE_APP,
                 scene_tags=_json_loads_safe(work.get("sceneTagsJson"), []) or [],
                 version=next_version,
                 visibility=_vis,
@@ -3718,6 +4411,14 @@ def cmd_redeploy(args):
 
     new_work_id = int(work_id_arg)
 
+    # 关联完成后查一次详情，拿后端算好的权威 accessUrl / alias / workDeployType，不本地拼 URL。
+    detail = _fetch_work_detail(work_id_arg, s=s)
+    access_url = detail.get("accessUrl") or res.get("accessUrl")
+    eff_alias = detail.get("alias") or alias
+    eff_app_id = detail.get("deploymentAppId") or res.get("appId") or app_id
+    raw_access_url = detail.get("deploymentRawAccessUrl") or res.get("rawAccessUrl") or res.get("accessUrl")
+    ok(f"redeployed → {access_url}")
+
     # Sync manifest.
     try:
         m = _ensure_manifest(src_dir, name=(manifest or {}).get('name') or work.get('name'))
@@ -3725,15 +4426,16 @@ def cmd_redeploy(args):
         m['cowork'] = {
             **((m.get('cowork') or {}) if isinstance(m.get('cowork'), dict) else {}),
             'workId': _new_work_id_int,
-            'appId': res.get('appId') or app_id,
-            'alias': alias,
-            'accessUrl': f"{COWORK_WEB}/s/{alias or res.get('appId') or app_id}",
+            'workDeployType': detail.get("workDeployType") or WORK_DEPLOY_TYPE_APP,
+            'appId': eff_app_id,
+            'alias': eff_alias,
+            'accessUrl': access_url,
             'coworkAppUrl': cowork_app_url(_new_work_id_int) if isinstance(_new_work_id_int, int) else None,
-            'rawAccessUrl': res.get('rawAccessUrl') or res.get('accessUrl'),
+            'rawAccessUrl': raw_access_url,
             'deploymentId': res['deploymentId'],
             'deploymentStatus': 'RUNNING',
             'publishedAt': _now_ms(),
-            'visibility': work.get("visibilityScope") or "SELF_ONLY",
+            'visibility': detail.get("visibilityScope") or work.get("visibilityScope") or "SELF_ONLY",
             'version': next_version,
             'lastZipHash': zip_hash,
         }
@@ -3742,12 +4444,12 @@ def cmd_redeploy(args):
         _memory_append(
             m,
             section='发布历史',
-            line=f"- **v{next_version}** — {time.strftime('%Y-%m-%d %H:%M')} — redeploy 到 Cowork，alias=`{alias or res.get('appId') or app_id}`，deploymentId={res['deploymentId']}",
+            line=f"- **v{next_version}** — {time.strftime('%Y-%m-%d %H:%M')} — redeploy 到 Cowork，alias=`{eff_alias or eff_app_id}`，deploymentId={res['deploymentId']}",
             frontmatter_updates={
                 'workId': new_work_id,
-                'alias': alias or res.get('appId') or app_id,
-                'accessUrl': f"{COWORK_WEB}/s/{alias or res.get('appId') or app_id}",
-                'visibility': work.get("visibilityScope") or "SELF_ONLY",
+                'alias': eff_alias or eff_app_id,
+                'accessUrl': access_url,
+                'visibility': detail.get("visibilityScope") or work.get("visibilityScope") or "SELF_ONLY",
             },
         )
         info(f"updated manifest: {src_dir}/.cowork.json")
@@ -3758,12 +4460,146 @@ def cmd_redeploy(args):
         "ok": True,
         "workId": int(new_work_id) if isinstance(new_work_id, (int, str)) and str(new_work_id).isdigit() else new_work_id,
         "deploymentId": res["deploymentId"],
-        "appId": res.get("appId") or app_id,
-        "alias": alias,
-        "accessUrl": f"{COWORK_WEB}/s/{alias or res.get('appId') or app_id}",
-        "rawAccessUrl": res.get("rawAccessUrl") or res.get("accessUrl"),
+        "appId": eff_app_id,
+        "alias": eff_alias,
+        "workDeployType": detail.get("workDeployType") or WORK_DEPLOY_TYPE_APP,
+        "accessUrl": access_url,                                          # 部署链接（/s/ 或 /f/）
+        "rawAccessUrl": raw_access_url,
+        "coworkAppUrl": cowork_app_url(_new_work_id_int) if isinstance(_new_work_id_int, int) else None,  # 作品详情页链接 /app/<id>
         "version": next_version,
         "lastZipHash": zip_hash,
+    }
+    print(json.dumps(output, ensure_ascii=False, indent=2))
+
+
+# -----------------------------------------------------------------------------
+# scaffold —— 从内置模板生成 Cowork 合规项目骨架
+# -----------------------------------------------------------------------------
+#
+# 设计要点：
+#   1. 模板就在本仓库 templates/<name>/ 下（与 transform/profiles 同名同语义）。
+#   2. 默认输出目录 ~/.openclaw/workspace/cowork/<slug>/，与 SKILL 「项目目录约定」对齐；
+#      仅 power-user 可用 --target-dir 指定其他路径。
+#   3. 不覆盖已有非空目录；空目录可复用。
+#   4. copy 后强制 chmod +x install.sh / start.sh / health.sh（zipfile / fs.copy
+#      在某些 FS 上会丢 mode bits）。
+#   5. 写 .cowork.json 用 _ensure_manifest()；额外补 pack.keep（前端构建产物保留清单），
+#      方便后续 publish 打包时不被剥掉。
+
+SCAFFOLD_TEMPLATES = (
+    "fastapi-only",
+    "koa-monorepo",
+    "nextjs-fullstack",
+    "react-fastapi-monorepo",
+)
+
+
+def _scaffold_templates_root() -> Path:
+    """templates/ 与 cowork.py 同级（skill 仓库 / workspace skill 落盘后都成立）。"""
+    return Path(__file__).resolve().parent / "templates"
+
+
+def _scaffold_pack_keep(template: str) -> list:
+    """pack 阶段必须保留的产物目录（前端模板）。"""
+    if template == "nextjs-fullstack":
+        return [".next", "public"]
+    if template in ("react-fastapi-monorepo", "koa-monorepo"):
+        return ["frontend/dist"]
+    return []
+
+
+def _scaffold_copytree(src: Path, dst: Path) -> None:
+    """与 shutil.copytree(dirs_exist_ok=True) 等价，但显式保留 mode bits（含 +x）。"""
+    dst.mkdir(parents=True, exist_ok=True)
+    for entry in src.iterdir():
+        s = entry
+        d = dst / entry.name
+        if s.is_dir():
+            _scaffold_copytree(s, d)
+        elif s.is_file():
+            data = s.read_bytes()
+            d.write_bytes(data)
+            try:
+                d.chmod(s.stat().st_mode)
+            except Exception:
+                pass
+
+
+def cmd_scaffold(args):
+    """`cowork.py scaffold <name> --template fastapi-only [--target-dir ...]`
+
+    从 templates/<template>/ 生成 Guard 合规 cowork 项目骨架，写 .cowork.json。
+    输出 JSON：{ projectId, srcDir, template, manifestPath }。
+
+    与 SKILL Creation Hard Rule #1 / #2 / #7 配合：scaffold 完不自动 publish，
+    agent 负责后续 read templates-ref/<template>.md → 改业务代码 → cowork.py publish。
+    """
+    name = (args.name or "").strip()
+    if not name:
+        err("scaffold: name 必填")
+    template = args.template or "fastapi-only"
+    if template not in SCAFFOLD_TEMPLATES:
+        err(f"scaffold: 不支持的 template '{template}'，可选: {', '.join(SCAFFOLD_TEMPLATES)}")
+
+    slug = _slugify(name)
+    target_dir = args.target_dir
+    if target_dir:
+        src_dir = Path(target_dir).expanduser().resolve()
+    else:
+        _ensure_project_root()
+        src_dir = (COWORK_PROJECT_ROOT / slug).resolve()
+
+    # 不覆盖已有非空目录
+    if src_dir.exists():
+        try:
+            entries = list(src_dir.iterdir())
+        except OSError:
+            entries = []
+        if entries:
+            err(f"scaffold: targetDir 已存在且非空: {src_dir}")
+
+    templates_root = _scaffold_templates_root()
+    template_dir = templates_root / template
+    if not template_dir.is_dir():
+        err(f"scaffold: 模板未找到: {template_dir}")
+
+    _scaffold_copytree(template_dir, src_dir)
+
+    # fs.copyFile 在某些 FS 会丢 +x；显式恢复执行位
+    for sh in ("install.sh", "start.sh", "health.sh"):
+        p = src_dir / sh
+        if p.exists():
+            try:
+                p.chmod(p.stat().st_mode | 0o111)
+            except OSError:
+                pass
+
+    # 写 manifest（schema/projectId/createdAt 都由 _ensure_manifest 兜底）
+    manifest = _ensure_manifest(
+        str(src_dir),
+        name=slug,
+        stack=template,
+        created_by="cowork-cli",
+        chat_session_id=getattr(args, "chat_session_id", None),
+    )
+    # 补 4 模板的 pack 预设（pack.keep：打包时保留的前端构建产物）
+    pack_keep = _scaffold_pack_keep(template)
+    if pack_keep:
+        manifest["pack"] = {"keep": pack_keep}
+    # 一句话需求描述：写进 manifest，后续 suggest-publish-metadata 据此生成发布文案
+    description = (getattr(args, "description", None) or "").strip()
+    extra_dirty = False
+    if description:
+        manifest["description"] = description
+        extra_dirty = True
+    if pack_keep or extra_dirty:
+        _save_manifest(str(src_dir), manifest)
+
+    output = {
+        "projectId": manifest.get("id"),
+        "srcDir": str(src_dir),
+        "template": template,
+        "manifestPath": str(src_dir / ".cowork.json"),
     }
     print(json.dumps(output, ensure_ascii=False, indent=2))
 
@@ -3792,7 +4628,10 @@ def build_parser():
 
     pt = sub.add_parser("transform", help="把现有工程改写为 Cowork Guard 子应用（调 transform/transform.sh）")
     pt.add_argument("srcDir", help="源工程目录")
-    pt.add_argument("extra", nargs="*", help="额外参数透传给 transform.sh（如 --skip-llm / --resume / --from-stage NN）")
+    # REMAINDER：把 srcDir 之后的所有参数（含 --skip-llm / --resume / --from-stage NN 等
+    # 以 - 开头的）原样透传给 transform.sh，不被 cowork.py 顶层 parser 拦截。
+    pt.add_argument("extra", nargs=argparse.REMAINDER,
+                    help="额外参数透传给 transform.sh（如 --skip-llm / --resume / --from-stage NN）")
     pt.set_defaults(func=cmd_transform)
 
     p3 = sub.add_parser("upload", help="上传任意文件到 OSS，返回 fileId")
@@ -3826,6 +4665,11 @@ def build_parser():
     p5.add_argument("--timeout", type=int, default=DEFAULT_DEPLOY_TIMEOUT_S,
                     help=f"轮询最长等待秒数，默认 {DEFAULT_DEPLOY_TIMEOUT_S}s")
     p5.add_argument("--force", action="store_true", help="precheck 失败也强行发")
+    p5.add_argument("--deployment-id", dest="deployment_id", type=int, default=None,
+                    help="复用上次失败的部署机器重试（首发失败后修代码重发用）；"
+                         "不传则自动读 .cowork.json 的 pendingDeploymentId。记录已失效会自动降级新建")
+    p5.add_argument("--keep", nargs="*", default=None,
+                    help="传源码目录时 pack 阶段不要剥掉的目录名（如 SPA build 产物 dist build）")
     p5.set_defaults(func=cmd_publish)
 
     psug = sub.add_parser(
@@ -3852,29 +4696,6 @@ def build_parser():
     pmem_append.add_argument("--content", help="追加内容；也可用 --file 或 stdin")
     pmem_append.add_argument("--file", help="从文件读取追加内容")
     pmem_append.set_defaults(func=cmd_memory)
-
-    pdev = sub.add_parser("dev", help="本地启动小工具调试服务，并写入 .cowork-dev/sessions.json")
-    devsub = pdev.add_subparsers(dest="dev_action", required=True)
-    pdev_start = devsub.add_parser("start", help="启动调试服务")
-    pdev_start.add_argument("src", help="源码目录")
-    pdev_start.add_argument("--cmd", help="自定义启动命令（在 src 目录执行）")
-    pdev_start.add_argument("--port", type=int, help="指定端口，默认 8901-8999 自动分配")
-    pdev_start.add_argument("--session-id", help="指定 tool session id，默认 cw_xxxxxxxx")
-    pdev_start.add_argument("--chat-session-id", help="绑定 Coral chat session id")
-    pdev_start.add_argument("--title", help="项目标题")
-    pdev_start.add_argument("--alias", help="默认 cowork alias")
-    pdev_start.add_argument("--cover", help="默认封面路径")
-    pdev_start.add_argument("--new", action="store_true", help="同 src 不复用已有 session，强制新建")
-    pdev_start.add_argument("--json", action="store_true")
-    pdev_start.set_defaults(func=cmd_dev)
-
-    pdev_list = devsub.add_parser("list", help="列出 dev sessions")
-    pdev_list.add_argument("--json", action="store_true")
-    pdev_list.set_defaults(func=cmd_dev)
-
-    pdev_stop = devsub.add_parser("stop", help="停止 dev session")
-    pdev_stop.add_argument("session_id")
-    pdev_stop.set_defaults(func=cmd_dev)
 
     p6 = sub.add_parser("status", help="查 deploymentId 状态")
     p6.add_argument("deployment_id", type=int)
@@ -3911,6 +4732,12 @@ def build_parser():
                      help="不传返回全部")
     p7b.set_defaults(func=cmd_list_my_apps)
 
+    p7c = sub.add_parser(
+        "list-projects",
+        help="列出本地所有 Cowork 项目（含未发布草稿）+ 远端作品，merge 后带 3 状态 chip",
+    )
+    p7c.set_defaults(func=cmd_list_projects)
+
     p8 = sub.add_parser("detail", help="查 work 详情")
     p8.add_argument("id", type=int)
     p8.set_defaults(func=cmd_detail)
@@ -3926,7 +4753,7 @@ def build_parser():
     p9.add_argument("--yes", action="store_true")
     p9.set_defaults(func=cmd_delete)
 
-    palias = sub.add_parser("set-alias", help="设置/修改已部署作品的 alias（走 PUT /deployment/{id}/alias）")
+    palias = sub.add_parser("set-alias", help="设置/修改已发布作品的 alias（走 save，应用/静态统一）")
     palias.add_argument("work_id", help="作品 workId")
     palias.add_argument("alias", help="新 alias（3-32 位小写字母/数字/-，不能连字符头尾/两连）")
     palias.add_argument("--json", action="store_true", help="输出 JSON")
@@ -3981,6 +4808,19 @@ def build_parser():
                     help="[禁用] 跳 Cowork Studio Web 端设置")
     pu.add_argument("--tags", nargs="*", default=None, help="场景标签（中文 or enum key）")
     pu.set_defaults(func=cmd_update)
+
+    psc2 = sub.add_parser("scaffold", help="从内置模板生成 Cowork 合规项目骨架（4 个 profile，写 .cowork.json）")
+    psc2.add_argument("name", help="项目名（slug 化后作为目录名）")
+    psc2.add_argument("--template", default="fastapi-only",
+                      choices=list(SCAFFOLD_TEMPLATES),
+                      help="模板 profile（默认 fastapi-only）")
+    psc2.add_argument("--target-dir", dest="target_dir",
+                      help="目标目录（默认 ~/.openclaw/workspace/cowork/<slug>/）；非空目录会拒绝")
+    psc2.add_argument("--description", dest="description",
+                      help="一句话需求描述（写进 .cowork.json，供后续 suggest-publish-metadata 生成发布文案）")
+    psc2.add_argument("--chat-session-id", dest="chat_session_id",
+                      help="绑定 Coral chat session id（可选）")
+    psc2.set_defaults(func=cmd_scaffold)
 
     p10 = sub.add_parser("redeploy", help="对已有 work 重新打包并部署当前本地代码（保留元信息/alias，自增版本）")
     p10.add_argument("work_id", help="Cowork workId")

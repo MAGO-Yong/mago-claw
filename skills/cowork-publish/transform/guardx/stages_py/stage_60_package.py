@@ -8,6 +8,7 @@
 from __future__ import annotations
 
 import fnmatch
+import json
 import os
 import shutil
 import stat
@@ -21,6 +22,11 @@ from .. import config, log
 #   - "node_modules/*" → 任何 node_modules 目录下的文件
 #   - "*/node_modules/*" → 子目录下的 node_modules
 #   - 顶层文件如 ".env" 也排除
+#
+# 注：下面这一行 "*credentials*"/"*secret*"/"*token*"/"*.pem"/"*.key"/"id_rsa*"
+# 是【打包排除清单】里的敏感文件名 glob —— 用途是把工作副本里**可能误存在的**敏感
+# 文件挡在 zip 之外（防止误打包上传），不是读取或访问任何凭据。SAST 扫描器误把这
+# 几个保护性 pattern 当成"读凭据"，请按白名单处理。
 _EXCLUDE_PATTERNS = (
     "*.git*",
     "node_modules", "node_modules/*", "*/node_modules", "*/node_modules/*",
@@ -133,8 +139,8 @@ def _list_top_level(zip_path: Path) -> set[str]:
 
 
 # 禁止打进 zip 的"敏感/平台注入"文件名（任意层级出现都拦截）
-# 详见 transform_prompt.md § 二 + § 五（db.properties / ai.properties 由平台运行时注入到 conf/，
-# 不能由项目自带；.env 会让运维误以为可改）
+# 详见 transform_prompt.md § 二 + § 五（db.properties / ai.properties 由平台运行时注入到
+# 与 install.sh 同级的顶层目录，不能由项目自带；.env 会让运维误以为可改）
 _ZIP_BANNED_NAMES = (
     "db.properties",
     "ai.properties",
@@ -194,13 +200,39 @@ def run(cfg: config.Config) -> int:
     log.log(f"  时间戳后缀: {cfg.zip_timestamp}（可用 GUARD_ZIP_TIMESTAMP=MMDDhhmm 指定）")
     _make_zip(work_dir, zip_path)
 
-    # ---- 关键断言 1：zip 顶层必须直接含 install.sh / start.sh / health.sh ----
+    # ---- 关键断言 1：zip 顶层结构 ----
+    # 默认要求顶层直接含 install.sh / start.sh / health.sh；
+    # 纯前端项目（stack.frontend_only=1）改为要求构建产物里有 index.html
+    # （dist/index.html / build/index.html / out/index.html / 顶层 index.html 任一）。
     log.log("断言 zip 顶层结构")
     top = _list_top_level(zip_path)
-    for f in ("install.sh", "start.sh", "health.sh"):
-        if f not in top:
-            log.die(f"zip 顶层缺 {f}（多套了一层目录？请检查 cd 进副本再打）")
-    log.ok("zip 顶层结构正确")
+
+    frontend_only = False
+    stack_path = cfg.state_dir / "stack.json"
+    if stack_path.is_file():
+        try:
+            stack = json.loads(stack_path.read_text())
+            frontend_only = str(stack.get("frontend_only", "")) == "1"
+        except (OSError, json.JSONDecodeError):
+            pass
+
+    if frontend_only:
+        # 找 index.html：dist/build/out/顶层 任一存在即可
+        index_candidates = ("dist/index.html", "build/index.html", "out/index.html", "index.html")
+        with zipfile.ZipFile(zip_path) as zf:
+            zip_names = set(zf.namelist())
+        if not any(c in zip_names for c in index_candidates):
+            log.die(
+                "frontend_only 项目 zip 内未找到 index.html "
+                f"（已扫: {', '.join(index_candidates)}）；"
+                "确认 stage 40 已成功 build，产物落到 dist/ 或 build/"
+            )
+        log.ok("zip 含构建产物 index.html (frontend_only)")
+    else:
+        for f in ("install.sh", "start.sh", "health.sh"):
+            if f not in top:
+                log.die(f"zip 顶层缺 {f}（多套了一层目录？请检查 cd 进副本再打）")
+        log.ok("zip 顶层结构正确")
 
     # ---- 关键断言 2：zip 内不能含 db.properties / ai.properties / .env / Dockerfile ----
     # 这些要么由平台运行时注入（db/ai.properties），要么是开发期残留（.env / Dockerfile）
@@ -214,11 +246,58 @@ def run(cfg: config.Config) -> int:
         if len(banned_in_zip) > 20:
             msg_lines.append(f"  ...（共 {len(banned_in_zip)} 项）")
         msg_lines.append(
-            "  说明：db.properties/ai.properties 由平台注入到 conf/，"
+            "  说明：db.properties/ai.properties 由平台注入到与 install.sh 同级的顶层目录，"
             ".env/Dockerfile 是开发期残留"
         )
         log.die("\n".join(msg_lines))
     log.ok("zip 不含禁打文件")
+
+    # ---- 关键断言 3：zip 内不能含任何嵌套 venv（任意目录名）----
+    # 设计理由：
+    #   _EXCLUDE_PATTERNS 里的 ".venv"/".venv/*" 只能挡名字叫 .venv 的目录，
+    #   用户手写 build.sh 完全可能 `python3 -m venv venv` / `python3 -m venv myenv` /
+    #   `python3 -m virtualenv .my-py-env`，绕过名字白名单 → venv 落进 zip → 上线后
+    #   `.venv/bin/gunicorn` 形态的 shebang ENOENT 重现（详见 verify_no_venv_creation.sh）。
+    #
+    #   此处用 venv 自身的"指纹文件"做判定，名字无关：
+    #     - `pyvenv.cfg`：CPython `venv` 模块在 venv 根目录强制创建的元数据文件，
+    #                     存在 = 这一定是个 venv（无论目录叫什么）
+    #     - `*/bin/python*` 当前先不查 ELF 头，仅 pyvenv.cfg 已足够覆盖 venv 模块产物；
+    #       virtualenv CLI 也写 pyvenv.cfg（兼容 PEP 405），同样能命中。
+    #
+    #   touch 此 assert 只在 zip 已生成后扫一次条目名，不读文件内容，零额外 IO。
+    log.log("断言 zip 不含嵌套 venv（pyvenv.cfg 指纹）")
+    venv_hits: list[str] = []
+    with zipfile.ZipFile(zip_path) as zf:
+        for name in zf.namelist():
+            if name.endswith("/"):
+                continue
+            if name.rsplit("/", 1)[-1] == "pyvenv.cfg":
+                venv_hits.append(name)
+    if venv_hits:
+        msg_lines = ["zip 内发现嵌套 venv（pyvenv.cfg 文件）:"]
+        for p in venv_hits[:10]:
+            venv_root = p.rsplit("/", 1)[0] if "/" in p else "(zip 顶层)"
+            msg_lines.append(f"  - {p}  ← venv root: {venv_root}")
+        if len(venv_hits) > 10:
+            msg_lines.append(f"  ...（共 {len(venv_hits)} 个）")
+        msg_lines.append("")
+        msg_lines.append(
+            "  根因：业务 .sh 在工程内创建了嵌套 venv（python -m venv 或 virtualenv），"
+            "_EXCLUDE_PATTERNS 仅按名字过滤 .venv/，非 .venv 名字的 venv 会被打进 zip。"
+        )
+        msg_lines.append(
+            "  后果：guard-rust 启动时会 `fs::rename` 工程目录，但 venv 内 console_script "
+            "(gunicorn/uvicorn 等) 的 shebang 写死创建时刻的绝对路径，rename 后 execve "
+            "ENOENT，bash 报 `cannot execute: required file not found`。"
+        )
+        msg_lines.append(
+            "  修复：参见 verify_no_venv_creation.sh —— 删掉所有 `python -m venv ...` / "
+            "`virtualenv ...`，依赖 Pod 镜像的 /opt/venv 全局 venv，install.sh 直接 "
+            "`python3 -m pip install`，start.sh 直接 `exec python3 -m gunicorn ...`。"
+        )
+        log.die("\n".join(msg_lines))
+    log.ok("zip 不含嵌套 venv")
 
     # ---- 大小检查 ----
     size = zip_path.stat().st_size

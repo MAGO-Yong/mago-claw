@@ -148,6 +148,10 @@
     "qs": {
       "version": "1.0.7",
       "installedAt": 1780899616384
+    },
+    "cowork-publish": {
+      "version": "2.0.7",
+      "installedAt": 1781251761530
     }
   }
 }

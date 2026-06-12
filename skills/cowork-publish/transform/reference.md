@@ -19,10 +19,10 @@
 
 | 脚本 | 作用 | 典型用法 |
 | --- | --- | --- |
-| [`scripts/transform.sh`](scripts/transform.sh) | 8 stage 流水线主入口 | `"$GUARD_TRANSFORM_HOME/transform.sh" <src> [-y] [--from-stage N]` |
-| [`scripts/bin/guardx`](scripts/bin/guardx) | Python 入口（transform.sh 内部调起） | 一般不直接用；调试时 `"$GUARD_TRANSFORM_HOME/bin/guardx" verify <src>` |
+| [`scripts/bin/guardx`](scripts/bin/guardx) | 主入口（transform / verify / pack / detect / clean 等子命令） | `"$GUARD_TRANSFORM_HOME/bin/guardx" transform <src> [-y]` / `pack <src>` / `verify <src>` |
+| [`scripts/transform.sh`](scripts/transform.sh) | `bin/guardx transform` 的薄 wrapper（多了 `--choose-model` 透传 + LLM 登录预检） | 历史保留；新写的 prompt 优先用 `bin/guardx <subcmd>` 入口 |
 | [`scripts/bin/cowork-package-verify`](scripts/bin/cowork-package-verify) | 打包前合规体检 | `"$GUARD_TRANSFORM_HOME/bin/cowork-package-verify" <src>` |
-| [`scripts/bin/cowork-login-check`](scripts/bin/cowork-login-check) | LLM 后端登录预检 | `transform.sh` 启动时自动调；也可独立跑做诊断 |
+| [`scripts/bin/cowork-login-check`](scripts/bin/cowork-login-check) | LLM 后端登录预检 | `bin/guardx transform` 启动时自动调；也可独立跑做诊断 |
 | [`scripts/default_env.sh`](scripts/default_env.sh) | 默认环境变量（GUARD_LLM 等） | `source "$GUARD_TRANSFORM_HOME/default_env.sh"` |
 | [`scripts/choose-model.sh`](scripts/choose-model.sh) | 交互式换模型（仅 macOS） | `"$GUARD_TRANSFORM_HOME/choose-model.sh"` —— Seal 云端 Linux 跑不起来，请改用 `--show` 或编辑 default_env.sh |
 
@@ -32,7 +32,7 @@
 
 | 变量 | 默认值 | 作用 |
 | --- | --- | --- |
-| `GUARD_LLM` | `seal` | LLM 后端（CLI=`codewiz-cc`）。可选 `seal` / `claude` / `codewiz` / `qwen-code` / `codex` / `gemini` / `mock` |
+| `GUARD_LLM` | `seal` | LLM 后端（CLI=`codewiz-cc`）。可选 `seal` / `codewiz-cc` / `codewiz` / `qwen-code` / `codex` / `gemini` / `mock` |
 | `GUARD_LLM_MODEL` | (空) | 一刀切模型 id；留空才能让分级路由生效 |
 | `GUARD_LLM_MODEL_STRONG` | `claude-4.6-sonnet-google` | stage 20 跨文件大改写用的模型（非 thinking）。**seal 后端可用**：`claude-4.6-sonnet-google` |
 | `GUARD_LLM_MODEL_FAST` | `claude-4.6-sonnet-google` | stage 10 brief / autofix 局部小修用的模型（非 thinking）。**seal 后端可用**：`claude-4.6-sonnet-google` / `claude-4.5-haiku-google` |

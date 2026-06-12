@@ -20,21 +20,16 @@ if [ "${TPL_HAS_PYTHON_DEPS}" = "1" ]; then
   (
     _cd_backend
     if [ -f requirements.txt ]; then
-      # Linux 上使用 venv 隔离，避免 pip 全局安装污染系统
-      if [ "$(uname)" = "Linux" ]; then
-        echo "[install] step: create venv + pip install (venv 隔离, 内部镜像) in $(pwd)"
-        python3 -m venv .venv
-        . .venv/bin/activate
-        pip install --no-cache-dir -r requirements.txt \
-          -i http://pypi.devops.xiaohongshu.com/simple/ \
-          --trusted-host pypi.devops.xiaohongshu.com 2>&1
-        deactivate
-      else
-        echo "[install] step: pip install (内部镜像) in $(pwd)"
-        python -m pip install --no-cache-dir -r requirements.txt \
-          -i http://pypi.devops.xiaohongshu.com/simple/ \
-          --trusted-host pypi.devops.xiaohongshu.com 2>&1
-      fi
+      # ★ Pod 镜像（Dockerfile 里）已预创建 /opt/venv 并把 /opt/venv/bin 拍到 PATH 最前；
+      #   pip / python 都解析到 /opt/venv/bin。直接用 ambient `python3 -m pip` 即可。
+      # 历史坑：在 venv 内部再跑 `python3 -m venv .venv` 会触发：
+      #   1) bookworm 的 python3-venv 单包不带 ensurepip 的 pip wheel（pip 在 python3-pip 包里），
+      #      新建 .venv 没有 pip → `. .venv/bin/activate` 后 PATH 上 `pip: command not found`
+      #   2) 多一层嵌套 venv 没收益，反而更脆弱
+      # macOS 本地：用户大概率已自激活 venv 或装了 pip，同样直接 ambient 即可。
+      # 镜像源不写死在脚本里；如需走内部 mirror，在 Pod env 设 PIP_INDEX_URL / PIP_TRUSTED_HOST。
+      echo "[install] step: pip install (use ambient pip from /opt/venv on Pod) in $(pwd)"
+      python3 -m pip install --no-cache-dir -r requirements.txt 2>&1
     fi
   )
 fi
@@ -89,10 +84,8 @@ fi
 if [ "${TPL_NEEDS_DB_INIT}" = "1" ]; then
   (
     _cd_backend
-    # Linux 上 Python 脚本需激活 venv（install 阶段已创建）
-    if [ "$(uname)" = "Linux" ] && [ -f .venv/bin/activate ]; then
-      . .venv/bin/activate
-    fi
+    # Pod 镜像 Dockerfile `ENV PATH=/opt/venv/bin:$PATH` 已让 python / pip 直通全局 venv，
+    # 工程内不再嵌套建 .venv（详见 install.sh 顶部注释）。
     echo "[install] step: db init (DDL + DML) in $(pwd)"
     if [ -f app/init_db.py ]; then
       python -m app.init_db 2>&1

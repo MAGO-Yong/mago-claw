@@ -17,16 +17,16 @@
 set -eo pipefail
 cd "$(dirname "$0")"
 
-# Python 依赖：内部 pypi 镜像
+# Python 依赖：装到 Pod 镜像预置的全局 venv（/opt/venv 已在 PATH 上）
+# ⚠️ 工程内**禁止**再 `python3 -m venv .venv`（verify_no_venv_creation.sh 会卡）：
+#    1) bookworm 镜像 python3-venv 单包不带 ensurepip 的 pip wheel，新建 .venv 没有 pip
+#    2) pip 写出的 console_script (.venv/bin/uvicorn …) shebang 钉死创建时刻的绝对路径，
+#       guard-rust 启动期 `fs::rename` 工程目录到 releases/<url_key>/ 后 execve ENOENT
+# ⚠️ 也**不要**在 install.sh 里硬编码 `-i ...` / `--index-url ...` / `--trusted-host ...`
+#    （verify_install_no_internet.sh 会卡）；如需走内部镜像，由 Pod env
+#    PIP_INDEX_URL / PIP_TRUSTED_HOST 注入
 if [ -f requirements.txt ]; then
-  if [ "$(uname)" = "Linux" ]; then
-    python3 -m venv .venv
-    . .venv/bin/activate
-    pip install --no-cache-dir -r requirements.txt \
-      -i http://pypi.devops.xiaohongshu.com/simple/ \
-      --trusted-host pypi.devops.xiaohongshu.com
-    deactivate
-  fi
+  python3 -m pip install --no-cache-dir -r requirements.txt
 fi
 
 # Node 依赖：.npmrc 已配双路内部 registry
@@ -35,9 +35,9 @@ if [ -f package.json ] && [ ! -f .next/standalone/server.js ]; then
 fi
 
 # DB 初始化：必须幂等（CREATE TABLE IF NOT EXISTS / ON CONFLICT）
+# python3 走 PATH 解析到 /opt/venv/bin/python3，无需 activate 任何 venv
 if [ -f app/init_db.py ]; then
-  [ -f .venv/bin/activate ] && . .venv/bin/activate
-  python -m app.init_db
+  python3 -m app.init_db
 fi
 
 echo "[install] done"
@@ -58,13 +58,14 @@ echo "[install] done"
 set -eo pipefail
 cd "$(dirname "$0")"
 
-# 激活 venv（仅 Linux + 有 Python 依赖时）
-[ -f .venv/bin/activate ] && . .venv/bin/activate
-
 # 末行 exec：让业务进程接管 PID 1，正确接收 SIGTERM
-exec uvicorn app.main:app --host 0.0.0.0 --port "${APP_PORT:-3000}"
-# Node 版本：APP_PORT="${APP_PORT:-3000}" exec node dist/server.js
-# Next standalone: APP_PORT="${APP_PORT:-3000}" exec node .next/standalone/server.js
+# ⚠️ 一定走 `python3 -m uvicorn`（PATH 解析到 /opt/venv/bin/python3），
+#    不要写 `exec uvicorn` 裸命令——uvicorn 的 console_script shebang 钉死
+#    创建时刻的绝对路径，guard-rust rename 工程目录后 execve ENOENT
+export APP_PORT="${APP_PORT:-3000}"
+exec python3 -m uvicorn app.main:app --host 0.0.0.0 --port ${APP_PORT} 2>&1
+# Node:      export APP_PORT="${APP_PORT:-3000}"; exec node dist/server.js 2>&1
+# Next stdl: export APP_PORT="${APP_PORT:-3000}"; exec node .next/standalone/server.js 2>&1
 ```
 
 **关键点**：

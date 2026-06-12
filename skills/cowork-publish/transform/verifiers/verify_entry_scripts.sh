@@ -14,7 +14,8 @@
 #      （build 必须在 stage 40 阶段完成，install.sh 只能拷贝 + 解依赖 + 灌种子）
 #   8) start.sh 末尾必须用 exec 启动业务进程（不能 & 后台 + 退出）
 #      原因：bash 进程退出会让 Pod 健康检查认为容器死了
-#   9) health.sh 必须包含 127.0.0.1:3000/health 字面量探测（端口/host 必须显式写）
+#   9) health.sh 必须包含 127.0.0.1:${APP_PORT:-3000}/health 探测（host 必须显式 127.0.0.1；
+#      端口允许 ${APP_PORT:-3000} 或字面量 3000；模板渲染产物用前者，蓝绿期才能注入 APP_PORT=3001）
 #      原因：平台调 health.sh 判活，路径不是 /health 或端口写错都会立刻烂
 #
 # 任何一项不通过 → exit 1
@@ -22,6 +23,14 @@ set -eo pipefail
 WORK_DIR="${1:?usage: $0 <work_dir>}"
 
 cd "$WORK_DIR"
+
+# 纯前端项目（stack.frontend_only=1）不需要 install/start/health.sh，整个 verifier skip
+if [ -n "${STATE_DIR:-}" ] && [ -f "$STATE_DIR/stack.json" ]; then
+  if grep -q '"frontend_only"[[:space:]]*:[[:space:]]*1' "$STATE_DIR/stack.json"; then
+    echo "[OK] stack.frontend_only=1（纯前端项目，无 install/start/health.sh），skip"
+    exit 0
+  fi
+fi
 
 fail=0
 report() { printf '[FAIL] %s\n' "$*" >&2; fail=$((fail+1)); }
@@ -43,7 +52,7 @@ trap _cleanup_tmp EXIT INT TERM
 for f in install.sh start.sh health.sh; do
   if [ ! -f "$f" ]; then
     report "$f 不存在"
-    hint "目标文件 $f：在工程根目录新建 $f，加 shebang \`#!/usr/bin/env bash\` + \`set -eo pipefail\`，并 chmod +x；start.sh 末行须 \`exec\` 启动业务进程并监听 0.0.0.0:3000，health.sh 须 curl 127.0.0.1:3000/health"
+    hint "目标文件 $f：在工程根目录新建 $f，加 shebang \`#!/usr/bin/env bash\` + \`set -eo pipefail\`，并 chmod +x；start.sh 末行须 \`exec\` 启动业务进程并监听 \`0.0.0.0:\${APP_PORT}\`（顶部 \`export APP_PORT=\"\${APP_PORT:-3000}\"\`），health.sh 须 \`curl -fsS http://127.0.0.1:\${APP_PORT:-3000}/health\`"
     continue
   fi
 
@@ -114,7 +123,7 @@ if [ -f start.sh ]; then
     # 末行必须 exec ...（除了 fi/done/} 这种结构控制行）
     if ! echo "$LAST_CMD" | grep -qE '^[[:space:]]*(exec[[:space:]]|\}|done[[:space:]]*$|fi[[:space:]]*$|esac[[:space:]]*$)'; then
       report "start.sh 最后一条命令不是 exec（第 $LAST_LINENO 行: $LAST_CMD）；后台启动会让 bash 退出 → Pod 误判容器死亡"
-      hint "目标文件 start.sh 第 $LAST_LINENO 行：在业务启动命令前加 \`exec\`，例如 \`exec uvicorn main:app --host 0.0.0.0 --port 3000\` 或 \`exec node server.js\`（必须前台运行，bash 退出 = Pod 死亡）"
+      hint "目标文件 start.sh 第 $LAST_LINENO 行：在业务启动命令前加 \`exec\`，例如 \`exec uvicorn main:app --host 0.0.0.0 --port \${APP_PORT}\` 或 \`exec node server.js\`（必须前台运行，bash 退出 = Pod 死亡；顶部记得 \`export APP_PORT=\"\${APP_PORT:-3000}\"\`，**不要写死 3000**）"
     fi
     # 末行不应以 & 结尾（后台运行）
     if echo "$LAST_CMD" | grep -qE '&[[:space:]]*$'; then
@@ -128,15 +137,19 @@ fi
 # 注意：path 不再强制 /health，应用可能用 /api/health / /healthz / /actuator/health 等；
 #      探测路径与业务路由的双向一致性由 verify_health_consistency.sh 负责
 if [ -f health.sh ]; then
-  # 必须出现 127.0.0.1:3000 或 localhost:3000 作为探测目标的 host:port（无论后续 path 是什么）
+  # 必须出现 127.0.0.1:${APP_PORT:-3000} 或 127.0.0.1:3000（字面量）作为探测目标
+  # 端口允许两种形式：① ${APP_PORT:-3000} 兜底语法（health.sh.tpl 默认渲染产物，蓝绿期能注入）
+  #                  ② 字面量 3000（用户手写时的简化写法，本地开发兜底）
   # 也允许 nc / </dev/tcp/.../3000 这种 TCP 探活；进程/ping 探测会被 verify_health_consistency 标记
-  if ! grep -qE '(127\.0\.0\.1|localhost)[:/[:space:]]*3000\b|/dev/tcp/(127\.0\.0\.1|localhost)/3000\b|\bnc\s+(-[a-zA-Z]+\s+)*(127\.0\.0\.1|localhost)\s+3000\b' health.sh; then
+  # 关键正则放宽：host:port 之间允许 ${APP_PORT...} / ${APP_PORT:-3000} 等 shell 变量展开形式
+  # （之前 [:/[:space:]]*3000 只识别字面量 3000，与 health.sh.tpl 渲染产物 ${APP_PORT:-3000} 不兼容）
+  if ! grep -qE '(127\.0\.0\.1|localhost):[^/[:space:]]*3000\b|/dev/tcp/(127\.0\.0\.1|localhost)/(\$\{APP_PORT[^}]*\}|3000)\b|\bnc\s+(-[a-zA-Z]+\s+)*(127\.0\.0\.1|localhost)\s+(\$\{APP_PORT[^}]*\}|3000)\b' health.sh; then
     # 如果只是没识别到 host:port，且 health.sh 用了 ping/进程检查也算合法形式，留给 verify_health_consistency 决策
     if ! grep -qE '\bping\b|\bpgrep\b|\bpidof\b' health.sh; then
-      report "health.sh 找不到对 127.0.0.1:3000 / localhost:3000 的探测（端口必须 3000；path 由业务决定，由 verify_health_consistency 负责一致性校验）"
+      report "health.sh 找不到对 127.0.0.1:\${APP_PORT:-3000} / 127.0.0.1:3000 的探测（host 必须 127.0.0.1；端口允许 \${APP_PORT:-3000} 或字面量 3000；path 由业务决定，由 verify_health_consistency 负责一致性校验）"
       echo "    当前内容（首 5 行）:" >&2
       head -5 health.sh | sed 's/^/      /' >&2
-      hint "目标文件 health.sh：用一条 \`curl -fsS http://127.0.0.1:3000/health\` 做探测（host 固定 127.0.0.1，端口固定 3000，path 由 verify_health_consistency 决定；最简模板：\`#!/usr/bin/env bash\\nexec curl -fsS http://127.0.0.1:3000/health\`）"
+      hint "目标文件 health.sh：用一条 \`curl -fsS -o /dev/null --max-time 3 \"http://127.0.0.1:\${APP_PORT:-3000}/health\" || exit 1\` 做探测（host 固定 127.0.0.1，端口走 \${APP_PORT:-3000} 兜底蓝绿期注入，path 由 verify_health_consistency 决定）"
     fi
   fi
   # 不能用 0.0.0.0 当探测目标

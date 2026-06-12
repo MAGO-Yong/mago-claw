@@ -20,8 +20,12 @@
    - Python `psycopg`：`psycopg.connect(user=..., password=..., host=..., port=..., dbname=...)`，不要 conninfo 字符串
    - Node `pg`：`new Pool({user, password, host, port, database})`，不要 `connectionString`
    - 实在要拿字符串：先 `urllib.parse.quote(password, safe='')` / `encodeURIComponent(password)` 再拼
-5. **网络**：Pod 无公网；install.sh 装包必须走内部镜像（pip / npm 双路）
-6. **端口**：服务必须监听 `0.0.0.0:3000`，**不要**用 8000 / 8080
+5. **网络**：Pod 无公网；**install.sh 不要硬编码 pip/npm 源**——不要写 `pip install -i <URL>` / `--index-url` / `--trusted-host`，也不要写 `npm install --registry=<URL>`。让 Pod 运行时环境（`PIP_INDEX_URL` / `.npmrc` / `NPM_CONFIG_REGISTRY`）决定走哪个源
+6. **端口**：服务监听 `0.0.0.0` 上的 `APP_PORT`（默认 3000），**不要**用 8000 / 8080，**也不要写死 3000**：
+   - 业务源码：`process.env.APP_PORT || 3000` / `int(os.environ.get('APP_PORT', '3000'))`
+   - 启动命令：`--port ${APP_PORT}` / `--bind 0.0.0.0:${APP_PORT}`（外层 start.sh 会 `export APP_PORT="${APP_PORT:-3000}"` 兜底）
+   - ❌ 严禁：`app.listen(3000)` / `--port 3000` 等字面量；❌ 严禁裸读 `PORT` / `HOSTNAME`（系统 env 会被污染）
+   - 蓝绿场景平台会注入 `APP_PORT=3001`，写死 3000 会让新版本永远探不通
 7. **路径**：源码全用裸路径 `/api/...` `/_next/...`，**不配** `assetPrefix` / `basePath` / `publicPath` / `base`
 8. **build 不在 Pod**：build 已经在改写机跑过，install.sh 只装 runtime 依赖
 
