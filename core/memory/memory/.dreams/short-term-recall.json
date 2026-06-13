@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updatedAt": "2026-06-12T00:03:37.405Z",
+  "updatedAt": "2026-06-13T00:03:36.230Z",
   "entries": {
     "memory:memory/2026-03-24.md:26:66": {
       "key": "memory:memory/2026-03-24.md:26:66",
@@ -158,26 +158,28 @@
       "endLine": 37,
       "source": "memory",
       "snippet": "# 2026-03-25 记忆日志 ## 上午（承接昨日上下文） ### Harness Engineering 研究报告 v2 发布 完成了报告的第二次重大升级，发布至 Redoc。 **Redoc 链接（v2 正式版）：** https://docs.xiaohongshu.com/doc/af56692ecbee237311e9c958c4175a18 **本地文件：** `/home/node/.openclaw/workspace/Harness_Engineering_研究报告_v2.md`（656 行） 新增来源（从 5 篇升至 11 篇 Tier 1）： - Anthropic Engineering Blog 完整系列（7 篇），之前完全未扫描 - OpenAI Codex 三篇系列（Unrolling agent loop / Unlocking the harness App Server / Harness Engineering） - 之前只读了 LangChain + arXiv + Mitchell Hashimoto + OpenAI HE 主文章 新增了 4 个核心概念： 1. **Context Anxiety（上下文焦虑）**：Agent 快没 context 时提前收尾，比 Doom Loop 更隐蔽 2. **Context Rot（上下文腐化）**：长任务中约束被遗忘，n² 注意力架构约束导致 3. **Eval Harness vs Agent Harness** 的正式区分（Anthropic 官方定义） 4. **H",
-      "recallCount": 5,
+      "recallCount": 6,
       "dailyCount": 0,
       "groundedCount": 0,
-      "totalScore": 2.2111271053552626,
-      "maxScore": 0.4661319136619568,
+      "totalScore": 2.683764612674713,
+      "maxScore": 0.47263750731945037,
       "firstRecalledAt": "2026-05-21T00:04:03.648Z",
-      "lastRecalledAt": "2026-06-11T00:03:36.726Z",
+      "lastRecalledAt": "2026-06-13T00:03:36.230Z",
       "queryHashes": [
         "d04d4f29cecb",
         "5fae4dd2eaaa",
         "2886f1069979",
         "c1537166c5d8",
-        "d2dbff236682"
+        "d2dbff236682",
+        "736f4e0a588b"
       ],
       "recallDays": [
         "2026-05-21",
         "2026-05-24",
         "2026-06-01",
         "2026-06-08",
-        "2026-06-11"
+        "2026-06-11",
+        "2026-06-13"
       ],
       "conceptTags": [
         "openai",
@@ -197,26 +199,28 @@
       "endLine": 36,
       "source": "memory",
       "snippet": "# 2026-03-23 日志 ## 上午会话（~10:54 - 11:32 GMT+8） ### 主要工作 1. **确认 SKILL.md 更新完成** - 昨晚 commit `1d63395` 已推送到 GitHub `MAGO-Yong/SKILL` - 更新内容：Pre-Research Source Coverage Checklist、China check 强制触发、微信处理（one attempt only）、工具优先级表、交叉验证、证据强度标签、冲突数据显示 2. **Agent Harness Engineering 专题调研（Round 1 + Round 2）** - 用户选方向 C：AI/LLM Harness Engineering - Round 1：概念溯源、三阶段演进（Prompt → Context → Harness）、核心三大能力层（信息供给/架构约束/熵管理）、Eval Harness、行业案例（OpenAI/Stripe/LangChain/Databricks）、成熟度判断 - Round 2：用户优先级 3→2→1，聚焦「PM 能主导什么」 - 关键结论：Harness Engineering 是 Skills RE 的方法论锚点 - 新度量框架：Layer 1-4（基础设施→链路追踪→认知行为→业务结果） - Agent SLO 核心命题：「系统在跑，但答案是错的」是传统 SLO 盲区 - PM 主导三件事：定义 Agent 稳定性标准、推动 Tr",
-      "recallCount": 5,
+      "recallCount": 6,
       "dailyCount": 0,
       "groundedCount": 0,
-      "totalScore": 2.196560287475586,
-      "maxScore": 0.4786457598209381,
+      "totalScore": 2.675279292464256,
+      "maxScore": 0.4787190049886703,
       "firstRecalledAt": "2026-05-21T00:04:03.648Z",
-      "lastRecalledAt": "2026-06-11T00:03:36.726Z",
+      "lastRecalledAt": "2026-06-13T00:03:36.230Z",
       "queryHashes": [
         "d04d4f29cecb",
         "5fae4dd2eaaa",
         "2886f1069979",
         "c1537166c5d8",
-        "d2dbff236682"
+        "d2dbff236682",
+        "736f4e0a588b"
       ],
       "recallDays": [
         "2026-05-21",
         "2026-05-24",
         "2026-06-01",
         "2026-06-08",
-        "2026-06-11"
+        "2026-06-11",
+        "2026-06-13"
       ],
       "conceptTags": [
         "openai",
@@ -576,13 +580,13 @@
       "endLine": 118,
       "source": "memory",
       "snippet": "天） |",
-      "recallCount": 5,
+      "recallCount": 6,
       "dailyCount": 0,
       "groundedCount": 0,
-      "totalScore": 2.312373685836792,
+      "totalScore": 2.778370812535286,
       "maxScore": 0.48719812929630274,
       "firstRecalledAt": "2026-05-26T00:03:36.522Z",
-      "lastRecalledAt": "2026-06-09T00:00:39.764Z",
+      "lastRecalledAt": "2026-06-13T00:00:39.388Z",
       "queryHashes": [
         "5601a4f18d36",
         "4f2975ffb8c2",
@@ -595,7 +599,8 @@
         "2026-05-27",
         "2026-05-28",
         "2026-06-08",
-        "2026-06-09"
+        "2026-06-09",
+        "2026-06-13"
       ],
       "conceptTags": []
     },
@@ -829,13 +834,13 @@
       "endLine": 116,
       "source": "memory",
       "snippet": "--",
-      "recallCount": 6,
+      "recallCount": 7,
       "dailyCount": 0,
       "groundedCount": 0,
-      "totalScore": 2.648703020811081,
+      "totalScore": 3.108342003822327,
       "maxScore": 0.4714791655540466,
       "firstRecalledAt": "2026-05-27T00:06:01.845Z",
-      "lastRecalledAt": "2026-06-09T00:00:39.764Z",
+      "lastRecalledAt": "2026-06-13T00:00:39.388Z",
       "queryHashes": [
         "d59ea679510a",
         "cadaf8b3c403",
@@ -848,7 +853,8 @@
         "2026-05-27",
         "2026-05-28",
         "2026-06-08",
-        "2026-06-09"
+        "2026-06-09",
+        "2026-06-13"
       ],
       "conceptTags": []
     },
@@ -1271,20 +1277,21 @@
       "endLine": 53,
       "source": "memory",
       "snippet": "# 工作日报 · 2026-04-19（周日） > **首次生成说明**：work-log 目录此前仅有 README.md，无历史日报可延续对比。本报告基于 daily-digest + weekly report + session 记录逆向整理。 --- ## 方向一：XRay 平台 Agent Native 化（告警诊断 / AgentOps / 评估体系 / AI基础能力） ### 今天做了什么 - **无直接进展**。周日无 XRay 相关讨论。 ### 上周遗留待办进展对比 - ⏳ 告警诊断需求文档 v0.6 与对话 v0.2 合并 → **仍未完成**（W16 遗留 P0） - ⏳ execute_tool Span 框架层采集现状确认 → **仍未完成**（4/18 遗留） - ⏳ xray-log-query P0 SKILL 修复 → **仍未完成** ### 做得好的 - 无 ### 做得不好的 - 三个 P0 待办持续搁置，已进入 W17 需立即处理 ### 待做方向 - **P0**: 合并 v0.6 与对话 v0.2 需求文档，写入正式文件（`memory/alarm-agent-requirements-v0.7.md`） - **P0**: 确认 execute_tool Span 框架层采集现状，补充可观测规范第五章 - **P0**: xray-log-query SKILL subApplication 参数格式修复 --- ## 方向二：PM 工作流自动化 ### 今天做了什么 - **无直接进展**。周日无 PM",
-      "recallCount": 6,
+      "recallCount": 7,
       "dailyCount": 0,
       "groundedCount": 0,
-      "totalScore": 2.792932540178299,
+      "totalScore": 3.2697141259908675,
       "maxScore": 0.48639962971210476,
       "firstRecalledAt": "2026-05-30T00:03:36.122Z",
-      "lastRecalledAt": "2026-06-12T00:03:37.405Z",
+      "lastRecalledAt": "2026-06-13T00:03:36.230Z",
       "queryHashes": [
         "f133c9272bca",
         "2886f1069979",
         "4997cc3be1bc",
         "b80ce953b7c7",
         "379170ee471a",
-        "1c388470fd1f"
+        "1c388470fd1f",
+        "736f4e0a588b"
       ],
       "recallDays": [
         "2026-05-30",
@@ -1292,7 +1299,8 @@
         "2026-06-03",
         "2026-06-05",
         "2026-06-07",
-        "2026-06-12"
+        "2026-06-12",
+        "2026-06-13"
       ],
       "conceptTags": [
         "work-log",
@@ -1694,22 +1702,24 @@
       "endLine": 85,
       "source": "memory",
       "snippet": "- **P0 通胀持续恶化** — searchadstrigger SOP 顺延 8 天、alipayservice 绑定顺延 7 天，\"P0 通胀\"模式已固化 - **老 P0 跨 M1/M2/M3 超 44 天** — execute_tool Span / 需求文档合并 / xray-log-query 修复已成沉没成本 - **Trace 评估框架拖延 18 天** — 5/15 讨论完成的 5 维度体系（准确性/效率/路径/错误处理/覆盖率）至今未固化，知识流失风险极高 - **M3 KR3 持续 0 业务线接入** — 要求 4 条线 ≥30%，当前 0/4，剩余 8 天且含端午假期压缩 - **W22 周报已确认 M1→M2→M3 冷却模式第三次复现** — 认知到规律 ≠ 行为改变，需外部干预 ### 待做方向 - **P0**: alipayservice Skill 绑定规则 151469 — 最快闭环（upload 已完成，只需确认） - **P0**: searchadstrigger SOP 落地 — 素材最完整，1-2 小时可交付 - **P0**: 广告收入诊断 + RPC 异常排查 SOP 合并确认 — 一次交互完成两个 SOP - **P1**: Trace 评估框架落文（**18 天拖延**，可作为公司内部 AI Skill 评估标准规范） - **P1**: 老 P0（execute_tool Span / 需求文档合并 / xray-log-query SKILL）三选一优先解阻 --- ## 方向二：PM 工作流自动化 ##",
-      "recallCount": 3,
+      "recallCount": 4,
       "dailyCount": 0,
       "groundedCount": 0,
-      "totalScore": 1.4123331636190413,
+      "totalScore": 1.8754300028085706,
       "maxScore": 0.49665013551712034,
       "firstRecalledAt": "2026-06-03T00:03:36.911Z",
-      "lastRecalledAt": "2026-06-07T00:03:36.465Z",
+      "lastRecalledAt": "2026-06-13T00:03:36.230Z",
       "queryHashes": [
         "4997cc3be1bc",
         "b80ce953b7c7",
-        "379170ee471a"
+        "379170ee471a",
+        "736f4e0a588b"
       ],
       "recallDays": [
         "2026-06-03",
         "2026-06-05",
-        "2026-06-07"
+        "2026-06-07",
+        "2026-06-13"
       ],
       "conceptTags": [
         "m1/m2/m3",
@@ -1762,13 +1772,13 @@
       "endLine": 87,
       "source": "memory",
       "snippet": "- **P0 通胀模式持续固化** — searchadstrigger SOP 顺延 9 天、alipayservice 绑定顺延 8 天，P0 通胀已进入\"惯性滑行\"阶段 - **老 P0 跨 M1/M2/M3 超 45 天** — execute_tool Span / 需求文档合并 / xray-log-query 修复已成沉没成本 - **Trace 评估框架拖延 19 天** — 5/15 讨论完成的 5 维度体系（准确性/效率/路径/错误处理/覆盖率）至今未固化 - **M3 KR3 持续 0 业务线接入** — 要求 4 条线 ≥30%，当前 0/4，剩余 7 天 - **连续 12 天零 XRay 交互** — 5/21→6/1，跨越 M3 启动点 ### 待做方向 - **P0**: alipayservice Skill 绑定规则 151469 — 最快闭环（upload 已完成，只需确认） - **P0**: searchadstrigger SOP 落地 — 素材最完整，1-2 小时可交付 - **P0**: 广告收入诊断 + RPC 异常排查 SOP 合并确认 — 一次交互完成两个 SOP - **P1**: Trace 评估框架落文（**19 天拖延**，可作为公司内部 AI Skill 评估标准规范） - **P1**: 老 P0（execute_tool Span / 需求文档合并 / xray-log-query SKILL）三选一优先解阻 --- ## 方向二：PM 工作流自动化 ### 今日做了什么 **⚪ 无进展** ##",
-      "recallCount": 7,
+      "recallCount": 9,
       "dailyCount": 0,
       "groundedCount": 0,
-      "totalScore": 3.07765651345253,
+      "totalScore": 3.993693667650223,
       "maxScore": 0.48043299615383145,
       "firstRecalledAt": "2026-06-03T00:03:36.911Z",
-      "lastRecalledAt": "2026-06-11T00:03:36.726Z",
+      "lastRecalledAt": "2026-06-13T00:03:36.230Z",
       "queryHashes": [
         "4997cc3be1bc",
         "b80ce953b7c7",
@@ -1776,7 +1786,8 @@
         "0d725821a7bf",
         "e8b824a6831d",
         "47b0df841a9f",
-        "d2dbff236682"
+        "d2dbff236682",
+        "736f4e0a588b"
       ],
       "recallDays": [
         "2026-06-03",
@@ -1784,7 +1795,8 @@
         "2026-06-07",
         "2026-06-08",
         "2026-06-09",
-        "2026-06-11"
+        "2026-06-11",
+        "2026-06-13"
       ],
       "conceptTags": [
         "m1/m2/m3",
@@ -1868,20 +1880,22 @@
       "endLine": 86,
       "source": "memory",
       "snippet": "- **老 P0 跨 M1/M2/M3 超 48 天** — execute_tool Span / 需求文档合并 / xray-log-query 修复，沉没成本持续累积 - **Trace 评估框架拖延 21 天** — 5/15 讨论完成的 5 维度体系至今未落文，知识流失风险极高 - **M3 KR3 持续 0 业务线接入** — 要求 4 条线 ≥30%，当前 0/4，剩余 5 天含端午压缩 - **连续 14 天零 XRay 交互** — 5/21→6/3，跨越 M3 启动点，已触发深度「警报疲劳」 ### 待做方向 - **P0**: alipayservice Skill 绑定规则 151469 — 最快闭环（upload 已完成，只需确认） - **P0**: searchadstrigger SOP 落地 — 素材最完整，1-2 小时可交付 - **P0**: 广告收入诊断 + RPC 异常排查 SOP 合并确认 — 一次交互完成两个 SOP - **P1**: Trace 评估框架落文（**21 天拖延**，可作为公司内部 AI Skill 评估标准规范） - **P1**: 老 P0（execute_tool Span / 需求文档合并 / xray-log-query SKILL）三选一优先解阻 --- ## 方向二：PM 工作流自动化 ### 今日做了什么 **⚪ 无进展** - obs-token 云效流水线 — 基础设施已就绪 19+ 天未动 - QS AutoFlow 方案文档 — 拖延 41+ 天零产出 - prd-traffi",
-      "recallCount": 2,
+      "recallCount": 3,
       "dailyCount": 0,
       "groundedCount": 0,
-      "totalScore": 0.9569478452205658,
+      "totalScore": 1.4272361040115356,
       "maxScore": 0.4862196773290634,
       "firstRecalledAt": "2026-06-05T00:03:36.242Z",
-      "lastRecalledAt": "2026-06-07T00:03:36.465Z",
+      "lastRecalledAt": "2026-06-13T00:03:36.230Z",
       "queryHashes": [
         "b80ce953b7c7",
-        "379170ee471a"
+        "379170ee471a",
+        "736f4e0a588b"
       ],
       "recallDays": [
         "2026-06-05",
-        "2026-06-07"
+        "2026-06-07",
+        "2026-06-13"
       ],
       "conceptTags": [
         "m1/m2/m3",
