@@ -47,43 +47,43 @@
     },
     "calendar": {
       "version": "1.0.8",
-      "installedAt": 1780669825195
+      "installedAt": 1781619845060
     },
     "summarize": {
       "version": "1.0.0",
-      "installedAt": 1780669828981
+      "installedAt": 1781619848393
     },
     "docx": {
       "version": "1.0.0",
-      "installedAt": 1780669829551
+      "installedAt": 1781619848986
     },
     "pptx": {
       "version": "1.0.0",
-      "installedAt": 1780669830132
+      "installedAt": 1781619849875
     },
     "xlsx": {
       "version": "1.0.0",
-      "installedAt": 1780669830702
+      "installedAt": 1781619850520
     },
     "hi-docs": {
       "version": "1.0.12",
-      "installedAt": 1780669832313
+      "installedAt": 1781619852203
     },
     "hi-im": {
       "version": "1.0.10",
-      "installedAt": 1780669832866
+      "installedAt": 1781619852796
     },
     "hi-search": {
       "version": "1.0.12",
-      "installedAt": 1780669833416
+      "installedAt": 1781619853391
     },
     "hi-todos": {
       "version": "1.0.11",
-      "installedAt": 1780669833972
+      "installedAt": 1781619853959
     },
     "hi-calendar": {
       "version": "1.0.12",
-      "installedAt": 1780669834518
+      "installedAt": 1781619854503
     },
     "ones-assistant": {
       "version": "1.0.12",
@@ -123,7 +123,7 @@
     },
     "pingcode-query-workitem": {
       "version": "1.0.0",
-      "installedAt": 1780669831785
+      "installedAt": 1781619851634
     },
     "meal-order-skill": {
       "version": "1.0.5",
@@ -139,11 +139,11 @@
     },
     "ui-ux-pro-max": {
       "version": "1.0.0",
-      "installedAt": 1780669828412
+      "installedAt": 1781619847784
     },
     "project-management": {
       "version": "1.2.7",
-      "installedAt": 1780669831257
+      "installedAt": 1781619851064
     },
     "qs": {
       "version": "1.0.7",
