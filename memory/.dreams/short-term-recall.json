@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updatedAt": "2026-06-20T00:07:07.732Z",
+  "updatedAt": "2026-06-21T00:03:45.835Z",
   "entries": {
     "memory:memory/2026-03-24.md:26:66": {
       "key": "memory:memory/2026-03-24.md:26:66",
@@ -585,14 +585,14 @@
       "startLine": 59,
       "endLine": 118,
       "source": "memory",
-      "snippet": "天） |",
-      "recallCount": 10,
+      "snippet": "- 用户今天未涉及方向二的讨论 ### 与上次日报对比 | 待办 | 4/23 状态 | 4/24 进展 | |------|----------|----------| | QS AutoFlow 合作方案 | ⏳ 拖延 4 天 | ⏳ 仍未整理 ❌ | | 与小庄下一次讨论 | ⏳ 未安排 | ⏳ 仍未安排 ❌ | | Coding Agent + Harness 可行性 | ⏳ 未评估 | ⏳ 仍未评估 ❌ | ### 做得好的 - 无 ### 做得不好的 - 方向二连续 5 天完全停滞 - 方向一的 OKR 已明确 5-6 月交付节奏，但方向二的落地方案仍未有讨论时间表 ### 待做方向 - **P1**: 整理 QS AutoFlow 合作方案文档 - **P1**: 与小庄安排下一次深入讨论 - **P1**: 评估 Coding Agent + Harness 作为第一个落地点 --- ## 方向三：公司内部 AI 应用规范 ### 今天做了什么 **⏸️ 无直接进展** - 可观测规范 V1 未继续推进 ### 与上次日报对比 | 待办 | 4/23 状态 | 4/24 进展 | |------|----------|----------| | execute_tool Span 确认 | ⏳ 拖延 6 天 | ⏳ 仍未确认 ❌（第 7 天） | | 变更管控规范 | ⏳ 未启动 | ⏳ 仍未启动 ❌ | | 规范推广计划 | ⏳ 未制定 | ⏳ 仍未制定 ❌ | ### 做得好的 - 无 ### 做得不好的 - execute_tool",
+      "recallCount": 11,
       "dailyCount": 0,
       "groundedCount": 0,
-      "totalScore": 4.546245032548904,
+      "totalScore": 5.004713156819343,
       "maxScore": 0.48719812929630274,
       "firstRecalledAt": "2026-05-26T00:03:36.522Z",
-      "lastRecalledAt": "2026-06-20T00:07:07.732Z",
+      "lastRecalledAt": "2026-06-21T00:03:38.739Z",
       "queryHashes": [
         "5601a4f18d36",
         "4f2975ffb8c2",
@@ -602,7 +602,8 @@
         "2dc993e2ec46",
         "975bcecaf14c",
         "641fa6fa6b7a",
-        "a0b413571392"
+        "a0b413571392",
+        "5431c0cfaa4e"
       ],
       "recallDays": [
         "2026-05-26",
@@ -613,9 +614,19 @@
         "2026-06-13",
         "2026-06-16",
         "2026-06-19",
-        "2026-06-20"
+        "2026-06-20",
+        "2026-06-21"
       ],
-      "conceptTags": []
+      "conceptTags": [
+        "4/23",
+        "4/24",
+        "5-6",
+        "execute-tool",
+        "用户",
+        "今天",
+        "涉及",
+        "方向"
+      ]
     },
     "memory:memory/2026-04-08.md:110:143": {
       "key": "memory:memory/2026-04-08.md:110:143",
@@ -712,13 +723,13 @@
       "endLine": 55,
       "source": "memory",
       "snippet": "归档 --- ## 方向二：PM 工作流自动化",
-      "recallCount": 7,
+      "recallCount": 8,
       "dailyCount": 0,
       "groundedCount": 0,
-      "totalScore": 3.176359811425209,
+      "totalScore": 3.640847015380859,
       "maxScore": 0.4803613156080246,
       "firstRecalledAt": "2026-05-27T00:04:04.580Z",
-      "lastRecalledAt": "2026-06-17T00:03:35.672Z",
+      "lastRecalledAt": "2026-06-21T00:03:38.739Z",
       "queryHashes": [
         "4f2975ffb8c2",
         "64a5c1548af3",
@@ -726,7 +737,8 @@
         "c1537166c5d8",
         "1c388470fd1f",
         "2dc993e2ec46",
-        "90b158808ee0"
+        "90b158808ee0",
+        "5431c0cfaa4e"
       ],
       "recallDays": [
         "2026-05-27",
@@ -735,7 +747,8 @@
         "2026-06-08",
         "2026-06-12",
         "2026-06-16",
-        "2026-06-17"
+        "2026-06-17",
+        "2026-06-21"
       ],
       "conceptTags": [
         "归档",
@@ -751,13 +764,13 @@
       "endLine": 55,
       "source": "memory",
       "snippet": "趁记忆还在推进） --- ## 方向二：PM 工作流自动化 ### 今日做了什么",
-      "recallCount": 10,
+      "recallCount": 11,
       "dailyCount": 0,
       "groundedCount": 0,
-      "totalScore": 4.600208070874214,
-      "maxScore": 0.4898914068937301,
+      "totalScore": 5.102224650979042,
+      "maxScore": 0.5020165801048279,
       "firstRecalledAt": "2026-05-27T00:04:04.580Z",
-      "lastRecalledAt": "2026-06-20T00:05:43.827Z",
+      "lastRecalledAt": "2026-06-21T00:03:38.739Z",
       "queryHashes": [
         "4f2975ffb8c2",
         "64a5c1548af3",
@@ -768,7 +781,8 @@
         "6b4214c97e29",
         "2dc993e2ec46",
         "90b158808ee0",
-        "641fa6fa6b7a"
+        "641fa6fa6b7a",
+        "5431c0cfaa4e"
       ],
       "recallDays": [
         "2026-05-27",
@@ -780,7 +794,8 @@
         "2026-06-15",
         "2026-06-16",
         "2026-06-17",
-        "2026-06-20"
+        "2026-06-20",
+        "2026-06-21"
       ],
       "conceptTags": [
         "记忆",
@@ -1799,20 +1814,22 @@
       "endLine": 71,
       "source": "memory",
       "snippet": "### 上周遗留待办进展对比 | 待办 | 4/20 状态 | 4/21 进展 | |------|----------|----------| | 告警诊断需求文档 v0.6+v0.2 合并 | ⏳ 未完成 | ⏳ 仍未完成 ❌ | | execute_tool Span 采集现状 | ⏳ 未完成 | ⏳ 仍未完成 ❌ | | xray-log-query P0 SKILL 修复 | ⏳ 未完成 | ⏳ 仍未完成 ❌ | | AI 诊断卡片集成到正式设计稿 | ⏳ 未完成 | ⏳ 仍未完成 ❌ | ### 做得好的 - **PR 稿定位准确**：用户意识到「除了内容外，更多是样式」——从信息罗列升级为视觉传达，这是产品思维的重要升级 - **CLI 与 Skill 并列为两大入口**：CLI 面向 Agent/CI/CD，Skill 面向人对话 AI，产品定位清晰 - **REDoc 操作经验沉淀**：fillColor 8 色体系、批量编辑最佳实践，后续可复用 ### 做得不好的 - **V2 PR 稿初稿缺少样式分层**：第一次发布只有内容没有视觉设计，导致额外迭代轮次。下次类似 PR 稿应在初稿阶段就包含颜色分层方案 - **4 个 P0 技术待办连续第四天未动**（需求文档合并 / Span 采集 / SKILL 修复 / 卡片集成） - 设计说明文档仍在个人空间根目录，未关联到正式告警诊断需求文档体系 ### 待做方向 - **P0**: 告警诊断需求文档 v0.7 合并归档（含卡片设计规范附录） - **P0**: execute_tool Span 框架层",
-      "recallCount": 2,
+      "recallCount": 3,
       "dailyCount": 0,
       "groundedCount": 0,
-      "totalScore": 0.8704394608736038,
-      "maxScore": 0.43721327781677244,
+      "totalScore": 1.335129815340042,
+      "maxScore": 0.46469035446643825,
       "firstRecalledAt": "2026-06-03T00:03:36.911Z",
-      "lastRecalledAt": "2026-06-06T00:03:36.149Z",
+      "lastRecalledAt": "2026-06-21T00:03:38.739Z",
       "queryHashes": [
         "4997cc3be1bc",
-        "61762a821ecc"
+        "61762a821ecc",
+        "5431c0cfaa4e"
       ],
       "recallDays": [
         "2026-06-03",
-        "2026-06-06"
+        "2026-06-06",
+        "2026-06-21"
       ],
       "conceptTags": [
         "4/20",
@@ -1987,26 +2004,28 @@
       "endLine": 86,
       "source": "memory",
       "snippet": "- **老 P0 跨 M1/M2/M3 超 47 天** — execute_tool Span / 需求文档合并 / xray-log-query 修复，沉没成本持续累积 - **Trace 评估框架拖延 20 天** — 5/15 讨论完成的 5 维度体系至今未落文，知识流失风险极高 - **M3 KR3 持续 0 业务线接入** — 要求 4 条线 ≥30%，当前 0/4，剩余 6 天含端午压缩 - **连续 13 天零 XRay 交互** — 5/21→6/2，跨越 M3 启动点，已触发「警报疲劳」 ### 待做方向 - **P0**: alipayservice Skill 绑定规则 151469 — 最快闭环（upload 已完成，只需确认） - **P0**: searchadstrigger SOP 落地 — 素材最完整，1-2 小时可交付 - **P0**: 广告收入诊断 + RPC 异常排查 SOP 合并确认 — 一次交互完成两个 SOP - **P1**: Trace 评估框架落文（**20 天拖延**，可作为公司内部 AI Skill 评估标准规范） - **P1**: 老 P0（execute_tool Span / 需求文档合并 / xray-log-query SKILL）三选一优先解阻 --- ## 方向二：PM 工作流自动化 ### 今日做了什么 **⚪ 无进展** - obs-token 云效流水线 — 基础设施已就绪 18+ 天未动 - QS AutoFlow 方案文档 — 拖延 40+ 天零产出 - prd-traffic-",
-      "recallCount": 5,
+      "recallCount": 6,
       "dailyCount": 0,
       "groundedCount": 0,
-      "totalScore": 2.3197366088628764,
+      "totalScore": 2.775559145212173,
       "maxScore": 0.4827688097953796,
       "firstRecalledAt": "2026-06-05T00:03:36.242Z",
-      "lastRecalledAt": "2026-06-18T00:03:37.016Z",
+      "lastRecalledAt": "2026-06-21T00:03:38.739Z",
       "queryHashes": [
         "b80ce953b7c7",
         "61762a821ecc",
         "379170ee471a",
         "1af3ecc3a725",
-        "ebec75ec8db4"
+        "ebec75ec8db4",
+        "5431c0cfaa4e"
       ],
       "recallDays": [
         "2026-06-05",
         "2026-06-06",
         "2026-06-07",
         "2026-06-14",
-        "2026-06-18"
+        "2026-06-18",
+        "2026-06-21"
       ],
       "conceptTags": [
         "m1/m2/m3",
@@ -2092,18 +2111,20 @@
       "endLine": 36,
       "source": "memory",
       "snippet": "# 工作日报 · 2026-04-22（周三） > 延续自 2026-04-21 日报，重点关注专利总结产出与 P0 待办持续延期风险。 --- ## 方向一：XRay 平台 Agent Native 化（告警诊断 / AgentOps / 评估体系 / AI基础能力） ### 今天做了什么 **📋 部门专利项目三年脉络梳理（2023-2025）** - 按**技术风险**和**云原生**两个方向拆分，逐年总结核心迭代描述 - 技术风险方向演进：可观测基础设施 → 主动评估与深度诊断 → 高可用中台 + AI 原生 - 2023：6 项（Prometheus 高基数/降采样、秒级告警、智能无阈值告警、性能退化分析、Flume 采集） - 2024：4 项（无侵入 Profiling、容量极限估算×3） - 2025：2 项（coredump 流式上传、core 堆栈自动还原） - 云原生方向演进：动态配置与服务治理 → 容量评估 → 高可用中台软硬一体化 - 2023：5 项（K8s 超售、动态配置网关、服务编排引擎、多机房流控、灰度发布） - 2024：3 项（容量估算×3） - 2025：2 项（Raft 去中心化流控、PDU/机柜硬件创新） - 通过 draft 会话（Webchat）完成，采用二维矩阵组织法（方向×年份），而非简单按年份罗列 - 产出：每个方向各年份的核心迭代描述段落，可直接用于汇报/归档 **⏸️ 无其他 XRay 平台相关进展** - V2 PR 稿发布后无后续迭代 - Skills 无新增/修改 ### 与上",
-      "recallCount": 1,
+      "recallCount": 2,
       "dailyCount": 0,
       "groundedCount": 0,
-      "totalScore": 0.4325003236532211,
-      "maxScore": 0.4325003236532211,
+      "totalScore": 0.8868800073862075,
+      "maxScore": 0.45437968373298643,
       "firstRecalledAt": "2026-06-06T00:03:36.149Z",
-      "lastRecalledAt": "2026-06-06T00:03:36.149Z",
+      "lastRecalledAt": "2026-06-21T00:03:38.739Z",
       "queryHashes": [
-        "61762a821ecc"
+        "61762a821ecc",
+        "5431c0cfaa4e"
       ],
       "recallDays": [
-        "2026-06-06"
+        "2026-06-06",
+        "2026-06-21"
       ],
       "conceptTags": [
         "网关",
@@ -2332,24 +2353,26 @@
       "endLine": 42,
       "source": "memory",
       "snippet": "# 每日精华 · 2026-06-08（周一） > **关键标签：QS 诊断实战 · URL 反直觉设计 · SKILL 方法论追问 · M3 最后一天** --- ## 扫描结果 | 类别 | 发现 | 价值 | |------|------|------| | 💡 用户的好问题/好思考 | ✅ \"这个 SKILL 的作用是什么，适用什么场景，以及具体是如何诊断的\" | 从「帮我做」升级到「教我原理」 | | 🔑 关键决策 | ✅ 切换 xray 账号来诊断别人的任务 | 跨账号协作的实用决策 | | 🆕 新发现/新知识 | ✅ QS URL 格式中 job 和 trial ID 顺序是反的 | 反直觉设计，值得记录 | | 📐 流程/规则变化 | ❌ 无 | — | | ⚠️ 教训/问题 | ✅ QS 诊断遇到 NOT_FOUND + 400 未授权 | 权限模型需要改进 | --- ## 1. 💡 用户的好问题/好思考 ### 「这个 SKILL 的作用是什么，适用什么场景，以及具体是如何诊断的」 **用户原话**： > \"这个 SKILL 的作用是什么，适用什么场景，以及具体是如何诊断的\" **价值分析**： 这是本次对话最有价值的一句话。在 QS 诊断实战后，用户没有止步于「任务没报错」这个结果，而是追问了 SKILL 的底层逻辑——从「帮我做一个具体任务」升级到「这个工具的边界和原理是什么」。 **典型 ENTJ 决策风格**：先实战验证能力 → 再理解原理 → 最后判断能否推广。三步走，不跳步。 **Agent 回答要点**： -",
-      "recallCount": 4,
+      "recallCount": 5,
       "dailyCount": 0,
       "groundedCount": 0,
-      "totalScore": 1.8101589411497114,
+      "totalScore": 2.279501688480377,
       "maxScore": 0.4733480542898178,
       "firstRecalledAt": "2026-06-09T08:17:23.083Z",
-      "lastRecalledAt": "2026-06-20T00:05:43.827Z",
+      "lastRecalledAt": "2026-06-21T00:03:38.739Z",
       "queryHashes": [
         "8ecbcff603c7",
         "2dc993e2ec46",
         "90b158808ee0",
-        "641fa6fa6b7a"
+        "641fa6fa6b7a",
+        "5431c0cfaa4e"
       ],
       "recallDays": [
         "2026-06-09",
         "2026-06-16",
         "2026-06-17",
-        "2026-06-20"
+        "2026-06-20",
+        "2026-06-21"
       ],
       "conceptTags": [
         "用户的好问题/好思考",
@@ -2642,22 +2665,32 @@
       "startLine": 1,
       "endLine": 63,
       "source": "memory",
-      "snippet": "🔜 待跟进",
-      "recallCount": 1,
+      "snippet": "# 每日精华 · 2026-06-12（周五） > **零交互日 · 仅 Cron 自动任务运行 · M4 Day 4** ## 会话扫描结果 | 会话 | 类型 | 覆盖时间 | 有无用户交互 | |------|------|----------|-------------| | Cron: daily-digest | 自动任务 | — | ❌ | | Cron: daily-backup | 自动任务 | — | ✅ commit + push 正常 | | Cron: work-daily-report | 自动任务 | — | ❌ | **结论**：2026-06-12 全天无用户直接对话。连续零交互天数：**3 天（6/10-6/12）**。 --- ## 💡 用户的好问题/好思考 **无（当天零交互）。** 回溯上一次有实质内容的对话（2026-06-09）： ### 「如果我想让这些能力也在 Codex 适用，我应该怎么办呢，把这里每个工具的 SKILL/CLI 搞过去吗」 → **击穿价值**：这个问题触及了跨 Agent 平台能力迁移的根本矛盾——不同 Agent 平台的「能力接口」不兼容。直接搬 SKILL.md 没用，因为 Codex 没有工具函数（OpenClaw 的 `cowork_publish` 等平台内置 API）。 → **催生的架构认知**：OpenClaw = 平台工具函数 + Skills（说明书），Codex = 仅 Skills + Prompts（仅能执行 Shell）。两者是「不同的路」。 → **决",
+      "recallCount": 3,
       "dailyCount": 0,
       "groundedCount": 0,
-      "totalScore": 0.43736807107925413,
-      "maxScore": 0.43736807107925413,
+      "totalScore": 1.3420413970947265,
+      "maxScore": 0.4665698617696762,
       "firstRecalledAt": "2026-06-16T00:05:05.991Z",
-      "lastRecalledAt": "2026-06-16T00:05:05.991Z",
+      "lastRecalledAt": "2026-06-21T00:03:45.835Z",
       "queryHashes": [
-        "5bfdaffbe07b"
+        "5bfdaffbe07b",
+        "5431c0cfaa4e",
+        "8134741d5c80"
       ],
       "recallDays": [
-        "2026-06-16"
+        "2026-06-16",
+        "2026-06-21"
       ],
       "conceptTags": [
-        "跟进"
+        "backup",
+        "daily-digest",
+        "daily-backup",
+        "work-daily-report",
+        "6/10-6/12",
+        "用户的好问题/好思考",
+        "skill/cli",
+        "skill.md"
       ]
     },
     "memory:memory/work-log/2026-06-05.md:144:175": {
@@ -2887,29 +2920,31 @@
       "startLine": 87,
       "endLine": 125,
       "source": "memory",
-      "snippet": "络稳定 - **✅ daily-digest Hi 通知正常发送** — 每日 8:00 准时推送至 mahengyang",
-      "recallCount": 1,
+      "snippet": "- **P0**: Trace 评估框架写为正式规范文档（可作为公司内部 AI Skill 评估标准） - **P1**: 诊断 Skill 创建方法论沉淀为正式文档（5 步流程） - **P2**: 跨 Agent 平台能力映射表（OpenClaw ↔ Codex ↔ 其他平台）— 6/9 讨论的架构差异已可作为初稿素材 --- ## 跨方向总结 ### 📊 与上次日报对比（6/11 日报 → 本次·覆盖 6/12） | 指标 | 上次（6/11 日报） | 本次（6/12 日报） | 变化 | |------|-------------------|-------------------|------| | 用户交互会话 | 0（零交互日） | **0（零交互日）** | ➡️ 连续零交互 | | XRay 主线交互 | 0 | **0** | ➡️ 仍为零 | | 方向一交付物 | 无 | **无** | ➡️ 持续零 | | 方向二交付物 | 无新增 | **无新增** | ➡️ 持续零 | | 方向三交付物 | 无新增 | **无新增** | ➡️ 持续零 | | alipayservice 绑定 | 顺延第 18 天 | **顺延第 20 天** | 🔴 +2 | | searchadstrigger SOP | 顺延第 19 天 | **顺延第 21 天** | 🔴 +2 | | Trace 评估框架未落文 | 29 天 | **31 天** | 🔴 +2 | | execute_tool Span | 56 天 | **58 天** | 🔴 +",
+      "recallCount": 2,
       "dailyCount": 0,
       "groundedCount": 0,
-      "totalScore": 0.500451248884201,
+      "totalScore": 0.9440084636211394,
       "maxScore": 0.500451248884201,
       "firstRecalledAt": "2026-06-20T00:07:07.732Z",
-      "lastRecalledAt": "2026-06-20T00:07:07.732Z",
+      "lastRecalledAt": "2026-06-21T00:03:45.835Z",
       "queryHashes": [
-        "a0b413571392"
+        "a0b413571392",
+        "8134741d5c80"
       ],
       "recallDays": [
-        "2026-06-20"
+        "2026-06-20",
+        "2026-06-21"
       ],
       "conceptTags": [
-        "daily-digest",
-        "稳定",
-        "digest",
-        "通知",
-        "正常",
-        "发送",
-        "每日",
-        "准时"
+        "6/9",
+        "6/11",
+        "6/12",
+        "execute-tool",
+        "trace",
+        "评估",
+        "框架",
+        "正式"
       ]
     },
     "memory:memory/work-log/2026-06-15.md:1:50": {
@@ -2941,6 +2976,126 @@
         "持续",
         "失效",
         "digest"
+      ]
+    },
+    "memory:memory/work-log/2026-06-07.md:107:150": {
+      "key": "memory:memory/work-log/2026-06-07.md:107:150",
+      "path": "memory/work-log/2026-06-07.md",
+      "startLine": 107,
+      "endLine": 150,
+      "source": "memory",
+      "snippet": "| M3 进度 | Day 13 偏离 | **Day 14 延续偏离** | 🔴 | | 零交互连续天数 | 17 天 | **18 天** | 🔴 +1 | | daily-backup push | ✅ 成功（4acaec9） | **✅ 成功（eb3023c）** | ➡️ 稳定 | ### M3 进度追踪（Day 14 完成 · ❌ M3 已确定无法达成） ``` M3（5/26-6/8）Day 1-14 状态 ├── KR1 通用 Skill 开发 │ ├── ✅ alipayservice 诊断 Skill V0.1.0（Day 1 · 5/26） │ ├── ✅ prd-traffic-map-html Skill V2.0.0（Day 2 · 5/27，非主线） │ ├── ✅ dependency_gaps 设计模式（Day 1） │ ├── ✅ Install-Time 行为契约（Day 2） │ ├── ⚠️ searchadstrigger SOP 未落地（顺延第 14 天） │ └── ⚠️ Trace 评估框架未落文（拖延 24 天） ├── KR2 告警中心诊断闭环 │ ├── ✅ Skill upload 成功（Day 1） │ ├── ⚠️ Skill 绑定告警规则 151469 未执行（顺延第 13 天） │ └── ⚠️ 自动触发链路未打通（Day 1 遗留） ├── KR3 业务线 Skill 接入 │ ├── ❌ 0 条业务线正式接入（M3 要求 4 条 ≥30% 覆盖率） │ └─",
+      "recallCount": 1,
+      "dailyCount": 0,
+      "groundedCount": 0,
+      "totalScore": 0.45981371998786924,
+      "maxScore": 0.45981371998786924,
+      "firstRecalledAt": "2026-06-21T00:03:38.739Z",
+      "lastRecalledAt": "2026-06-21T00:03:38.739Z",
+      "queryHashes": [
+        "5431c0cfaa4e"
+      ],
+      "recallDays": [
+        "2026-06-21"
+      ],
+      "conceptTags": [
+        "backup",
+        "daily-backup",
+        "5/26-6/8",
+        "1-14",
+        "v0.1.0",
+        "5/26",
+        "prd-traffic-map-html",
+        "v2.0.0"
+      ]
+    },
+    "memory:memory/work-log/2026-06-16.md:74:119": {
+      "key": "memory:memory/work-log/2026-06-16.md:74:119",
+      "path": "memory/work-log/2026-06-16.md",
+      "startLine": 74,
+      "endLine": 119,
+      "source": "memory",
+      "snippet": "冷却模式深度固化 |",
+      "recallCount": 1,
+      "dailyCount": 0,
+      "groundedCount": 0,
+      "totalScore": 0.45619516670703886,
+      "maxScore": 0.45619516670703886,
+      "firstRecalledAt": "2026-06-21T00:03:45.835Z",
+      "lastRecalledAt": "2026-06-21T00:03:45.835Z",
+      "queryHashes": [
+        "8134741d5c80"
+      ],
+      "recallDays": [
+        "2026-06-21"
+      ],
+      "conceptTags": [
+        "冷却",
+        "模式",
+        "深度",
+        "固化"
+      ]
+    },
+    "memory:memory/daily-digest/2026-06-17.md:45:63": {
+      "key": "memory:memory/daily-digest/2026-06-17.md:45:63",
+      "path": "memory/daily-digest/2026-06-17.md",
+      "startLine": 45,
+      "endLine": 63,
+      "source": "memory",
+      "snippet": "## 📌 M4 后半段策略（6/17-6/22） **冷却模式已确认进入持续性阶段，历史激活模式失效。** 策略调整（6/17 确认）： 1. **放弃「单点激活」假设** — 用户可能已脱离日常使用 OpenClaw 的节奏 2. **Hi 通知降频** — 每周一一次周汇总，替代每日通知 3. **M4 最低目标不变**：清零至少 1 个 P0（alipayservice 绑定，最小阻力路径） 4. **如 M4 结束仍无交互（6/23）**：需要与用户直接讨论冷却模式根因 --- ## 状态标记 - [x] 写入 daily-digest/2026-06-17.md - [x] Hi 通知 — **精简卡片**（仅通知关键状态变化） - [ ] MEMORY.md 同步 — 无新内容（待办章节无需更新） - [ ] self-improving 同步 — 无新规则",
+      "recallCount": 1,
+      "dailyCount": 0,
+      "groundedCount": 0,
+      "totalScore": 0.44468378424644467,
+      "maxScore": 0.44468378424644467,
+      "firstRecalledAt": "2026-06-21T00:03:45.835Z",
+      "lastRecalledAt": "2026-06-21T00:03:45.835Z",
+      "queryHashes": [
+        "8134741d5c80"
+      ],
+      "recallDays": [
+        "2026-06-21"
+      ],
+      "conceptTags": [
+        "6/17-6/22",
+        "6/17",
+        "6/23",
+        "daily-digest/2026-06-17.md",
+        "memory.md",
+        "self-improving",
+        "后半段",
+        "策略"
+      ]
+    },
+    "memory:memory/work-log/2026-06-05.md:108:151": {
+      "key": "memory:memory/work-log/2026-06-05.md:108:151",
+      "path": "memory/work-log/2026-06-05.md",
+      "startLine": 108,
+      "endLine": 151,
+      "source": "memory",
+      "snippet": "法达成 | | 冷却模式第四次复现 | 🔴 高 | M1→M2→M3 同一模式，认知≠行为改变 | ### ✅ 正面状态 - **✅ daily-backup push 连续稳定** — Git 正常同步（commit 5797be5） - **✅ cron 任务全部正常** — daily-digest / work-daily-report / daily-backup 均按期运行",
+      "recallCount": 1,
+      "dailyCount": 0,
+      "groundedCount": 0,
+      "totalScore": 0.4381017535924911,
+      "maxScore": 0.4381017535924911,
+      "firstRecalledAt": "2026-06-21T00:03:45.835Z",
+      "lastRecalledAt": "2026-06-21T00:03:45.835Z",
+      "queryHashes": [
+        "8134741d5c80"
+      ],
+      "recallDays": [
+        "2026-06-21"
+      ],
+      "conceptTags": [
+        "backup",
+        "daily-backup",
+        "daily-digest",
+        "work-daily-report",
+        "达成",
+        "冷却",
+        "模式",
+        "第四次"
       ]
     }
   }
