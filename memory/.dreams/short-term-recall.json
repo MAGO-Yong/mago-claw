@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updatedAt": "2026-06-22T00:03:34.916Z",
+  "updatedAt": "2026-06-23T00:03:36.068Z",
   "entries": {
     "memory:memory/2026-03-24.md:26:66": {
       "key": "memory:memory/2026-03-24.md:26:66",
@@ -585,14 +585,14 @@
       "startLine": 59,
       "endLine": 118,
       "source": "memory",
-      "snippet": "- 用户今天未涉及方向二的讨论 ### 与上次日报对比 | 待办 | 4/23 状态 | 4/24 进展 | |------|----------|----------| | QS AutoFlow 合作方案 | ⏳ 拖延 4 天 | ⏳ 仍未整理 ❌ | | 与小庄下一次讨论 | ⏳ 未安排 | ⏳ 仍未安排 ❌ | | Coding Agent + Harness 可行性 | ⏳ 未评估 | ⏳ 仍未评估 ❌ | ### 做得好的 - 无 ### 做得不好的 - 方向二连续 5 天完全停滞 - 方向一的 OKR 已明确 5-6 月交付节奏，但方向二的落地方案仍未有讨论时间表 ### 待做方向 - **P1**: 整理 QS AutoFlow 合作方案文档 - **P1**: 与小庄安排下一次深入讨论 - **P1**: 评估 Coding Agent + Harness 作为第一个落地点 --- ## 方向三：公司内部 AI 应用规范 ### 今天做了什么 **⏸️ 无直接进展** - 可观测规范 V1 未继续推进 ### 与上次日报对比 | 待办 | 4/23 状态 | 4/24 进展 | |------|----------|----------| | execute_tool Span 确认 | ⏳ 拖延 6 天 | ⏳ 仍未确认 ❌（第 7 天） | | 变更管控规范 | ⏳ 未启动 | ⏳ 仍未启动 ❌ | | 规范推广计划 | ⏳ 未制定 | ⏳ 仍未制定 ❌ | ### 做得好的 - 无 ### 做得不好的 - execute_tool",
-      "recallCount": 11,
+      "snippet": "天） |",
+      "recallCount": 12,
       "dailyCount": 0,
       "groundedCount": 0,
-      "totalScore": 5.004713156819343,
+      "totalScore": 5.41850247979164,
       "maxScore": 0.48719812929630274,
       "firstRecalledAt": "2026-05-26T00:03:36.522Z",
-      "lastRecalledAt": "2026-06-21T00:03:38.739Z",
+      "lastRecalledAt": "2026-06-23T00:03:36.068Z",
       "queryHashes": [
         "5601a4f18d36",
         "4f2975ffb8c2",
@@ -603,7 +603,8 @@
         "975bcecaf14c",
         "641fa6fa6b7a",
         "a0b413571392",
-        "5431c0cfaa4e"
+        "5431c0cfaa4e",
+        "d8d5cd977461"
       ],
       "recallDays": [
         "2026-05-26",
@@ -615,7 +616,8 @@
         "2026-06-16",
         "2026-06-19",
         "2026-06-20",
-        "2026-06-21"
+        "2026-06-21",
+        "2026-06-23"
       ],
       "conceptTags": [
         "4/23",
@@ -694,25 +696,27 @@
       "endLine": 152,
       "source": "memory",
       "snippet": "）",
-      "recallCount": 6,
+      "recallCount": 7,
       "dailyCount": 0,
       "groundedCount": 0,
-      "totalScore": 2.6756690084934234,
+      "totalScore": 3.084649163484573,
       "maxScore": 0.47716631591320036,
       "firstRecalledAt": "2026-05-26T00:03:36.522Z",
-      "lastRecalledAt": "2026-05-28T00:03:35.565Z",
+      "lastRecalledAt": "2026-06-23T00:03:36.068Z",
       "queryHashes": [
         "5601a4f18d36",
         "4f2975ffb8c2",
         "d59ea679510a",
         "cadaf8b3c403",
         "3ffd0798d417",
-        "864df8c4a916"
+        "864df8c4a916",
+        "d8d5cd977461"
       ],
       "recallDays": [
         "2026-05-26",
         "2026-05-27",
-        "2026-05-28"
+        "2026-05-28",
+        "2026-06-23"
       ],
       "conceptTags": []
     },
@@ -766,13 +770,13 @@
       "endLine": 55,
       "source": "memory",
       "snippet": "趁记忆还在推进） --- ## 方向二：PM 工作流自动化 ### 今日做了什么",
-      "recallCount": 12,
+      "recallCount": 13,
       "dailyCount": 0,
       "groundedCount": 0,
-      "totalScore": 5.605949693918228,
+      "totalScore": 6.055859565734862,
       "maxScore": 0.5037250429391861,
       "firstRecalledAt": "2026-05-27T00:04:04.580Z",
-      "lastRecalledAt": "2026-06-22T00:03:34.916Z",
+      "lastRecalledAt": "2026-06-23T00:03:36.068Z",
       "queryHashes": [
         "4f2975ffb8c2",
         "64a5c1548af3",
@@ -785,7 +789,8 @@
         "90b158808ee0",
         "641fa6fa6b7a",
         "5431c0cfaa4e",
-        "50df709a11cb"
+        "50df709a11cb",
+        "d8d5cd977461"
       ],
       "recallDays": [
         "2026-05-27",
@@ -799,7 +804,8 @@
         "2026-06-17",
         "2026-06-20",
         "2026-06-21",
-        "2026-06-22"
+        "2026-06-22",
+        "2026-06-23"
       ],
       "conceptTags": [
         "记忆",
@@ -819,20 +825,21 @@
       "endLine": 100,
       "source": "memory",
       "snippet": "- **P0（M3 首周）**: M2 复盘 — KR3/KR4 滑点原因分析 + M3 排期调整（避免同一模式重演） - **P1**: Trace 评估框架写为正式规范文档（已拖延 11 天，可作为公司内部 AI Skill 评估标准） - **P1**: diagnosis-skill-builder 与 biz-diagnosis-creator 关系决策（合并 or 分工 or 保留两个） - **P1**: Problem 类告警通用排查框架固化为 Skill 模板（三层递进结构可推广为 KR1 通用诊断能力基础模板） --- ## 方向二：PM 工作流自动化 ### 今日做了什么 **⚪ 无新进展** - diagnosis-skill-builder 的 SOP→Skill 管道已验证可行（5/20 安装成功），但连续 6 天未实际执行转化 - obs-token 云效流水线 — 基础设施已就绪（5/15 调通），11 天未动 - QS AutoFlow — 方案文档仍停滞，45+ 天零产出 ### 待做方向 - **P0（M3 首周）**: obs-token 云效流水线正式搭建（基础设施就绪 11 天未动，方向二第一个可落地的基础设施） - **P1**: QS AutoFlow 方案初稿（方向二的第一个 MVP 仍是需求管理机制，AutoFlow 方案无产出） --- ## 方向三：公司内部 AI 应用规范 ### 今日做了什么 **⚪ 无新进展** - 诊断 Skill 创建方法论（场景确认→SOP 追问→流程图→细节确认→打包安装",
-      "recallCount": 6,
+      "recallCount": 7,
       "dailyCount": 0,
       "groundedCount": 0,
-      "totalScore": 2.702467852830887,
+      "totalScore": 3.1289572745561602,
       "maxScore": 0.46302111148834224,
       "firstRecalledAt": "2026-05-27T00:04:04.580Z",
-      "lastRecalledAt": "2026-06-22T00:03:34.916Z",
+      "lastRecalledAt": "2026-06-23T00:03:36.068Z",
       "queryHashes": [
         "4f2975ffb8c2",
         "4997cc3be1bc",
         "61762a821ecc",
         "d2dbff236682",
         "641fa6fa6b7a",
-        "50df709a11cb"
+        "50df709a11cb",
+        "d8d5cd977461"
       ],
       "recallDays": [
         "2026-05-27",
@@ -840,7 +847,8 @@
         "2026-06-06",
         "2026-06-11",
         "2026-06-20",
-        "2026-06-22"
+        "2026-06-22",
+        "2026-06-23"
       ],
       "conceptTags": [
         "kr3/kr4",
@@ -2371,26 +2379,28 @@
       "endLine": 42,
       "source": "memory",
       "snippet": "# 每日精华 · 2026-06-08（周一） > **关键标签：QS 诊断实战 · URL 反直觉设计 · SKILL 方法论追问 · M3 最后一天** --- ## 扫描结果 | 类别 | 发现 | 价值 | |------|------|------| | 💡 用户的好问题/好思考 | ✅ \"这个 SKILL 的作用是什么，适用什么场景，以及具体是如何诊断的\" | 从「帮我做」升级到「教我原理」 | | 🔑 关键决策 | ✅ 切换 xray 账号来诊断别人的任务 | 跨账号协作的实用决策 | | 🆕 新发现/新知识 | ✅ QS URL 格式中 job 和 trial ID 顺序是反的 | 反直觉设计，值得记录 | | 📐 流程/规则变化 | ❌ 无 | — | | ⚠️ 教训/问题 | ✅ QS 诊断遇到 NOT_FOUND + 400 未授权 | 权限模型需要改进 | --- ## 1. 💡 用户的好问题/好思考 ### 「这个 SKILL 的作用是什么，适用什么场景，以及具体是如何诊断的」 **用户原话**： > \"这个 SKILL 的作用是什么，适用什么场景，以及具体是如何诊断的\" **价值分析**： 这是本次对话最有价值的一句话。在 QS 诊断实战后，用户没有止步于「任务没报错」这个结果，而是追问了 SKILL 的底层逻辑——从「帮我做一个具体任务」升级到「这个工具的边界和原理是什么」。 **典型 ENTJ 决策风格**：先实战验证能力 → 再理解原理 → 最后判断能否推广。三步走，不跳步。 **Agent 回答要点**： -",
-      "recallCount": 5,
+      "recallCount": 6,
       "dailyCount": 0,
       "groundedCount": 0,
-      "totalScore": 2.279501688480377,
+      "totalScore": 2.71032121181488,
       "maxScore": 0.4733480542898178,
       "firstRecalledAt": "2026-06-09T08:17:23.083Z",
-      "lastRecalledAt": "2026-06-21T00:03:38.739Z",
+      "lastRecalledAt": "2026-06-23T00:03:36.068Z",
       "queryHashes": [
         "8ecbcff603c7",
         "2dc993e2ec46",
         "90b158808ee0",
         "641fa6fa6b7a",
-        "5431c0cfaa4e"
+        "5431c0cfaa4e",
+        "d8d5cd977461"
       ],
       "recallDays": [
         "2026-06-09",
         "2026-06-16",
         "2026-06-17",
         "2026-06-20",
-        "2026-06-21"
+        "2026-06-21",
+        "2026-06-23"
       ],
       "conceptTags": [
         "用户的好问题/好思考",
@@ -2628,21 +2638,23 @@
       "endLine": 42,
       "source": "memory",
       "snippet": "-------|",
-      "recallCount": 3,
+      "recallCount": 4,
       "dailyCount": 0,
       "groundedCount": 0,
-      "totalScore": 1.3060769975185393,
+      "totalScore": 1.7209879875183105,
       "maxScore": 0.44792415797710416,
       "firstRecalledAt": "2026-06-16T00:03:37.077Z",
-      "lastRecalledAt": "2026-06-22T00:01:33.807Z",
+      "lastRecalledAt": "2026-06-23T00:03:36.068Z",
       "queryHashes": [
         "2dc993e2ec46",
         "5bfdaffbe07b",
-        "47909a95316e"
+        "47909a95316e",
+        "d8d5cd977461"
       ],
       "recallDays": [
         "2026-06-16",
-        "2026-06-22"
+        "2026-06-22",
+        "2026-06-23"
       ],
       "conceptTags": []
     },
@@ -3129,18 +3141,20 @@
       "endLine": 121,
       "source": "memory",
       "snippet": "|",
-      "recallCount": 1,
+      "recallCount": 2,
       "dailyCount": 0,
       "groundedCount": 0,
-      "totalScore": 0.40867972671985625,
-      "maxScore": 0.40867972671985625,
+      "totalScore": 0.8214526504278183,
+      "maxScore": 0.41277292370796204,
       "firstRecalledAt": "2026-06-22T00:01:33.807Z",
-      "lastRecalledAt": "2026-06-22T00:01:33.807Z",
+      "lastRecalledAt": "2026-06-23T00:03:36.068Z",
       "queryHashes": [
-        "47909a95316e"
+        "47909a95316e",
+        "d8d5cd977461"
       ],
       "recallDays": [
-        "2026-06-22"
+        "2026-06-22",
+        "2026-06-23"
       ],
       "conceptTags": []
     },

@@ -1,0 +1,11 @@
+# 临时文件
+*.tmp
+*.log
+.DS_Store
+
+# 敏感配置（token 等不推送）
+FEISHU-CONFIG.md
+
+# 大型二进制文件（按需手动推）
+*.pptx
+*.pdf
