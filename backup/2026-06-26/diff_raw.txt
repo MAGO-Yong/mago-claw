@@ -1,0 +1,8 @@
+只在 backup/2026-06-24/snapshot/ 存在：corrections.md
+只在 backup/2026-06-24/snapshot/ 存在：daily-digest
+只在 backup/2026-06-24/snapshot/ 存在：.gitignore
+只在 backup/2026-06-26/snapshot/ 存在：memory
+文件 backup/2026-06-24/snapshot/MEMORY.md 和 backup/2026-06-26/snapshot/MEMORY.md 不同
+只在 backup/2026-06-24/snapshot/ 存在：self-improving
+只在 backup/2026-06-24/snapshot/ 存在：weekly
+只在 backup/2026-06-24/snapshot/ 存在：work-log

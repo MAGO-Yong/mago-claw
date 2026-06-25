@@ -187,6 +187,19 @@
 - 示例：`/job/trial/100723/1519291` → Trial=100723, Job=1519291
 - 排查 QS 任务时先做参数反转，避免 NOT_FOUND
 
+### Seal / CodeWiz 双平台 SKILL 管理体系（2026-06-24 发现）
+- **Seal**：基于 OpenClaw 的个人 AI 助理，入口 codewiz.devops.xiaohongshu.com/seal
+  - Skill 创建：对话中 `/skill creator` 自动生成源码
+  - SkillHub 上传：codewiz.devops.xiaohongshu.com/hub，安全扫描 + 人工审核 1-3 工作日
+  - 联系人：心海(王子天)、莫循(陈鹏)
+  - 月度额度 $300，超额走 Redflow 提额
+  - 自带浏览器 CDP 能力，携带 SSO 登录态
+- **CodeWiz**：IDE 研发助手（VSCode / JetBrains / Cursor 插件）
+  - Skill 标准：遵循 Agent Skills (agentskills.io) 开放规范
+  - 本地 Skills: `~/.codewiz/skills/` + 项目 Skills `.codewiz/skills/`
+  - 有应用市场 / MCP 市场
+- SkillHub 和 Seal 官方市场目前**没有现成的小红书笔记检索 SKILL**
+
 ### RedGarden vs REDoc 区分（2026-06-09 发现）
 - `redgarden.xiaohongshu.com` = RedGarden（内网知识分享/内容花园平台），不是 REDoc
 - `docs.xiaohongshu.com` = REDoc（内部文档平台）
@@ -630,6 +643,29 @@ Kimi Claw 自建的 Python PPT 生成工具，存于 `skills/ppt-generator/ppt_g
 **周报文件**：`memory/weekly/2026-W17-growth-report.md`
 
 *最后更新: 2026-04-26 — W17 周报生成*
+
+---
+
+## 📈 W26 成长报告摘要（2026-06-25 更新）
+
+**本周特点**：冷却终结 · 用户回归 · 能力探索优先于待办推进
+
+**关键事件**：
+1. **15 天连续零交互终结**（6/24 用户回归）— 冷却模式首次被打破，用户回来先聊 Agent 进化状态，再探索内部平台检索能力
+2. **Seal/CodeWiz 双平台体系全景发现**（6/24）— Agent 主动调查确认官方 SKILL 管理现状，SkillHub 无笔记检索 SKILL
+3. **M5 Day 2** — 用户在但尚未确认任何 P0 待办
+
+**关键洞察蒸馏**：
+- **用户回归模式：先探底牌再出牌** — 不问"我有什么待办"，而是"你有什么进化"→ 确认 Agent 状态后再决定方向。这是 ENTJ 的典型行为
+- **冷却终结 ≠ 待办推进** — 用户选择能力探索而非顺延旧事，可能暗示对现有待办优先级有重新评估意愿
+- **诚实自评 > 包装式汇报** — Agent 坦诚「没有交互就没有进化」比吹嘘小优化更有信任价值
+
+**W26 策略建议**：
+- 用户回归 = 黄金窗口，不要浪费在翻旧账上
+- 直接给一个 5 分钟可闭环的 P0（alipayservice 绑定），完成即止
+- 观察用户后续行为：是继续探索能力，还是回归工作
+
+**周报文件**：待生成（W26 进行中）
 
 ---
 
