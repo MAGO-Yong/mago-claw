@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updatedAt": "2026-06-25T00:03:36.810Z",
+  "updatedAt": "2026-06-26T00:05:23.347Z",
   "entries": {
     "memory:memory/2026-03-24.md:26:66": {
       "key": "memory:memory/2026-03-24.md:26:66",
@@ -60,31 +60,29 @@
       "startLine": 1,
       "endLine": 48,
       "source": "memory",
-      "snippet": "# 2026-03-21 日志 ## 主要工作 ### 1. PM AI 转型规划文档 → PPT HTML 演示稿 **背景**：延续上次会话的转型规划文档，用户要求制作汇报 PPT。 **过程**： - 尝试安装 clawhub PPT 技能，均显示\"外部skill不可使用\"（ppt-generator、powerpoint-pptx 等） - 决定手写单文件 HTML 演示稿（深色科技风格） **HTML 演示稿**： - 本地文件：`/home/node/.openclaw/workspace/PM_AI转型规划_PPT.html` - 共 11 页，深色背景（#0d1117），蓝色（#58a6ff）accent - 支持方向键/点击翻页，底部进度点导航 - 内容：封面 → 目录 → 背景判断（2页）→ 方向一 → 方向二（2页）→ 方向三（2页）→ 规划节奏 → 总结 **PPT 大纲 Redoc 版**（Markdown 分页结构，用于在线查看）： - URL：https://docs.xiaohongshu.com/doc/1ee574131493d14588e6be80b5dd8a01 - 本地文件：`/home/node/.openclaw/workspace/PM_AI转型规划_PPT大纲.md` **踩坑**： - HTML 文件在云端服务器，用户本地无法访问 localhost - 起了 HTTP server（port 8899）但用户本地也无法访问云端端口 - 浏览器 relay 需要用户先点击 Chrome 扩展图标激活才能控制 -",
-      "recallCount": 2,
+      "snippet": "oc | https://docs.xiaohongshu.com/doc/dcdcc54e8b94de98319b0b36bf9ad6eb | ## 待办",
+      "recallCount": 3,
       "dailyCount": 0,
       "groundedCount": 0,
-      "totalScore": 0.7502737015485763,
-      "maxScore": 0.3873285412788391,
+      "totalScore": 1.2261731535196303,
+      "maxScore": 0.47589945197105404,
       "firstRecalledAt": "2026-05-20T00:05:04.484Z",
-      "lastRecalledAt": "2026-05-21T00:04:03.648Z",
+      "lastRecalledAt": "2026-06-26T00:03:36.238Z",
       "queryHashes": [
         "f19ceb3b4417",
-        "d04d4f29cecb"
+        "d04d4f29cecb",
+        "b4235b3aff04"
       ],
       "recallDays": [
         "2026-05-20",
-        "2026-05-21"
+        "2026-05-21",
+        "2026-06-26"
       ],
       "conceptTags": [
-        "ppt-generator",
-        "powerpoint-pptx",
-        "home/node",
-        "支持方向键/点击翻页",
-        "日志",
-        "主要",
-        "工作",
-        "转型"
+        "https",
+        "docs.xiaohongshu.com",
+        "doc",
+        "dcdcc54e8b94de98319b0b36bf9ad6eb"
       ]
     },
     "memory:memory/2026-03-23.md:26:66": {
@@ -590,13 +588,13 @@
       "endLine": 118,
       "source": "memory",
       "snippet": "天） |",
-      "recallCount": 12,
+      "recallCount": 13,
       "dailyCount": 0,
       "groundedCount": 0,
-      "totalScore": 5.41850247979164,
+      "totalScore": 5.886453527212142,
       "maxScore": 0.48719812929630274,
       "firstRecalledAt": "2026-05-26T00:03:36.522Z",
-      "lastRecalledAt": "2026-06-23T00:03:36.068Z",
+      "lastRecalledAt": "2026-06-26T00:03:36.238Z",
       "queryHashes": [
         "5601a4f18d36",
         "4f2975ffb8c2",
@@ -608,7 +606,8 @@
         "641fa6fa6b7a",
         "a0b413571392",
         "5431c0cfaa4e",
-        "d8d5cd977461"
+        "d8d5cd977461",
+        "b4235b3aff04"
       ],
       "recallDays": [
         "2026-05-26",
@@ -621,7 +620,8 @@
         "2026-06-19",
         "2026-06-20",
         "2026-06-21",
-        "2026-06-23"
+        "2026-06-23",
+        "2026-06-26"
       ],
       "conceptTags": [
         "4/23",
@@ -909,13 +909,13 @@
       "endLine": 116,
       "source": "memory",
       "snippet": "--",
-      "recallCount": 8,
+      "recallCount": 10,
       "dailyCount": 0,
       "groundedCount": 0,
-      "totalScore": 3.515819412469864,
+      "totalScore": 4.342656198143959,
       "maxScore": 0.4714791655540466,
       "firstRecalledAt": "2026-05-27T00:06:01.845Z",
-      "lastRecalledAt": "2026-06-22T00:01:33.807Z",
+      "lastRecalledAt": "2026-06-26T00:05:23.347Z",
       "queryHashes": [
         "d59ea679510a",
         "cadaf8b3c403",
@@ -923,7 +923,9 @@
         "864df8c4a916",
         "e8b824a6831d",
         "47b0df841a9f",
-        "47909a95316e"
+        "47909a95316e",
+        "5a1ac2a34e9e",
+        "295c5e993897"
       ],
       "recallDays": [
         "2026-05-27",
@@ -931,7 +933,8 @@
         "2026-06-08",
         "2026-06-09",
         "2026-06-13",
-        "2026-06-22"
+        "2026-06-22",
+        "2026-06-26"
       ],
       "conceptTags": []
     },
@@ -942,27 +945,31 @@
       "endLine": 54,
       "source": "memory",
       "snippet": "） ---",
-      "recallCount": 6,
+      "recallCount": 9,
       "dailyCount": 0,
       "groundedCount": 0,
-      "totalScore": 2.5459384232759477,
+      "totalScore": 3.783141848444939,
       "maxScore": 0.4450517416000366,
       "firstRecalledAt": "2026-05-27T00:06:01.845Z",
-      "lastRecalledAt": "2026-06-16T00:05:05.991Z",
+      "lastRecalledAt": "2026-06-26T00:05:23.347Z",
       "queryHashes": [
         "d59ea679510a",
         "cadaf8b3c403",
         "3ffd0798d417",
         "bf22ea3ba355",
         "1033769d3d16",
-        "5bfdaffbe07b"
+        "5bfdaffbe07b",
+        "18fc82ac99ec",
+        "5a1ac2a34e9e",
+        "295c5e993897"
       ],
       "recallDays": [
         "2026-05-27",
         "2026-05-28",
         "2026-06-07",
         "2026-06-08",
-        "2026-06-16"
+        "2026-06-16",
+        "2026-06-26"
       ],
       "conceptTags": []
     },
@@ -1326,31 +1333,29 @@
       "startLine": 40,
       "endLine": 88,
       "source": "memory",
-      "snippet": "- 3 个 P0 累积至 **23 天**，M1 剩余仅 **9 个工作日**（5/6-5/9 + 5/11），压力峰值已到 - 冷启动成本最高：用户复工第一天，需要同时恢复 3 个搁置 23 天的上下文 ### 待做方向（复工 Day 1 优先级） - **P0-1**: execute_tool Span 确认 — 23 天，最高杠杆，一处解阻方向一 + 方向三 - **P0-2**: xray-log-query P0 SKILL 修复 — 恢复 Agent 日志查询能力 - **P0-3**: 告警诊断需求文档合并 — M1 通用 Skill 开发的必要输入 --- ## 方向二：PM 工作流自动化 ### 今日做了什么 **⏸️ 复工首日，零交互，无新进展。** ### 待办状态延续 | 待办 | 5/5 状态 | 5/6 状态 | 拖延天数 | 趋势 | |------|---------|---------|---------|------| | QS AutoFlow 合作方案文档 | ⏳ 第 20 天 | ⏳ 第 21 天 | 🔴 +1 | 方案初稿未启动 | | 与小庄下一次讨论 | ⏳ 未安排 | ⏳ 未安排 | 🔴 停滞 | 无变化 | | obs-token 云效流水线 | 🔄 待确认（10 天） | 🔄 待确认（11 天） | 🟢 第 11 天 | 方案就绪等确认 | | LangChain 学习笔记 | 🔄 进行中 | 🔄 进行中 | ➡️ 暂停 | 协作机制已建立 | ### 做得好的 - obs-token 流水线",
-      "recallCount": 2,
+      "snippet": "⏳ 未制定 | 🟡 停滞 | 无变化 | ### 待做方向",
+      "recallCount": 3,
       "dailyCount": 0,
       "groundedCount": 0,
-      "totalScore": 0.9282230973243712,
-      "maxScore": 0.46833871901035307,
+      "totalScore": 1.4082836508750916,
+      "maxScore": 0.4800605535507202,
       "firstRecalledAt": "2026-05-30T00:03:36.122Z",
-      "lastRecalledAt": "2026-06-01T00:03:36.923Z",
+      "lastRecalledAt": "2026-06-26T00:03:36.238Z",
       "queryHashes": [
         "f133c9272bca",
-        "2886f1069979"
+        "2886f1069979",
+        "b4235b3aff04"
       ],
       "recallDays": [
         "2026-05-30",
-        "2026-06-01"
+        "2026-06-01",
+        "2026-06-26"
       ],
       "conceptTags": [
-        "5/6-5/9",
-        "5/11",
-        "p0-1",
-        "execute-tool",
-        "p0-2",
-        "xray-log-query",
-        "p0-3",
-        "5/5"
+        "制定",
+        "停滞",
+        "变化",
+        "方向"
       ]
     },
     "memory:memory/work-log/2026-04-19.md:1:53": {
@@ -1886,14 +1891,14 @@
       "startLine": 40,
       "endLine": 87,
       "source": "memory",
-      "snippet": "- **P0 通胀模式持续固化** — searchadstrigger SOP 顺延 9 天、alipayservice 绑定顺延 8 天，P0 通胀已进入\"惯性滑行\"阶段 - **老 P0 跨 M1/M2/M3 超 45 天** — execute_tool Span / 需求文档合并 / xray-log-query 修复已成沉没成本 - **Trace 评估框架拖延 19 天** — 5/15 讨论完成的 5 维度体系（准确性/效率/路径/错误处理/覆盖率）至今未固化 - **M3 KR3 持续 0 业务线接入** — 要求 4 条线 ≥30%，当前 0/4，剩余 7 天 - **连续 12 天零 XRay 交互** — 5/21→6/1，跨越 M3 启动点 ### 待做方向 - **P0**: alipayservice Skill 绑定规则 151469 — 最快闭环（upload 已完成，只需确认） - **P0**: searchadstrigger SOP 落地 — 素材最完整，1-2 小时可交付 - **P0**: 广告收入诊断 + RPC 异常排查 SOP 合并确认 — 一次交互完成两个 SOP - **P1**: Trace 评估框架落文（**19 天拖延**，可作为公司内部 AI Skill 评估标准规范） - **P1**: 老 P0（execute_tool Span / 需求文档合并 / xray-log-query SKILL）三选一优先解阻 --- ## 方向二：PM 工作流自动化 ### 今日做了什么 **⚪ 无进展** ##",
-      "recallCount": 12,
+      "snippet": "）",
+      "recallCount": 14,
       "dailyCount": 0,
       "groundedCount": 0,
-      "totalScore": 5.329969286918641,
+      "totalScore": 6.173964968323709,
       "maxScore": 0.48043299615383145,
       "firstRecalledAt": "2026-06-03T00:03:36.911Z",
-      "lastRecalledAt": "2026-06-20T00:05:43.827Z",
+      "lastRecalledAt": "2026-06-26T00:05:00.040Z",
       "queryHashes": [
         "4997cc3be1bc",
         "b80ce953b7c7",
@@ -1905,7 +1910,9 @@
         "736f4e0a588b",
         "5bfdaffbe07b",
         "ebec75ec8db4",
-        "641fa6fa6b7a"
+        "641fa6fa6b7a",
+        "18fc82ac99ec",
+        "5a1ac2a34e9e"
       ],
       "recallDays": [
         "2026-06-03",
@@ -1917,7 +1924,8 @@
         "2026-06-13",
         "2026-06-16",
         "2026-06-18",
-        "2026-06-20"
+        "2026-06-20",
+        "2026-06-26"
       ],
       "conceptTags": [
         "m1/m2/m3",
@@ -2348,20 +2356,22 @@
       "endLine": 173,
       "source": "memory",
       "snippet": "-",
-      "recallCount": 2,
+      "recallCount": 3,
       "dailyCount": 0,
       "groundedCount": 0,
-      "totalScore": 0.8282154679298401,
+      "totalScore": 1.2190251260995866,
       "maxScore": 0.4212167292833328,
       "firstRecalledAt": "2026-06-08T00:05:15.744Z",
-      "lastRecalledAt": "2026-06-22T00:01:33.807Z",
+      "lastRecalledAt": "2026-06-26T00:05:23.347Z",
       "queryHashes": [
         "e8b824a6831d",
-        "47909a95316e"
+        "47909a95316e",
+        "295c5e993897"
       ],
       "recallDays": [
         "2026-06-08",
-        "2026-06-22"
+        "2026-06-22",
+        "2026-06-26"
       ],
       "conceptTags": []
     },
@@ -2666,23 +2676,27 @@
       "endLine": 42,
       "source": "memory",
       "snippet": "-------|",
-      "recallCount": 4,
+      "recallCount": 7,
       "dailyCount": 0,
       "groundedCount": 0,
-      "totalScore": 1.7209879875183105,
+      "totalScore": 2.983114087581634,
       "maxScore": 0.44792415797710416,
       "firstRecalledAt": "2026-06-16T00:03:37.077Z",
-      "lastRecalledAt": "2026-06-23T00:03:36.068Z",
+      "lastRecalledAt": "2026-06-26T00:05:23.347Z",
       "queryHashes": [
         "2dc993e2ec46",
         "5bfdaffbe07b",
         "47909a95316e",
-        "d8d5cd977461"
+        "d8d5cd977461",
+        "18fc82ac99ec",
+        "5a1ac2a34e9e",
+        "295c5e993897"
       ],
       "recallDays": [
         "2026-06-16",
         "2026-06-22",
-        "2026-06-23"
+        "2026-06-23",
+        "2026-06-26"
       ],
       "conceptTags": []
     },
@@ -2726,23 +2740,26 @@
       "endLine": 63,
       "source": "memory",
       "snippet": "🔜 待跟进",
-      "recallCount": 4,
+      "recallCount": 6,
       "dailyCount": 0,
       "groundedCount": 0,
-      "totalScore": 1.7654152184724807,
-      "maxScore": 0.4665698617696762,
+      "totalScore": 2.693915566802025,
+      "maxScore": 0.5096130073070526,
       "firstRecalledAt": "2026-06-16T00:05:05.991Z",
-      "lastRecalledAt": "2026-06-24T13:08:52.148Z",
+      "lastRecalledAt": "2026-06-26T00:04:56.570Z",
       "queryHashes": [
         "5bfdaffbe07b",
         "5431c0cfaa4e",
         "8134741d5c80",
-        "f7c302d50fbf"
+        "f7c302d50fbf",
+        "b4235b3aff04",
+        "18fc82ac99ec"
       ],
       "recallDays": [
         "2026-06-16",
         "2026-06-21",
-        "2026-06-24"
+        "2026-06-24",
+        "2026-06-26"
       ],
       "conceptTags": [
         "跟进"
@@ -3395,6 +3412,30 @@
         "自动化sdk/框架层自动上报",
         "skill",
         "平台"
+      ]
+    },
+    "memory:memory/work-log/2026-06-19.md:44:87": {
+      "key": "memory:memory/work-log/2026-06-19.md:44:87",
+      "path": "memory/work-log/2026-06-19.md",
+      "startLine": 44,
+      "endLine": 87,
+      "source": "memory",
+      "snippet": "## 待做方向",
+      "recallCount": 1,
+      "dailyCount": 0,
+      "groundedCount": 0,
+      "totalScore": 0.47276298999786376,
+      "maxScore": 0.47276298999786376,
+      "firstRecalledAt": "2026-06-26T00:03:36.238Z",
+      "lastRecalledAt": "2026-06-26T00:03:36.238Z",
+      "queryHashes": [
+        "b4235b3aff04"
+      ],
+      "recallDays": [
+        "2026-06-26"
+      ],
+      "conceptTags": [
+        "方向"
       ]
     }
   }
