@@ -1,14 +1,34 @@
-### memory/ 变更\n```\n只在 backup/2026-06-17/memory/daily-digest 存在：2026-06-11.md
-只在 backup/2026-06-17/memory/daily-digest 存在：2026-06-12.md
-只在 backup/2026-06-17/memory/daily-digest 存在：2026-06-14.md
-只在 backup/2026-06-17/memory/daily-digest 存在：2026-06-15.md
-文件 backup/2026-06-16/core/core/memory/.dreams/events.jsonl 和 backup/2026-06-17/memory/.dreams/events.jsonl 不同
-文件 backup/2026-06-16/core/core/memory/.dreams/short-term-recall.json 和 backup/2026-06-17/memory/.dreams/short-term-recall.json 不同
-只在 backup/2026-06-16/core/core/memory 存在：memory
-文件 backup/2026-06-16/core/core/memory/self-improving/projects/pending_tasks.md 和 backup/2026-06-17/memory/self-improving/projects/pending_tasks.md 不同
-只在 backup/2026-06-17/memory/weekly 存在：2026-W24-growth-report.md
-只在 backup/2026-06-17/memory/work-log 存在：2026-06-11.md
-只在 backup/2026-06-17/memory/work-log 存在：2026-06-12.md
-只在 backup/2026-06-17/memory/work-log 存在：2026-06-13.md
-只在 backup/2026-06-17/memory/work-log 存在：2026-06-15.md
-只在 backup/2026-06-17/memory/work-log 存在：2026-06-16.md\n```\n\n### agents/ 变更\n```\n只在 backup/2026-06-16/core/core/agents 存在：agents\n```\n\n
+# 每日备份差异报告
+
+**日期**: 2026-06-28
+**对比基准**: 2026-06-27
+
+## 📄 核心文件变更
+
+- **MEMORY.md**: 无变更
+- **SOUL.md**: 无变更
+- **AGENTS.md**: 无变更
+- **ROUTING.md**: 无变更
+- **TOOLS.md**: 无变更
+- **USER.md**: 无变更
+- **IDENTITY.md**: 无变更
+- **HEARTBEAT.md**: 无变更
+
+## 📂 memory/ 目录变更
+
+memory/ 目录结构无变更
+
+## 📊 Git 状态
+
+```
+ M MEMORY.md
+ M backup/diff.md
+ M memory/.dreams/events.jsonl
+ M memory/.dreams/short-term-recall.json
+ M self-improving/projects/pending_tasks.md
+ m xray-src
+?? backup/2026-06-28/
+?? memory/daily-digest/2026-06-26.md
+?? memory/work-log/2026-06-27.md
+```
+
