@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updatedAt": "2026-06-26T00:05:23.347Z",
+  "updatedAt": "2026-06-28T00:04:42.054Z",
   "entries": {
     "memory:memory/2026-03-24.md:26:66": {
       "key": "memory:memory/2026-03-24.md:26:66",
@@ -700,13 +700,13 @@
       "endLine": 152,
       "source": "memory",
       "snippet": "）",
-      "recallCount": 7,
+      "recallCount": 8,
       "dailyCount": 0,
       "groundedCount": 0,
-      "totalScore": 3.084649163484573,
+      "totalScore": 3.487435668706894,
       "maxScore": 0.47716631591320036,
       "firstRecalledAt": "2026-05-26T00:03:36.522Z",
-      "lastRecalledAt": "2026-06-23T00:03:36.068Z",
+      "lastRecalledAt": "2026-06-28T00:04:42.054Z",
       "queryHashes": [
         "5601a4f18d36",
         "4f2975ffb8c2",
@@ -714,13 +714,15 @@
         "cadaf8b3c403",
         "3ffd0798d417",
         "864df8c4a916",
-        "d8d5cd977461"
+        "d8d5cd977461",
+        "e776d57e3651"
       ],
       "recallDays": [
         "2026-05-26",
         "2026-05-27",
         "2026-05-28",
-        "2026-06-23"
+        "2026-06-23",
+        "2026-06-28"
       ],
       "conceptTags": []
     },
@@ -909,13 +911,13 @@
       "endLine": 116,
       "source": "memory",
       "snippet": "--",
-      "recallCount": 10,
+      "recallCount": 11,
       "dailyCount": 0,
       "groundedCount": 0,
-      "totalScore": 4.342656198143959,
+      "totalScore": 4.739784842729568,
       "maxScore": 0.4714791655540466,
       "firstRecalledAt": "2026-05-27T00:06:01.845Z",
-      "lastRecalledAt": "2026-06-26T00:05:23.347Z",
+      "lastRecalledAt": "2026-06-27T00:05:13.611Z",
       "queryHashes": [
         "d59ea679510a",
         "cadaf8b3c403",
@@ -925,7 +927,8 @@
         "47b0df841a9f",
         "47909a95316e",
         "5a1ac2a34e9e",
-        "295c5e993897"
+        "295c5e993897",
+        "26a327e3452f"
       ],
       "recallDays": [
         "2026-05-27",
@@ -934,7 +937,8 @@
         "2026-06-09",
         "2026-06-13",
         "2026-06-22",
-        "2026-06-26"
+        "2026-06-26",
+        "2026-06-27"
       ],
       "conceptTags": []
     },
@@ -945,13 +949,13 @@
       "endLine": 54,
       "source": "memory",
       "snippet": "） ---",
-      "recallCount": 9,
+      "recallCount": 11,
       "dailyCount": 0,
       "groundedCount": 0,
-      "totalScore": 3.783141848444939,
+      "totalScore": 4.583890169858933,
       "maxScore": 0.4450517416000366,
       "firstRecalledAt": "2026-05-27T00:06:01.845Z",
-      "lastRecalledAt": "2026-06-26T00:05:23.347Z",
+      "lastRecalledAt": "2026-06-27T00:05:13.611Z",
       "queryHashes": [
         "d59ea679510a",
         "cadaf8b3c403",
@@ -961,7 +965,8 @@
         "5bfdaffbe07b",
         "18fc82ac99ec",
         "5a1ac2a34e9e",
-        "295c5e993897"
+        "295c5e993897",
+        "26a327e3452f"
       ],
       "recallDays": [
         "2026-05-27",
@@ -969,7 +974,8 @@
         "2026-06-07",
         "2026-06-08",
         "2026-06-16",
-        "2026-06-26"
+        "2026-06-26",
+        "2026-06-27"
       ],
       "conceptTags": []
     },
@@ -980,20 +986,22 @@
       "endLine": 151,
       "source": "memory",
       "snippet": "**：",
-      "recallCount": 2,
+      "recallCount": 3,
       "dailyCount": 0,
       "groundedCount": 0,
-      "totalScore": 0.8580911517143249,
+      "totalScore": 1.2625130832195282,
       "maxScore": 0.43457317650318145,
       "firstRecalledAt": "2026-05-27T13:48:03.802Z",
-      "lastRecalledAt": "2026-06-24T13:08:52.148Z",
+      "lastRecalledAt": "2026-06-28T00:04:42.054Z",
       "queryHashes": [
         "cadaf8b3c403",
-        "f7c302d50fbf"
+        "f7c302d50fbf",
+        "e776d57e3651"
       ],
       "recallDays": [
         "2026-05-27",
-        "2026-06-24"
+        "2026-06-24",
+        "2026-06-28"
       ],
       "conceptTags": []
     },
@@ -1892,13 +1900,13 @@
       "endLine": 87,
       "source": "memory",
       "snippet": "）",
-      "recallCount": 14,
+      "recallCount": 15,
       "dailyCount": 0,
       "groundedCount": 0,
-      "totalScore": 6.173964968323709,
+      "totalScore": 6.5768741399049775,
       "maxScore": 0.48043299615383145,
       "firstRecalledAt": "2026-06-03T00:03:36.911Z",
-      "lastRecalledAt": "2026-06-26T00:05:00.040Z",
+      "lastRecalledAt": "2026-06-27T00:05:04.931Z",
       "queryHashes": [
         "4997cc3be1bc",
         "b80ce953b7c7",
@@ -1912,7 +1920,8 @@
         "ebec75ec8db4",
         "641fa6fa6b7a",
         "18fc82ac99ec",
-        "5a1ac2a34e9e"
+        "5a1ac2a34e9e",
+        "1033769d3d16"
       ],
       "recallDays": [
         "2026-06-03",
@@ -1925,7 +1934,8 @@
         "2026-06-16",
         "2026-06-18",
         "2026-06-20",
-        "2026-06-26"
+        "2026-06-26",
+        "2026-06-27"
       ],
       "conceptTags": [
         "m1/m2/m3",
@@ -2273,19 +2283,21 @@
       "endLine": 129,
       "source": "memory",
       "snippet": "：`messages`、`raw_input`、`response_content`、状态",
-      "recallCount": 2,
+      "recallCount": 3,
       "dailyCount": 0,
       "groundedCount": 0,
-      "totalScore": 0.8220979005098343,
+      "totalScore": 1.2289388209581376,
       "maxScore": 0.41966316401958464,
       "firstRecalledAt": "2026-06-07T00:05:12.951Z",
-      "lastRecalledAt": "2026-06-07T00:05:16.955Z",
+      "lastRecalledAt": "2026-06-27T00:05:04.931Z",
       "queryHashes": [
         "bf22ea3ba355",
-        "0d725821a7bf"
+        "0d725821a7bf",
+        "1033769d3d16"
       ],
       "recallDays": [
-        "2026-06-07"
+        "2026-06-07",
+        "2026-06-27"
       ],
       "conceptTags": [
         "raw-input",
@@ -2676,13 +2688,13 @@
       "endLine": 42,
       "source": "memory",
       "snippet": "-------|",
-      "recallCount": 7,
+      "recallCount": 10,
       "dailyCount": 0,
       "groundedCount": 0,
-      "totalScore": 2.983114087581634,
+      "totalScore": 4.216110265254974,
       "maxScore": 0.44792415797710416,
       "firstRecalledAt": "2026-06-16T00:03:37.077Z",
-      "lastRecalledAt": "2026-06-26T00:05:23.347Z",
+      "lastRecalledAt": "2026-06-28T00:04:42.054Z",
       "queryHashes": [
         "2dc993e2ec46",
         "5bfdaffbe07b",
@@ -2690,13 +2702,18 @@
         "d8d5cd977461",
         "18fc82ac99ec",
         "5a1ac2a34e9e",
-        "295c5e993897"
+        "295c5e993897",
+        "1033769d3d16",
+        "26a327e3452f",
+        "e776d57e3651"
       ],
       "recallDays": [
         "2026-06-16",
         "2026-06-22",
         "2026-06-23",
-        "2026-06-26"
+        "2026-06-26",
+        "2026-06-27",
+        "2026-06-28"
       ],
       "conceptTags": []
     },
@@ -2993,22 +3010,26 @@
       "endLine": 125,
       "source": "memory",
       "snippet": "络稳定 - **✅ daily-digest Hi 通知正常发送** — 每日 8:00 准时推送至 mahengyang",
-      "recallCount": 3,
+      "recallCount": 5,
       "dailyCount": 0,
       "groundedCount": 0,
-      "totalScore": 1.3723995685577393,
+      "totalScore": 2.1807868123054504,
       "maxScore": 0.500451248884201,
       "firstRecalledAt": "2026-06-20T00:07:07.732Z",
-      "lastRecalledAt": "2026-06-22T00:01:33.807Z",
+      "lastRecalledAt": "2026-06-28T00:04:42.054Z",
       "queryHashes": [
         "a0b413571392",
         "8134741d5c80",
-        "47909a95316e"
+        "47909a95316e",
+        "26a327e3452f",
+        "e776d57e3651"
       ],
       "recallDays": [
         "2026-06-20",
         "2026-06-21",
-        "2026-06-22"
+        "2026-06-22",
+        "2026-06-27",
+        "2026-06-28"
       ],
       "conceptTags": [
         "daily-digest",
