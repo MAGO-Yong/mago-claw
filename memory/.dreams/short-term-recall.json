@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updatedAt": "2026-06-29T00:03:35.641Z",
+  "updatedAt": "2026-06-30T00:01:37.611Z",
   "entries": {
     "memory:memory/2026-03-24.md:26:66": {
       "key": "memory:memory/2026-03-24.md:26:66",
@@ -1909,14 +1909,14 @@
       "startLine": 40,
       "endLine": 87,
       "source": "memory",
-      "snippet": "- **P0 通胀模式持续固化** — searchadstrigger SOP 顺延 9 天、alipayservice 绑定顺延 8 天，P0 通胀已进入\"惯性滑行\"阶段 - **老 P0 跨 M1/M2/M3 超 45 天** — execute_tool Span / 需求文档合并 / xray-log-query 修复已成沉没成本 - **Trace 评估框架拖延 19 天** — 5/15 讨论完成的 5 维度体系（准确性/效率/路径/错误处理/覆盖率）至今未固化 - **M3 KR3 持续 0 业务线接入** — 要求 4 条线 ≥30%，当前 0/4，剩余 7 天 - **连续 12 天零 XRay 交互** — 5/21→6/1，跨越 M3 启动点 ### 待做方向 - **P0**: alipayservice Skill 绑定规则 151469 — 最快闭环（upload 已完成，只需确认） - **P0**: searchadstrigger SOP 落地 — 素材最完整，1-2 小时可交付 - **P0**: 广告收入诊断 + RPC 异常排查 SOP 合并确认 — 一次交互完成两个 SOP - **P1**: Trace 评估框架落文（**19 天拖延**，可作为公司内部 AI Skill 评估标准规范） - **P1**: 老 P0（execute_tool Span / 需求文档合并 / xray-log-query SKILL）三选一优先解阻 --- ## 方向二：PM 工作流自动化 ### 今日做了什么 **⚪ 无进展** ##",
-      "recallCount": 16,
+      "snippet": "）",
+      "recallCount": 17,
       "dailyCount": 0,
       "groundedCount": 0,
-      "totalScore": 7.038142749667169,
+      "totalScore": 7.452661436796189,
       "maxScore": 0.48043299615383145,
       "firstRecalledAt": "2026-06-03T00:03:36.911Z",
-      "lastRecalledAt": "2026-06-29T00:03:35.641Z",
+      "lastRecalledAt": "2026-06-30T00:01:37.611Z",
       "queryHashes": [
         "4997cc3be1bc",
         "b80ce953b7c7",
@@ -1932,7 +1932,8 @@
         "18fc82ac99ec",
         "5a1ac2a34e9e",
         "1033769d3d16",
-        "30a5ac26964f"
+        "30a5ac26964f",
+        "53f81686bf22"
       ],
       "recallDays": [
         "2026-06-03",
@@ -1947,7 +1948,8 @@
         "2026-06-20",
         "2026-06-26",
         "2026-06-27",
-        "2026-06-29"
+        "2026-06-29",
+        "2026-06-30"
       ],
       "conceptTags": [
         "m1/m2/m3",
@@ -2702,13 +2704,13 @@
       "endLine": 42,
       "source": "memory",
       "snippet": "-------|",
-      "recallCount": 10,
+      "recallCount": 11,
       "dailyCount": 0,
       "groundedCount": 0,
-      "totalScore": 4.216110265254974,
+      "totalScore": 4.641635400056838,
       "maxScore": 0.44792415797710416,
       "firstRecalledAt": "2026-06-16T00:03:37.077Z",
-      "lastRecalledAt": "2026-06-28T00:04:42.054Z",
+      "lastRecalledAt": "2026-06-30T00:01:37.611Z",
       "queryHashes": [
         "2dc993e2ec46",
         "5bfdaffbe07b",
@@ -2719,7 +2721,8 @@
         "295c5e993897",
         "1033769d3d16",
         "26a327e3452f",
-        "e776d57e3651"
+        "e776d57e3651",
+        "53f81686bf22"
       ],
       "recallDays": [
         "2026-06-16",
@@ -2727,7 +2730,8 @@
         "2026-06-23",
         "2026-06-26",
         "2026-06-27",
-        "2026-06-28"
+        "2026-06-28",
+        "2026-06-30"
       ],
       "conceptTags": []
     },
@@ -2771,26 +2775,28 @@
       "endLine": 63,
       "source": "memory",
       "snippet": "🔜 待跟进",
-      "recallCount": 6,
+      "recallCount": 7,
       "dailyCount": 0,
       "groundedCount": 0,
-      "totalScore": 2.693915566802025,
+      "totalScore": 3.111495926976204,
       "maxScore": 0.5096130073070526,
       "firstRecalledAt": "2026-06-16T00:05:05.991Z",
-      "lastRecalledAt": "2026-06-26T00:04:56.570Z",
+      "lastRecalledAt": "2026-06-30T00:01:37.611Z",
       "queryHashes": [
         "5bfdaffbe07b",
         "5431c0cfaa4e",
         "8134741d5c80",
         "f7c302d50fbf",
         "b4235b3aff04",
-        "18fc82ac99ec"
+        "18fc82ac99ec",
+        "53f81686bf22"
       ],
       "recallDays": [
         "2026-06-16",
         "2026-06-21",
         "2026-06-24",
-        "2026-06-26"
+        "2026-06-26",
+        "2026-06-30"
       ],
       "conceptTags": [
         "跟进"
