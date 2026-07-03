@@ -1,44 +1,40 @@
-# Backup Diff: 2026-07-02 → 2026-07-03
+# Backup Diff: 2026-07-03 → 2026-07-04
 
-**Generated**: 2026-07-03 02:00 CST
-**Compared**: backup/2026-07-02/snapshot/ vs backup/2026-07-03/snapshot/
+**Generated**: 2026-07-04 02:00 CST (Asia/Shanghai)
+**Compared**: workspace HEAD vs backup/2026-07-03/snapshot/
 
 ## Summary
 
 | 类型 | 数量 |
 |------|------|
-| 新增文件 | 2 |
-| 修改文件 | 2 |
+| 修改文件 | 3 |
+| 新增文件 | 1 |
 | 删除文件 | 0 |
-
-## 新增文件
-
-| 文件 | 大小 |
-|------|------|
-| `memory/daily-digest/2026-07-01.md` | new |
-| `memory/work-log/2026-07-02.md` | new |
 
 ## 修改文件
 
-| 文件 | 变更 |
-|------|------|
-| `memory/.dreams/events.jsonl` | updated |
-| `memory/.dreams/short-term-recall.json` | updated |
+### 1. memory/.dreams/events.jsonl
+- 新增 1 条事件记录
 
-## 核心文件状态
+### 2. memory/.dreams/short-term-recall.json
+- 大幅增加短期记忆数据（+56 行净增）
+- 新增多条近期对话回忆片段
 
-| 文件 | 状态 |
-|------|------|
-| MEMORY.md | ✅ 无变化 |
-| SOUL.md | ✅ 无变化 |
-| AGENTS.md | ✅ 无变化 |
-| USER.md | ✅ 无变化 |
-| IDENTITY.md | ✅ 无变化 |
-| TOOLS.md | ✅ 无变化 |
-| ROUTING.md | ✅ 无变化 |
-| memory/ | ⚠️ 4 处变更（2新增 + 2修改）|
-| agents/ | ✅ 无变化 |
+### 3. self-improving/projects/pending_tasks.md
+- 任务列表更新（+14/-5 行）
+- 部分任务状态变更
 
-## 结论
+## 新增文件
 
-工作区保持稳定，核心文件无变更。仅记忆子系统（daily-digest、work-log、.dreams）有日常增量写入。
+### 1. memory/daily-digest/2026-07-02.md
+- 2026-07-02 每日摘要新生成
+
+## 未变化核心文件
+
+- MEMORY.md（无变更）
+- SOUL.md（无变更）
+- AGENTS.md（无变更）
+- ROUTING.md（无变更）
+- IDENTITY.md（无变更）
+- USER.md（无变更）
+- TOOLS.md（无变更）
